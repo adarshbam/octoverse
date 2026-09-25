@@ -6,12 +6,18 @@ interface OctopusEyesProps {
   mouseX: number;
   mouseY: number;
   isHappy?: boolean;
+  isSleeping?: boolean;
+  isWinking?: boolean;
+  onDoubleClickEyes?: () => void;
 }
 
 export const OctopusEyes: React.FC<OctopusEyesProps> = ({
   mouseX,
   mouseY,
   isHappy = false,
+  isSleeping = false,
+  isWinking = false,
+  onDoubleClickEyes,
 }) => {
   const eyesGroupRef = useRef<SVGGElement | null>(null);
   const [isBlinking, setIsBlinking] = useState(false);
@@ -24,8 +30,10 @@ export const OctopusEyes: React.FC<OctopusEyesProps> = ({
     maxRadius: 12,
   });
 
-  // Procedural blinking timer: blinks every 3.5 to 6 seconds
+  // Procedural blinking timer: blinks every 3.5 to 6 seconds (disabled while sleeping)
   useEffect(() => {
+    if (isSleeping) return;
+
     let timeoutId: number;
 
     const scheduleNextBlink = () => {
@@ -41,10 +49,18 @@ export const OctopusEyes: React.FC<OctopusEyesProps> = ({
 
     scheduleNextBlink();
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [isSleeping]);
+
+  const leftEyeClosed = isSleeping || isWinking;
+  const rightEyeClosed = isSleeping;
 
   return (
-    <g ref={eyesGroupRef} id="octopus-eyes">
+    <g
+      ref={eyesGroupRef}
+      id="octopus-eyes"
+      onDoubleClick={onDoubleClickEyes}
+      className="cursor-pointer"
+    >
       {/* ----------------- LEFT EYE ----------------- */}
       <g transform="translate(-46, -25)">
         {/* Cute Arched Eyelashes from Girlfriend's Sketch */}
@@ -54,7 +70,16 @@ export const OctopusEyes: React.FC<OctopusEyesProps> = ({
           <path d="M 16 -32 Q 22 -44 26 -48" />
         </g>
 
-        {isHappy ? (
+        {leftEyeClosed ? (
+          /* Peaceful Sleeping / Winking Closed Curve */
+          <path
+            d="M -22 -4 Q 0 10 22 -4"
+            fill="none"
+            stroke="#0f172a"
+            strokeWidth="4.5"
+            strokeLinecap="round"
+          />
+        ) : isHappy ? (
           /* Happy Squint Eye Shape (^ ^) when delighted/blushing */
           <path
             d="M -22 -4 Q 0 -34 22 -4"
@@ -115,7 +140,16 @@ export const OctopusEyes: React.FC<OctopusEyesProps> = ({
           <path d="M 16 -32 Q 22 -44 26 -48" />
         </g>
 
-        {isHappy ? (
+        {rightEyeClosed ? (
+          /* Peaceful Sleeping Closed Curve */
+          <path
+            d="M -22 -4 Q 0 10 22 -4"
+            fill="none"
+            stroke="#0f172a"
+            strokeWidth="4.5"
+            strokeLinecap="round"
+          />
+        ) : isHappy ? (
           /* Happy Squint Eye Shape (^ ^) when delighted/blushing */
           <path
             d="M -22 -4 Q 0 -34 22 -4"

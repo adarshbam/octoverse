@@ -4,15 +4,20 @@ import { motion } from 'framer-motion';
 interface OctopusMouthProps {
   isOpen?: boolean;
   isHappy?: boolean;
+  isSleeping?: boolean;
 }
 
 export const OctopusMouth: React.FC<OctopusMouthProps> = ({
   isOpen = false,
   isHappy = false,
+  isSleeping = false,
 }) => {
   return (
     <g id="octopus-mouth" transform="translate(0, 38)">
-      {isOpen || isHappy ? (
+      {isSleeping ? (
+        /* Sleepy relaxed little mouth */
+        <ellipse cx="0" cy="2" rx="4" ry="3.5" fill="#0f172a" opacity={0.75} />
+      ) : isOpen || isHappy ? (
         /* Delighted / "Oh!" Open Mouth with Tongue */
         <motion.g
           initial={{ scale: 0.8, opacity: 0 }}

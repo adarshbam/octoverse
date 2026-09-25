@@ -13,9 +13,12 @@ interface OctopusCharacterProps {
   techNodes: TechNode[];
   hoveredTechId: string | null;
   activeCategory?: string;
+  isSleeping?: boolean;
+  isWinking?: boolean;
   onHoverTech: (id: string | null) => void;
   onSelectTech: (tech: TechNode) => void;
   onHeadClick?: () => void;
+  onDoubleClickEyes?: () => void;
 }
 
 export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
@@ -24,9 +27,12 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
   techNodes,
   hoveredTechId,
   activeCategory = 'all',
+  isSleeping = false,
+  isWinking = false,
   onHoverTech,
   onSelectTech,
   onHeadClick,
+  onDoubleClickEyes,
 }) => {
   const [isBlushing, setIsBlushing] = useState(false);
   const [blushSparkles, setBlushSparkles] = useState<number[]>([]);
@@ -94,15 +100,59 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
         {/* 2. HEAD MANTLE & CHEEKS (Renders over tentacle roots) */}
         <OctopusHead isBlushing={isBlushing} onClickHead={handleHeadClick} />
 
-        {/* 3. EXPRESSIVE EYES (Tracks cursor & blinks) */}
+        {/* 3. EXPRESSIVE EYES (Tracks cursor, blinks, winks, sleeps) */}
         <OctopusEyes
           mouseX={mouseX}
           mouseY={mouseY}
           isHappy={isBlushing}
+          isSleeping={isSleeping}
+          isWinking={isWinking}
+          onDoubleClickEyes={onDoubleClickEyes}
         />
 
-        {/* 4. REACTIVE MOUTH (Opens to "Oh!" when tech is hovered) */}
-        <OctopusMouth isOpen={isDelighted} isHappy={isBlushing} />
+        {/* 4. REACTIVE MOUTH (Opens to "Oh!" when tech is hovered, relaxed when asleep) */}
+        <OctopusMouth
+          isOpen={isDelighted && !isSleeping}
+          isHappy={isBlushing}
+          isSleeping={isSleeping}
+        />
+
+        {/* 5. FLOATING SLEEP "Zzz" BUBBLES */}
+        {isSleeping && (
+          <g id="octopus-sleeping-zzz" className="pointer-events-none select-none">
+            {[
+              { id: 1, x: 50, y: -90, size: 16, delay: 0 },
+              { id: 2, x: 75, y: -120, size: 22, delay: 0.6 },
+              { id: 3, x: 105, y: -155, size: 28, delay: 1.2 },
+            ].map((z) => (
+              <motion.text
+                key={z.id}
+                x={z.x}
+                y={z.y}
+                fill="#38bdf8"
+                fontSize={z.size}
+                fontWeight="900"
+                fontFamily="system-ui, sans-serif"
+                opacity={0.8}
+                className="drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                animate={{
+                  y: [z.y, z.y - 25, z.y - 45],
+                  x: [z.x, z.x + 8, z.x + 4],
+                  opacity: [0, 0.9, 0],
+                  scale: [0.8, 1.1, 1.25],
+                }}
+                transition={{
+                  duration: 2.4,
+                  repeat: Infinity,
+                  delay: z.delay,
+                  ease: 'easeInOut',
+                }}
+              >
+                z
+              </motion.text>
+            ))}
+          </g>
+        )}
       </motion.svg>
     </div>
   );

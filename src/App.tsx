@@ -9,9 +9,10 @@ import { ProjectShowcaseDrawer } from './components/showcase/ProjectShowcaseDraw
 import { RecruiterDrawer } from './components/recruiter/RecruiterDrawer';
 import { DrawingModal } from './components/modals/DrawingModal';
 import { useAudioSynth } from './utils/useAudioSynth';
+import { useIdleTimer } from './components/octopus/useIdleTimer';
 import { TECH_NODES } from './data/techStack';
 import type { MousePosition, TechNode } from './types';
-import { Sparkles, Heart } from 'lucide-react';
+import { Sparkles, Heart, Moon } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [isRecruiterDrawerOpen, setIsRecruiterDrawerOpen] = useState(false);
@@ -20,6 +21,16 @@ export const App: React.FC = () => {
   const [selectedTech, setSelectedTech] = useState<TechNode | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [isMuted, setIsMuted] = useState(true);
+  const [isWinking, setIsWinking] = useState(false);
+
+  // Inactivity detection (32s idle -> peaceful sleep mode)
+  const isIdle = useIdleTimer(32000);
+  const isSleeping =
+    isIdle &&
+    !hoveredTechId &&
+    !selectedTech &&
+    !isRecruiterDrawerOpen &&
+    !isDrawingModalOpen;
 
   // Procedural Web Audio Synthesizer
   const { playBubblePop, playChime, playBlushChime } = useAudioSynth(isMuted);
@@ -47,6 +58,26 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  const handleDoubleClickEyes = () => {
+    setIsWinking(true);
+    playChime();
+    window.setTimeout(() => setIsWinking(false), 1200);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      const normalizedX = (touch.clientX / window.innerWidth) * 2 - 1;
+      const normalizedY = (touch.clientY / window.innerHeight) * 2 - 1;
+      setMousePos({
+        x: touch.clientX,
+        y: touch.clientY,
+        normalizedX,
+        normalizedY,
+      });
+    }
+  };
+
   const handleHoverTech = (id: string | null) => {
     if (id && id !== hoveredTechId) {
       playBubblePop();
@@ -62,7 +93,10 @@ export const App: React.FC = () => {
   const activeTech = TECH_NODES.find((t) => t.id === hoveredTechId);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+    <main
+      onTouchMove={handleTouchMove}
+      className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none"
+    >
       {/* 1. Deep Ocean Canvas Environment (Water displacement + bubbles + caustics) */}
       <OceanBackground />
 
@@ -91,16 +125,30 @@ export const App: React.FC = () => {
             techNodes={TECH_NODES}
             hoveredTechId={hoveredTechId}
             activeCategory={activeCategory}
+            isSleeping={isSleeping}
+            isWinking={isWinking}
             onHoverTech={handleHoverTech}
             onSelectTech={handleSelectTech}
             onHeadClick={playBlushChime}
+            onDoubleClickEyes={handleDoubleClickEyes}
           />
         </div>
 
         {/* 5. Interactive Live Feedback HUD (Shows what the octopus noticed) */}
         <div className="mt-1 text-center max-w-lg pointer-events-auto h-11 flex items-center justify-center">
           <AnimatePresence mode="wait">
-            {activeTech ? (
+            {isSleeping ? (
+              <motion.div
+                key="sleeping-hint"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-[11.5px] text-cyan-300 font-medium backdrop-blur-sm shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+              >
+                <Moon size={13} className="text-cyan-400 animate-pulse" />
+                <span>Shhh... the Kraken is napping. Move cursor or tap to wake!</span>
+              </motion.div>
+            ) : activeTech ? (
               <motion.div
                 key={activeTech.id}
                 initial={{ opacity: 0, y: 8, scale: 0.95 }}

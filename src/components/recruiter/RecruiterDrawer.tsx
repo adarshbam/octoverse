@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, ExternalLink, Mail, Shield, Zap, Server } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { GithubIcon, LinkedinIcon } from '../icons/BrandIcons';
 
 interface RecruiterDrawerProps {
@@ -9,6 +10,21 @@ interface RecruiterDrawerProps {
 }
 
 export const RecruiterDrawer: React.FC<RecruiterDrawerProps> = ({ isOpen, onClose }) => {
+  const handleDownloadResume = () => {
+    try {
+      confetti({
+        particleCount: 75,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#06b6d4', '#38bdf8', '#10b981', '#fbbf24', '#ffffff'],
+        shapes: ['circle'],
+        zIndex: 99999,
+      });
+    } catch {
+      // Confetti fallback
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -64,6 +80,7 @@ export const RecruiterDrawer: React.FC<RecruiterDrawerProps> = ({ isOpen, onClos
                   href="/resume.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleDownloadResume}
                   className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors shadow-lg shadow-cyan-500/20"
                 >
                   <Download size={14} />
