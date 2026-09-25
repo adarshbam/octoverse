@@ -15,6 +15,7 @@ interface TentacleProps {
   tech: TechNode;
   config: TentacleConfig;
   isHovered: boolean;
+  isDimmed?: boolean;
   onHover: (id: string | null) => void;
   onClick: (tech: TechNode) => void;
 }
@@ -23,6 +24,7 @@ export const Tentacle: React.FC<TentacleProps> = ({
   tech,
   config,
   isHovered,
+  isDimmed = false,
   onHover,
   onClick,
 }) => {
@@ -74,7 +76,11 @@ export const Tentacle: React.FC<TentacleProps> = ({
   const pathD = `M ${start.x} ${start.y} C ${targetCp1.x} ${targetCp1.y}, ${targetCp2.x} ${targetCp2.y}, ${targetEnd.x} ${targetEnd.y}`;
 
   return (
-    <g id={`tentacle-${tech.id}`}>
+    <g
+      id={`tentacle-${tech.id}`}
+      opacity={isDimmed ? 0.25 : 1}
+      className="transition-opacity duration-300"
+    >
       <defs>
         {/* Bioluminescent Tentacle Shading Gradient */}
         <linearGradient

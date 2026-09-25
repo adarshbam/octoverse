@@ -12,8 +12,10 @@ interface OctopusCharacterProps {
   mouseY: number;
   techNodes: TechNode[];
   hoveredTechId: string | null;
+  activeCategory?: string;
   onHoverTech: (id: string | null) => void;
   onSelectTech: (tech: TechNode) => void;
+  onHeadClick?: () => void;
 }
 
 export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
@@ -21,8 +23,10 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
   mouseY,
   techNodes,
   hoveredTechId,
+  activeCategory = 'all',
   onHoverTech,
   onSelectTech,
+  onHeadClick,
 }) => {
   const [isBlushing, setIsBlushing] = useState(false);
   const [blushSparkles, setBlushSparkles] = useState<number[]>([]);
@@ -30,6 +34,7 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
   const handleHeadClick = () => {
     setIsBlushing(true);
     setBlushSparkles((prev) => [...prev, Date.now()]);
+    onHeadClick?.();
 
     // Reset blush after 3 seconds
     window.setTimeout(() => {
@@ -81,6 +86,7 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
         <TentacleSystem
           techNodes={techNodes}
           hoveredTechId={hoveredTechId}
+          activeCategory={activeCategory}
           onHoverTech={onHoverTech}
           onSelectTech={onSelectTech}
         />

@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Heart, Volume2, VolumeX, Briefcase } from 'lucide-react';
 import { GithubIcon } from '../icons/BrandIcons';
 
 interface HeaderBarProps {
+  isMuted: boolean;
+  onToggleMute: () => void;
   onOpenRecruiterDrawer: () => void;
   onOpenDrawingModal: () => void;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
+  isMuted,
+  onToggleMute,
   onOpenRecruiterDrawer,
   onOpenDrawingModal,
 }) => {
-  const [isMuted, setIsMuted] = useState(true);
-
-  const toggleAudio = () => {
-    setIsMuted(!isMuted);
-  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between pointer-events-auto">
@@ -59,7 +58,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       <div className="flex items-center gap-2.5">
         {/* Ambient Sound Toggle */}
         <button
-          onClick={toggleAudio}
+          onClick={onToggleMute}
           className="w-8 h-8 rounded-xl glass-panel hover:bg-slate-800/80 flex items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
           title={isMuted ? 'Unmute Ambient Sound' : 'Mute Ambient Sound'}
         >

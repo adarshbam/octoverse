@@ -5,6 +5,7 @@ import { Tentacle } from './Tentacle';
 interface TentacleSystemProps {
   techNodes: TechNode[];
   hoveredTechId: string | null;
+  activeCategory?: string;
   onHoverTech: (id: string | null) => void;
   onSelectTech: (tech: TechNode) => void;
 }
@@ -107,6 +108,7 @@ const TENTACLE_CONFIGS: Record<
 export const TentacleSystem: React.FC<TentacleSystemProps> = ({
   techNodes,
   hoveredTechId,
+  activeCategory = 'all',
   onHoverTech,
   onSelectTech,
 }) => {
@@ -117,6 +119,7 @@ export const TentacleSystem: React.FC<TentacleSystemProps> = ({
         if (!config) return null;
 
         const isHovered = hoveredTechId === tech.id;
+        const isDimmed = activeCategory !== 'all' && tech.category !== activeCategory;
 
         return (
           <Tentacle
@@ -124,6 +127,7 @@ export const TentacleSystem: React.FC<TentacleSystemProps> = ({
             tech={tech}
             config={config}
             isHovered={isHovered}
+            isDimmed={isDimmed}
             onHover={onHoverTech}
             onClick={onSelectTech}
           />
