@@ -88,7 +88,7 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
           ease: 'easeInOut',
         }}
       >
-        {/* 1. TENTACLES & TEARDROP ORBS (Rendered behind head mantle) */}
+        {/* 1. TENTACLES & TEARDROP ORBS (Rendered behind head mantle so roots anchor under skirt) */}
         <TentacleSystem
           techNodes={techNodes}
           hoveredTechId={hoveredTechId}
@@ -97,7 +97,7 @@ export const OctopusCharacter: React.FC<OctopusCharacterProps> = ({
           onSelectTech={onSelectTech}
         />
 
-        {/* 2. HEAD MANTLE & CHEEKS (Renders over tentacle roots) */}
+        {/* 2. HEAD MANTLE & CHEEKS (Smooth bioluminescent dome covering tentacle origins) */}
         <OctopusHead isBlushing={isBlushing} onClickHead={handleHeadClick} />
 
         {/* 3. EXPRESSIVE EYES (Tracks cursor, blinks, winks, sleeps) */}

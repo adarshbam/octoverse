@@ -13,60 +13,49 @@ export const OctopusMouth: React.FC<OctopusMouthProps> = ({
   isSleeping = false,
 }) => {
   return (
-    <g id="octopus-mouth" transform="translate(0, 38)">
+    <g id="octopus-mouth" transform="translate(0, 30)">
       {isSleeping ? (
-        /* Sleepy relaxed little mouth */
-        <ellipse cx="0" cy="2" rx="4" ry="3.5" fill="#0f172a" opacity={0.75} />
+        /* Sleepy relaxed little mouth curve */
+        <path
+          d="M -8 2 Q 0 5 8 2"
+          fill="none"
+          stroke="#0f172a"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          opacity={0.8}
+        />
       ) : isOpen || isHappy ? (
-        /* Delighted / "Oh!" Open Mouth with Tongue */
+        /* Kawaii Delighted */
         <motion.g
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', damping: 18, stiffness: 300 }}
+          exit={{ scale: 0.85, opacity: 0 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 320 }}
         >
           {/* Mouth Cavity */}
           <path
-            d="M -16 -4 Q 0 20 16 -4 Q 0 -12 -16 -4"
+            d="M -10 0 Q 0 15 10 0 Q 0 -5 -10 0"
             fill="#881337"
-            stroke="#fb7185"
+            stroke="#0f172a"
             strokeWidth="2.5"
             strokeLinejoin="round"
           />
           {/* Cute Rosy Tongue inside */}
           <path
-            d="M -10 6 Q 0 2 10 6 Q 0 16 -10 6"
+            d="M -6 6 Q 0 3 6 6 Q 0 12 -6 6"
             fill="#f43f5e"
-            opacity={0.9}
+            opacity={0.95}
           />
         </motion.g>
       ) : (
-        /* Sweet Resting Smile with Cheek Dimple Tips (matching sketch) */
+        /* Sweet Kawaii U-shaped Resting Smile */
         <g>
-          {/* Main Smile Curve */}
+          {/* Main Gentle Smile Curve */ }
           <path
-            d="M -26 -2 Q 0 16 26 -2"
+            d="M -10 -1 Q 0 12 10 -1"
             fill="none"
             stroke="#0f172a"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-          />
-
-          {/* Left Dimple Accent */}
-          <path
-            d="M -28 -7 Q -26 -2 -22 -1"
-            fill="none"
-            stroke="#0f172a"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-          />
-
-          {/* Right Dimple Accent */}
-          <path
-            d="M 28 -7 Q 26 -2 22 -1"
-            fill="none"
-            stroke="#0f172a"
-            strokeWidth="2.8"
+            strokeWidth="3.2"
             strokeLinecap="round"
           />
         </g>

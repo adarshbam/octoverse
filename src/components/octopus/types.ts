@@ -11,3 +11,20 @@ export interface OctopusState {
   isHovered: boolean;
   activeTechId: string | null;
 }
+
+export interface SuctionCupDef {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  angle?: number;
+}
+
+export interface VolumetricTentacleDef {
+  id: string;
+  layer: 'back' | 'front';
+  pathD: string;
+  tip: { x: number; y: number };
+  suctionCups: SuctionCupDef[];
+  phase: number;
+}

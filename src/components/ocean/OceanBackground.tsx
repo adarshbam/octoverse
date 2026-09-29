@@ -91,7 +91,6 @@ export const OceanBackground: React.FC = () => {
       time += 0.016;
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Deep Abyssal Ocean Radial Gradient
       const gradient = ctx.createRadialGradient(
         width * 0.5,
         height * 0.3,
@@ -100,10 +99,10 @@ export const OceanBackground: React.FC = () => {
         height * 0.5,
         Math.max(width, height) * 0.85
       );
-      gradient.addColorStop(0, '#0c2340'); // Soft sunlit deep oceanic blue
-      gradient.addColorStop(0.35, '#051329'); // Mid-depth navy
-      gradient.addColorStop(0.75, '#020617'); // Abyssal twilight
-      gradient.addColorStop(1, '#01030a'); // Trench black
+      gradient.addColorStop(0, '#003a4d'); // Veyra cyan/teal core
+      gradient.addColorStop(0.4, '#002030'); // Mid teal
+      gradient.addColorStop(0.75, '#00101a'); // Dark emerald edge
+      gradient.addColorStop(1, '#00050a'); // Deep trench
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { TechNode } from '../../types';
+import type { VolumetricTentacleDef } from './types';
 import { Tentacle } from './Tentacle';
 
 interface TentacleSystemProps {
@@ -10,98 +11,120 @@ interface TentacleSystemProps {
   onSelectTech: (tech: TechNode) => void;
 }
 
-// Coordinate mapping matching the girlfriend's exact notebook sketch
-const TENTACLE_CONFIGS: Record<
-  string,
-  {
-    start: { x: number; y: number };
-    end: { x: number; y: number };
-    cp1: { x: number; y: number };
-    cp2: { x: number; y: number };
-    phase: number;
-  }
-> = {
-  // --- Left Tentacles (curving leftwards) ---
+// 8 Canonical Veyra Tentacles
+// Thick at the base, smoothly tapering to delicate curled tips.
+// S and C curves to feel like relaxed floating limbs.
+export const VOLUMETRIC_TENTACLES: Record<string, VolumetricTentacleDef> = {
+  // --- Back Left (Sweeping up and left) ---
   nodejs: {
-    start: { x: -85, y: 55 },
-    end: { x: -245, y: -45 },
-    cp1: { x: -140, y: 15 },
-    cp2: { x: -205, y: -25 },
+    id: 'nodejs',
+    layer: 'back',
+    pathD: 'M -80 70 C -120 70, -180 30, -220 -10 C -240 -30, -230 -40, -210 -30 C -160 0, -110 50, -50 90 Z',
+    tip: { x: -220, y: -20 },
     phase: 0.1,
+    suctionCups: [
+      { cx: -130, cy: 40, rx: 4, ry: 3, angle: -20 },
+      { cx: -170, cy: 15, rx: 3, ry: 2, angle: -30 },
+      { cx: -200, cy: -10, rx: 2, ry: 1.5, angle: -40 },
+    ],
   },
+  
+  // --- Wide Left (Sweeping directly left) ---
   express: {
-    start: { x: -95, y: 70 },
-    end: { x: -265, y: 45 },
-    cp1: { x: -160, y: 55 },
-    cp2: { x: -225, y: 35 },
+    id: 'express',
+    layer: 'back',
+    pathD: 'M -90 100 C -150 100, -220 70, -270 50 C -290 40, -280 30, -250 40 C -190 60, -130 90, -70 110 Z',
+    tip: { x: -270, y: 40 },
     phase: 0.5,
+    suctionCups: [
+      { cx: -150, cy: 85, rx: 4, ry: 3, angle: -10 },
+      { cx: -200, cy: 65, rx: 3, ry: 2, angle: -15 },
+      { cx: -240, cy: 50, rx: 2, ry: 1.5, angle: -20 },
+    ],
   },
+
+  // --- Front Left (Sweeping down and curling) ---
   docker: {
-    start: { x: -90, y: 88 },
-    end: { x: -255, y: 135 },
-    cp1: { x: -155, y: 95 },
-    cp2: { x: -215, y: 125 },
+    id: 'docker',
+    layer: 'front',
+    pathD: 'M -80 120 C -130 150, -180 200, -200 250 C -210 270, -190 280, -170 260 C -140 220, -100 170, -40 130 Z',
+    tip: { x: -185, y: 265 },
     phase: 0.9,
-  },
-  aws: {
-    start: { x: -75, y: 105 },
-    end: { x: -225, y: 220 },
-    cp1: { x: -135, y: 140 },
-    cp2: { x: -185, y: 205 },
-    phase: 1.3,
+    suctionCups: [
+      { cx: -115, cy: 165, rx: 4, ry: 3, angle: 30 },
+      { cx: -150, cy: 205, rx: 3, ry: 2, angle: 40 },
+      { cx: -175, cy: 240, rx: 2, ry: 1.5, angle: 50 },
+    ],
   },
 
-  // --- Bottom Tentacles (flowing downwards) ---
-  redis: {
-    start: { x: -50, y: 115 },
-    end: { x: -135, y: 275 },
-    cp1: { x: -80, y: 165 },
-    cp2: { x: -115, y: 230 },
-    phase: 1.7,
-  },
-  mongodb: {
-    start: { x: -25, y: 120 },
-    end: { x: -68, y: 290 },
-    cp1: { x: -40, y: 175 },
-    cp2: { x: -58, y: 245 },
-    phase: 2.1,
-  },
-  typescript: {
-    start: { x: 0, y: 122 },
-    end: { x: 0, y: 298 },
-    cp1: { x: 0, y: 180 },
-    cp2: { x: 0, y: 250 },
-    phase: 2.5,
-  },
+  // --- Inner Left (Curled gently in front) ---
   react: {
-    start: { x: 25, y: 120 },
-    end: { x: 68, y: 290 },
-    cp1: { x: 40, y: 175 },
-    cp2: { x: 58, y: 245 },
-    phase: 2.9,
-  },
-  git: {
-    start: { x: 50, y: 115 },
-    end: { x: 135, y: 275 },
-    cp1: { x: 80, y: 165 },
-    cp2: { x: 115, y: 230 },
-    phase: 3.3,
+    id: 'react',
+    layer: 'front',
+    pathD: 'M -40 140 C -60 190, -70 260, -40 310 C -30 330, -10 320, -20 300 C -40 260, -30 190, 0 140 Z',
+    tip: { x: -25, y: 315 },
+    phase: 1.3,
+    suctionCups: [
+      { cx: -45, cy: 195, rx: 4, ry: 3, angle: 60 },
+      { cx: -48, cy: 245, rx: 3, ry: 2, angle: 70 },
+      { cx: -38, cy: 290, rx: 2, ry: 1.5, angle: 80 },
+    ],
   },
 
-  // --- Right Tentacles (curving rightwards) ---
-  htmlcss: {
-    start: { x: 80, y: 95 },
-    end: { x: 240, y: 155 },
-    cp1: { x: 145, y: 110 },
-    cp2: { x: 200, y: 145 },
-    phase: 3.7,
+  // --- Inner Right (Curled gently in front) ---
+  typescript: {
+    id: 'typescript',
+    layer: 'front',
+    pathD: 'M 40 140 C 60 190, 70 260, 40 310 C 30 330, 10 320, 20 300 C 40 260, 30 190, 0 140 Z',
+    tip: { x: 25, y: 315 },
+    phase: 1.7,
+    suctionCups: [
+      { cx: 45, cy: 195, rx: 4, ry: 3, angle: -60 },
+      { cx: 48, cy: 245, rx: 3, ry: 2, angle: -70 },
+      { cx: 38, cy: 290, rx: 2, ry: 1.5, angle: -80 },
+    ],
   },
-  security: {
-    start: { x: 90, y: 65 },
-    end: { x: 250, y: 35 },
-    cp1: { x: 150, y: 40 },
-    cp2: { x: 210, y: 20 },
-    phase: 4.1,
+
+  // --- Front Right (Sweeping down and curling) ---
+  aws: {
+    id: 'aws',
+    layer: 'front',
+    pathD: 'M 80 120 C 130 150, 180 200, 200 250 C 210 270, 190 280, 170 260 C 140 220, 100 170, 40 130 Z',
+    tip: { x: 185, y: 265 },
+    phase: 2.1,
+    suctionCups: [
+      { cx: 115, cy: 165, rx: 4, ry: 3, angle: -30 },
+      { cx: 150, cy: 205, rx: 3, ry: 2, angle: -40 },
+      { cx: 175, cy: 240, rx: 2, ry: 1.5, angle: -50 },
+    ],
+  },
+
+  // --- Wide Right (Sweeping directly right) ---
+  redis: {
+    id: 'redis',
+    layer: 'back',
+    pathD: 'M 90 100 C 150 100, 220 70, 270 50 C 290 40, 280 30, 250 40 C 190 60, 130 90, 70 110 Z',
+    tip: { x: 270, y: 40 },
+    phase: 2.5,
+    suctionCups: [
+      { cx: 150, cy: 85, rx: 4, ry: 3, angle: 10 },
+      { cx: 200, cy: 65, rx: 3, ry: 2, angle: 15 },
+      { cx: 240, cy: 50, rx: 2, ry: 1.5, angle: 20 },
+    ],
+  },
+
+  // --- Back Right (Sweeping up and right) ---
+  mongodb: {
+    id: 'mongodb',
+    layer: 'back',
+    pathD: 'M 80 70 C 120 70, 180 30, 220 -10 C 240 -30, 230 -40, 210 -30 C 160 0, 110 50, 50 90 Z',
+    tip: { x: 220, y: -20 },
+    phase: 2.9,
+    suctionCups: [
+      { cx: 130, cy: 40, rx: 4, ry: 3, angle: 20 },
+      { cx: 170, cy: 15, rx: 3, ry: 2, angle: 30 },
+      { cx: 200, cy: -10, rx: 2, ry: 1.5, angle: 40 },
+    ],
   },
 };
 
@@ -114,20 +137,37 @@ export const TentacleSystem: React.FC<TentacleSystemProps> = ({
 }) => {
   return (
     <g id="tentacle-system">
+      {/* Background layer */}
       {techNodes.map((tech) => {
-        const config = TENTACLE_CONFIGS[tech.id];
-        if (!config) return null;
-
-        const isHovered = hoveredTechId === tech.id;
-        const isDimmed = activeCategory !== 'all' && tech.category !== activeCategory;
-
+        const config = VOLUMETRIC_TENTACLES[tech.id];
+        if (!config || config.layer !== 'back') return null;
         return (
           <Tentacle
             key={tech.id}
             tech={tech}
             config={config}
-            isHovered={isHovered}
-            isDimmed={isDimmed}
+            isHovered={hoveredTechId === tech.id}
+            isDimmed={activeCategory !== 'all' && tech.category !== activeCategory}
+            onHover={onHoverTech}
+            onClick={onSelectTech}
+          />
+        );
+      })}
+      
+      {/* Foreground layer is rendered afterwards (by OctopusCharacter.tsx placing the head in between, wait...
+          Ah! OctopusCharacter renders <TentacleSystem> then <OctopusHead>.
+          So all tentacles are behind the head. That's fine! The front/back layer inside TentacleSystem just dictates overlap among tentacles.
+      */}
+      {techNodes.map((tech) => {
+        const config = VOLUMETRIC_TENTACLES[tech.id];
+        if (!config || config.layer !== 'front') return null;
+        return (
+          <Tentacle
+            key={tech.id}
+            tech={tech}
+            config={config}
+            isHovered={hoveredTechId === tech.id}
+            isDimmed={activeCategory !== 'all' && tech.category !== activeCategory}
             onHover={onHoverTech}
             onClick={onSelectTech}
           />
