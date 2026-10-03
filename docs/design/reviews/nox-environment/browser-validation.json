@@ -1,0 +1,31 @@
+{
+  "geometryUnchanged": true,
+  "checks": {
+    "arms": true,
+    "characterTransform": true,
+    "face": true,
+    "nameplate": true,
+    "title": true,
+    "viewBox": true
+  },
+  "narrow": {
+    "animationElements": 0,
+    "armCount": 8,
+    "embeddedImages": 0,
+    "overflows": false,
+    "stage": {
+      "height": 388.4562683105469,
+      "width": 390,
+      "x": 0,
+      "y": 227.7687530517578
+    },
+    "viewport": {
+      "height": 844,
+      "width": 390
+    }
+  },
+  "cleanLoadStarted": "2026-10-03T10:51:15.390Z",
+  "cleanLoadWarnings": [],
+  "finalReloadStarted": "2026-10-03T17:05:28.845Z",
+  "finalReloadWarnings": []
+}

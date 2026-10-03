@@ -1,104 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { OceanBackground } from './components/ocean/OceanBackground';
-import { OctopusCharacter } from './components/octopus/OctopusCharacter';
-import { useAudioSynth } from './utils/useAudioSynth';
-import { useIdleTimer } from './components/octopus/useIdleTimer';
-import { TECH_NODES } from './data/techStack';
-import type { MousePosition, TechNode } from './types';
+import { NoxCharacter } from './components/nox/NoxCharacter';
+import { NoxEnvironment } from './components/nox/NoxEnvironment';
+import { noxSceneLighting } from './components/nox/sceneLighting';
+import { nox } from './data/nox';
 
-export const App: React.FC = () => {
-  const [hoveredTechId, setHoveredTechId] = useState<string | null>(null);
-  const [isWinking, setIsWinking] = useState(false);
+export const App = () => (
+  <main className="nox-world">
+    <svg className="nox-introduction" viewBox="0 0 507 505" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nox-title nox-description">
+      <title id="nox-title">{nox.name} — {nox.epithet}</title>
+      <desc id="nox-description">Static introduction study. Nox, a luminous violet octopus with eight curling tentacles, ruby eyes, and coral suction cups, represents Security Lab in a dark underwater ruin corridor lit by blue shafts and crimson inscriptions.</desc>
+      <defs>
+        <linearGradient id="nameplate-fill" x2="0" y2="1"><stop stopColor="#170f20" /><stop offset="1" stopColor="#070c19" /></linearGradient>
+        <filter id="label-glow" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="3" /></filter>
+      </defs>
+      <NoxEnvironment lighting={noxSceneLighting} layer="background" />
 
-  // Inactivity detection (32s idle -> peaceful sleep mode)
-  const isIdle = useIdleTimer(32000);
-  const isSleeping = isIdle && !hoveredTechId;
+      <g className="project-identity" textAnchor="middle" fill="#f2ebee">
+        <text x="255" y="110" fontSize="9.2" letterSpacing="5.5" fill="#ef6b7d">OCTOVERSE</text>
+        <path d="M159 119 C164 129 173 128 173 138 C173 148 167 154 160 154 C149 154 143 148 145 138 C146 132 151 128 152 124 C151 132 155 134 157 131 C160 127 159 123 159 119Z M158 137 C158 141 153 143 155 147 C158 151 166 148 164 144 C163 142 161 141 161 138 C160 141 157 140 158 137Z" fill="#f95770" fillRule="evenodd" />
+        <text x="285" y="149" fontSize="30" fontWeight="700" letterSpacing="-0.65">Security <tspan fill="#fb536c">Lab</tspan></text>
+        <text x="255" y="175" fontSize="11.5">{nox.tagline}</text>
+        {nox.introduction.map((line, i) => <text key={line} x="255" y={191 + i * 14} fontSize="10.8" fill="#d6d1dc">{line}</text>)}
+      </g>
 
-  // Procedural Web Audio Synthesizer
-  const { playBubblePop, playChime, playBlushChime } = useAudioSynth(true);
+      <NoxCharacter lighting={noxSceneLighting} />
+      <NoxEnvironment lighting={noxSceneLighting} layer="foreground" />
 
-  const [mousePos, setMousePos] = useState<MousePosition>({
-    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500,
-    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 400,
-    normalizedX: 0,
-    normalizedY: 0,
-  });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const normalizedX = (e.clientX / window.innerWidth) * 2 - 1;
-      const normalizedY = (e.clientY / window.innerHeight) * 2 - 1;
-      setMousePos({
-        x: e.clientX,
-        y: e.clientY,
-        normalizedX,
-        normalizedY,
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  const handleDoubleClickEyes = () => {
-    setIsWinking(true);
-    playChime();
-    window.setTimeout(() => setIsWinking(false), 1200);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
-      const touch = e.touches[0];
-      const normalizedX = (touch.clientX / window.innerWidth) * 2 - 1;
-      const normalizedY = (touch.clientY / window.innerHeight) * 2 - 1;
-      setMousePos({
-        x: touch.clientX,
-        y: touch.clientY,
-        normalizedX,
-        normalizedY,
-      });
-    }
-  };
-
-  const handleHoverTech = (id: string | null) => {
-    if (id && id !== hoveredTechId) {
-      playBubblePop();
-    }
-    setHoveredTechId(id);
-  };
-
-  const handleSelectTech = (tech: TechNode) => {
-    playChime();
-    console.log('Selected tech:', tech.id);
-  };
-
-  return (
-    <main
-      onTouchMove={handleTouchMove}
-      className="relative w-screen h-screen overflow-hidden bg-[#00050a] font-sans select-none"
-    >
-      {/* 1. Deep Ocean Canvas Environment */}
-      <OceanBackground />
-
-      {/* 2. Central Living Character Stage */}
-      <section className="relative z-10 w-full h-full flex flex-col items-center justify-center pointer-events-none px-4 pt-4 pb-4">
-        <div className="relative w-full max-w-4xl h-full flex items-center justify-center">
-          <OctopusCharacter
-            mouseX={mousePos.x}
-            mouseY={mousePos.y}
-            techNodes={TECH_NODES}
-            hoveredTechId={hoveredTechId}
-            isSleeping={isSleeping}
-            isWinking={isWinking}
-            onHoverTech={handleHoverTech}
-            onSelectTech={handleSelectTech}
-            onHeadClick={playBlushChime}
-            onDoubleClickEyes={handleDoubleClickEyes}
-          />
-        </div>
-      </section>
-    </main>
-  );
-};
+      <g className="nameplate" textAnchor="middle">
+        <rect x="185" y="444" width="140" height="44" rx="22" fill="none" stroke="#f94d6d" strokeWidth="2" opacity="0.57" filter="url(#label-glow)" />
+        <rect x="185" y="444" width="140" height="44" rx="22" fill="url(#nameplate-fill)" stroke="#c84262" strokeWidth="1" />
+        <path d="M204 445 H306" stroke="#ec727f" opacity="0.6" strokeWidth="0.7" />
+        <text x="255" y="462" fill="#f5ecf0" fontSize="15" fontWeight="600">{nox.name}</text>
+        <text x="255" y="478" fill="#d5cad6" fontSize="11.5">{nox.epithet}</text>
+      </g>
+    </svg>
+  </main>
+);
 
 export default App;
