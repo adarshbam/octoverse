@@ -1,0 +1,3 @@
+# Keep frozen geometry files LF across checkout on all platforms
+src/components/nox/introductionGeometry.ts text eol=lf
+docs/design/reviews/nox-environment/approved-geometry.json text eol=lf

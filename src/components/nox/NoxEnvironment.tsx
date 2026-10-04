@@ -41,12 +41,13 @@ function Rock({ x, y, size, warm = false }: { x: number; y: number; size: number
   </g>;
 }
 
-export function NoxEnvironment({ lighting, layer }: { lighting: NoxSceneLighting; layer: 'background' | 'foreground' }) {
-  const prefix = `realm-${useId().replaceAll(':', '')}`;
+export function NoxEnvironment({ lighting, layer, idPrefix }: { lighting: NoxSceneLighting; layer: 'background' | 'foreground'; idPrefix?: string }) {
+  const generatedId = useId().replaceAll(':', '');
+  const prefix = idPrefix ?? `realm-${generatedId}`;
   const ref = (id: string) => `${prefix}-${id}`;
 
   if (layer === 'foreground') return (
-    <g id="nox-environment-foreground" aria-hidden="true">
+    <g id={`${prefix}-foreground`} data-environment="foreground" data-layer="environment-foreground" aria-hidden="true">
       <defs>
         <radialGradient id={ref('vignette')} cx="51%" cy="49%" r="73%"><stop offset=".48" stopColor="#01040c" stopOpacity="0" /><stop offset="1" stopColor="#01040c" stopOpacity=".58" /></radialGradient>
         <radialGradient id={ref('embers')}><stop stopColor="#ff795d" stopOpacity=".8" /><stop offset=".19" stopColor="#fa3454" stopOpacity=".6" /><stop offset=".53" stopColor="#a61b42" stopOpacity=".25" /><stop offset="1" stopColor="#b0224e" stopOpacity="0" /></radialGradient>
@@ -88,7 +89,7 @@ export function NoxEnvironment({ lighting, layer }: { lighting: NoxSceneLighting
   );
 
   return (
-    <g id="nox-environment-background" aria-hidden="true">
+    <g id={`${prefix}-background`} data-environment="background" data-layer="environment-background" aria-hidden="true">
       <defs>
         <linearGradient id={ref('water')} x1="280" y1="0" x2="250" y2="505" gradientUnits="userSpaceOnUse">
           <stop stopColor="#081a2b" /><stop offset="0.36" stopColor="#040c1a" /><stop offset="0.74" stopColor="#060b18" /><stop offset="1" stopColor="#0d1020" />

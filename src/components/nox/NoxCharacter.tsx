@@ -57,8 +57,9 @@ function Eye({ x, y, rotation, prefix, side }: { x: number; y: number; rotation:
   );
 }
 
-export function NoxCharacter({ lighting }: { lighting: NoxSceneLighting }) {
-  const prefix = `nox-${useId().replaceAll(':', '')}`;
+export function NoxCharacter({ lighting, idPrefix }: { lighting: NoxSceneLighting; idPrefix?: string }) {
+  const generatedId = useId().replaceAll(':', '');
+  const prefix = idPrefix ?? `nox-${generatedId}`;
   const ref = (name: string) => `${prefix}-${name}`;
   const crownSpeckles = Array.from({ length: 54 }, (_, i) => ({
     x: 184 + ((i * 43.73) % 147),
@@ -67,7 +68,7 @@ export function NoxCharacter({ lighting }: { lighting: NoxSceneLighting }) {
   }));
 
   return (
-    <g id="nox-character" data-pose="introduction">
+    <g id={`${prefix}-character`} data-character="nox" data-pose="introduction">
       <defs>
         {introductionArtwork.map(arm => <clipPath key={arm.id} id={ref(`${arm.id}-clip`)}><path d={arm.contour} /></clipPath>)}
         <filter id={ref('contact')}><feGaussianBlur stdDeviation="1.6" /></filter>
@@ -154,11 +155,11 @@ export function NoxCharacter({ lighting }: { lighting: NoxSceneLighting }) {
         <ellipse cx="256" cy="344" rx="55" ry="43" fill={`url(#${ref('face-light')})`} />
       </g>
 
-      <g id={ref('face')}>
+      <g id={ref('face')} data-part="face">
         <path d="M207 286 Q211 277 221 280 M290 279 Q299 276 305 284" stroke="#100e25" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.85" />
         <Eye x={221} y={317} rotation={-9} prefix={prefix} side="left" />
         <Eye x={295} y={316} rotation={8} prefix={prefix} side="right" />
-        <g id={ref('cheeks')}>
+        <g id={ref('cheeks')} data-part="cheeks">
           <ellipse cx="204" cy="338" rx="13" ry="6" fill="#ff6485" opacity="0.42" filter={`url(#${ref('rim-bloom')})`} />
           <ellipse cx="310" cy="337" rx="13" ry="6" fill="#ff6485" opacity="0.42" filter={`url(#${ref('rim-bloom')})`} />
           <ellipse cx="204" cy="338" rx="11.2" ry="4.9" fill="#ff7582" opacity="0.82" transform="rotate(8 204 338)" />
@@ -166,7 +167,7 @@ export function NoxCharacter({ lighting }: { lighting: NoxSceneLighting }) {
           <ellipse cx="200" cy="336.8" rx="3.1" ry="1.1" fill="#ffb396" opacity="0.24" />
           <ellipse cx="306.5" cy="335.7" rx="3.1" ry="1.1" fill="#ffb396" opacity="0.24" />
         </g>
-        <path id={ref('mouth')} d="M247 337 C252 343 264 345 271 337" fill="none" stroke="#35142b" strokeWidth="1.7" strokeLinecap="round" />
+        <path id={ref('mouth')} data-part="mouth" d="M247 337 C252 343 264 345 271 337" fill="none" stroke="#35142b" strokeWidth="1.7" strokeLinecap="round" />
         <path d="M250 344 Q260 348 267 343" fill="none" stroke="#ffa178" strokeWidth="0.8" opacity="0.3" />
       </g>
     </g>

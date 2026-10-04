@@ -1,0 +1,55 @@
+{
+  "recordedDate": "2026-10-04",
+  "timezone": "Asia/Calcutta",
+  "source": "existing approved references",
+  "noxPanel2Crop": {
+    "y": 0,
+    "height": 505,
+    "x": 512,
+    "width": 507
+  },
+  "references": [
+    {
+      "name": "Aether.jpeg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/Aether.jpeg",
+      "bytes": 359265,
+      "sha256": "36E774555F22EE662FD253BBEF5A085B4A8EDC271DB0A43E6A0B660AF1BF9235",
+      "role": "approved original reference"
+    },
+    {
+      "name": "Flux.jpeg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/Flux.jpeg",
+      "bytes": 331767,
+      "sha256": "39EA1F68CFD65F6583EA82E227A7423C7EE4E84DACE047137A976BBFB56626B1",
+      "role": "approved original reference"
+    },
+    {
+      "name": "girlfriend-reference.jpg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/girlfriend-reference.jpg",
+      "bytes": 250116,
+      "sha256": "F18E7A80C9C397D160AE16E5B8138FF0C4C6CA4DD68F03CA905C6E34008D469E",
+      "role": "approved original reference"
+    },
+    {
+      "name": "Nox.jpeg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/Nox.jpeg",
+      "bytes": 292796,
+      "sha256": "7527C415AAB05375C765F2D2B122E0CC9209E92AD84807EF29843B4B809A4EA1",
+      "role": "approved original reference"
+    },
+    {
+      "name": "Octoverse.jpeg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/Octoverse.jpeg",
+      "bytes": 353998,
+      "sha256": "C485B65BCD30BE947E4AC92794AAC800300E43DF796DA4FB7291769B515AA9CA",
+      "role": "approved original reference"
+    },
+    {
+      "name": "Veyra.jpeg",
+      "path": "C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/design/references/Veyra.jpeg",
+      "bytes": 321056,
+      "sha256": "48EAB2D7690914F687535E0E09564BA0243549E46121F4ADCCCBD3D1E22AAE56",
+      "role": "approved original reference"
+    }
+  ]
+}

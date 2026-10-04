@@ -1,99 +1,84 @@
-# 🐙 The KRAKEN Portfolio • Distributed Systems Architecture
+# 🐙 OctoVerse
 
-> An interactive, living, organic, and calming underwater digital twin of distributed backend engineering systems, inspired by a hand-drawn notebook sketch.
-
-![Girlfriend's Drawing Inspiration](/public/sketch.png)
+> A lightweight subscription-based platform for interactive developer portfolios centered around an expressive 2D SVG octopus character.
 
 ---
 
-## 🌊 Overview & Story
+## 🌊 Overview
 
-Standard developer portfolios are static grids of cards. **The Kraken** reimagines the developer portfolio as a living, organic digital creature swimming through deep abyssal waters.
+OctoVerse reimagines the developer portfolio as an immersive underwater world. Rather than generic card grids or heavyweight 3D engines, each portfolio experience is anchored by an animation-ready, pure 2D SVG octopus character whose tentacles showcase developer projects, systems architecture, and core proficiencies.
 
-Inspired directly by a hand-drawn notebook sketch created by the developer's girlfriend, the Kraken sits at the center of the deep sea. It breathes with gentle sinusoidal buoyancy, blinks every 3–5 seconds, tracks your cursor gaze across the viewport, blushes with floating hearts when petted, and holds **11 bioluminescent teardrop tech orbs** on curling procedural tentacles.
-
-Each tech orb represents a critical distributed engineering system, featuring real-world production metrics, architectural flows, and zero-bullshit systems proofs targeted for **50+ LPA / US Remote Backend & Systems roles**.
-
----
-
-## ⚡ Key Highlights & Architecture
-
-| Feature | Engineering Implementation | Benefit |
-| :--- | :--- | :--- |
-| **Living Procedural Tentacles** | Mathematical cubic Bézier curves (`C cp1x cp1y, cp2x cp2y, x y`) with dynamic normal vector displacement for suction cups | 120 FPS fluid motion, 0 KB 3D model overhead, zero WebGL jank |
-| **Abyssal Ocean Environment** | HTML5 `<canvas>` simulation with 45 rising micro-bubbles, marine snow dust, and refracted caustic light cones | Calming, immersive atmosphere running strictly off the main thread |
-| **Live Cloud Telemetry** | Real-time health probe actively polling `https://yourvaultstorage.com/api` measuring round-trip latency (ms) & TLS status | Proves active production systems live to recruiters |
-| **Web Audio Synthesizer** | Pure Web Audio API (`AudioContext`) oscillator sweeps with exponential gain decay envelopes | Warm bubble pops and harmonized chimes with **0 MB audio files downloaded** |
-| **Recruiter Fast-Track** | Glassmorphic slide-out executive brief, 1-click resume download with celebratory oceanic confetti burst | Instant answers for technical recruiters and hiring managers |
-| **Personality & Easter Eggs** | Sleep mode after 32s inactivity (closed eyes + "Zzz" bubbles), double-click wink, head-click blushing with hearts | Memorable, delightful UX that recruiters talk about |
+The visual direction is guided strictly by approved character references (`docs/design/references/`):
+- **Foundational Character DNA:** `girlfriend-reference.jpg` (original hand-drawn octopus personality, proportions, eye expression, and cuteness).
+- **Current Milestone World:** `Nox.jpeg`, Panel 2 (`x=512, y=0, width=507, height=505`) representing the **Security Lab** world.
 
 ---
 
-## 🛠️ Tech Stack & Systems Showcased
+## 📍 Current Development Status (Milestone A00 / A01)
 
-- **Frontend Core:** React 19, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Lucide Icons.
-- **Backend & Cloud Systems Showcased:**
-  - **Node.js & TypeScript:** Event-loop non-blocking I/O, cluster worker pools, streaming pipeline transformations.
-  - **AWS S3 & Cloudflare Workers:** Direct browser-to-S3 multipart upload presigned URLs, Cloudflare edge HMAC tokens ($0 egress fees).
-  - **Redis:** Distributed caching, cluster token buckets, sliding window rate limiters, session locks.
-  - **PostgreSQL & MongoDB:** B-tree index tuning, transaction isolation, sharded replica sets.
-  - **Docker & Linux:** Multi-stage scratch containers, PM2 cluster processes, systemd automation.
-  - **JWT & Cryptography Lab:** Security exploit testbed mitigating algorithmic confusion (RS256 vs HS256) and replay attacks.
-  - **CI/CD Pipeline Engine:** Self-hosted GitHub webhook daemon with HMAC signature validation and zero-downtime hot reloads.
+The application currently renders a **static 2D SVG study** of **Nox** within the Security Lab underwater ruin corridor:
+
+- **Character Geometry:** **APPROVED** (User sign-off 2026-10-03).
+  - Silhouette, mantle, facial proportions, complete eye artwork, 8 independently authored tentacles (T1–T8), suction cup lobes, and placement in the 507×505 coordinate space are locked.
+  - Frozen geometry source: `src/components/nox/introductionGeometry.ts` (SHA-256 `5018DCDCE006063FB8053A739A940FEAA33FFCDA80F62ABF5D073C5A5573438E`).
+- **Environment & Integrated Lighting:** **PENDING HUMAN REVIEW**.
+  - Current candidate is recorded in `docs/design/reviews/nox-environment/browser-final.jpg` (Candidate E0).
+  - Underwater corridor masonry, soft light shafts, distant ruins, seabed, static bubbles, and crimson runic illumination.
+  - Scoped environment corrections (A02) are authorized following A01 verification; human visual approval is strictly required before A03+ and any new visual poses.
+- **A01 Test Harness & ID Namespacing:** **IMPLEMENTED (PENDING VERIFICATION)**.
+  - Non-visual SVG ID/ARIA namespacing, stable data selectors, multi-instance collision fixture, and Playwright verification suite.
+- **A03+ Work Gated:**
+  - Material polish, technology orbs, cursor tracking, motion/animation, and portfolio drawers are gated behind human review of the environment candidate and completion of packet A02.
+  - The current build contains **0 animation elements**, **0 technology orbs**, and **no product interaction handlers** (no hover, click, drag, pet, wink, or cursor tracking handlers).
+
+For the complete approval status and gating ledger, see [docs/execution/APPROVALS.md](file:///c:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/execution/APPROVALS.md).  
+For the execution state and snapshot tracking, see [docs/execution/STATUS.md](file:///c:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/execution/STATUS.md).  
+For recovery and rollback procedures, see [docs/execution/RECOVERY.md](file:///c:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/execution/RECOVERY.md).  
+For verification instructions and harness documentation, see [docs/execution/A01-VERIFICATION.md](file:///c:/Users/Dell/Desktop/Vibe-coding/OctoVerse/docs/execution/A01-VERIFICATION.md).
+
+> [!NOTE]
+> **Preservation of Snapshot Archive:**  
+> Prior to execution, a complete state snapshot was saved in `artifacts.local/a00-before-execution/`. This snapshot preserves the 28 excluded deletions from the legacy prototype separately from scoped commit `ac7f987`.
 
 ---
 
-## 🎮 Interactive Controls & Easter Eggs
+## 🛠️ Tech Stack & Architecture
 
-- **Hover Tech Orb:** The tentacle dynamically curls upward, the Kraken opens its mouth in delight ("Oh!"), and the eyes fixate on the orb.
-- **Click Tech Orb:** Opens the tabbed **Architectural Project Showcase Drawer** with system topology diagrams, design decisions, and live project buttons.
-- **Category Filter Bar:** Filter by `Backend`, `Cloud`, `Database`, `Security`, or `Frontend`—non-matching tentacles smoothly dim to 25% opacity.
-- **Click Kraken's Head:** Triggers a warm blush across the mantle and spawns glowing rosy heart particles.
-- **Double-Click Eyes:** The Kraken winks at you playfully and rings a sweet harmonic chime.
-- **32-Second Inactivity:** The Kraken peacefully falls asleep, closing its eyes while animated cyan "Zzz" bubbles drift upward. Move cursor or tap to wake.
-- **Audio Toggle:** Tap the sound pill in the header to unmute the procedural sound engine.
+- **Core Technologies:** React 19, TypeScript, Pure 2D SVG, Vanilla CSS / Tailwind CSS v4, Vite.
+- **Component Architecture:**
+  - `src/App.tsx`: Top-level scene container with namespaced SVG defs, semantic data selectors, and a development fixture route gated by `import.meta.env.DEV` (`?fixture=two-instance`).
+  - `src/components/nox/NoxCharacter.tsx`: 2D SVG character anatomy (mantle, eight tentacles, eyes, cheeks, mouth, and bioluminescent rim/bounce lighting) using unconditional top-level `useId`.
+  - `src/components/nox/NoxEnvironment.tsx`: Layered background and foreground underwater architecture using unconditional top-level `useId`.
+  - `src/components/nox/introductionGeometry.ts`: Frozen canonical path contours and cup transforms.
+  - `src/components/nox/sceneLighting.ts`: Unified scene lighting definitions.
+  - `src/data/nox.ts`: Security Lab character metadata.
 
 ---
 
-## 🚀 Getting Started Locally
+## 🚀 Running Locally
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/adarshbam/kraken-portfolio.git
-cd kraken-portfolio
-
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
+# 1. Start Vite development server
 npm run dev
 
-# 4. Build for production
+# 2. Build for production verification
 npm run build
+
+# 3. Run linter
+npm run lint
+
+# 4. Run visual regression tests (orchestrated by Codex)
+npm run test:visual
 ```
+
+To view the deterministic two-instance collision fixture in development:
+`http://localhost:5178/?fixture=two-instance`
 
 ---
 
-## 🌐 1-Click Production Deployment
+## 📝 Worker Record
 
-### Option A: Vercel (Recommended)
-```bash
-npx vercel
-```
-
-### Option B: Netlify
-```bash
-npx netlify deploy --prod
-```
-
-### Option C: Cloudflare Pages
-1. Push to GitHub.
-2. Connect your repo in Cloudflare Pages dashboard.
-3. Build command: `npm run build`
-4. Output directory: `dist`
-
----
-
-## ❤️ Tribute
-
-Engineered with love and care based on the original hand-drawn notebook sketch created by my girlfriend. Click the "Girlfriend's Drawing" button in the bottom status bar or header to compare the live app with her original artwork.
+- **Execution Date:** 2026-10-04 (Asia/Calcutta)
+- **Active Worker:** Gemini 3.8 Flash (High reasoning), Antigravity IDE
+- **Orchestrator:** Codex
+- **Independent Review:** Astra

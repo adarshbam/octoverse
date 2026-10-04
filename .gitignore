@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test output and generated evidence (preserves historical review files)
+test-results/
+playwright-report/
+test-output/
+tests/output/
+blob-report/
