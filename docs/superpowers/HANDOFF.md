@@ -15,7 +15,7 @@ Updated 2026-10-23. Read this first in a new session, then the files it points t
 ## Status
 
 - **Phase A, foundation (Tasks 1–6):** complete. 29 Vitest tests pass and `npm run typecheck` is clean.
-- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 (body–arm junction, v2 with cheeks), 8 (eyebrows) and 9 (eyes, then mouth and blush). Each verdict is in the review log. **Next: Task 10, the mantle re-check.** Then come Tasks 11 to 15 and the Task 16 sign-off, each ending with the owner's approval.
+- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 (body–arm junction), 8 (eyebrows), 9 (eyes, then mouth and blush) and 10 (mantle, with round cheeks and bigger lashes added after their 2026-10-24 note). Each verdict is in the review log. **Next: Task 11, arms (`arms-left`, then `arms-right`).** Then come Tasks 12 to 15 and the Task 16 sign-off, each ending with the owner's approval.
 - **Owner notes still open, raised on junction v1 (see "Change requests" in the review log):**
   - Arm volume and glow: the arms look flat (Tasks 11 and 14).
   - Skin colour variation and fine texture: the model looks flat (Task 13).
