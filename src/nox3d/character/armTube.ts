@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import type { ArmSpec } from '../config/types';
 import type { ArmChain } from './armChain';
 
+/** Roots swell by up to 60% over the first 12% of the arm, filling the joint with the body. */
+const ROOT_FLARE = 0.6;
+const ROOT_FLARE_SPAN = 0.12;
+
 /**
  * A tapered tube rebuilt around an arm chain every frame. Ring 0 of each
  * cross-section faces the chain's left normal; the sucker side is a fixed
@@ -37,7 +41,8 @@ export class ArmTube {
     this.radius = new Float32Array(n + 1);
     for (let k = 0; k <= n; k++) {
       const s = k / n;
-      this.radius[k] = profile.tipRadius + (spec.rootRadius - profile.tipRadius) * Math.pow(1 - s, profile.taperPower);
+      const flare = s < ROOT_FLARE_SPAN ? 1 + ROOT_FLARE * (1 - s / ROOT_FLARE_SPAN) ** 2 : 1;
+      this.radius[k] = (profile.tipRadius + (spec.rootRadius - profile.tipRadius) * Math.pow(1 - s, profile.taperPower)) * flare;
     }
     this.ringCos = Float32Array.from({ length: radial + 1 }, (_, j) => Math.cos((j / radial) * Math.PI * 2));
     this.ringSin = Float32Array.from({ length: radial + 1 }, (_, j) => Math.sin((j / radial) * Math.PI * 2));

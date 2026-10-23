@@ -9,6 +9,7 @@ import { BODY_X } from '../poses/nox.poses';
 import type { StagePose } from '../poses/types';
 import { ArmChain, restFromCurve } from './armChain';
 import { ArmTube } from './armTube';
+import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
 import { createGlowMaterial } from './glowMaterial';
 import { createHeadGeometry } from './headGeometry';
@@ -44,10 +45,20 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
       const tube = new ArmTube(chain, spec, profile);
       return { chain, tube, row: new SuckerRow(chain, tube, config.suckers, i) };
     });
+    const byId = new Map(config.arms.map((spec, i) => [spec.id, arms[i]]));
+    const webs = WEB_PAIRS.map(([a, b]) => {
+      const left = byId.get(a)!;
+      const right = byId.get(b)!;
+      return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u));
+    });
+    const webMaterial = createSkinMaterial('ARM', uniforms);
+    webMaterial.side = THREE.DoubleSide;
     return {
       uniforms,
       face,
       arms,
+      webs,
+      webMaterial,
       headGeometry: createHeadGeometry(config.head),
       webGeometry: new THREE.SphereGeometry(1, 48, 32).scale(0.34, 0.2, 0.26),
       suckerGeometry: new THREE.SphereGeometry(1, 16, 12),
@@ -158,6 +169,7 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
       offset += row.count;
     });
     suckers.current!.instanceMatrix.needsUpdate = true;
+    for (const web of rig.webs) web.update();
 
     m.glow.copy(rig.glowLocal).applyMatrix4(content.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
@@ -171,6 +183,9 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
         <group ref={content} position={[-BODY_X, -PIVOT_Y, 0]}>
           {rig.arms.map(({ tube }, i) => (
             <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} />
+          ))}
+          {rig.webs.map((web, i) => (
+            <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
           <mesh geometry={rig.webGeometry} material={rig.bodyMaterial} position={[BODY_X, -1.04, 0.02]} />
           <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]} />

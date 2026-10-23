@@ -5,12 +5,12 @@ import type { ArmSpec, CharacterConfig } from './types';
 
 const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.42] });
 const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.17, z: [-0.1, -0.22] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.26, 0.06] });
-const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.4, 0.22] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.15, 0.06] });
+const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.22, 0.25] });
 
 export const NOX: CharacterConfig = {
   id: 'nox',
-  head: { centerX: 0.01, halfWidth: 0.778, waist: -0.508, top: 0.27, bottom: -1.06, topPower: 2, bottomPower: 2.6, depth: 0.82, faceOrigin: [0.035, -0.42] },
+  head: { centerX: 0.01, halfWidth: 0.778, waist: -0.508, top: 0.27, bottom: -1.22, topPower: 2, bottomPower: 2.3, depth: 0.82, faceOrigin: [0.035, -0.42] },
   glow: {
     center: [0.05, -0.97, 0.6],
     spreadX: 0.42,
