@@ -69,9 +69,31 @@ export interface Palette {
   suckerHot: string;
 }
 
+/** One eye's drawing, traced from the reference; the two eyes mirror each other except for the light. */
+export interface EyeLayout {
+  rx: number;
+  ry: number;
+  centers: [Point2, Point2];
+  /** Iris radii as fractions of the eye radii; `inset` shifts it toward the nose, as a fraction of rx. */
+  iris: { rx: number; ry: number; inset: number };
+  /** Pupil radii as fractions of the iris radii; `drop` lowers it below the iris centre, as a fraction of the iris ry. */
+  pupil: { rx: number; ry: number; drop: number };
+  /**
+   * Catchlights relative to the iris centre, in iris radii (+y up), larger first. They are
+   * not mirrored between the eyes: the light comes from the same side for both.
+   */
+  catchlights: { x: number; y: number; r: number }[];
+  /** Upper lid line width at its inner end and at the outer corner, world units. */
+  lid: { inner: number; outer: number };
+  /** Width of the light rim along the lower edge, world units. */
+  rim: number;
+  /** Lashes at the outer corner: where they leave the lid (0 = top, 1 = outer corner), length (world units), angle above horizontal (degrees). */
+  lashes: { at: number; length: number; angle: number }[];
+}
+
 /** Face feature placement in head-local world units (origin = HeadShape.faceOrigin). */
 export interface FaceLayout {
-  eye: { rx: number; ry: number; centers: [Point2, Point2] };
+  eye: EyeLayout;
   /** Right brow as a quadratic curve from its inner end to its outer end; the left brow mirrors it. */
   brow: { inner: Point2; control: Point2; outer: Point2; thickness: number };
   mouth: { center: Point2; halfWidth: number };
@@ -79,12 +101,17 @@ export interface FaceLayout {
 }
 
 export interface FacePalette {
+  /** Top (shadowed by the lid), middle and bottom. */
   sclera: [string, string, string];
+  /** Top, middle and bottom: dark above, glowing red below. */
   iris: [string, string, string];
+  /** Warm glow pooled in the lower iris: its bright centre and its red edge. */
   irisPool: string;
+  irisPoolEdge: string;
   pupil: string;
+  catchlight: string;
   lid: string;
-  /** Thin lower outline of the eye. */
+  /** Thin light rim along the lower edge of the eye. */
   outline: string;
   brow: string;
   mouth: string;

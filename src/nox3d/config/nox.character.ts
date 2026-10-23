@@ -19,7 +19,7 @@ export const NOX: CharacterConfig = {
   },
   glow: {
     center: [0.05, -0.97, 0.6],
-    spreadX: 0.42,
+    spreadX: 0.58,
     reachUp: 0.45,
     reachDown: 0.2,
     ramp: [
@@ -44,7 +44,18 @@ export const NOX: CharacterConfig = {
     suckerHot: '#ff9a7a',
   },
   face: {
-    eye: { rx: 0.178, ry: 0.1875, centers: [[-0.358, -0.213], [0.358, -0.213]] },
+    // Traced from panel 2 (eyes task), sized and placed for the face's depth in the camera.
+    eye: {
+      rx: 0.155,
+      ry: 0.16,
+      centers: [[-0.366, -0.197], [0.366, -0.197]],
+      iris: { rx: 0.8, ry: 0.97, inset: 0.2 },
+      pupil: { rx: 0.52, ry: 0.62, drop: 0.04 },
+      catchlights: [{ x: -0.5, y: 0.36, r: 0.19 }, { x: 0.53, y: 0.4, r: 0.145 }],
+      lid: { inner: 0.012, outer: 0.03 },
+      rim: 0.006,
+      lashes: [{ at: 0.6, length: 0.024, angle: 70 }, { at: 0.75, length: 0.028, angle: 50 }, { at: 0.88, length: 0.026, angle: 30 }],
+    },
     // Traced from panel 2 (both brows averaged, then scaled by 1/1.044 for the face's depth
     // in the perspective camera): a flat inner run, then the outer end hooks down.
     brow: { inner: [0.311, 0.167], control: [0.415, 0.173], outer: [0.4645, 0.111], thickness: 0.028 },
@@ -52,12 +63,14 @@ export const NOX: CharacterConfig = {
     blush: { centers: [[-0.535, -0.43], [0.535, -0.43]], rx: 0.103, ry: 0.05 },
   },
   facePalette: {
-    sclera: ['#d9a6b6', '#f4d2da', '#e08ea2'],
-    iris: ['#3e0714', '#951226', '#de2232'],
-    irisPool: '#ff7856',
-    pupil: '#100208',
-    lid: '#120510',
-    outline: '#2a0814',
+    sclera: ['#8b3668', '#ffccec', '#fcd2dc'],
+    iris: ['#110101', '#3a0d11', '#be0f27'],
+    irisPool: '#fd8372',
+    irisPoolEdge: '#fb3538',
+    pupil: '#190003',
+    catchlight: '#fff7f5',
+    lid: '#0b0008',
+    outline: '#f7b4c0',
     brow: '#030016',
     mouth: '#26091a',
     blush: '#ff6286',

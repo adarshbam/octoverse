@@ -32,7 +32,11 @@ export type SkinUniforms = ReturnType<typeof createSkinUniforms>;
 export function createSkinUniforms(config: CharacterConfig) {
   const { palette: p, glow } = config;
   const color = (hex: string) => ({ value: new THREE.Color(hex) });
+  const [[lx, ly], [rx, ry]] = config.face.eye.centers;
   return {
+    /** Eye sockets in head-local units: both centres (x, y, x, y) and the eye radii. */
+    uEyeCenters: { value: new THREE.Vector4(lx, ly, rx, ry) },
+    uEyeRadii: { value: new THREE.Vector2(config.face.eye.rx, config.face.eye.ry) },
     uGlowRamp: { value: createRampTexture(glow.ramp) },
     uGlowPos: { value: new THREE.Vector3(...glow.center) },
     /** Face glow extent: x spread, upward reach, downward reach. */
@@ -102,6 +106,9 @@ const skinFragment = /* glsl */ `
   uniform vec3 uSpeck;
   uniform vec3 uKeyDir;
   uniform sampler2D uFace;
+  uniform vec4 uFaceRect;
+  uniform vec4 uEyeCenters;
+  uniform vec2 uEyeRadii;
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying float vUnder;
@@ -168,6 +175,13 @@ const skinFragment = /* glsl */ `
     #endif
 
     #ifdef HEAD
+      // Eye sockets: the skin darkens (at most 18%) within 1.25x each eye's radii, so the eyes sit in the face.
+      vec2 local = vFaceUv * uFaceRect.zw + uFaceRect.xy;
+      vec2 radii = uEyeRadii * 1.25;
+      float socket = max(
+        1.0 - smoothstep(0.55, 1.0, length((local - uEyeCenters.xy) / radii)),
+        1.0 - smoothstep(0.55, 1.0, length((local - uEyeCenters.zw) / radii)));
+      col *= 1.0 - 0.18 * socket * smoothstep(0.05, 0.3, vFront);
       vec4 face = texture2D(uFace, vFaceUv);
       float inside = step(0.0, vFaceUv.x) * step(vFaceUv.x, 1.0) * step(0.0, vFaceUv.y) * step(vFaceUv.y, 1.0);
       float mask = face.a * inside * smoothstep(0.05, 0.3, vFront);
