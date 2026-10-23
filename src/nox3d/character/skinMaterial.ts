@@ -55,11 +55,13 @@ export function createSkinUniforms(config: CharacterConfig) {
 
 const skinVertex = /* glsl */ `
   attribute float aUnder;
+  attribute float aU;
   attribute vec2 aSpeck;
   uniform vec4 uFaceRect;
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying float vUnder;
+  varying float vU;
   varying vec2 vSpeck;
   varying vec2 vFaceUv;
   varying float vFront;
@@ -69,9 +71,11 @@ const skinVertex = /* glsl */ `
     vNormalW = normalize(mat3(modelMatrix) * normal);
     #ifdef ARM
       vUnder = aUnder;
+      vU = aU;
       vSpeck = aSpeck;
     #else
       vUnder = 0.0;
+      vU = 1.0;
       vSpeck = uv * vec2(46.0, 26.0);
     #endif
     vFaceUv = (position.xy - uFaceRect.xy) / uFaceRect.zw;
@@ -101,6 +105,7 @@ const skinFragment = /* glsl */ `
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying float vUnder;
+  varying float vU;
   varying vec2 vSpeck;
   varying vec2 vFaceUv;
   varying float vFront;
@@ -108,7 +113,8 @@ const skinFragment = /* glsl */ `
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
   void main() {
-    vec3 N = normalize(vNormalW);
+    // Webs render double-sided; light the side the camera sees.
+    vec3 N = normalize(vNormalW) * (gl_FrontFacing ? 1.0 : -1.0);
     vec3 V = normalize(cameraPosition - vWorld);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec2 d = vWorld.xy - uGlowPos.xy;
@@ -129,10 +135,14 @@ const skinFragment = /* glsl */ `
       col += uBelly * pow(under, 2.0) * 0.35;
       vec3 rootGlow = texture2D(uGlowRamp, vec2(clamp(faceGlow * 0.9, 0.0, 1.0), 0.5)).rgb;
       col = mix(col, rootGlow, smoothstep(0.3, 0.8, faceGlow) * 0.7);
+      vec3 mantle = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
+      mantle = mix(mantle, uCheek, smoothstep(-0.3, -0.72, vWorld.y) * 0.85 * (1.0 - smoothstep(0.3, 0.7, faceGlow)));
+      float join = 1.0 - smoothstep(0.05, 0.28, vU);
+      col = mix(col, mantle, join);
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(0.45, 0.9, up) * (1.0 - under));
-      col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9;
+      col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9 * (1.0 - join);
       col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under);
-      col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9;
+      col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9 * (1.0 - join);
       vec2 cell = floor(vSpeck);
       vec2 f = fract(vSpeck) - 0.5;
       vec2 jitter = vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5;
@@ -145,8 +155,9 @@ const skinFragment = /* glsl */ `
       col += uSky * pow(max(N.y, 0.0), 4.0) * 0.3 * (1.0 - faceGlow);
       col += uRimTop * pow(max(N.y, 0.0), 10.0) * pow(1.0 - ndv, 1.5) * 0.5;
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(-0.25, 0.2, vWorld.y - uGlowPos.y - 0.9));
-      col += uHeadEdge * pow(1.0 - ndv, 2.0) * 0.32 * (1.0 - faceGlow);
-      col += rim * pow(1.0 - ndv, 6.0) * 3.2 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y));
+      float belowChin = smoothstep(uGlowPos.y + 0.05, uGlowPos.y + 0.3, vWorld.y);
+      col += uHeadEdge * pow(1.0 - ndv, 2.0) * 0.32 * (1.0 - faceGlow) * belowChin;
+      col += rim * pow(1.0 - ndv, 6.0) * 3.2 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
       col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 6.0) * 0.28 * (1.0 - faceGlow);
       vec2 cell = floor(vSpeck);
       vec2 f = fract(vSpeck) - 0.5;

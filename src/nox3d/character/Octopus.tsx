@@ -26,10 +26,12 @@ export interface OctopusProps {
   expression: ExpressionId;
   /** Rest pose with no motion, for comparison captures. */
   freeze: boolean;
+  /** Silhouette capture: hide additive glow cards that would read as solid shape. */
+  silhouette?: boolean;
 }
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
+export function Octopus({ config, pose, expression, freeze, silhouette = false }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -49,7 +51,8 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
     const webs = WEB_PAIRS.map(([a, b]) => {
       const left = byId.get(a)!;
       const right = byId.get(b)!;
-      return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u));
+      const centre = a === 'T4' && b === 'T5';
+      return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u), centre ? 0.14 : 0.2, centre ? 0 : undefined);
     });
     const webMaterial = createSkinMaterial('ARM', uniforms);
     webMaterial.side = THREE.DoubleSide;
@@ -60,12 +63,10 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
       webs,
       webMaterial,
       headGeometry: createHeadGeometry(config.head),
-      webGeometry: new THREE.SphereGeometry(1, 48, 32).scale(0.34, 0.2, 0.26),
       suckerGeometry: new THREE.SphereGeometry(1, 16, 12),
       suckerTotal: arms.reduce((n, a) => n + a.row.count, 0),
       headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
       armMaterial: createSkinMaterial('ARM', uniforms),
-      bodyMaterial: createSkinMaterial('BODY', uniforms),
       suckerMaterial: createSuckerMaterial(config.palette),
       coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
       glowLocal: new THREE.Vector3(...config.glow.center),
@@ -187,10 +188,9 @@ export function Octopus({ config, pose, expression, freeze }: OctopusProps) {
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
-          <mesh geometry={rig.webGeometry} material={rig.bodyMaterial} position={[BODY_X, -1.04, 0.02]} />
           <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]} />
           <instancedMesh ref={suckers} args={[rig.suckerGeometry, rig.suckerMaterial, rig.suckerTotal]} frustumCulled={false} />
-          <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]}>
+          <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
             <planeGeometry args={[1, 1]} />
           </mesh>
         </group>

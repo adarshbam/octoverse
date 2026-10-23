@@ -4,13 +4,13 @@ import type { ArmSpec, CharacterConfig } from './types';
 // These are the baseline to upgrade component by component, not the final look.
 
 const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.42] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.17, z: [-0.1, -0.22] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.15, 0.06] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.17, z: [0.05, -0.22] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.25, 0.06] });
 const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.22, 0.25] });
 
 export const NOX: CharacterConfig = {
   id: 'nox',
-  head: { centerX: 0.01, halfWidth: 0.778, waist: -0.508, top: 0.27, bottom: -1.22, topPower: 2, bottomPower: 2.3, depth: 0.82, faceOrigin: [0.035, -0.42] },
+  head: { centerX: 0.01, halfWidth: 0.778, waist: -0.508, top: 0.27, bottom: -1.18, topPower: 2, bottomPower: 2.4, depth: 0.82, faceOrigin: [0.035, -0.42] },
   glow: {
     center: [0.05, -0.97, 0.6],
     spreadX: 0.42,
@@ -22,7 +22,7 @@ export const NOX: CharacterConfig = {
     ],
   },
   palette: {
-    cheek: '#7b1d59',
+    cheek: '#7c2066',
     headEdge: '#5c2a8c',
     rimTop: '#b46ad0',
     rimLow: '#e04a96',

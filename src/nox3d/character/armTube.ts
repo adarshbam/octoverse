@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import type { ArmSpec } from '../config/types';
 import type { ArmChain } from './armChain';
 
-/** Roots swell by up to 60% over the first 12% of the arm, filling the joint with the body. */
-const ROOT_FLARE = 0.6;
+/** Roots swell by up to 30% over the first 12% of the arm, filling the joint with the body. */
+const ROOT_FLARE = 0.3;
 const ROOT_FLARE_SPAN = 0.12;
 
 /**
@@ -55,12 +55,14 @@ export class ArmTube {
     this.positions = new Float32Array(count * 3);
     this.normals = new Float32Array(count * 3);
     const under = new Float32Array(count);
+    const arcU = new Float32Array(count);
     const speck = new Float32Array(count * 2);
     const suckerAngle = Math.atan2(this.suckerSin, this.suckerCos);
     for (let k = 0; k <= n; k++) {
       for (let j = 0; j <= radial; j++) {
         const v = k * ring + j;
         under[v] = Math.cos((j / radial) * Math.PI * 2 - suckerAngle);
+        arcU[v] = k / n;
         speck[v * 2] = k * chain.segmentLength * 15;
         speck[v * 2 + 1] = (j / radial) * 8;
       }
@@ -77,6 +79,7 @@ export class ArmTube {
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('normal', new THREE.BufferAttribute(this.normals, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('aUnder', new THREE.BufferAttribute(under, 1));
+    this.geometry.setAttribute('aU', new THREE.BufferAttribute(arcU, 1));
     this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 2));
     this.update();
   }

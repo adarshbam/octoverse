@@ -9,7 +9,7 @@ export const WEB_PAIRS: readonly (readonly [ArmId, ArmId])[] = [
 
 const ROWS = 16;
 const COLS = 8;
-/** How far the free edge sags back toward the root, as a fraction of the reach. */
+/** Default sag: how far the free edge's middle falls back toward the root, as a fraction of the reach. */
 const SAG = 0.35;
 
 const pa = { x: 0, y: 0, z: 0 };
@@ -28,21 +28,26 @@ export class ArmWeb {
   private readonly ra: (u: number) => number;
   private readonly rb: (u: number) => number;
   private readonly reach: number;
+  private readonly sag: number;
   private readonly positions: Float32Array;
 
-  constructor(a: ArmChain, b: ArmChain, ra: (u: number) => number, rb: (u: number) => number, reach = 0.2) {
+  constructor(a: ArmChain, b: ArmChain, ra: (u: number) => number, rb: (u: number) => number, reach = 0.2, sag = SAG) {
     this.a = a;
     this.b = b;
     this.ra = ra;
     this.rb = rb;
     this.reach = reach;
+    this.sag = sag;
     const count = (ROWS + 1) * (COLS + 1);
     this.positions = new Float32Array(count * 3);
     const under = new Float32Array(count);
+    const arcU = new Float32Array(count);
     const speck = new Float32Array(count * 2);
     for (let i = 0; i <= ROWS; i++) {
       for (let j = 0; j <= COLS; j++) {
         const v = i * (COLS + 1) + j;
+        // Webs are body skin: keep them inside the shader's body-colour join (arc < 0.1).
+        arcU[v] = (i / ROWS) * 0.08;
         speck[v * 2] = (i / ROWS) * 9;
         speck[v * 2 + 1] = (j / COLS) * 3;
       }
@@ -57,6 +62,7 @@ export class ArmWeb {
     this.geometry.setIndex(indices);
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('aUnder', new THREE.BufferAttribute(under, 1));
+    this.geometry.setAttribute('aU', new THREE.BufferAttribute(arcU, 1));
     this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 2));
     this.update();
   }
@@ -65,7 +71,7 @@ export class ArmWeb {
     for (let j = 0; j <= COLS; j++) {
       const v = j / COLS;
       // Parabolic sag: the middle of the free edge reaches less far than its ends.
-      const reach = this.reach * (1 - SAG * 4 * v * (1 - v));
+      const reach = this.reach * (1 - this.sag * 4 * v * (1 - v));
       for (let i = 0; i <= ROWS; i++) {
         const u = (i / ROWS) * reach;
         this.a.pointAt(u, pa);
