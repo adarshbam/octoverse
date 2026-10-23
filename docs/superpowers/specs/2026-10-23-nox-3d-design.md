@@ -12,6 +12,10 @@ The earlier SVG implementation failed on the thing that matters most. Each tenta
 
 A throwaway 3D spike (2026-10-23) settled the approach. Nox is built entirely in code with Three.js. It matches storyboard panel 2 closely and moves like a creature: arms bend along their whole length, the eyes blink and follow the cursor, and the nearest arm reaches toward the pointer. The project owner reviewed the result and approved committing to 3D.
 
+**That approval covers feasibility only, not the look.** In the owner's words the spike was "close enough" to show 3D can do the job, but "nowhere near" the final look. They saw visible gaps: eyebrows too faint to read, and tentacles that look disconnected from the body.
+
+The base character is the foundation of the whole product: every stage, world and creator octopus is built on it. It is therefore refined component by component, with the owner reviewing and approving each component, before any stage work begins (section 8.0).
+
 This build turns the spike into the complete five-panel Nox experience. It is structured so that later characters (Veyra, Flux, Aether and creator octopuses) come from configuration, not new code.
 
 Evidence: `assets/2026-10-23-nox-3d/first-spike.png` (first attempt), `assets/2026-10-23-nox-3d/panel2-match.png` (tuned rest pose beside panel 2) and `assets/2026-10-23-nox-3d/motion-frames.png` (idle drift, blink, cursor reach, smile).
@@ -82,6 +86,39 @@ Evidence: `assets/2026-10-23-nox-3d/first-spike.png` (first attempt), `assets/20
   - **Plate inputs:** `plate_inputs.py` and `inpaint_plate.py` (local), plus `gen-plate.mjs` (OpenAI image edit).
 
 ## 8. The design
+
+### 8.0 Character upgrade (the foundation)
+
+The spike character is the starting point, not the target. Before any stage beyond the intro is built, the base Nox is upgraded one component at a time.
+
+**How each component is reviewed**
+
+1. **Reference first.** The matching region of the reference is traced and measured with the comparison tools.
+2. **Side-by-side review.** The owner looks at a zoomed comparison page (reference crop beside the live render) for that component alone:
+   - frozen and in motion;
+   - from a few viewing angles where depth matters (an orbit view).
+3. **Owner approval.** The owner either approves the component or asks for changes. The work repeats until they approve it.
+4. **Recorded.** The approval goes into a short review log in the repository (`docs/superpowers/reviews/nox-character.md`): component, date, the owner's words, and the capture it refers to.
+
+**Components, in order**
+
+1. **Body–arm junction.** Today each arm is a separate tube under the head, so the arms read as detached. The reference body is continuous: arms grow out of the mantle through a webbed base.
+   - **Roots:** each arm's root thickens and sinks into the mantle, which extends down to overlap them.
+   - **Webs:** thin membranes span neighbouring arms for roughly the first fifth of their length, rebuilt every frame from both arms' chains so they stretch and fold with motion.
+   - **Shading:** the webs use the arm skin with the root glow, so there is no visible seam.
+   - **Face kept clear:** no web crosses the face.
+2. **Eyebrows.** Clearly readable dark arcs at the reference position and size, tapered at the ends. They are expression parameters (height and angle), so brows take part in curious, focused and happy faces.
+3. **Eyes and face.**
+   - **Eyes:** socket shading so the eyes sit in the face, and the eye shape, outline weight, lashes, iris and catchlights checked against the reference at 3x zoom.
+   - **Mouth and blush:** shape, thickness and colour.
+4. **Mantle.** Silhouette, glow ramp, rim line and crown sheen, re-checked once the junction exists, since the lower outline changes.
+5. **Arms.** Thickness profile, how tightly they pack, curl size and tip shape, re-traced against the reference: all eight, each named T1 to T8 in the review.
+6. **Suckers.** Real cups (a raised glowing rim around a darker centre) forming the scalloped inner edge, with size varying along the arm, instead of beads.
+7. **Skin detail.** The reference's irregular light speckles and darker blotches, so the skin reads as a living surface rather than smooth plastic.
+8. **Glow and halo.** The pink-magenta outer glow around the silhouette, and how strongly the face glow bleeds into the arm roots.
+9. **Motion quality.** Breathing, float, arm drift, blink, gaze and reach, judged in motion by the owner (screen capture and live).
+
+**Gate:** the stage work in section 9 starts only after the owner signs off the whole character on the intro stage, side by side with panel 2.
 
 ### 8.1 Structure
 
@@ -232,15 +269,17 @@ Builder decisions (made in the design, open to the owner's correction):
 
 The plan breaks these into tasks. Each milestone is committed on the build branch, then reviewed by the owner in the browser.
 
-1. **Engine extraction:** the module tree, `CharacterConfig` with Nox's values, the stage state machine, the pose blender, stage URL parameters and unit tests. The intro stage reaches parity with the spike.
-2. **Overview (panel 3):** glass dome, head panel, panel 3 arm pose, orbs, logos and orb buttons.
-3. **Tech focus (panel 4):** reach-to-orb, focused expression, tooltip, keyboard and touch selection.
-4. **Detail (panel 5):** Nox moves aside, the detail panel with content, and the return path.
-5. **Entrance (panel 1):** swim pose and jet rhythm, the gate plate, skip and once-per-session behaviour.
-6. **Responsive, phone tier, reduced motion and accessibility** pass across all stages.
-7. **Plates:** final painted plates for every stage. Runs alongside milestones 2 to 6 as soon as image generation is available.
+1. **Engine extraction:** the module tree, `CharacterConfig` with Nox's values, ambient behaviour, unit tests, and the component review page. The intro stage renders the spike character as the baseline to upgrade, not as the target.
+2. **Character upgrade (section 8.0):** every component reviewed and approved by the owner, ending with a sign-off of the whole character. This is the gate for everything below.
+3. **Stage engine:** the stage state machine, the pose blender, stage URL parameters, camera framing, screen anchors and quality tiers.
+4. **Overview (panel 3):** glass dome, head panel, panel 3 arm pose, orbs, logos and orb buttons.
+5. **Tech focus (panel 4):** reach-to-orb, focused expression, tooltip, keyboard and touch selection.
+6. **Detail (panel 5):** Nox moves aside, the detail panel with content, and the return path.
+7. **Entrance (panel 1):** swim pose and jet rhythm, the gate plate, skip and once-per-session behaviour.
+8. **Responsive, phone tier, reduced motion and accessibility** pass across all stages.
+9. **Plates:** final painted plates for every stage. Runs alongside milestones 3 to 8 as soon as image generation is available.
 
-Estimated effort: about one working week for milestones 1 to 6, given prompt reviews from the owner.
+Estimated effort: the character upgrade takes as many review rounds as the owner needs; quality wins over speed here. After sign-off, milestones 3 to 8 take about one working week, given prompt reviews.
 
 ## 10. Left to the builder
 
@@ -253,6 +292,8 @@ Estimated effort: about one working week for milestones 1 to 6, given prompt rev
 ## 11. Decisions for the owner
 
 These change what gets built. Proposed defaults are in brackets.
+
+**Resolved 2026-10-23:** the owner approved this design and chose all three defaults. Storyboard text is used as marked placeholders. The owner will add OpenAI credits for plate generation. The build uses the lightweight review process.
 
 1. **Technology usage notes and detail sections.** The tooltips and the full project view need real text. [Use the storyboard text as clearly marked placeholders now; the owner supplies the real text before launch.]
 2. **Painted plates.** [Add OpenAI credits so plates can be generated and iterated in place. Otherwise the owner generates them in ChatGPT from prompts and masks that Claude prepares.]
