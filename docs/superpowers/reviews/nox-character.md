@@ -7,7 +7,7 @@ The base Nox is upgraded one component at a time (design doc section 8.0). Each 
 | Body–arm junction | 2026-10-23 | Approved v2. The owner chose "Approve junction" on the v2 review. v1 change requests are listed below. | `assets/junction-v2.png`, `assets/junction-v2-strip.png`, `assets/junction-v2-full.png` |
 | Eyebrows | 2026-10-23 | Approved v1. The owner chose "Approve eyebrows". Known gap raised at review: the painting's left brow sits slightly lower (head tilt); ours are symmetric. | `assets/brows-v1.png`, `assets/brows-v1-strip.png`, `assets/brows-v1-expressions.png` |
 | Eyes | 2026-10-23 | Approved v1. The owner chose "Approve eyes" after the redraw that answered their v1 junction note on staring eyes (dark iris with a pooled glow, soft pupil, small catchlights, light lower rim, traced size, wider face glow). Known gap raised at review: the painting's two eyes differ slightly; ours are symmetric. | `assets/eyes-v1.png`, `assets/eyes-v1-face.png`, `assets/eyes-v1-strip.png`, `assets/eyes-v1-expressions.png` |
-| Mouth and blush | pending | | |
+| Mouth and blush | 2026-10-23 | Approved v1. The owner chose "Approve mouth and blush" (traced smile with round corners, coral blush with a warm halo, and the open happy smile from panel 3). Known gap raised at review: the blush is slightly duller than the painting at high zoom. | `assets/mouth-v1.png`, `assets/mouth-v1-face.png`, `assets/mouth-v1-strip.png`, `assets/mouth-v1-happy-vs-panel3.png` |
 | Mantle | pending | | |
 | Arms (T1–T8) | pending | | |
 | Suckers | pending | | |
