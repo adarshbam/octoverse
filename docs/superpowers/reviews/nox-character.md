@@ -5,7 +5,7 @@ The base Nox is upgraded one component at a time (design doc section 8.0). Each 
 | Component | Date | Owner verdict | Capture |
 |---|---|---|---|
 | Body–arm junction | 2026-10-23 | Approved v2. The owner chose "Approve junction" on the v2 review. v1 change requests are listed below. | `assets/junction-v2.png`, `assets/junction-v2-strip.png`, `assets/junction-v2-full.png` |
-| Eyebrows | pending | | |
+| Eyebrows | 2026-10-23 | Approved v1. The owner chose "Approve eyebrows". Known gap raised at review: the painting's left brow sits slightly lower (head tilt); ours are symmetric. | `assets/brows-v1.png`, `assets/brows-v1-strip.png`, `assets/brows-v1-expressions.png` |
 | Eyes | pending | | |
 | Mouth and blush | pending | | |
 | Mantle | pending | | |
