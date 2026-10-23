@@ -4,7 +4,7 @@ The base Nox is upgraded one component at a time (design doc section 8.0). Each 
 
 | Component | Date | Owner verdict | Capture |
 |---|---|---|---|
-| Body–arm junction | pending | | |
+| Body–arm junction | 2026-10-23 | Approved v2. The owner chose "Approve junction" on the v2 review. v1 change requests are listed below. | `assets/junction-v2.png`, `assets/junction-v2-strip.png`, `assets/junction-v2-full.png` |
 | Eyebrows | pending | | |
 | Eyes | pending | | |
 | Mouth and blush | pending | | |
@@ -29,3 +29,5 @@ Capture: `assets/junction-v1-before-after.png`, `assets/junction-v1.png`. Verdic
 - **Eyes** (Task 9): "our eyes look slightly different and really pointy, but it doesn't feel like it has a cutesy glow. It looks like it's staring right into the eye, but in our reference, it looks like it has really innocent and cute eyes."
 
 Gaps raised with the v1 review and folded into v2: the dark notch where T4 and T5 meet, the crease that the T3/T6 roots draw across the chin, and the glow running further down the centre arms.
+
+**v2 (approved):** the mantle is re-fitted to the rim line as a dome that runs past its widest point, with cheek lobes pushed out below it that carry the blush into the arms. T3/T6 now emerge from behind the neck, so the chin crease is gone. T4/T5 carry their suckers along the V, and sucker rows start small next to the body. The glow down the centre arms measured within range of the reference, so it was left for the glow task. Known gaps raised at the v2 review: each cheek lobe ends in a small point where an arm edge meets it (in the reference that arm is T1, not T2), and from the side the cheeks read as a soft ridge.
