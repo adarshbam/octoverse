@@ -1,11 +1,6 @@
 import * as THREE from 'three';
 import type { CheekShape, HeadShape } from '../config/types';
 
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-
 /** Lathe radius of the mantle at world height y: a superellipse dome above the waist, the neck below. */
 export function mantleRadius(head: HeadShape, y: number) {
   const { halfWidth, waist, top, bottom, topPower, bottomPower } = head;
@@ -16,16 +11,25 @@ export function mantleRadius(head: HeadShape, y: number) {
 }
 
 /**
- * How far the cheeks push the mantle out at world height y and angle `theta`
- * from the front of the face (radians). Nothing in the middle of the face or on
- * the dome; fullest toward the sides at the cheek height.
+ * Where a ray from the head's axis at world height y, heading `theta` from the front of
+ * the face (radians), leaves a cheek sphere; 0 when it misses both. The two cheeks mirror
+ * each other, so only |theta| matters.
  */
-export function cheekOffset(cheeks: CheekShape, y: number, theta: number) {
-  const { top, y: fullest, bottom, bulge, angle, spread } = cheeks;
-  const vertical = y > fullest ? smoothstep(top, fullest, y) : smoothstep(bottom, fullest, y);
-  const a = (Math.abs(theta) - THREE.MathUtils.degToRad(angle)) / THREE.MathUtils.degToRad(spread);
-  if (vertical === 0 || Math.abs(a) >= 1) return 0;
-  return bulge * vertical * Math.cos((a * Math.PI) / 2) ** 2;
+export function cheekReach(cheeks: CheekShape, y: number, theta: number) {
+  const angle = THREE.MathUtils.degToRad(cheeks.angle);
+  const along = cheeks.distance * Math.cos(Math.abs(theta) - angle);
+  const rest = cheeks.distance ** 2 + (y - cheeks.y) ** 2 - cheeks.radius ** 2;
+  const disc = along * along - rest;
+  return disc <= 0 || along <= 0 ? 0 : along + Math.sqrt(disc);
+}
+
+/** Mantle radius along a ray with the cheeks merged in: a smooth maximum keeps the join soft. */
+function withCheeks(head: HeadShape, r: number, y: number, theta: number) {
+  const reach = cheekReach(head.cheeks, y, theta);
+  if (reach === 0) return r;
+  const k = head.cheeks.blend;
+  const h = Math.max(k - Math.abs(r - reach), 0) / k;
+  return Math.max(r, reach) + h * h * k * 0.25;
 }
 
 /** Half-width of the head's outline seen from the front, at world height y. */
@@ -33,16 +37,16 @@ export function silhouetteHalfWidth(head: HeadShape, y: number) {
   const r = mantleRadius(head, y);
   if (r === 0) return 0;
   let widest = r;
-  for (let i = 0; i <= 180; i++) {
-    const theta = (i / 180) * Math.PI;
-    widest = Math.max(widest, (r + cheekOffset(head.cheeks, y, theta)) * Math.sin(theta));
+  for (let i = 0; i <= 360; i++) {
+    const theta = (i / 360) * Math.PI;
+    widest = Math.max(widest, withCheeks(head, r, y, theta) * Math.sin(theta));
   }
   return widest;
 }
 
 /**
  * Mantle as a lathe of two superellipses fitted to the reference rim line, a dome
- * above the widest point and the neck below, with the cheeks pushed out of its
+ * above the widest point and the neck below, with round cheeks merged into its
  * sides. Coordinates are local to `head.faceOrigin`, which is where the mesh is placed.
  */
 export function createHeadGeometry(head: HeadShape) {
@@ -65,7 +69,7 @@ export function createHeadGeometry(head: HeadShape) {
     const z = position.getZ(i);
     const r = Math.hypot(x, z);
     if (r < 1e-6) continue;
-    const grow = 1 + cheekOffset(head.cheeks, y + faceOrigin[1], Math.atan2(x, z)) / r;
+    const grow = withCheeks(head, r, y + faceOrigin[1], Math.atan2(x, z)) / r;
     position.setXYZ(i, x * grow, y, z * grow);
   }
   geometry.scale(1, 1, depth);

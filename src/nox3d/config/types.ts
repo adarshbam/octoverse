@@ -8,22 +8,20 @@ export type Point2 = readonly [number, number];
 export type StageId = 'entering' | 'intro' | 'overview' | 'techFocus' | 'detail';
 
 /**
- * The lower face's side lobes. They stick out below the dome, hold the blush,
- * and carry the head's outline down into the neck and arms.
+ * The lower face's side lobes: round cheeks that stick out below the dome, hold the
+ * blush, and carry the head's outline down into the neck and arms. Each is a sphere
+ * merged smoothly into the mantle.
  */
 export interface CheekShape {
-  /** Height (world y) where the lobe starts under the dome: the notch in the outline. */
-  top: number;
-  /** Height of the lobe's fullest point. */
+  /** Height (world y) of the cheek's centre. */
   y: number;
-  /** Height where the lobe has blended back into the neck. */
-  bottom: number;
-  /** Outward push at the fullest point, world units. */
-  bulge: number;
-  /** Angle from the front of the face where the lobe is fullest, degrees. */
+  /** Distance of the centre from the head's axis, and its angle from the front of the face (degrees). */
+  distance: number;
   angle: number;
-  /** Angular half-width of the lobe, degrees; less than `angle`, so the middle of the face stays as it is. */
-  spread: number;
+  /** Radius: how big and round the cheek is. */
+  radius: number;
+  /** Width of the smooth join into the dome and the neck; small keeps a clear notch. */
+  blend: number;
 }
 
 /** Mantle silhouette: a superellipse dome above `waist`, a narrower neck below, and cheeks. */
@@ -87,8 +85,11 @@ export interface EyeLayout {
   lid: { inner: number; outer: number };
   /** Width of the light rim along the lower edge, world units. */
   rim: number;
-  /** Lashes at the outer corner: where they leave the lid (0 = top, 1 = outer corner), length (world units), angle above horizontal (degrees). */
-  lashes: { at: number; length: number; angle: number }[];
+  /**
+   * Lashes at the outer corner: where they leave the lid (0 = top, 1 = outer corner), length
+   * and base width (world units), and angle above horizontal (degrees).
+   */
+  lashes: { at: number; length: number; width: number; angle: number }[];
 }
 
 /** Face feature placement in head-local world units (origin = HeadShape.faceOrigin). */

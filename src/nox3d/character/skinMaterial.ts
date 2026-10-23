@@ -162,10 +162,12 @@ const skinFragment = /* glsl */ `
       col += uSky * pow(max(N.y, 0.0), 4.0) * 0.3 * (1.0 - faceGlow);
       col += uRimTop * pow(max(N.y, 0.0), 10.0) * pow(1.0 - ndv, 1.5) * 0.5;
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(-0.25, 0.2, vWorld.y - uGlowPos.y - 0.9));
-      float belowChin = smoothstep(uGlowPos.y + 0.05, uGlowPos.y + 0.3, vWorld.y);
+      // Rim and edge colour run down around the cheeks, and fade out on the neck between the arms.
+      float belowChin = smoothstep(uGlowPos.y - 0.05, uGlowPos.y + 0.15, vWorld.y);
       col += uHeadEdge * pow(1.0 - ndv, 2.0) * 0.32 * (1.0 - faceGlow) * belowChin;
       col += rim * pow(1.0 - ndv, 6.0) * 3.2 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
-      col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 6.0) * 0.28 * (1.0 - faceGlow);
+      // Crown sheen: a tight highlight toward the upper left; the forehead stays dark navy.
+      col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 14.0) * 0.22 * (1.0 - faceGlow);
       vec2 cell = floor(vSpeck);
       vec2 f = fract(vSpeck) - 0.5;
       vec2 jitter = vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5;

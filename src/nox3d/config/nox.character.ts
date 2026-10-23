@@ -14,8 +14,8 @@ export const NOX: CharacterConfig = {
   id: 'nox',
   // Dome, notch and cheeks traced from the panel 2 rim line (junction v2).
   head: {
-    centerX: 0.01, halfWidth: 0.752, waist: -0.44, top: 0.27, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.035, -0.42],
-    cheeks: { top: -0.7, y: -0.82, bottom: -1.1, bulge: 0.168, angle: 72, spread: 48 },
+    centerX: 0.01, halfWidth: 0.752, waist: -0.44, top: 0.255, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.035, -0.42],
+    cheeks: { y: -0.835, distance: 0.678, angle: 72, radius: 0.115, blend: 0.05 },
   },
   glow: {
     center: [0.05, -0.97, 0.6],
@@ -30,8 +30,8 @@ export const NOX: CharacterConfig = {
   palette: {
     cheek: '#7c2066',
     headEdge: '#5c2a8c',
-    rimTop: '#b46ad0',
-    rimLow: '#e04a96',
+    rimTop: '#a477c8',
+    rimLow: '#d070c0',
     sky: '#3a48c8',
     speck: '#b9a6f2',
     armShadow: '#1c0628',
@@ -54,7 +54,12 @@ export const NOX: CharacterConfig = {
       catchlights: [{ x: -0.5, y: 0.36, r: 0.19 }, { x: 0.53, y: 0.4, r: 0.145 }],
       lid: { inner: 0.012, outer: 0.03 },
       rim: 0.006,
-      lashes: [{ at: 0.6, length: 0.024, angle: 70 }, { at: 0.75, length: 0.028, angle: 50 }, { at: 0.88, length: 0.026, angle: 30 }],
+      // Three clear lashes curling out from the outer top corner (owner: lashes were too small).
+      lashes: [
+        { at: 0.52, length: 0.042, width: 0.016, angle: 82 },
+        { at: 0.72, length: 0.052, width: 0.019, angle: 58 },
+        { at: 0.89, length: 0.046, width: 0.017, angle: 32 },
+      ],
     },
     // Traced from panel 2 (both brows averaged, then scaled by 1/1.044 for the face's depth
     // in the perspective camera): a flat inner run, then the outer end hooks down.

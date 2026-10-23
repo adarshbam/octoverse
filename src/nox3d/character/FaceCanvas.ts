@@ -253,9 +253,9 @@ export class FaceCanvas {
       const tipX = x + side * Math.cos(angle) * length;
       const tipY = base - Math.sin(angle) * length;
       // Curl the tip outward, like a brushed lash.
-      const ctrlX = x + side * Math.cos(angle + 0.35) * length * 0.55;
-      const ctrlY = base - Math.sin(angle + 0.35) * length * 0.55;
-      const segments = 6;
+      const ctrlX = x + side * Math.cos(angle + 0.45) * length * 0.6;
+      const ctrlY = base - Math.sin(angle + 0.45) * length * 0.6;
+      const segments = 10;
       for (let i = 0; i < segments; i++) {
         const point = (t: number) => [
           (1 - t) * (1 - t) * x + 2 * t * (1 - t) * ctrlX + t * t * tipX,
@@ -263,7 +263,7 @@ export class FaceCanvas {
         ];
         const [ax, ay] = point(i / segments);
         const [bx, by] = point((i + 1) / segments);
-        ctx.lineWidth = eye.lid.outer * U * 0.5 * (1 - (i + 0.5) / segments) + 1;
+        ctx.lineWidth = lash.width * U * (1 - (i + 0.5) / segments) + 1;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);

@@ -1,12 +1,13 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { cheekOffset, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
+import { cheekReach, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
 
 // Rim-line trace of panel 2 (world units): the dome is widest at y = -0.44, the outline
-// dips into a notch at y = -0.71, then the cheeks stick out to their fullest at y = -0.81.
+// dips into a notch at y = -0.725, then each cheek bulges out as a round lobe, fullest
+// at y = -0.835, and curves back toward the neck.
 const DOME = { y: -0.44, half: 0.752 };
-const NOTCH = { y: -0.71, half: 0.69 };
-const CHEEK = { y: -0.81, half: 0.78 };
+const NOTCH = { y: -0.725, half: 0.685 };
+const CHEEK = { y: -0.835, half: 0.76, radius: 0.115 };
 const head = NOX.head;
 
 test('the dome is widest at the reference height and width', () => {
@@ -20,16 +21,20 @@ test('the outline dips into a notch between the dome and the cheeks', () => {
   expect(notch).toBeLessThan(silhouetteHalfWidth(head, CHEEK.y));
 });
 
-test('cheeks stick out below the notch', () => {
-  expect(Math.abs(silhouetteHalfWidth(head, CHEEK.y) - CHEEK.half)).toBeLessThan(0.02);
+test('cheeks are round lobes: the outline follows a circle around the cheek', () => {
+  const centre = CHEEK.half - CHEEK.radius;
+  for (let y = CHEEK.y - 0.07; y <= CHEEK.y + 0.07; y += 0.02) {
+    const circle = centre + Math.sqrt(CHEEK.radius ** 2 - (y - CHEEK.y) ** 2);
+    expect(Math.abs(silhouetteHalfWidth(head, y) - circle), `y ${y.toFixed(2)}`).toBeLessThan(0.012);
+  }
 });
 
 test('cheeks leave the middle of the face and the dome untouched', () => {
-  for (const y of [-0.75, -0.81, -0.9]) {
-    expect(cheekOffset(head.cheeks, y, 0)).toBe(0);
-    expect(cheekOffset(head.cheeks, y, 1.2)).toBeCloseTo(cheekOffset(head.cheeks, y, -1.2), 9);
+  for (const y of [-0.78, -0.835, -0.9]) {
+    expect(cheekReach(head.cheeks, y, 0)).toBe(0);
+    expect(cheekReach(head.cheeks, y, 1.2)).toBeCloseTo(cheekReach(head.cheeks, y, -1.2), 9);
   }
-  expect(cheekOffset(head.cheeks, -0.5, 1.2)).toBe(0);
+  expect(cheekReach(head.cheeks, -0.5, 1.2)).toBe(0);
 });
 
 test('the head mesh carries the cheeks', () => {

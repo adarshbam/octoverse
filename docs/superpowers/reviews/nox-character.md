@@ -30,4 +30,8 @@ Capture: `assets/junction-v1-before-after.png`, `assets/junction-v1.png`. Verdic
 
 Gaps raised with the v1 review and folded into v2: the dark notch where T4 and T5 meet, the crease that the T3/T6 roots draw across the chin, and the glow running further down the centre arms.
 
+### Owner notes after approval (2026-10-24)
+
+Raised during the mantle work: "Noo eyes lashes or too small lashes. And cheeks are not round enough." The lashes are handled as an eyes revision and the cheek shape with the mantle (Task 10).
+
 **v2 (approved):** the mantle is re-fitted to the rim line as a dome that runs past its widest point, with cheek lobes pushed out below it that carry the blush into the arms. T3/T6 now emerge from behind the neck, so the chin crease is gone. T4/T5 carry their suckers along the V, and sucker rows start small next to the body. The glow down the centre arms measured within range of the reference, so it was left for the glow task. Known gaps raised at the v2 review: each cheek lobe ends in a small point where an arm edge meets it (in the reference that arm is T1, not T2), and from the side the cheeks read as a soft ridge.
