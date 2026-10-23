@@ -47,8 +47,8 @@ export class ArmChain {
   readonly px: Float32Array;
   readonly py: Float32Array;
   readonly pz: Float32Array;
+  readonly spec: ArmSpec;
   private rest: ArmRest;
-  private readonly spec: ArmSpec;
   private readonly phase: number;
   private readonly angle: Float32Array;
   private readonly work: Float32Array;
@@ -67,10 +67,11 @@ export class ArmChain {
     this.work = new Float32Array(n);
     this.qx = new Float32Array(n + 1);
     this.qy = new Float32Array(n + 1);
-    // Octopus arms curl toward their oral side, so the tip's turning direction picks the sucker side.
+    // Octopus arms curl toward their oral side, so the tip's turning direction picks the
+    // sucker side, unless the config traced it from the reference.
     let turn = 0;
     for (let k = Math.floor(n * 0.6); k < n - 1; k++) turn += wrap(rest.angles[k + 1] - rest.angles[k]);
-    this.side = turn >= 0 ? 1 : -1;
+    this.side = spec.suckerSide ?? (turn >= 0 ? 1 : -1);
     this.angle.set(rest.angles);
     this.integrate();
     this.updateZ(0);

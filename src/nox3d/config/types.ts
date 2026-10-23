@@ -7,7 +7,26 @@ export type ArmId = (typeof ARM_IDS)[number];
 export type Point2 = readonly [number, number];
 export type StageId = 'entering' | 'intro' | 'overview' | 'techFocus' | 'detail';
 
-/** Mantle silhouette: a superellipse dome above `waist`, fuller cheeks below. */
+/**
+ * The lower face's side lobes. They stick out below the dome, hold the blush,
+ * and carry the head's outline down into the neck and arms.
+ */
+export interface CheekShape {
+  /** Height (world y) where the lobe starts under the dome: the notch in the outline. */
+  top: number;
+  /** Height of the lobe's fullest point. */
+  y: number;
+  /** Height where the lobe has blended back into the neck. */
+  bottom: number;
+  /** Outward push at the fullest point, world units. */
+  bulge: number;
+  /** Angle from the front of the face where the lobe is fullest, degrees. */
+  angle: number;
+  /** Angular half-width of the lobe, degrees; less than `angle`, so the middle of the face stays as it is. */
+  spread: number;
+}
+
+/** Mantle silhouette: a superellipse dome above `waist`, a narrower neck below, and cheeks. */
 export interface HeadShape {
   centerX: number;
   halfWidth: number;
@@ -20,6 +39,7 @@ export interface HeadShape {
   depth: number;
   /** Head-local origin of the face canvas, in world units. */
   faceOrigin: Point2;
+  cheeks: CheekShape;
 }
 
 /** The warm core under the face and the colour ramp it paints onto the mantle. */
@@ -76,6 +96,13 @@ export interface ArmSpec {
   rootRadius: number;
   /** Root z and tip z: rear arms pass behind the mantle, front arms in front. */
   z: readonly [number, number];
+  /**
+   * Side that carries the suckers when traced from the reference instead of read
+   * from the tip curl: 1 = left of the root-to-tip direction, -1 = right.
+   */
+  suckerSide?: 1 | -1;
+  /** Arc fraction where the sucker row begins, when traced from the reference (default 0.14). */
+  suckerStart?: number;
 }
 
 export interface Personality {

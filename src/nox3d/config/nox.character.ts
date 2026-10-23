@@ -5,12 +5,18 @@ import type { ArmSpec, CharacterConfig } from './types';
 
 const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.42] });
 const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.17, z: [0.05, -0.22] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.25, 0.06] });
-const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.22, 0.25] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.0, 0.06] });
+// The centre arms show their suckers along the V between them, outside their tip curls,
+// starting where the V opens below the web.
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.22, 0.25], suckerSide, suckerStart: 0.2 });
 
 export const NOX: CharacterConfig = {
   id: 'nox',
-  head: { centerX: 0.01, halfWidth: 0.778, waist: -0.508, top: 0.27, bottom: -1.18, topPower: 2, bottomPower: 2.4, depth: 0.82, faceOrigin: [0.035, -0.42] },
+  // Dome, notch and cheeks traced from the panel 2 rim line (junction v2).
+  head: {
+    centerX: 0.01, halfWidth: 0.752, waist: -0.44, top: 0.27, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.035, -0.42],
+    cheeks: { top: -0.7, y: -0.82, bottom: -1.1, bulge: 0.168, angle: 72, spread: 48 },
+  },
   glow: {
     center: [0.05, -0.97, 0.6],
     spreadX: 0.42,
@@ -54,7 +60,7 @@ export const NOX: CharacterConfig = {
     mouth: '#26091a',
     blush: '#ff6286',
   },
-  arms: [rear('T1'), middle('T2'), side('T3'), lower('T4'), lower('T5'), side('T6'), middle('T7'), rear('T8')],
+  arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
   tipRadius: 0.035,
   taperPower: 0.75,
   suckers: { sizeRatio: 0.6, spacing: 2.2, tilt: 12 },

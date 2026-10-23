@@ -9,6 +9,14 @@ const tmpQuat = new THREE.Quaternion();
 const tmpScale = new THREE.Vector3();
 const tmpMatrix = new THREE.Matrix4();
 
+/** Default arc fraction where a row begins, just past the webbed root. */
+const ROW_START = 0.14;
+
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
 /** Glowing suckers spaced along an arm's sucker side, written into a shared instanced mesh. */
 export class SuckerRow {
   readonly suckers: { arc: number; size: number }[] = [];
@@ -19,10 +27,13 @@ export class SuckerRow {
     this.chain = chain;
     this.tube = tube;
     const length = chain.segmentLength * chain.segments;
-    let arc = length * 0.14;
+    const start = chain.spec.suckerStart ?? ROW_START;
+    let arc = length * start;
     while (arc < length * 0.975) {
       const jitter = 0.85 + 0.3 * Math.abs(Math.sin(arc * 91.7 + index * 3.1));
-      const size = tube.radiusAt(arc / length) * settings.sizeRatio * jitter;
+      // Each row starts small at its body end and reaches full size 16% of the arm later.
+      const grow = 0.35 + 0.65 * smoothstep(start, start + 0.16, arc / length);
+      const size = tube.radiusAt(arc / length) * settings.sizeRatio * jitter * grow;
       this.suckers.push({ arc, size });
       arc += Math.max(size * settings.spacing, 0.028);
     }

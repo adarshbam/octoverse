@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import type { ArmId, Point2 } from '../config/types';
+import { NOX_POSES } from '../poses/nox.poses';
 import { ArmChain, restFromCurve } from './armChain';
 
 // Intro curves of T1 and T8 from the spike (src/spike/nox/armPoses.ts), hidden root included.
@@ -28,6 +29,18 @@ test('segment lengths are preserved under motion', () => {
 test('sucker side follows the tip curl: T1 curls counter-clockwise, T8 clockwise', () => {
   expect(new ArmChain(restFromCurve(T1), spec('T1'), 0).side).toBe(1);
   expect(new ArmChain(restFromCurve(T8), spec('T8'), 7).side).toBe(-1);
+});
+
+test('the centre arms carry their suckers on the edges that face each other', () => {
+  const [t4, t5] = (['T4', 'T5'] as const).map((id, i) => new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), spec(id), 3 + i));
+  const k = 16;
+  for (const [arm, other] of [[t4, t5], [t5, t4]]) {
+    const tx = arm.px[k + 1] - arm.px[k - 1];
+    const ty = arm.py[k + 1] - arm.py[k - 1];
+    // Suckers sit on `side` times the left normal (-ty, tx).
+    const towardOther = (other.px[k] - arm.px[k]) * -ty + (other.py[k] - arm.py[k]) * tx;
+    expect(arm.side * towardOther).toBeGreaterThan(0);
+  }
 });
 
 test('reach brings the tip closer to the target', () => {

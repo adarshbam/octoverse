@@ -15,3 +15,17 @@ The base Nox is upgraded one component at a time (design doc section 8.0). Each 
 | Glow and halo | pending | | |
 | Motion | pending | | |
 | **Character sign-off** | pending | | |
+
+## Change requests
+
+### Body–arm junction v1 (2026-10-23)
+
+Capture: `assets/junction-v1-before-after.png`, `assets/junction-v1.png`. Verdict: changes requested. The owner's notes, and where each one is handled:
+
+- **Cheeks** (junction v2): "our 3D design just has one big sphere, but if you will notice, in the actual character design, it has a kind of more than a semicircle, and inside that there are cheeks. Which stick out." "Those cheeks connect the body and the neck properly. So and inside those cheeks there is a beautiful kind of blush."
+- **Suckers on every arm** (junction v2 for T4/T5, then Task 12): "some of them are missing in our middle tentacles, if you'll notice. So make sure it is present on every single tentacle everywhere."
+- **Arm volume and glow** (Tasks 11 and 14): "those tentacles look really phenomenal. They have proper glow and 3D-ness to them, but our looks really flat."
+- **Skin texture** (Task 13): "the main difference is the texture. If you'll notice, our reference has a beautiful texture, and it has variations in the colors some part is more bluish, some part is really reddish, it has variations, and it has a slight texture around it." "So make sure to add that texture, because our 3D model looks flat compared to the reference."
+- **Eyes** (Task 9): "our eyes look slightly different and really pointy, but it doesn't feel like it has a cutesy glow. It looks like it's staring right into the eye, but in our reference, it looks like it has really innocent and cute eyes."
+
+Gaps raised with the v1 review and folded into v2: the dark notch where T4 and T5 meet, the crease that the T3/T6 roots draw across the chin, and the glow running further down the centre arms.
