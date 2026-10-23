@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nox Spike Compare</title>
+<style>
+  :root { --s: 1; }
+  body { margin: 0; background: #05060f; color: #cfc6e8; font: 13px/1.4 system-ui, sans-serif; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 16px; }
+  figure { margin: 0; }
+  figcaption { padding: 4px 0 0; }
+  .ref, iframe { width: calc(506px * var(--s)); height: calc(504px * var(--s)); border: 0; display: block; }
+  .ref { background: url(/spike/Nox.jpeg) calc(-512px * var(--s)) 0 / calc(1536px * var(--s)) calc(1024px * var(--s)) no-repeat; }
+</style>
+<script>
+  const s = new URLSearchParams(location.search).get('s');
+  if (s) document.documentElement.style.setProperty('--s', s);
+  addEventListener('DOMContentLoaded', () => {
+    if (new URLSearchParams(location.search).has('freeze')) document.querySelector('iframe').src = '/spike.html?freeze';
+  });
+</script>
+</head>
+<body>
+  <div class="row">
+    <figure><div class="ref"></div><figcaption>Reference: Nox.jpeg panel 2</figcaption></figure>
+    <figure><iframe src="/spike.html" title="3D spike"></iframe><figcaption>3D spike (live, real-time)</figcaption></figure>
+  </div>
+</body>
+</html>

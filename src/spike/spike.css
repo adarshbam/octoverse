@@ -1,0 +1,111 @@
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: #05040b;
+  overflow: hidden;
+}
+
+.spike {
+  position: fixed;
+  inset: 0;
+}
+
+.spike canvas {
+  display: block;
+}
+
+/* Square stage matching Nox.jpeg panel 2 (506 x 504); all sizes are stage-relative. */
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  transform: translate(-50%, -50%);
+  container-type: size;
+  pointer-events: none;
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: #fff;
+  text-align: center;
+}
+
+.stage p,
+.stage h1 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+}
+
+.kicker {
+  top: 19.6%;
+  font-size: 1.85cqh;
+  font-weight: 500;
+  letter-spacing: 0.62em;
+  padding-left: 0.62em;
+  color: #ff3a55;
+}
+
+.title {
+  top: 23.4%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.6cqh;
+  font-size: 6.1cqh;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.title .lab {
+  color: #ff3d52;
+}
+
+.title svg {
+  width: 6cqh;
+  height: 6.9cqh;
+  filter: drop-shadow(0 0 1.2cqh rgba(255, 50, 70, 0.75));
+}
+
+.tag {
+  top: 32.4%;
+  font-size: 2.25cqh;
+  color: #ece4f3;
+}
+
+.desc {
+  top: 35.6%;
+  font-size: 2.05cqh;
+  line-height: 1.32;
+  color: #d9cfe4;
+}
+
+.nameplate {
+  position: absolute;
+  left: 50%;
+  top: 92%;
+  transform: translate(-50%, -50%);
+  width: 27.2%;
+  height: 8.9%;
+  border-radius: 999px;
+  border: 0.3cqh solid rgba(255, 70, 100, 0.65);
+  background: rgba(12, 6, 18, 0.78);
+  box-shadow: 0 0 2cqh rgba(255, 40, 80, 0.35), inset 0 0 1.4cqh rgba(255, 50, 90, 0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.nameplate b {
+  font-size: 3.1cqh;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.nameplate span {
+  font-size: 2.1cqh;
+  color: #d8cfe2;
+}
