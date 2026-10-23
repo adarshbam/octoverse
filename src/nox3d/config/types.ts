@@ -63,6 +63,8 @@ export interface FacePalette {
   irisPool: string;
   pupil: string;
   lid: string;
+  /** Thin lower outline of the eye. */
+  outline: string;
   brow: string;
   mouth: string;
   blush: string;

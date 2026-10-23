@@ -1,12 +1,14 @@
 """Gridded zoom of Nox panel 2 in world units (1 unit = 100 panel px, origin panel centre, +y up)."""
 import sys
 from PIL import Image, ImageDraw, ImageFont
+from panels import take_panel_arg
+PANEL_RECT, PANEL_W, PANEL_H = take_panel_arg()
 SRC = 'public/spike/Nox.jpeg'
 S = 3
 x0, y0, x1, y1 = [float(v) for v in sys.argv[1:5]] if len(sys.argv) > 4 else (-2.35, 0.4, 2.45, -2.05)
 out = sys.argv[5] if len(sys.argv) > 5 else 'spike-out/ref-grid.png'
-panel = Image.open(SRC).convert('RGB').crop((512, 0, 1018, 504))
-def to_px(wx, wy): return (253 + wx * 100, 252 - wy * 100)
+panel = Image.open(SRC).convert('RGB').crop(PANEL_RECT)
+def to_px(wx, wy): return (PANEL_W / 2 + wx * 100, PANEL_H / 2 - wy * 100)
 l, t = to_px(x0, y0); r, b = to_px(x1, y1)
 crop = panel.crop((int(l), int(t), int(r), int(b))).resize((int((r - l) * S), int((b - t) * S)), Image.LANCZOS)
 d = ImageDraw.Draw(crop, 'RGBA')

@@ -1,0 +1,28 @@
+import type { StageId } from '../config/types';
+
+const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
+
+export interface UrlState {
+  stage?: StageId;
+  tech?: string;
+  /** Rest pose, no motion: for comparison captures. */
+  freeze: boolean;
+  /** Orbit camera for inspecting depth. */
+  orbit: boolean;
+  noWebgl: boolean;
+  /** World box [x0, y0, x1, y1] the camera frames, for real zoom. */
+  view?: [number, number, number, number];
+}
+
+/** Review and debugging switches read from the page URL. Unknown values are ignored. */
+export function parseUrlState(search: string): UrlState {
+  const params = new URLSearchParams(search);
+  const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl') };
+  const stage = params.get('stage');
+  if (stage && (STAGES as readonly string[]).includes(stage)) state.stage = stage as StageId;
+  const tech = params.get('tech');
+  if (tech) state.tech = tech;
+  const view = params.get('view')?.split(',').map(Number);
+  if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
+  return state;
+}

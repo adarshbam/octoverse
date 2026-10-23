@@ -49,6 +49,7 @@ export const NOX: CharacterConfig = {
     irisPool: '#ff7856',
     pupil: '#100208',
     lid: '#120510',
+    outline: '#2a0814',
     brow: '#12081a',
     mouth: '#26091a',
     blush: '#ff6286',

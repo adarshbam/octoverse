@@ -1,0 +1,19 @@
+{
+  "2": {
+    "colorTolerance": 24,
+    "widthTolerance": 0.02,
+    "points": {
+      "head top": [0.03, 0.08],
+      "head upper-left": [-0.45, -0.1],
+      "head side": [-0.62, -0.42],
+      "forehead": [0.04, -0.42],
+      "between eyes low": [0.04, -0.72],
+      "chin glow": [0.05, -0.95],
+      "cheek outer": [-0.64, -0.75],
+      "bg left": [-2.3, -0.2],
+      "bg upper-left": [-1.8, 1.3],
+      "bg low right": [2.3, -2.3]
+    },
+    "silhouetteRows": [0.15, 0.1, 0.05, 0.0]
+  }
+}
