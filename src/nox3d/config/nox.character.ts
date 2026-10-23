@@ -45,7 +45,9 @@ export const NOX: CharacterConfig = {
   },
   face: {
     eye: { rx: 0.178, ry: 0.1875, centers: [[-0.358, -0.213], [0.358, -0.213]] },
-    brow: { centers: [[-0.4, 0.13], [0.4, 0.13]], width: 0.169, thickness: 0.0125 },
+    // Traced from panel 2 (both brows averaged, then scaled by 1/1.044 for the face's depth
+    // in the perspective camera): a flat inner run, then the outer end hooks down.
+    brow: { inner: [0.311, 0.167], control: [0.415, 0.173], outer: [0.4645, 0.111], thickness: 0.028 },
     mouth: { center: [0.015, -0.432], halfWidth: 0.122 },
     blush: { centers: [[-0.535, -0.43], [0.535, -0.43]], rx: 0.103, ry: 0.05 },
   },
@@ -56,7 +58,7 @@ export const NOX: CharacterConfig = {
     pupil: '#100208',
     lid: '#120510',
     outline: '#2a0814',
-    brow: '#12081a',
+    brow: '#030016',
     mouth: '#26091a',
     blush: '#ff6286',
   },

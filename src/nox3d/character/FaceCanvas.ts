@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { FaceParams } from '../behavior/expressions';
 import type { FaceLayout, FacePalette, Point2 } from '../config/types';
+import { browStroke } from './browShape';
 
 const SIZE = 1024;
 /** Face canvas covers this square of head-local x/y (origin = HeadShape.faceOrigin). */
@@ -73,26 +74,21 @@ export class FaceCanvas {
 
   private drawBrows(p: FaceParams) {
     const { ctx } = this;
-    const { centers, width, thickness } = this.layout.brow;
     ctx.strokeStyle = this.palette.brow;
     ctx.lineCap = 'round';
-    ctx.lineWidth = thickness * PX_PER_UNIT;
-    const half = (width / 2) * PX_PER_UNIT;
-    centers.forEach(([cx, cy], i) => {
-      const side = i === 0 ? -1 : 1;
-      const x = px(cx);
-      const y = py(cy) - p.gazeY * 6 - p.browLift * 0.04 * PX_PER_UNIT;
-      const outer = side * half;
-      ctx.save();
-      ctx.translate(x, y);
-      // Positive tilt raises the inner ends (worried/curious); negative angles them down (focused).
-      ctx.rotate(side * p.browTilt * THREE.MathUtils.degToRad(12));
-      ctx.beginPath();
-      ctx.moveTo(outer, 8);
-      ctx.quadraticCurveTo(side * 4, -12, -outer, 3);
-      ctx.stroke();
-      ctx.restore();
-    });
+    for (const side of [-1, 1] as const) {
+      const stroke = browStroke(this.layout.brow, side, p.browLift, p.browTilt);
+      // Short round-capped segments, each as thick as the brow at that point: a smooth taper with round ends.
+      for (let i = 0; i < stroke.length - 1; i++) {
+        const a = stroke[i];
+        const b = stroke[i + 1];
+        ctx.lineWidth = ((a.width + b.width) / 2) * PX_PER_UNIT;
+        ctx.beginPath();
+        ctx.moveTo(px(a.x), py(a.y) - p.gazeY * 6);
+        ctx.lineTo(px(b.x), py(b.y) - p.gazeY * 6);
+        ctx.stroke();
+      }
+    }
   }
 
   private drawEye([cx, cy]: Point2, side: number, p: FaceParams) {

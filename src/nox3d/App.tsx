@@ -60,7 +60,7 @@ export function App() {
   const config = useMemo(() => clampCharacterConfig(NOX), []);
   const stage = url.stage ?? 'intro';
   const pose = NOX_POSES[stage];
-  const octopus = <Octopus config={config} pose={pose} expression={pose.expression} freeze={url.freeze} silhouette={MASK} />;
+  const octopus = <Octopus config={config} pose={pose} expression={url.expression ?? pose.expression} freeze={url.freeze} silhouette={MASK} />;
   return (
     <div className="spike">
       <Canvas flat dpr={[1, 2]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 60 }}>

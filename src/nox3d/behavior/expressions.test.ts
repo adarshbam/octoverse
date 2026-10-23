@@ -9,6 +9,15 @@ test('blendExpression is endpoint exact and linear', () => {
   expect(blendExpression(EXPRESSIONS.gentle, open, 0.25).mouthOpen).toBeCloseTo(0.25, 9);
 });
 
+test('focused narrows the lids and angles the brows', () => {
+  expect(EXPRESSIONS.focused.lidRest).toBeGreaterThan(0);
+  expect(EXPRESSIONS.focused.browTilt).toBeLessThan(0);
+});
+
+test('attentive lifts the brows in curiosity', () => {
+  expect(EXPRESSIONS.attentive.browLift).toBeGreaterThan(0);
+});
+
 test('gentle is the spike face', () => {
   expect(EXPRESSIONS.gentle).toEqual({ lidRest: 0, lidBottom: 0, browLift: 0, browTilt: 0, mouthCurve: 0.3, mouthOpen: 0, blush: 0 });
 });

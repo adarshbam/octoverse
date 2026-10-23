@@ -1,10 +1,13 @@
 import type { StageId } from '../config/types';
+import { EXPRESSIONS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
 
 export interface UrlState {
   stage?: StageId;
   tech?: string;
+  /** Face shown instead of the stage's own, for expression captures. */
+  expression?: ExpressionId;
   /** Rest pose, no motion: for comparison captures. */
   freeze: boolean;
   /** Orbit camera for inspecting depth. */
@@ -22,6 +25,8 @@ export function parseUrlState(search: string): UrlState {
   if (stage && (STAGES as readonly string[]).includes(stage)) state.stage = stage as StageId;
   const tech = params.get('tech');
   if (tech) state.tech = tech;
+  const expression = params.get('expression');
+  if (expression && Object.hasOwn(EXPRESSIONS, expression)) state.expression = expression as ExpressionId;
   const view = params.get('view')?.split(',').map(Number);
   if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
   return state;

@@ -9,6 +9,11 @@ test('ignores unknown stages and malformed views', () => {
   expect(parseUrlState('?stage=nope&view=1,2')).toEqual({ freeze: false, orbit: false, noWebgl: false });
 });
 
+test('parses expression', () => {
+  expect(parseUrlState('?expression=focused').expression).toBe('focused');
+  expect(parseUrlState('?expression=grumpy').expression).toBeUndefined();
+});
+
 test('parses tech, orbit and nowebgl flags', () => {
   expect(parseUrlState('?tech=kali&orbit&nowebgl')).toEqual({ tech: 'kali', freeze: false, orbit: true, noWebgl: true });
 });

@@ -72,7 +72,8 @@ export interface Palette {
 /** Face feature placement in head-local world units (origin = HeadShape.faceOrigin). */
 export interface FaceLayout {
   eye: { rx: number; ry: number; centers: [Point2, Point2] };
-  brow: { centers: [Point2, Point2]; width: number; thickness: number };
+  /** Right brow as a quadratic curve from its inner end to its outer end; the left brow mirrors it. */
+  brow: { inner: Point2; control: Point2; outer: Point2; thickness: number };
   mouth: { center: Point2; halfWidth: number };
   blush: { centers: [Point2, Point2]; rx: number; ry: number };
 }
