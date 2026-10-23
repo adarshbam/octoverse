@@ -96,7 +96,8 @@ export interface FaceLayout {
   eye: EyeLayout;
   /** Right brow as a quadratic curve from its inner end to its outer end; the left brow mirrors it. */
   brow: { inner: Point2; control: Point2; outer: Point2; thickness: number };
-  mouth: { center: Point2; halfWidth: number };
+  /** Smile line: half-width and dip at no smile, line thickness, and the round dimples at its ends (radius). */
+  mouth: { center: Point2; halfWidth: number; depth: number; thickness: number; dimple: number };
   blush: { centers: [Point2, Point2]; rx: number; ry: number };
 }
 
@@ -115,7 +116,12 @@ export interface FacePalette {
   outline: string;
   brow: string;
   mouth: string;
+  /** Inside of an open smile, and the tongue at its bottom. */
+  mouthInside: string;
+  tongue: string;
   blush: string;
+  /** Soft warm halo around each blush. */
+  blushGlow: string;
 }
 
 export interface ArmSpec {

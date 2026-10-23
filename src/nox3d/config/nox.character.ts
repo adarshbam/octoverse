@@ -59,8 +59,9 @@ export const NOX: CharacterConfig = {
     // Traced from panel 2 (both brows averaged, then scaled by 1/1.044 for the face's depth
     // in the perspective camera): a flat inner run, then the outer end hooks down.
     brow: { inner: [0.311, 0.167], control: [0.415, 0.173], outer: [0.4645, 0.111], thickness: 0.028 },
-    mouth: { center: [0.015, -0.432], halfWidth: 0.122 },
-    blush: { centers: [[-0.535, -0.43], [0.535, -0.43]], rx: 0.103, ry: 0.05 },
+    // Mouth and blush traced from panel 2 (mouth task), placed for the face's depth in the camera.
+    mouth: { center: [0.023, -0.42], halfWidth: 0.106, depth: 0.048, thickness: 0.015, dimple: 0.0095 },
+    blush: { centers: [[-0.51, -0.406], [0.51, -0.406]], rx: 0.105, ry: 0.055 },
   },
   facePalette: {
     sclera: ['#8b3668', '#ffccec', '#fcd2dc'],
@@ -72,8 +73,11 @@ export const NOX: CharacterConfig = {
     lid: '#0b0008',
     outline: '#f7b4c0',
     brow: '#030016',
-    mouth: '#26091a',
-    blush: '#ff6286',
+    mouth: '#3a0600',
+    mouthInside: '#3a0a1c',
+    tongue: '#ff6a7a',
+    blush: '#ff5a5e',
+    blushGlow: '#e8344c',
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
   tipRadius: 0.035,

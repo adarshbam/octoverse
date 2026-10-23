@@ -18,10 +18,11 @@ export type FaceParams = ExpressionParams & { blink: number; gazeX: number; gaze
 const GENTLE: ExpressionParams = { lidRest: 0, lidBottom: 0, browLift: 0, browTilt: 0, mouthCurve: 0.3, mouthOpen: 0, blush: 0 };
 
 // `gentle` is the spike face. Brows for `attentive` (curious) and `focused` are authored
-// in Task 8; the rest of those faces and `happy` and `restful` follow in Tasks 17, 19 and 21.
+// in Task 8, and `happy` (panel 3's open smile) with the mouth in Task 9; the rest of
+// those faces and `restful` follow in Tasks 17, 19 and 21.
 export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   gentle: GENTLE,
-  happy: GENTLE,
+  happy: { ...GENTLE, mouthCurve: 0.8, mouthOpen: 0.6, blush: 0.4 },
   focused: { ...GENTLE, browTilt: -0.6, lidRest: 0.25 },
   attentive: { ...GENTLE, browLift: 0.5 },
   restful: GENTLE,

@@ -3,6 +3,7 @@ import type { FaceParams } from '../behavior/expressions';
 import type { FaceLayout, FacePalette, Point2 } from '../config/types';
 import { browStroke } from './browShape';
 import { catchlightSpots, irisCenter } from './eyeShape';
+import { mouthShape } from './mouthShape';
 
 const SIZE = 1024;
 /** Face canvas covers this square of head-local x/y (origin = HeadShape.faceOrigin). */
@@ -61,9 +62,18 @@ export class FaceCanvas {
       ctx.save();
       ctx.translate(px(x), py(y));
       ctx.scale(1, ry / rx);
+      // A warm halo first, so the blush glows into the face around it.
+      const halo = ctx.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 1.7);
+      halo.addColorStop(0, rgba(palette.blushGlow, 0.35));
+      halo.addColorStop(1, rgba(palette.blushGlow, 0));
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2);
+      ctx.fill();
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, rgba(palette.blush, 0.96));
-      g.addColorStop(0.6, rgba(palette.blush, 0.72 + 0.2 * amount));
+      // A clear oval with a soft rim, stronger as the blush rises.
+      g.addColorStop(0, rgba(palette.blush, 0.97));
+      g.addColorStop(0.7, rgba(palette.blush, 0.85 + 0.12 * amount));
       g.addColorStop(1, rgba(palette.blush, 0));
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -264,27 +274,53 @@ export class FaceCanvas {
   }
 
   private drawMouth(p: FaceParams) {
-    const { ctx } = this;
-    const [mx, my] = this.layout.mouth.center;
-    const x = px(mx);
-    const y = py(my);
-    const w = this.layout.mouth.halfWidth * PX_PER_UNIT + p.mouthCurve * 6;
-    const depth = 26 + p.mouthCurve * 10;
-    ctx.strokeStyle = this.palette.mouth;
-    ctx.fillStyle = this.palette.mouth;
-    ctx.lineWidth = 8;
+    const { ctx, palette } = this;
+    const mouth = this.layout.mouth;
+    const shape = mouthShape(mouth, p.mouthCurve, p.mouthOpen);
+    const [sx, sy] = [px(shape.start[0]), py(shape.start[1])];
+    const [ax, ay] = [px(shape.c1[0]), py(shape.c1[1])];
+    const [bx, by] = [px(shape.c2[0]), py(shape.c2[1])];
+    const [ex, ey] = [px(shape.end[0]), py(shape.end[1])];
+    ctx.strokeStyle = palette.mouth;
+    ctx.fillStyle = palette.mouth;
+    ctx.lineWidth = mouth.thickness * PX_PER_UNIT;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x - w, y - depth * 0.35);
-    ctx.bezierCurveTo(x - w * 0.5, y + depth * 0.75, x + w * 0.5, y + depth * 0.75, x + w, y - depth * 0.35);
-    if (p.mouthOpen > 0.01) {
-      // Open smile: the lower lip drops below the smile line and the shape is filled.
-      const drop = depth * (0.75 + 1.4 * p.mouthOpen);
-      ctx.bezierCurveTo(x + w * 0.45, y + drop, x - w * 0.45, y + drop, x - w, y - depth * 0.35);
-      ctx.closePath();
+    if (shape.lower) {
+      // Open smile: a dark inside below the smile line, the tongue filling its bottom third.
+      const [lx1, ly1] = [px(shape.lower.c1[0]), py(shape.lower.c1[1])];
+      const [lx2, ly2] = [px(shape.lower.c2[0]), py(shape.lower.c2[1])];
+      const outline = () => {
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(ax, ay, bx, by, ex, ey);
+        ctx.bezierCurveTo(lx1, ly1, lx2, ly2, sx, sy);
+        ctx.closePath();
+      };
+      ctx.save();
+      outline();
+      ctx.fillStyle = palette.mouthInside;
+      ctx.fill();
+      ctx.clip();
+      const bottom = py(shape.lower.bottom);
+      ctx.fillStyle = palette.tongue;
+      ctx.beginPath();
+      ctx.ellipse(px(mouth.center[0]), bottom, (ex - sx) * 0.32, bottom - py(shape.lower.tongueTop), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      outline();
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(ax, ay, bx, by, ex, ey);
+      ctx.stroke();
+    }
+    // Round dimples at the corners.
+    for (const [x, y] of [[sx, sy], [ex, ey]]) {
+      ctx.beginPath();
+      ctx.arc(x, y, mouth.dimple * PX_PER_UNIT, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.stroke();
   }
 }
