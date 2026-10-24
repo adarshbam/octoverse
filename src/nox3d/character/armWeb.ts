@@ -42,14 +42,15 @@ export class ArmWeb {
     this.positions = new Float32Array(count * 3);
     const under = new Float32Array(count);
     const arcU = new Float32Array(count);
-    const speck = new Float32Array(count * 2);
+    const speck = new Float32Array(count * 3);
     for (let i = 0; i <= ROWS; i++) {
       for (let j = 0; j <= COLS; j++) {
         const v = i * (COLS + 1) + j;
         // Webs are body skin: keep them inside the shader's body-colour join (arc < 0.1).
         arcU[v] = (i / ROWS) * 0.08;
-        speck[v * 2] = (i / ROWS) * 0.6;
-        speck[v * 2 + 1] = (j / COLS) * 1.5;
+        speck[v * 3] = (i / ROWS) * 0.6;
+        speck[v * 3 + 1] = (j / COLS) * 1.5;
+        speck[v * 3 + 2] = 0.12;
       }
     }
     const indices: number[] = [];
@@ -63,7 +64,7 @@ export class ArmWeb {
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('aUnder', new THREE.BufferAttribute(under, 1));
     this.geometry.setAttribute('aU', new THREE.BufferAttribute(arcU, 1));
-    this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 2));
+    this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 3));
     this.update();
   }
 

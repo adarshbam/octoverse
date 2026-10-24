@@ -80,7 +80,7 @@ export class ArmTube {
     this.normals = new Float32Array(count * 3);
     const under = new Float32Array(count);
     const arcU = new Float32Array(count);
-    const speck = new Float32Array(count * 2);
+    const speck = new Float32Array(count * 3);
     for (let k = 0; k <= n + CAP_RINGS; k++) {
       const kk = Math.min(k, n);
       const suckerAngle = Math.atan2(Math.sin(this.tilt[kk]), chain.side * Math.cos(this.tilt[kk]));
@@ -88,9 +88,10 @@ export class ArmTube {
         const v = k * ring + j;
         under[v] = Math.cos((j / radial) * Math.PI * 2 - suckerAngle);
         arcU[v] = kk / n;
-        // Skin detail coordinates: arc length along the arm, and the angle round it.
-        speck[v * 2] = k * chain.segmentLength;
-        speck[v * 2 + 1] = (j / radial) * Math.PI * 2;
+        // Skin detail coordinates: arc length along the arm, the angle round it, and its rest radius.
+        speck[v * 3] = k * chain.segmentLength;
+        speck[v * 3 + 1] = (j / radial) * Math.PI * 2;
+        speck[v * 3 + 2] = this.radius[kk];
       }
     }
     const indices: number[] = [];
@@ -106,7 +107,7 @@ export class ArmTube {
     this.geometry.setAttribute('normal', new THREE.BufferAttribute(this.normals, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('aUnder', new THREE.BufferAttribute(under, 1));
     this.geometry.setAttribute('aU', new THREE.BufferAttribute(arcU, 1));
-    this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 2));
+    this.geometry.setAttribute('aSpeck', new THREE.BufferAttribute(speck, 3));
     this.update();
   }
 

@@ -114,14 +114,14 @@ export const NOX: CharacterConfig = {
   // Skin detail traced from the high-quality panel 2: droplet bumps 0.01 to 0.035 across, dark
   // blotches, bluish and reddish drift, sharp wet highlights and warm light through the underside.
   skin: {
-    speckDensity: 0.32,
-    speckSize: [0.12, 0.34],
+    speckDensity: 0.5,
+    speckSize: [0.14, 0.42],
     speckScale: 12,
     blotchDensity: 0.15,
     blotchScale: 3,
     tint: 0.6,
     translucency: 0.6,
-    wetness: 1,
+    wetness: 1.5,
     gloss: 140,
     streakScale: 1,
     streakStrength: 0.35,
