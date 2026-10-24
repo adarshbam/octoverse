@@ -52,6 +52,39 @@ test('reach brings the tip closer to the target', () => {
   expect(Math.hypot(target.x - chain.tipX, target.y - chain.tipY)).toBeLessThan(before * 0.5);
 });
 
+test('a reaching arm moves smoothly: its tip never jumps from one frame to the next', () => {
+  const ids: ArmId[] = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'];
+  for (const id of ids) {
+    const index = NOX.arms.findIndex(arm => arm.id === id);
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), spec(id), index);
+    chain.solve(still);
+    const n = chain.segments;
+    const [rx, ry] = [chain.px[0], chain.py[0]];
+    const [tx, ty] = [chain.tipX, chain.tipY];
+    const out = Math.hypot(tx - rx, ty - ry);
+    // Pointer stops an arm reaches for (within 0.8 of its tip): past the tip, either side of it,
+    // and back toward the body.
+    const [ux, uy] = [(tx - rx) / out, (ty - ry) / out];
+    const targets = [
+      { x: tx + ux * 0.4, y: ty + uy * 0.4 },
+      { x: tx - uy * 0.5, y: ty + ux * 0.5 },
+      { x: tx + uy * 0.5, y: ty - ux * 0.5 },
+      { x: tx - ux * 0.6, y: ty - uy * 0.6 },
+    ];
+    for (const target of targets) {
+      const tips: [number, number][] = [];
+      for (let f = 0; f < 240; f++) {
+        chain.solve({ time: f / 60, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0, bend: NOX.armBend, reach: { ...target, weight: 1 } });
+        tips.push([chain.px[n], chain.py[n]]);
+      }
+      for (let f = 2; f < tips.length; f++) {
+        const jolt = Math.hypot(tips[f][0] - 2 * tips[f - 1][0] + tips[f - 2][0], tips[f][1] - 2 * tips[f - 1][1] + tips[f - 2][1]);
+        expect(jolt, `${id} toward (${target.x.toFixed(2)}, ${target.y.toFixed(2)}) frame ${f}`).toBeLessThan(0.006);
+      }
+    }
+  }
+});
+
 test('root never moves under reach', () => {
   const rest = restFromCurve(T1);
   const chain = new ArmChain(rest, spec('T1'), 0);

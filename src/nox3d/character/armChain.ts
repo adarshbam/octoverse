@@ -1,5 +1,10 @@
 import * as THREE from 'three';
+import { spring } from '../behavior/ambient';
 import type { ArmSpec, Point2 } from '../config/types';
+
+/** How quickly a reaching arm follows the reach solver (critically damped, ~0.25 s to settle). */
+const REACH_OMEGA = 18;
+const reachState = { x: 0, v: 0 };
 
 /** An arm's rest pose as a chain: root, equal segment length, absolute segment angles. */
 export interface ArmRest {
@@ -72,6 +77,10 @@ export class ArmChain {
   private readonly qy: Float32Array;
   /** Rest-bend shape per segment: zero-mean waves through the middle of the arm. */
   private readonly undulation: Float32Array;
+  /** The reach's turn per segment as the arm follows the solver, and how fast it is changing. */
+  private readonly reachTurn: Float32Array;
+  private readonly reachSpeed: Float32Array;
+  private lastTime: number | null = null;
 
   constructor(rest: ArmRest, spec: ArmSpec, index: number) {
     const n = rest.angles.length;
@@ -83,6 +92,8 @@ export class ArmChain {
     this.pz = new Float32Array(n + 1);
     this.angle = new Float32Array(n);
     this.work = new Float32Array(n);
+    this.reachTurn = new Float32Array(n);
+    this.reachSpeed = new Float32Array(n);
     this.qx = new Float32Array(n + 1);
     this.qy = new Float32Array(n + 1);
     // Octopus arms curl toward their oral side, so the tip's turning direction picks the
@@ -132,10 +143,32 @@ export class ArmChain {
       this.angle[k] = this.rest.angles[k] + acc + bend * this.undulation[k];
     }
     this.integrate();
+    const dt = this.lastTime === null ? 0 : Math.min(Math.max(t - this.lastTime, 0), 1 / 20);
+    this.lastTime = t;
     if (reach && reach.weight > 0.001) {
       this.solveReach(reach.x, reach.y);
-      for (let k = 0; k < n; k++) this.angle[k] += wrap(this.work[k] - this.angle[k]) * reach.weight;
+      // The arm follows the solver's turns through a fast spring, so the solver's small jumps near
+      // the limit of its reach become quick, smooth movements; with no time passing (a frozen
+      // view) it takes them at once. The turns are summed, not wrapped, so a partial blend never
+      // flips a full turn.
+      for (let k = 0; k < n; k++) {
+        const want = this.work[k] - this.angle[k];
+        if (dt > 0) {
+          reachState.x = this.reachTurn[k];
+          reachState.v = this.reachSpeed[k];
+          spring(reachState, want, REACH_OMEGA, dt);
+          this.reachTurn[k] = reachState.x;
+          this.reachSpeed[k] = reachState.v;
+        } else {
+          this.reachTurn[k] = want;
+          this.reachSpeed[k] = 0;
+        }
+        this.angle[k] += this.reachTurn[k] * reach.weight;
+      }
       this.integrate();
+    } else {
+      this.reachTurn.fill(0);
+      this.reachSpeed.fill(0);
     }
     this.updateZ(t);
   }
@@ -179,7 +212,10 @@ export class ArmChain {
       for (let j = n - 4; j >= Math.floor(0.3 * n); j -= 3) {
         const ex = this.qx[n] - this.qx[j];
         const ey = this.qy[n] - this.qy[j];
-        const delta = Math.max(-0.09, Math.min(0.09, wrap(Math.atan2(targetY - this.qy[j], targetX - this.qx[j]) - Math.atan2(ey, ex))));
+        const turn = wrap(Math.atan2(targetY - this.qy[j], targetX - this.qx[j]) - Math.atan2(ey, ex));
+        // A target almost straight behind this joint gives no clear way round: the joint eases off
+        // rather than flipping which way it turns, so the arm never jumps.
+        const delta = Math.max(-0.09, Math.min(0.09, turn)) * Math.min(1, (Math.PI - Math.abs(turn)) / 0.5);
         const c = Math.cos(delta);
         const s = Math.sin(delta);
         for (let k = j; k < n; k++) this.work[k] += delta;

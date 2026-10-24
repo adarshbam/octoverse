@@ -106,21 +106,3 @@ test('the arm is flatter on its sucker side and round on its back, as a real oct
   expect(tube.surfaceRadius(0.4, 0)).toBeCloseTo(r * NOX.armFlatten, 3);
   expect(tube.surfaceRadius(0.4, Math.PI)).toBeCloseTo(r, 3);
 });
-
-test('heightAbove says how far a point lies outside the skin, round a ring', () => {
-  const spec = NOX.arms[2];
-  const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[spec.id]), spec, 2);
-  chain.solve({ time: 0, sway: 0, curl: 1, droop: 0 });
-  const tube = new ArmTube(chain, spec, { ...profile, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt, twist: NOX.suckers.twist, flatten: NOX.armFlatten });
-  const n = chain.segments;
-  const dir = new THREE.Vector3();
-  for (const k of [20, 64, 120]) {
-    for (const a of [-2.5, -1, 0, 0.4, 1.7, 3]) {
-      tube.suckerDirection(k, a, dir);
-      const on = new THREE.Vector3(chain.px[k], chain.py[k], chain.pz[k]).addScaledVector(dir, tube.surfaceRadius(k / n, a));
-      expect(tube.heightAbove(k, on), `ring ${k} angle ${a}`).toBeCloseTo(0, 6);
-      expect(tube.heightAbove(k, on.clone().addScaledVector(dir, 0.01)), `ring ${k} angle ${a}`).toBeCloseTo(0.01, 6);
-      expect(tube.heightAbove(k, on.clone().addScaledVector(dir, -0.01)), `ring ${k} angle ${a}`).toBeCloseTo(-0.01, 6);
-    }
-  }
-});

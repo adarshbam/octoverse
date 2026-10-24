@@ -12,6 +12,9 @@ const tmpMatrix = new THREE.Matrix4();
 const tmpA = new THREE.Vector3();
 const tmpB = new THREE.Vector3();
 const tmpEdge = new THREE.Vector3();
+const tmpC = new THREE.Vector3();
+const fitAlong = { slope: 0, bend: 0 };
+const fitAcross = { slope: 0, bend: 0 };
 
 /** Default arc fraction where a row begins, just past the webbed root. */
 const ROW_START = 0.14;
@@ -165,12 +168,13 @@ export class SuckerRow {
       tmpNormal.crossVectors(tmpA.sub(tmpB), tmpAlong).normalize();
       if (tmpNormal.dot(this.tube.suckerDirection(kk, angle, tmpDir)) < 0) tmpNormal.negate();
       this.frame();
-      // Level the cup to the skin under its edges: tilt it toward whichever side lies higher.
-      const tiltAlong = this.edgeSlope(k, tmpAlong, reach);
-      const tiltAcross = this.edgeSlope(k, tmpAcross, size);
-      tmpNormal.addScaledVector(tmpAlong, tiltAlong).addScaledVector(tmpAcross, tiltAcross).normalize();
+      // Level the cup to the skin under its edges and fit its bends there, from the skin a
+      // half-length out each way along the arm and round it: tilt toward whichever side lies higher.
+      this.fitEdges(side => this.alongSkin(k, angle, side, reach, tmpEdge), tmpAlong, reach, fitAlong);
+      this.fitEdges(side => this.roundSkin(k, w, angle, side, size, tmpEdge), tmpAcross, size, fitAcross);
+      tmpNormal.addScaledVector(tmpAlong, fitAlong.slope).addScaledVector(tmpAcross, fitAcross.slope).normalize();
       this.frame();
-      if (bend) bend.setXY(start + i, this.edgeBend(k, tmpAcross, size), (this.edgeBend(k, tmpAlong, reach) * reach) / size);
+      if (bend) bend.setXY(start + i, fitAcross.bend, (fitAlong.bend * reach) / size);
       // Sunk into the skin, opening along its normal, the cup's long axis along the arm.
       tmpPos.addScaledVector(tmpNormal, -CUP_EMBED * size);
       tmpMatrix.makeBasis(tmpAlong.multiplyScalar(reach), tmpAcross.multiplyScalar(size), tmpNormal.multiplyScalar(size));
@@ -207,54 +211,69 @@ export class SuckerRow {
     return out.set(px[j], py[j], pz[j]).addScaledVector(tmpDir, this.tube.surfaceRadius(j / n, angle));
   }
 
+  /** The skin at fraction w of the way from ring k to ring k + 1, `angle` round from the oral midline. */
+  private skinAt(k: number, w: number, angle: number, out: THREE.Vector3) {
+    this.skinPoint(k, angle, out);
+    this.skinPoint(k + 1, angle, tmpC);
+    return out.lerp(tmpC, w);
+  }
+
   /**
-   * How far the skin lies below the cup's plane at its edge, `side * reach` along `axis` from its
-   * centre on the skin (tmpPos), or null where the edge hangs past the end of the arm.
+   * The skin `reach` along the arm from the cup's centre (tmpPos), ahead (side 1) or behind, walked
+   * ring by ring along the skin line at the cup's turn; past the arm's ends it runs on straight.
    */
-  private edgeDrop(k: number, axis: THREE.Vector3, side: number, reach: number) {
-    const { px, py, pz, segments: n } = this.chain;
-    // Fraction of the way along segment j that the edge lies over.
-    const over = (j: number) => {
-      const dx = px[j + 1] - px[j];
-      const dy = py[j + 1] - py[j];
-      const dz = pz[j + 1] - pz[j];
-      return ((tmpEdge.x - px[j]) * dx + (tmpEdge.y - py[j]) * dy + (tmpEdge.z - pz[j]) * dz) / (dx * dx + dy * dy + dz * dz);
-    };
-    tmpEdge.copy(tmpPos).addScaledVector(axis, side * reach);
-    let j = k;
-    let w = over(j);
-    while (w < 0 && j > 0) w = over(--j);
-    while (w > 1 && j < n - 1) {
-      // On the outside of a bend an edge can lie between two segments' reach: it is over the ring between.
-      const next = over(j + 1);
-      if (next < 0) {
-        w = 1;
-        break;
+  private alongSkin(k: number, angle: number, side: number, reach: number, out: THREE.Vector3) {
+    const n = this.chain.segments;
+    out.copy(tmpPos);
+    let left = reach;
+    for (let j = side > 0 ? k + 1 : k; ; j += side) {
+      if (j < 0 || j > n) {
+        this.skinPoint(side > 0 ? n : 0, angle, tmpB);
+        this.skinPoint(side > 0 ? n - 1 : 1, angle, tmpC);
+        return out.addScaledVector(tmpB.sub(tmpC).normalize(), left);
       }
-      w = next;
-      j++;
+      this.skinPoint(j, angle, tmpB);
+      const d = out.distanceTo(tmpB);
+      if (d >= left) return out.lerp(tmpB, left / d);
+      left -= d;
+      out.copy(tmpB);
     }
-    if (w < 0 || w > 1) return null;
-    return this.tube.heightAbove(j, tmpEdge) * (1 - w) + this.tube.heightAbove(j + 1, tmpEdge) * w;
   }
 
-  /** How steeply the skin under the cup rises toward +`axis`, edge to edge (0 if an edge is off the arm). */
-  private edgeSlope(k: number, axis: THREE.Vector3, reach: number) {
-    const behind = this.edgeDrop(k, axis, -1, reach);
-    const ahead = this.edgeDrop(k, axis, 1, reach);
-    return behind === null || ahead === null ? 0 : (ahead - behind) / (2 * reach);
+  /**
+   * The skin `reach` round the arm from the cup's centre (tmpPos), one way (side 1) or the other,
+   * in the arm's section at the cup: aimed by the surface radius, then corrected once by the chord.
+   */
+  private roundSkin(k: number, w: number, angle: number, side: number, reach: number, out: THREE.Vector3) {
+    let turn = reach / this.tube.surfaceRadius((k + w) / this.chain.segments, angle);
+    this.skinAt(k, w, angle + side * turn, out);
+    const chord = out.distanceTo(tmpPos);
+    if (chord > 1e-9) turn *= reach / chord;
+    return this.skinAt(k, w, angle + side * turn, out);
   }
 
-  /** The bend that meets the skin under the cup's edges `reach` either side along `axis`, per `reach`. */
-  private edgeBend(k: number, axis: THREE.Vector3, reach: number) {
-    let sum = 0;
-    let count = 0;
-    for (const side of [-1, 1]) {
-      const drop = this.edgeDrop(k, axis, side, reach);
-      if (drop === null) continue;
-      sum += bendThrough(1, drop / reach);
-      count++;
+  /**
+   * Fits the skin under a cup's two edges along `axis` (found by `edge`, each side of its centre)
+   * against the cup's plane: the skin's drop below it as slope * x + curve * x^2 through both edges,
+   * x in reaches. `slope` is how fast the skin falls away toward +axis; `bend` is the curve as a
+   * cupBend through the edge.
+   */
+  private fitEdges(edge: (side: number) => void, axis: THREE.Vector3, reach: number, out: { slope: number; bend: number }) {
+    edge(1);
+    tmpEdge.sub(tmpPos);
+    const x1 = tmpEdge.dot(axis) / reach;
+    const d1 = -tmpEdge.dot(tmpNormal) / reach;
+    edge(-1);
+    tmpEdge.sub(tmpPos);
+    const x2 = tmpEdge.dot(axis) / reach;
+    const d2 = -tmpEdge.dot(tmpNormal) / reach;
+    const det = x1 * x2 * (x2 - x1);
+    if (Math.abs(det) < 1e-9) {
+      out.slope = 0;
+      out.bend = 0;
+      return;
     }
-    return count ? sum / count : 0;
+    out.slope = (d1 * x2 * x2 - d2 * x1 * x1) / det;
+    out.bend = bendThrough(1, (x1 * d2 - x2 * d1) / det);
   }
 }

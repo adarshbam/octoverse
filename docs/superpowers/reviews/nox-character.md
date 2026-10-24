@@ -108,3 +108,15 @@ How v3 answers the brief:
 
 Checks: suite 108/108, typecheck clean, `check_stage` PASS, no shader errors. Known gaps: the last cup at each tip can hang past the rounded end; at a steep 70-degree orbit an arm seen end-on still shows a large pale highlight (from v2); the HQ dome is lighter blue with more visible texture than ours; the lava environment is weaker than the painting's (stage work, not this task). Frame rate on the Intel UHD read ~19-32 fps at DPR 1 under a busy machine (v2 measured ~41 under light load); an A/B of the new cup-shadow pass was within noise.
 
+### Motion v1 (2026-10-25)
+
+Capture: `assets/motion-v1.webm` (10 s, `node scripts/motion-capture.mjs`: idle 4 s with the pointer away, then reach right, reach left and hover the face) and `assets/motion-v1-sheet.png` (12 frames, 0.83 s apart). Verdict: pending.
+
+Before review, the recording showed three motion defects, now fixed:
+
+- **Twitching reaches:** the reach solver flipped which way a joint turned when the target lay almost behind it, and re-solved from scratch each frame, so a reaching arm jumped up to ~9 px in a frame. Joints now ease off near that point, and the arm follows the solver through a fast spring (~0.25 s).
+- **Cups popping on moving arms:** each cup's fit to the skin could switch between two answers as an arm moved. Cups now find the skin by walking along it from their centre, so they follow the arm smoothly.
+- **Arms folding into the face:** an arm kept following the pointer back toward the head and looped beside the cheek. Arms now let go of a pointer near the head; hovering the face only makes Nox smile.
+
+Personality values are unchanged: blinks every 2.6-7 s (20% double), gaze speed 16, head 3.2, sway 0.5, curl 1.1, float 0.045 over 6.2 s, breath 4.6 s. Known gaps: reaches are gentle (the arm leans toward the pointer rather than stretching to it); breathing and float are subtle at stage size.
+

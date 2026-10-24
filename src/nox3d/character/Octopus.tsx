@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, breath, floatOffset, spring } from '../behavior/ambient';
 import { Attention } from '../behavior/attention';
+import { reachingArm } from '../behavior/reach';
 import { EXPRESSIONS, type ExpressionId } from '../behavior/expressions';
 import { ARM_IDS, type CharacterConfig } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
@@ -158,15 +159,8 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
     m.inverse.copy(content.current!.matrixWorld).invert();
     m.target.applyMatrix4(m.inverse);
 
-    // Only the arm whose tip is nearest the pointer reaches; it lets go gently.
-    let active = -1;
-    let best = 0.8;
-    if (gaze.tracking) {
-      rig.arms.forEach(({ chain }, i) => {
-        const d = Math.hypot(chain.tipX - m.target.x, chain.tipY - m.target.y);
-        if (d < best) { best = d; active = i; }
-      });
-    }
+    // Only the arm whose tip is nearest the pointer reaches, never into the face; it lets go gently.
+    const active = gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];

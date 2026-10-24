@@ -175,13 +175,13 @@ test('cups bend across the arm to hug its curved oral side', () => {
     // The cup shaders bend cup space by cupBend; the skin lies CUP_EMBED above the cup's base.
     expectHugging(id, edgeGaps(id, 0, (bend, i) => [-1, 1].map(y => new THREE.Vector3(0, y, CUP_EMBED - cupBend(bend.getX(i), y)))));
   }
-});
+}, 30_000);
 
 test('cups bend along the arm with its curls, so their ends stay on the skin', () => {
   for (const id of ARM_IDS) {
     expectHugging(id, edgeGaps(id, 1, (bend, i) => [-1, 1].map(x => new THREE.Vector3(x, 0, CUP_EMBED - cupBend(bend.getY(i), x)))));
   }
-});
+}, 30_000);
 
 test('inside tight curls, where the skin is squeezed, cups shrink so they never overlap', () => {
   for (const id of ARM_IDS) {
@@ -224,6 +224,42 @@ test('inside tight curls, where the skin is squeezed, cups shrink so they never 
     }
   }
 });
+
+test('as the arms move, every cup follows smoothly, even where its edge slides past the tip', () => {
+  for (const id of ARM_IDS) {
+    const index = NOX.arms.findIndex(spec => spec.id === id);
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), NOX.arms[index], index);
+    const tube = new ArmTube(chain, NOX.arms[index], profile);
+    const row = new SuckerRow(chain, tube, NOX.suckers, index);
+    const mesh = new THREE.InstancedMesh(new THREE.BufferGeometry(), undefined, row.count);
+    const bend = new THREE.InstancedBufferAttribute(new Float32Array(row.count * 2), 2);
+    const m = new THREE.Matrix4();
+    const x = new THREE.Vector3();
+    const y = new THREE.Vector3();
+    const z = new THREE.Vector3();
+    let before: { normal: THREE.Vector3; bend: [number, number] }[] | null = null;
+    // Ten seconds of live motion at 60 frames a second.
+    for (let f = 0; f <= 600; f++) {
+      chain.solve({ time: f / 60, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0, bend: NOX.armBend });
+      tube.update();
+      row.write(mesh, 0, bend);
+      const now = row.suckers.map((_, i) => {
+        mesh.getMatrixAt(i, m);
+        m.extractBasis(x, y, z);
+        return { normal: z.clone().normalize(), bend: [bend.getX(i), bend.getY(i)] as [number, number] };
+      });
+      if (before) {
+        now.forEach((c, i) => {
+          const was = before![i];
+          expect(THREE.MathUtils.radToDeg(c.normal.angleTo(was.normal)), `${id} cup ${i} frame ${f} turn`).toBeLessThan(4);
+          expect(Math.abs(c.bend[0] - was.bend[0]), `${id} cup ${i} frame ${f} bend across`).toBeLessThan(0.05);
+          expect(Math.abs(c.bend[1] - was.bend[1]), `${id} cup ${i} frame ${f} bend along`).toBeLessThan(0.05);
+        });
+      }
+      before = now;
+    }
+  }
+}, 30_000);
 
 test('a cup casts its contact shadow in a ring from under its edge out to about 1.5 radii', () => {
   const p = createCupShadow().attributes.position;

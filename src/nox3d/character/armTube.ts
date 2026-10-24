@@ -143,18 +143,6 @@ export class ArmTube {
     return r / Math.sqrt((along * along) / (this.flatten * this.flatten) + 1 - along * along);
   }
 
-  /** How far `p` lies outside the skin, measured round ring k's section (negative inside). */
-  heightAbove(k: number, p: THREE.Vector3) {
-    const { px, py, pz, segments: n } = this.chain;
-    const rx = p.x - px[k];
-    const ry = p.y - py[k];
-    const rz = p.z - pz[k];
-    const toward = rx * this.nx[k] + ry * this.ny[k];
-    const round = rx * this.bx[k] + ry * this.by[k] + rz * this.bz[k];
-    const a = Math.atan2(round, this.side * toward) - this.tilt[k];
-    return Math.hypot(toward, round) - this.surfaceRadius(k / n, Math.atan2(Math.sin(a), Math.cos(a)));
-  }
-
   /** Radius at arc fraction u. */
   radiusAt(u: number) {
     const n = this.chain.segments;
