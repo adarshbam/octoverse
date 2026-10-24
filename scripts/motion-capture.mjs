@@ -25,7 +25,8 @@ const CROP = 'crop=660:330:150:268';
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 const page = await browser.newPage({ viewport: size, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('[pageerror]', e.message));
-await page.goto(`${base}/?stage=intro`, { waitUntil: 'load' });
+// The high tier is held so a slow machine does not step the quality down mid-recording.
+await page.goto(`${base}/?stage=intro&tier=high`, { waitUntil: 'load' });
 await page.waitForTimeout(3000);
 
 // Every frame the page draws, with the time it reached the screen (seconds since the epoch).

@@ -50,11 +50,11 @@ const smoothstep = (a: number, b: number, x: number) => {
  * low rim (r ~0.75) round a shallow dimple just above the skin, its outer edge below the skin so
  * no outer wall shows.
  */
-export function createSuckerCup() {
+export function createSuckerCup(radialSegments = 32) {
   const profile: [number, number][] = [
     [0, CUP_FACE], [0.2, 0.175], [0.4, 0.205], [0.6, 0.26], [0.75, 0.275], [0.88, 0.25], [0.96, 0.18], [1.0, 0.08], [0.95, -0.2],
   ];
-  const geometry = new THREE.LatheGeometry(profile.map(([r, h]) => new THREE.Vector2(r, h)), 32);
+  const geometry = new THREE.LatheGeometry(profile.map(([r, h]) => new THREE.Vector2(r, h)), radialSegments);
   geometry.rotateX(Math.PI / 2);
   geometry.computeVertexNormals();
   return geometry;
@@ -64,8 +64,8 @@ export function createSuckerCup() {
  * The soft contact shadow round a cup: a flat ring in the cup's plane, from under its edge out to
  * 1.55 radii. The shadow shader lifts it to the skin and bends it with the arm.
  */
-export function createCupShadow() {
-  return new THREE.RingGeometry(0.9, 1.55, 32, 3);
+export function createCupShadow(segments = 32) {
+  return new THREE.RingGeometry(0.9, 1.55, segments, 3);
 }
 
 export interface Sucker {

@@ -1,4 +1,4 @@
-import { type ArmRest, restFromCurve } from '../character/armChain';
+import { type ArmRest, ArmChain, restFromCurve } from '../character/armChain';
 import { ARM_IDS, type ArmId } from '../config/types';
 import type { StagePose } from '../poses/types';
 import { EXPRESSIONS, type ExpressionParams, blendExpression } from './expressions';
@@ -30,9 +30,9 @@ export function blendAngles(from: Float32Array, to: Float32Array, t: number, out
   return out;
 }
 
-function settle(pose: StagePose): BlendedPose {
+function settle(pose: StagePose, segments: number): BlendedPose {
   return {
-    arms: Object.fromEntries(ARM_IDS.map(id => [id, restFromCurve(pose.arms[id])])) as Record<ArmId, ArmRest>,
+    arms: Object.fromEntries(ARM_IDS.map(id => [id, restFromCurve(pose.arms[id], segments)])) as Record<ArmId, ArmRest>,
     body: { ...pose.body },
     expression: { ...EXPRESSIONS[pose.expression] },
     headMorph: pose.headMorph,
@@ -60,15 +60,19 @@ export class PoseBlender {
   private durationMs = 0;
   private staggerMs = 0;
 
-  constructor(initial: StagePose) {
-    this.to = settle(initial);
+  private readonly segments: number;
+
+  /** `segments` per arm follows the quality tier. */
+  constructor(initial: StagePose, segments = ArmChain.SEGMENTS) {
+    this.segments = segments;
+    this.to = settle(initial, segments);
     this.from = copyPose(this.to);
     this.current = copyPose(this.to);
   }
 
   start(target: StagePose, nowMs: number, durationMs = 700, staggerMs = 40) {
     this.from = copyPose(this.sample(nowMs));
-    this.to = settle(target);
+    this.to = settle(target, this.segments);
     this.startMs = nowMs;
     this.durationMs = durationMs;
     this.staggerMs = staggerMs;

@@ -17,3 +17,8 @@ test('parses expression', () => {
 test('parses tech, orbit and nowebgl flags', () => {
   expect(parseUrlState('?tech=kali&orbit&nowebgl')).toEqual({ tech: 'kali', freeze: false, orbit: true, noWebgl: true });
 });
+
+test('parses a forced quality tier and ignores unknown ones', () => {
+  expect(parseUrlState('?tier=low').tier).toBe('low');
+  expect(parseUrlState('?tier=ultra').tier).toBeUndefined();
+});

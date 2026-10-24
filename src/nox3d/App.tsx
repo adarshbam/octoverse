@@ -1,4 +1,4 @@
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -9,10 +9,13 @@ import { useStage } from './behavior/useStage';
 import { Octopus } from './character/Octopus';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
+import type { StageId } from './config/types';
 import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
 import { NOX_POSES } from './poses/nox.poses';
 import { POST } from './post';
+import { STAGE_FRAMES, fovFor } from './stage/framing';
+import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { Backdrop } from './world/Backdrop';
 import { ContactShadows } from './world/ContactShadows';
@@ -21,11 +24,21 @@ import { Bubbles, Embers } from './world/Particles';
 const url = parseUrlState(location.search);
 const MASK = new URLSearchParams(location.search).has('mask');
 
-/** Fits the square stage, or the `?view` box, and optionally adds an orbit camera. */
-function StageCamera() {
+/**
+ * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
+ * an orbit camera.
+ */
+function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: boolean }) {
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const size = useThree(s => s.size);
   const gl = useThree(s => s.gl);
+  const framed = !url.view && !url.orbit;
+  const target = fovFor(STAGE_FRAMES[stage], size);
+  useFrame((_, delta) => {
+    if (!framed || Math.abs(camera.fov - target) < 1e-4) return;
+    camera.fov = reducedMotion ? target : camera.fov + (target - camera.fov) * (1 - Math.exp(-Math.min(delta, 0.05) * 6));
+    camera.updateProjectionMatrix();
+  });
   useLayoutEffect(() => {
     const aspect = size.width / size.height;
     camera.clearViewOffset();
@@ -43,9 +56,8 @@ function StageCamera() {
       camera.position.set((x0 + x1) / 2, (y0 + y1) / 2, CAMERA_Z);
       camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfHeight / CAMERA_Z));
     } else {
-      // Portrait windows widen the vertical view instead of cropping arms.
-      const portrait = Math.max(1, size.height / size.width);
-      camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan((STAGE_HALF * portrait) / CAMERA_Z));
+      // Tall windows widen the view instead of cropping arms.
+      camera.fov = fovFor(STAGE_FRAMES[stage], size);
     }
     camera.updateProjectionMatrix();
     if (!url.orbit) return;
@@ -53,6 +65,7 @@ function StageCamera() {
     controls.target.set(camera.position.x, camera.position.y, 0);
     controls.update();
     return () => controls.dispose();
+    // The stage's frame is eased in each frame above; a resize refits it at once.
   }, [camera, size, gl]);
   return null;
 }
@@ -70,7 +83,11 @@ function SilhouetteOnly() {
 export function App() {
   const config = useMemo(() => clampCharacterConfig(NOX), []);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
-  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage]), []);
+  const quality = useQuality(url);
+  const visible = usePageVisible();
+  const segments = quality.settings.segments;
+  // A lower tier rebuilds the arms at its segment count, from the stage Nox is in.
+  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments), [segments]);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
@@ -85,13 +102,29 @@ export function App() {
     if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
   }, [state.stage, dispatch]);
   const octopus = (
-    <Octopus config={config} blender={blender} stage={state.stage} expression={url.expression} freeze={url.freeze} reducedMotion={reducedMotion} silhouette={MASK} />
+    <Octopus
+      config={config}
+      blender={blender}
+      stage={state.stage}
+      expression={url.expression}
+      freeze={url.freeze}
+      reducedMotion={reducedMotion}
+      silhouette={MASK}
+      quality={quality.settings}
+    />
   );
   return (
     <div className="spike" ref={frame}>
-      <Canvas flat dpr={[1, 2]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 60 }}>
+      <Canvas
+        flat
+        dpr={[1, quality.settings.dpr]}
+        frameloop={visible ? 'always' : 'never'}
+        gl={{ antialias: false, powerPreference: 'high-performance' }}
+        camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 60 }}
+      >
         <color attach="background" args={[MASK ? '#000000' : '#06040c']} />
-        <StageCamera />
+        <StageCamera stage={state.stage} reducedMotion={reducedMotion} />
+        {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
         {MASK ? (
           <>
             <SilhouetteOnly />
@@ -103,11 +136,11 @@ export function App() {
               <Backdrop />
             </Suspense>
             {octopus}
-            <Bubbles />
-            <Embers />
+            <Bubbles density={quality.settings.particles} />
+            <Embers density={quality.settings.particles} />
             <EffectComposer multisampling={4}>
-              <ContactShadows settings={POST.contactShadows} />
-              <Bloom mipmapBlur {...POST.bloom} />
+              {quality.settings.contactShadows ? <ContactShadows settings={POST.contactShadows} /> : <></>}
+              <Bloom mipmapBlur {...POST.bloom} resolutionScale={0.5 * quality.settings.bloomScale} />
               <Vignette {...POST.vignette} />
             </EffectComposer>
           </>

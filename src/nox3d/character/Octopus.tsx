@@ -9,6 +9,7 @@ import { reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
+import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -39,6 +40,8 @@ export interface OctopusProps {
   panelOpen?: boolean;
   /** Silhouette capture: hide additive glow cards that would read as solid shape. */
   silhouette?: boolean;
+  /** Mesh detail from the quality tier. */
+  quality?: TierSettings;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -46,7 +49,7 @@ const REST_IN = 2;
 const WAKE = 0.5;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -59,7 +62,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const start = blender.sample(performance.now());
     const arms = config.arms.map((spec, i) => {
       const chain = new ArmChain(start.arms[spec.id], spec, i);
-      const tube = new ArmTube(chain, spec, profile);
+      const tube = new ArmTube(chain, spec, profile, quality.radial);
       return { chain, tube, row: new SuckerRow(chain, tube, config.suckers, i) };
     });
     const byId = new Map(config.arms.map((spec, i) => [spec.id, arms[i]]));
@@ -74,9 +77,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // The cups and their contact shadows share one set of placements and bends.
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
     const suckerBend = new THREE.InstancedBufferAttribute(new Float32Array(suckerTotal * 2), 2).setUsage(THREE.DynamicDrawUsage);
-    const cupGeometry = createSuckerCup();
+    const cupDetail = Math.round(32 * quality.suckerScale);
+    const cupGeometry = createSuckerCup(cupDetail);
     cupGeometry.setAttribute('aBend', suckerBend);
-    const shadowGeometry = createCupShadow();
+    const shadowGeometry = createCupShadow(cupDetail);
     shadowGeometry.setAttribute('aBend', suckerBend);
     const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms), suckerTotal);
     suckers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -101,8 +105,21 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0)),
       glowLocal: new THREE.Vector3(...config.glow.center),
     };
-    // Built once per character; stage poses reach the arms as new rests each frame.
-  }, [config, blender]);
+    // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
+  }, [config, blender, quality]);
+
+  // A rebuilt rig (a lower tier) frees the old one's GPU buffers.
+  useEffect(() => () => {
+    for (const { tube } of rig.arms) tube.geometry.dispose();
+    for (const web of rig.webs) web.geometry.dispose();
+    rig.headGeometry.dispose();
+    for (const mesh of [rig.suckers, rig.cupShadows]) {
+      mesh.geometry.dispose();
+      (mesh.material as THREE.Material).dispose();
+    }
+    for (const material of [rig.webMaterial, rig.headMaterial, rig.armMaterial, rig.coreGlow, rig.armHalo, rig.headHalo]) material.dispose();
+    rig.face.texture.dispose();
+  }, [rig]);
 
   const motion = useRef({
     attention: new Attention(config.personality),

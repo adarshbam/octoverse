@@ -1,4 +1,5 @@
 import type { StageId } from '../config/types';
+import type { QualityTier } from '../stage/quality';
 import { EXPRESSIONS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
@@ -15,6 +16,8 @@ export interface UrlState {
   noWebgl: boolean;
   /** World box [x0, y0, x1, y1] the camera frames, for real zoom. */
   view?: [number, number, number, number];
+  /** A quality tier forced for the session, instead of the one picked for the device. */
+  tier?: QualityTier;
 }
 
 /** Review and debugging switches read from the page URL. Unknown values are ignored. */
@@ -29,5 +32,7 @@ export function parseUrlState(search: string): UrlState {
   if (expression && Object.hasOwn(EXPRESSIONS, expression)) state.expression = expression as ExpressionId;
   const view = params.get('view')?.split(',').map(Number);
   if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
+  const tier = params.get('tier');
+  if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   return state;
 }

@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 function seeded(seed: number) {
@@ -15,7 +15,7 @@ const TOP = 2.9;
 const BOTTOM = -2.9;
 
 /** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. */
-export function Bubbles() {
+export function Bubbles({ density = 1 }: { density?: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const { bubbles, material, geometry } = useMemo(() => {
     const rand = seeded(11);
@@ -73,13 +73,13 @@ export function Bubbles() {
     mesh.current!.instanceMatrix.needsUpdate = true;
   });
 
-  return <instancedMesh ref={mesh} args={[geometry, material, BUBBLE_COUNT]} frustumCulled={false} />;
+  return <instancedMesh ref={mesh} args={[geometry, material, BUBBLE_COUNT]} count={Math.round(BUBBLE_COUNT * density)} frustumCulled={false} />;
 }
 
 const EMBER_COUNT = 460;
 
 /** Drifting crimson motes, denser along the seabed like the reference. */
-export function Embers() {
+export function Embers({ density = 1 }: { density?: number }) {
   const { geometry, material } = useMemo(() => {
     const rand = seeded(23);
     const positions = new Float32Array(EMBER_COUNT * 3);
@@ -134,6 +134,8 @@ export function Embers() {
     });
     return { geometry, material };
   }, []);
+  // Lower tiers draw only the first part of the motes, which are scattered in random order.
+  useLayoutEffect(() => geometry.setDrawRange(0, Math.round(EMBER_COUNT * density)), [geometry, density]);
 
   useFrame(state => {
     const camera = state.camera as THREE.PerspectiveCamera;
