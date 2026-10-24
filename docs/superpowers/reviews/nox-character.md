@@ -34,4 +34,8 @@ Gaps raised with the v1 review and folded into v2: the dark notch where T4 and T
 
 Raised during the mantle work: "Noo eyes lashes or too small lashes. And cheeks are not round enough." The lashes are handled as an eyes revision and the cheek shape with the mantle (Task 10).
 
+### Eyes, high-quality reference (2026-10-24)
+
+The owner supplied `docs/design/references/Nox-face-hq.png`, a high-quality version of the face, after the eyelid pass. Their notes: the eyelid in this reference "is really intentionally created" and "creates a kind of border around the whole eye". The border "is thicker, and more on the right side, left side the border gets like really thin, but that distinction adds layer to the eyes". "Inside the pupil there are multiple layers." The whole eye "is much more detailed. It has reflections and the whole eye is inside of a certain kind of black border", for "both areas, white areas as well as those red areas".
+
 **v2 (approved):** the mantle is re-fitted to the rim line as a dome that runs past its widest point, with cheek lobes pushed out below it that carry the blush into the arms. T3/T6 now emerge from behind the neck, so the chin crease is gone. T4/T5 carry their suckers along the V, and sucker rows start small next to the body. The glow down the centre arms measured within range of the reference, so it was left for the glow task. Known gaps raised at the v2 review: each cheek lobe ends in a small point where an arm edge meets it (in the reference that arm is T1, not T2), and from the side the cheeks read as a soft ridge.

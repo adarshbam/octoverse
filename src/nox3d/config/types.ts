@@ -67,33 +67,61 @@ export interface Palette {
   suckerHot: string;
 }
 
-/** One eye's drawing, traced from the reference; the two eyes mirror each other except for the light. */
+/**
+ * One eye's drawing, traced from the reference: an opening (`rx`, `ry`) framed by a dark
+ * border all the way round, with a lit eyelid and crease above it. The two eyes mirror
+ * each other except for the light, which comes from the upper left for both, so the
+ * catchlights, reflections and pupil ring are not mirrored. World units unless noted.
+ */
 export interface EyeLayout {
   rx: number;
   ry: number;
   centers: [Point2, Point2];
-  /** Iris radii as fractions of the eye radii; `inset` shifts it toward the nose, as a fraction of rx. */
-  iris: { rx: number; ry: number; inset: number };
-  /** Pupil radii as fractions of the iris radii; `drop` lowers it below the iris centre, as a fraction of the iris ry. */
-  pupil: { rx: number; ry: number; drop: number };
   /**
-   * Catchlights relative to the iris centre, in iris radii (+y up), larger first. They are
-   * not mirrored between the eyes: the light comes from the same side for both.
+   * Border width outside the opening at eight directions, named for the right eye and
+   * mirrored for the left: heaviest along the top (the lash line), thick on the outer side,
+   * thin beside the nose (where the iris's own rim meets it) and along the bottom.
    */
+  border: {
+    outer: number;
+    upperOuter: number;
+    top: number;
+    upperInner: number;
+    inner: number;
+    lowerInner: number;
+    bottom: number;
+    lowerOuter: number;
+  };
+  /**
+   * Iris radii as fractions of the eye radii; `inset` shifts it toward the nose, as a
+   * fraction of rx; `rim` is its dark outer ring, as a fraction of the iris rx.
+   */
+  iris: { rx: number; ry: number; inset: number; rim: number };
+  /**
+   * Pupil radii as fractions of the iris radii; `drop` moves it below the iris centre
+   * (negative raises it), as a fraction of the iris ry. Its lighter inside is an ellipse
+   * offset within it (fractions of the pupil radii, +y up), leaving a dark ring that is
+   * heavier on the side away from the light.
+   */
+  pupil: { rx: number; ry: number; drop: number; inner: { dx: number; dy: number; rx: number; ry: number } };
+  /** Catchlights relative to the iris centre, in iris radii (+y up), larger first. */
   catchlights: { x: number; y: number; r: number }[];
-  /** Upper lid line width at its inner end and at the outer corner, world units. */
+  /** Soft reflected glows in the lower iris, relative to the iris centre, in iris radii (+y up). */
+  glows: { x: number; y: number; rx: number; ry: number; strength: number }[];
+  /** The warm reflection at the bottom of the iris, below the pupil, in iris radii (+y up). */
+  spot: { x: number; y: number; rx: number; ry: number };
+  /** Lash line drawn over the top of the opening, so the lid overhangs the eye: its width at the inner end and at the outer corner. */
   lid: { inner: number; outer: number };
-  /** Width of the light rim along the lower edge, world units. */
+  /** Width of the light rim just inside the lower edge. */
   rim: number;
   /**
-   * Eyelid above the lash line: a thin crease `gap` above it (centre to centre) with a
-   * lighter lid band of width `band` below the crease. The crease runs from `from` (-1 =
-   * inner side, 0 = top) round to the outer corner. World units.
+   * Eyelid above the border: a lit lid band of width `band` on the border, then a soft
+   * crease of width `width` above it, spanning x/rx from `from` (negative = nose side) to `to`.
    */
-  fold: { gap: number; width: number; band: number; from: number };
+  fold: { width: number; band: number; from: number; to: number };
   /**
    * Lashes at the outer corner: where they leave the lid (0 = top, 1 = outer corner), length
-   * and base width (world units), and angle above horizontal (degrees).
+   * and base width, and angle above horizontal (degrees).
    */
   lashes: { at: number; length: number; width: number; angle: number }[];
 }
@@ -109,20 +137,29 @@ export interface FaceLayout {
 }
 
 export interface FacePalette {
-  /** Top (shadowed by the lid), middle and bottom. */
-  sclera: [string, string, string];
-  /** Top, middle and bottom: dark above, glowing red below. */
+  /** White of the eye: lid shadow across the top, bright beside the iris, pink toward the outer edge, edge. */
+  sclera: [string, string, string, string];
+  /** Iris body from top to bottom: dark above, glowing red below. */
   iris: [string, string, string];
-  /** Warm glow pooled in the lower iris: its bright centre and its red edge. */
+  /** The iris's dark outer ring, top and bottom. */
+  irisRim: [string, string];
+  /** Soft reflected glow in the lower iris. */
+  irisGlow: string;
+  /** Warm reflection at the bottom of the iris: its bright centre and its red edge. */
   irisPool: string;
   irisPoolEdge: string;
-  pupil: string;
+  /** Pupil inside, top and bottom, and its dark outline. */
+  pupil: [string, string];
+  pupilRing: string;
   catchlight: string;
+  /** Lash line. */
   lid: string;
-  /** Eyelid crease line and the lighter lid skin below it. */
+  /** Border round the eye: top, middle and bottom (lit by the face glow). */
+  border: [string, string, string];
+  /** Eyelid crease and the lit lid band below it. */
   lidFold: string;
   lidSkin: string;
-  /** Thin light rim along the lower edge of the eye. */
+  /** Light rim just inside the lower edge of the eye. */
   outline: string;
   brow: string;
   mouth: string;

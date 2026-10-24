@@ -44,18 +44,25 @@ export const NOX: CharacterConfig = {
     suckerHot: '#ff9a7a',
   },
   face: {
-    // Traced from panel 2 (eyes task), sized and placed for the face's depth in the camera.
+    // Placed and sized from panel 2; border, lid and iris layers traced from the
+    // high-quality face reference (docs/design/references/Nox-face-hq.png).
     eye: {
       rx: 0.155,
       ry: 0.16,
       centers: [[-0.366, -0.197], [0.366, -0.197]],
-      iris: { rx: 0.8, ry: 0.97, inset: 0.2 },
-      pupil: { rx: 0.52, ry: 0.62, drop: 0.04 },
-      catchlights: [{ x: -0.5, y: 0.36, r: 0.19 }, { x: 0.53, y: 0.4, r: 0.145 }],
-      lid: { inner: 0.022, outer: 0.036 },
-      rim: 0.006,
-      // Eyelid traced from panel 2: crease ~0.035 above the lash line, a lighter lid band under it.
-      fold: { gap: 0.036, width: 0.014, band: 0.016, from: -0.6 },
+      border: { outer: 0.023, upperOuter: 0.031, top: 0.032, upperInner: 0.022, inner: 0.008, lowerInner: 0.008, bottom: 0.0075, lowerOuter: 0.011 },
+      iris: { rx: 0.8, ry: 0.96, inset: 0.23, rim: 0.12 },
+      pupil: { rx: 0.55, ry: 0.6, drop: 0.11, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
+      catchlights: [{ x: -0.51, y: 0.47, r: 0.185 }, { x: 0.47, y: 0.5, r: 0.125 }],
+      glows: [
+        { x: -0.62, y: -0.38, rx: 0.34, ry: 0.4, strength: 0.9 },
+        { x: 0.66, y: -0.36, rx: 0.3, ry: 0.36, strength: 0.75 },
+        { x: 0, y: -0.72, rx: 0.55, ry: 0.26, strength: 0.8 },
+      ],
+      spot: { x: 0.05, y: -0.76, rx: 0.24, ry: 0.13 },
+      lid: { inner: 0.012, outer: 0.016 },
+      rim: 0.01,
+      fold: { width: 0.008, band: 0.016, from: -0.7, to: 0.7 },
       // Three clear lashes curling out from the outer top corner (owner: lashes were too small).
       lashes: [
         { at: 0.52, length: 0.042, width: 0.016, angle: 82 },
@@ -71,16 +78,20 @@ export const NOX: CharacterConfig = {
     blush: { centers: [[-0.51, -0.406], [0.51, -0.406]], rx: 0.105, ry: 0.055 },
   },
   facePalette: {
-    sclera: ['#8b3668', '#ffccec', '#fcd2dc'],
-    iris: ['#110101', '#3a0d11', '#be0f27'],
-    irisPool: '#fd8372',
-    irisPoolEdge: '#fb3538',
-    pupil: '#190003',
+    sclera: ['#7a1f62', '#fdf2f0', '#f2a2c2', '#b04479'],
+    iris: ['#1c0003', '#5c010f', '#f5241c'],
+    irisRim: ['#16000a', '#a00c16'],
+    irisGlow: '#ff3424',
+    irisPool: '#fdab76',
+    irisPoolEdge: '#ff5a3c',
+    pupil: ['#180104', '#3a0108'],
+    pupilRing: '#120000',
     catchlight: '#fff7f5',
     lid: '#0b0008',
-    lidFold: '#1c0016',
-    lidSkin: '#5a2c56',
-    outline: '#f7b4c0',
+    border: ['#0b0008', '#22030f', '#a01c42'],
+    lidFold: '#22001c',
+    lidSkin: '#7a2276',
+    outline: '#fbd3d6',
     brow: '#030016',
     mouth: '#3a0600',
     mouthInside: '#3a0a1c',

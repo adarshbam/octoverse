@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { FaceParams } from '../behavior/expressions';
 import type { FaceLayout, FacePalette, Point2 } from '../config/types';
 import { browStroke } from './browShape';
-import { catchlightSpots, eyelidCrease, irisCenter } from './eyeShape';
+import { borderWidth, catchlightSpots, eyeOutline, eyelidCrease, irisCenter, pupilShape } from './eyeShape';
 import { mouthShape } from './mouthShape';
 
 const SIZE = 1024;
@@ -112,150 +112,204 @@ export class FaceCanvas {
     const closed = blink >= 0.92;
     const edge = (x: number, r: number, k: number) => k * r * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2));
     const lidY = (x: number) => edge(x, ry, 2 * blink - 1);
-    const lowY = (x: number) => edge(x, ry, 1 - 0.6 * p.lidBottom);
+    // A soft-edged glow, opaque at its centre and fading out to its rim.
+    const glow = (x: number, y: number, gx: number, gy: number, stops: [number, string][]) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(1, gy / gx);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, gx);
+      for (const [at, color] of stops) g.addColorStop(at, color);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, gx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
     ctx.save();
     ctx.translate(px(cx), py(cy));
 
     if (!closed) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(-rx, 0);
-      for (let i = 0; i <= 32; i++) {
-        const x = -rx + (2 * rx * i) / 32;
-        ctx.lineTo(x, lidY(x));
-      }
-      for (let i = 32; i >= 0; i--) {
-        const x = -rx + (2 * rx * i) / 32;
-        ctx.lineTo(x, lowY(x));
-      }
-      ctx.closePath();
-      ctx.clip();
-
-      // White of the eye, shadowed under the lid.
-      const sclera = ctx.createLinearGradient(0, -ry, 0, ry);
-      sclera.addColorStop(0, palette.sclera[0]);
-      sclera.addColorStop(0.45, palette.sclera[1]);
-      sclera.addColorStop(1, palette.sclera[2]);
-      ctx.fillStyle = sclera;
-      ctx.fillRect(-rx, -ry, rx * 2, ry * 2);
-
-      // A large dark iris toward the nose, so the white shows only as an outer crescent.
-      const iris = irisCenter(eye, side, p.gazeX, p.gazeY);
-      const ix = iris.x * U;
-      const iy = -iris.y * U;
-      const irx = rx * eye.iris.rx;
-      const iry = ry * eye.iris.ry;
-      const fill = ctx.createLinearGradient(0, iy - iry, 0, iy + iry);
-      fill.addColorStop(0, palette.iris[0]);
-      fill.addColorStop(0.45, palette.iris[1]);
-      fill.addColorStop(1, palette.iris[2]);
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.ellipse(ix, iy, irx, iry, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Warm glow pooled in the lower iris, around the bottom of the pupil.
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(ix, iy, irx, iry, 0, 0, Math.PI * 2);
-      ctx.clip();
-      const pool = ctx.createRadialGradient(ix, iy + iry * 0.95, iry * 0.05, ix, iy + iry * 0.85, iry * 1.05);
-      pool.addColorStop(0, rgba(palette.irisPool, 1));
-      pool.addColorStop(0.3, rgba(palette.irisPoolEdge, 0.95));
-      pool.addColorStop(0.65, rgba(palette.irisPoolEdge, 0.45));
-      pool.addColorStop(1, rgba(palette.irisPoolEdge, 0));
-      ctx.fillStyle = pool;
-      ctx.fillRect(ix - irx, iy - iry, irx * 2, iry * 2);
-      ctx.restore();
-
-      // Soft-edged pupil that melts into the dark top of the iris.
-      const prx = irx * eye.pupil.rx;
-      const pry = iry * eye.pupil.ry;
-      const pcy = iy + iry * eye.pupil.drop;
-      ctx.save();
-      ctx.translate(ix, pcy);
-      ctx.scale(1, pry / prx);
-      const pupil = ctx.createRadialGradient(0, 0, 0, 0, 0, prx);
-      pupil.addColorStop(0, rgba(palette.pupil, 1));
-      pupil.addColorStop(0.75, rgba(palette.pupil, 1));
-      pupil.addColorStop(1, rgba(palette.pupil, 0));
-      ctx.fillStyle = pupil;
-      ctx.beginPath();
-      ctx.arc(0, 0, prx, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      for (const spot of catchlightSpots(eye, side, p.gazeX, p.gazeY)) {
-        const x = spot.x * U;
-        const y = -spot.y * U;
-        const r = spot.r * U;
-        const shine = ctx.createRadialGradient(x, y, 0, x, y, r);
-        shine.addColorStop(0, rgba(palette.catchlight, 1));
-        shine.addColorStop(0.7, rgba(palette.catchlight, 1));
-        shine.addColorStop(1, rgba(palette.catchlight, 0));
-        ctx.fillStyle = shine;
+      const outline = eyeOutline(eye, blink, p.lidBottom);
+      const trace = () => {
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
+        outline.forEach((q, i) => (i === 0 ? ctx.moveTo(q.x * U, -q.y * U) : ctx.lineTo(q.x * U, -q.y * U)));
+        ctx.closePath();
+      };
 
-      // Soft light rim along the lower edge instead of a dark outline.
-      ctx.strokeStyle = palette.outline;
-      ctx.lineWidth = eye.rim * U;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      for (let i = 0; i <= 32; i++) {
-        const x = -rx * 0.94 + (1.88 * rx * i) / 32;
-        if (i === 0) ctx.moveTo(x, lowY(x));
-        else ctx.lineTo(x, lowY(x));
-      }
-      ctx.stroke();
-    }
-
-    // Eyelid, for depth: the lit lid surface just above the lash line, then the crease as a
-    // soft shadow above it, strongest over the eye and fading out at both ends.
-    if (!closed) {
-      // The fold follows a lowering lid part of the way, and fades as the eye shuts.
+      // Eyelid, for depth: the lit lid band resting on the border, then the crease as a soft
+      // shadow above it, strongest over the eye and fading out at both ends. Both follow a
+      // lowering lid part of the way and fade as the eye shuts.
       const sink = 2 * blink * eye.ry * 0.6;
       const fade = 1 - Math.min(1, Math.max(0, (blink - 0.55) / 0.37));
-      const crease = eyelidCrease(eye, side).map(p => ({ ...p, y: p.y - sink }));
-      const { gap, band, width } = eye.fold;
+      const lid = eyelidCrease(eye, side);
       ctx.save();
       ctx.lineCap = 'round';
       ctx.strokeStyle = palette.lidSkin;
-      ctx.lineWidth = band * U;
-      ctx.filter = `blur(${(band * U * 0.3).toFixed(1)}px)`;
-      for (let i = 0; i < crease.length - 1; i++) {
-        const a = crease[i];
-        const b = crease[i + 1];
-        // The lid sits between the crease and the lash line: pull the crease toward the eye.
-        const pull = (p: { x: number; y: number }) => {
-          const top = eye.ry * Math.sqrt(Math.max(0, 1 - (p.x / (eye.rx + gap)) ** 2)) - sink;
-          return top + (p.y - top) * ((gap - width / 2 - band / 2) / gap);
-        };
-        ctx.globalAlpha = fade * Math.min(1, ((a.strength + b.strength) / 2) * 1.6);
+      ctx.lineWidth = eye.fold.band * U;
+      ctx.filter = 'blur(0.8px)';
+      for (let i = 0; i < lid.length - 1; i++) {
+        const a = lid[i];
+        const b = lid[i + 1];
+        ctx.globalAlpha = fade * Math.min(1, ((a.strength + b.strength) / 2) * 2);
         ctx.beginPath();
-        ctx.moveTo(a.x * U, -pull(a) * U);
-        ctx.lineTo(b.x * U, -pull(b) * U);
+        ctx.moveTo(a.bx * U, -(a.by - sink) * U);
+        ctx.lineTo(b.bx * U, -(b.by - sink) * U);
         ctx.stroke();
       }
       ctx.strokeStyle = palette.lidFold;
-      ctx.filter = `blur(${(width * U * 0.45).toFixed(1)}px)`;
-      for (let i = 0; i < crease.length - 1; i++) {
-        const a = crease[i];
-        const b = crease[i + 1];
+      ctx.filter = 'blur(1.2px)';
+      for (let i = 0; i < lid.length - 1; i++) {
+        const a = lid[i];
+        const b = lid[i + 1];
         ctx.globalAlpha = fade * ((a.strength + b.strength) / 2);
         ctx.lineWidth = ((a.width + b.width) / 2) * U;
+        ctx.beginPath();
+        ctx.moveTo(a.x * U, -(a.y - sink) * U);
+        ctx.lineTo(b.x * U, -(b.y - sink) * U);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Border round the whole eye: heavy along the lid, thick on the outer side, thin beside
+      // the nose and along the bottom, where the face glow turns it maroon. It is stroked centred on the
+      // outline at twice its width; the eye drawn next covers the inner half.
+      const tall = ctx.createLinearGradient(0, -ry - eye.border.top * U, 0, ry + eye.border.bottom * U);
+      tall.addColorStop(0, palette.border[0]);
+      tall.addColorStop(0.6, palette.border[1]);
+      tall.addColorStop(1, palette.border[2]);
+      ctx.strokeStyle = tall;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < outline.length; i++) {
+        const a = outline[i];
+        const b = outline[(i + 1) % outline.length];
+        ctx.lineWidth = (borderWidth(eye, a.theta, side) + borderWidth(eye, b.theta, side)) * U;
         ctx.beginPath();
         ctx.moveTo(a.x * U, -a.y * U);
         ctx.lineTo(b.x * U, -b.y * U);
         ctx.stroke();
       }
+
+      ctx.save();
+      trace();
+      ctx.clip();
+
+      // White of the eye: brightest beside the iris and low down, pink toward the outer edge,
+      // with the lid's shadow across the top.
+      const sx = -side * rx * 0.15;
+      const sy = ry * 0.25;
+      const white = ctx.createRadialGradient(sx, sy, 0, sx, sy, rx * 1.25);
+      white.addColorStop(0, palette.sclera[1]);
+      white.addColorStop(0.6, palette.sclera[1]);
+      white.addColorStop(0.8, palette.sclera[2]);
+      white.addColorStop(1, palette.sclera[3]);
+      ctx.fillStyle = white;
+      ctx.fillRect(-rx * 1.2, -ry * 1.2, rx * 2.4, ry * 2.4);
+      const shade = ctx.createLinearGradient(0, -ry, 0, -ry * 0.15);
+      shade.addColorStop(0, rgba(palette.sclera[0], 0.9));
+      shade.addColorStop(1, rgba(palette.sclera[0], 0));
+      ctx.fillStyle = shade;
+      ctx.fillRect(-rx * 1.2, -ry * 1.2, rx * 2.4, ry * 1.1);
+
+      // Iris toward the nose: dark above, glowing red below.
+      const iris = irisCenter(eye, side, p.gazeX, p.gazeY);
+      const ix = iris.x * U;
+      const iy = -iris.y * U;
+      const irx = rx * eye.iris.rx;
+      const iry = ry * eye.iris.ry;
+      const irisPath = () => {
+        ctx.beginPath();
+        ctx.ellipse(ix, iy, irx, iry, 0, 0, Math.PI * 2);
+      };
+      const body = ctx.createLinearGradient(0, iy - iry, 0, iy + iry);
+      body.addColorStop(0, palette.iris[0]);
+      body.addColorStop(0.3, palette.iris[0]);
+      body.addColorStop(0.48, palette.iris[1]);
+      body.addColorStop(0.68, palette.iris[2]);
+      body.addColorStop(1, palette.iris[2]);
+      ctx.fillStyle = body;
+      irisPath();
+      ctx.fill();
+
+      ctx.save();
+      irisPath();
+      ctx.clip();
+      // The outer iris darkens toward the rim, so the red glows brightest around the pupil.
+      glow(ix, iy, irx, iry, [
+        [0, rgba(palette.irisRim[0], 0)],
+        [0.72, rgba(palette.irisRim[0], 0)],
+        [1, rgba(palette.irisRim[0], 0.35)],
+      ]);
+
+      // Soft reflected glows in the lower iris, then the warm reflection below the pupil.
+      for (const g of eye.glows) {
+        glow(ix + g.x * irx, iy - g.y * iry, g.rx * irx, g.ry * iry, [[0, rgba(palette.irisGlow, g.strength)], [1, rgba(palette.irisGlow, 0)]]);
+      }
+      const { spot } = eye;
+      glow(ix + spot.x * irx, iy - spot.y * iry, spot.rx * irx, spot.ry * iry, [
+        [0, rgba(palette.irisPool, 1)],
+        [0.7, rgba(palette.irisPool, 0.95)],
+        [1, rgba(palette.irisPoolEdge, 0)],
+      ]);
+
+      // Pupil: a dark ring, heavier away from the light, round a lighter maroon inside.
+      const pupil = pupilShape(eye, side, p.gazeX, p.gazeY);
+      const { outer: po, inner: pi } = pupil;
+      ctx.fillStyle = palette.pupilRing;
+      ctx.beginPath();
+      ctx.ellipse(po.x * U, -po.y * U, po.rx * U, po.ry * U, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const inside = ctx.createLinearGradient(0, -(pi.y + pi.ry) * U, 0, -(pi.y - pi.ry) * U);
+      inside.addColorStop(0, palette.pupil[0]);
+      inside.addColorStop(1, palette.pupil[1]);
+      ctx.fillStyle = inside;
+      ctx.beginPath();
+      ctx.ellipse(pi.x * U, -pi.y * U, pi.rx * U, pi.ry * U, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // The iris's own dark outer ring, warming to red at the bottom.
+      const rim = irx * eye.iris.rim;
+      const rimStyle = ctx.createLinearGradient(0, iy - iry, 0, iy + iry);
+      rimStyle.addColorStop(0, palette.irisRim[0]);
+      rimStyle.addColorStop(0.7, palette.irisRim[0]);
+      rimStyle.addColorStop(1, palette.irisRim[1]);
+      ctx.strokeStyle = rimStyle;
+      ctx.lineWidth = rim;
+      ctx.beginPath();
+      ctx.ellipse(ix, iy, irx - rim / 2, iry - rim / 2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Two catchlights with a soft halo; they drift less than the iris, like reflections.
+      for (const c of catchlightSpots(eye, side, p.gazeX, p.gazeY)) {
+        glow(c.x * U, -c.y * U, c.r * U * 1.15, c.r * U * 1.15, [
+          [0, rgba(palette.catchlight, 1)],
+          [0.84, rgba(palette.catchlight, 1)],
+          [0.92, rgba(palette.catchlight, 0.45)],
+          [1, rgba(palette.catchlight, 0)],
+        ]);
+      }
+
+      // Light rim just inside the lower edge, fading out before it climbs the sides; the clip
+      // keeps the inner half of the stroke.
+      ctx.strokeStyle = palette.outline;
+      ctx.lineWidth = eye.rim * 2 * U;
+      ctx.lineCap = 'round';
+      const lower = outline.filter(q => q.theta < -0.55 && q.theta > -Math.PI + 0.55);
+      for (let i = 0; i < lower.length - 1; i++) {
+        const a = lower[i];
+        const b = lower[i + 1];
+        const t = (i + 0.5) / (lower.length - 1);
+        ctx.globalAlpha = Math.min(1, Math.sin(Math.PI * t) * 2.5);
+        ctx.beginPath();
+        ctx.moveTo(a.x * U, -a.y * U);
+        ctx.lineTo(b.x * U, -b.y * U);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       ctx.restore();
     }
 
-    // Upper lid line: thin at the inner end, heaviest at the outer corner.
+    // Lash line over the top of the opening, so the lid overhangs the eye.
     ctx.strokeStyle = palette.lid;
     ctx.lineCap = 'round';
     const lidPoint = (x: number) => (closed ? edge(x, ry, 0.22) : lidY(x));
@@ -266,30 +320,21 @@ export class FaceCanvas {
       const u1 = -1 + (2.02 * (i + 1)) / steps;
       const x0 = side * u0 * rx;
       const x1 = side * u1 * rx;
-      ctx.lineWidth = lidWidth((u0 + u1) / 2) * (closed ? 0.7 : 1);
+      ctx.lineWidth = lidWidth((u0 + u1) / 2) * (closed ? 1.2 : 1);
       ctx.beginPath();
       ctx.moveTo(x0, lidPoint(Math.max(-rx, Math.min(rx, x0))));
       ctx.lineTo(x1, lidPoint(Math.max(-rx, Math.min(rx, x1))));
       ctx.stroke();
     }
 
-    // The outline carries on down the outer side of the white, thinning into the light rim.
-    if (!closed) {
-      for (let i = 0; i < 10; i++) {
-        const x0 = side * rx * (1 - (0.45 * i) / 10);
-        const x1 = side * rx * (1 - (0.45 * (i + 1)) / 10);
-        ctx.lineWidth = eye.lid.outer * U * 0.75 * (1 - (i + 0.5) / 10);
-        ctx.beginPath();
-        ctx.moveTo(x0, lowY(x0));
-        ctx.lineTo(x1, lowY(x1));
-        ctx.stroke();
-      }
-    }
-
-    // Short curved lashes at the outer corner, thick at the base and tapering out.
+    // Short curved lashes at the outer corner, leaving the outer edge of the border, thick at
+    // the base and tapering out.
     for (const lash of eye.lashes) {
-      const x = side * rx * lash.at;
-      const base = lidPoint(Math.max(-rx, Math.min(rx, x)));
+      const theta = Math.acos(side * lash.at);
+      const out = closed ? 0 : borderWidth(eye, theta, side) * U * 0.75;
+      const nl = Math.hypot(Math.cos(theta) / rx, Math.sin(theta) / ry);
+      const x = side * rx * lash.at + (Math.cos(theta) / rx / nl) * out;
+      const base = lidPoint(Math.max(-rx, Math.min(rx, side * rx * lash.at))) - (Math.sin(theta) / ry / nl) * out;
       const angle = THREE.MathUtils.degToRad(closed ? -lash.angle * 0.5 : lash.angle);
       const length = lash.length * U;
       const tipX = x + side * Math.cos(angle) * length;
