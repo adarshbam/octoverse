@@ -52,7 +52,8 @@ export function restFromCurve(curve: readonly Point2[], segments = ArmChain.SEGM
  * an optional cyclic-coordinate-descent pass bends the outer arm toward a target.
  */
 export class ArmChain {
-  static readonly SEGMENTS = 64;
+  /** Enough segments that the tightest tip curls stay smooth at review zoom. */
+  static readonly SEGMENTS = 128;
   readonly side: 1 | -1;
   readonly px: Float32Array;
   readonly py: Float32Array;

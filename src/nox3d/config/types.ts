@@ -62,9 +62,11 @@ export interface Palette {
   armLit: string;
   armGlow: string;
   belly: string;
+  /** Sucker cup: outer wall, inner wall, glowing rim, and the slit of the hollow centre. */
   suckerEdge: string;
   suckerBody: string;
   suckerHot: string;
+  suckerHollow: string;
 }
 
 /**
@@ -198,6 +200,23 @@ export interface Personality {
   breathPeriod: number;
 }
 
+/** Sucker cups along each arm's oral side. Lengths in world units, angles in degrees. */
+export interface SuckerSettings {
+  /** Cup radius = size * armRadius^sizePower, so cups shrink toward the tip more slowly than the arm. */
+  size: number;
+  sizePower: number;
+  /** Centre spacing along a row, in cup radii. */
+  spacing: number;
+  /** Cups are this much longer along the arm than across it. */
+  elongation: number;
+  /** How far the oral side turns from the arm's edge toward the viewer, along the arm and in the curls. */
+  tilt: number;
+  curlTilt: number;
+  /** Where the arm radius exceeds `rowRadius`, two staggered rows run this far apart round the arm, either side of the oral midline. */
+  rowAngle: number;
+  rowRadius: number;
+}
+
 export interface CharacterConfig {
   id: string;
   head: HeadShape;
@@ -209,6 +228,6 @@ export interface CharacterConfig {
   tipRadius: number;
   /** Arm taper: radius falls as 1 - u^taperPower along the arm, so larger values keep arms thick for longer. */
   taperPower: number;
-  suckers: { sizeRatio: number; spacing: number; tilt: number };
+  suckers: SuckerSettings;
   personality: Personality;
 }

@@ -15,7 +15,7 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHeadGeometry } from './headGeometry';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createSuckerMaterial } from './suckerMaterial';
-import { SuckerRow } from './suckerRow';
+import { SuckerRow, createSuckerCup } from './suckerRow';
 
 /** Rotation pivot for head turns: the middle of the body. */
 const PIVOT_Y = -0.6;
@@ -41,7 +41,7 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
     const face = new FaceCanvas(config.face, config.facePalette);
-    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt };
+    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt };
     const arms = config.arms.map((spec, i) => {
       const chain = new ArmChain(restFromCurve(pose.arms[spec.id]), spec, i);
       const tube = new ArmTube(chain, spec, profile);
@@ -63,11 +63,11 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       webs,
       webMaterial,
       headGeometry: createHeadGeometry(config.head),
-      suckerGeometry: new THREE.SphereGeometry(1, 16, 12),
+      suckerGeometry: createSuckerCup(),
       suckerTotal: arms.reduce((n, a) => n + a.row.count, 0),
       headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
       armMaterial: createSkinMaterial('ARM', uniforms),
-      suckerMaterial: createSuckerMaterial(config.palette),
+      suckerMaterial: createSuckerMaterial(config.palette, uniforms.uKeyDir.value),
       coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
       glowLocal: new THREE.Vector3(...config.glow.center),
     };

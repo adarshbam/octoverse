@@ -40,10 +40,11 @@ export const NOX: CharacterConfig = {
     armMid: '#2c0f48',
     armLit: '#4c2a7e',
     armGlow: '#ff4a5a',
-    belly: '#d0244e',
-    suckerEdge: '#b0183a',
-    suckerBody: '#ff4a46',
-    suckerHot: '#ff9a7a',
+    belly: '#e8183a',
+    suckerEdge: '#c8102c',
+    suckerBody: '#fb7350',
+    suckerHot: '#fd8a60',
+    suckerHollow: '#e2232f',
   },
   face: {
     // Placed and sized from panel 2; border, lid and iris layers traced from the
@@ -105,7 +106,8 @@ export const NOX: CharacterConfig = {
   // Arm thickness traced from the high-quality panel 2: full through the middle, tapering into the curls.
   tipRadius: 0.042,
   taperPower: 2.2,
-  suckers: { sizeRatio: 0.6, spacing: 2.2, tilt: 12 },
+  // Cups traced from the high-quality panel 2: ~0.1 across mid-arm, oval as they turn toward the viewer.
+  suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, rowAngle: 36, rowRadius: 0.08 },
   personality: {
     blinkInterval: [2.6, 7.0],
     doubleBlinkChance: 0.2,

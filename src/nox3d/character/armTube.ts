@@ -4,6 +4,8 @@ import type { ArmChain } from './armChain';
 
 /** The base swells by up to 12%, easing out along the arm, so it fills the joint with the body. */
 const BASE_SWELL = 0.12;
+/** Rings in the rounded cap that closes each arm's tip. */
+const CAP_RINGS = 6;
 
 /**
  * Arm radius at arc fraction u (0 = root, 1 = tip): thick for most of the length, then
@@ -15,10 +17,25 @@ export function armRadius(u: number, spec: ArmSpec, profile: { tipRadius: number
   return taper * (1 + BASE_SWELL * (1 - t) ** 4);
 }
 
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * How far (radians) the oral side turns from the arm's edge toward the viewer at arc fraction
+ * u: `suckerTilt` along most of the arm, turning to `curlTilt` in the curl, so the cups face the
+ * viewer inside the spirals.
+ */
+export function suckerTilt(u: number, profile: { suckerTilt: number; curlTilt: number }) {
+  return THREE.MathUtils.degToRad(profile.suckerTilt + (profile.curlTilt - profile.suckerTilt) * smoothstep(0.6, 1, u));
+}
+
 /**
  * A tapered tube rebuilt around an arm chain every frame. Ring 0 of each
- * cross-section faces the chain's left normal; the sucker side is a fixed
- * angle in that frame, stored per vertex as `aUnder` for the skin shader.
+ * cross-section faces the chain's left normal; the sucker side is an angle in
+ * that frame that turns toward the viewer in the curl, stored per vertex as
+ * `aUnder` for the skin shader.
  */
 export class ArmTube {
   readonly geometry = new THREE.BufferGeometry();
@@ -28,17 +45,19 @@ export class ArmTube {
   readonly bx: Float32Array;
   readonly by: Float32Array;
   readonly bz: Float32Array;
-  readonly suckerCos: number;
-  readonly suckerSin: number;
+  /** Per-ring tilt of the oral side toward the viewer (radians), and which side of the arm carries it. */
+  readonly tilt: Float32Array;
+  readonly side: 1 | -1;
   private readonly chain: ArmChain;
   private readonly radius: Float32Array;
-  private readonly radial: number;
+  /** Vertices round each ring, less one (the seam repeats the first). */
+  readonly radial: number;
   private readonly ringCos: Float32Array;
   private readonly ringSin: Float32Array;
   private readonly positions: Float32Array;
   private readonly normals: Float32Array;
 
-  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number }, radial = 18) {
+  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number }, radial = 24) {
     const n = chain.segments;
     this.chain = chain;
     this.radial = radial;
@@ -51,29 +70,30 @@ export class ArmTube {
     for (let k = 0; k <= n; k++) this.radius[k] = armRadius(k / n, spec, profile);
     this.ringCos = Float32Array.from({ length: radial + 1 }, (_, j) => Math.cos((j / radial) * Math.PI * 2));
     this.ringSin = Float32Array.from({ length: radial + 1 }, (_, j) => Math.sin((j / radial) * Math.PI * 2));
-    const tilt = THREE.MathUtils.degToRad(profile.suckerTilt);
-    this.suckerCos = chain.side * Math.cos(tilt);
-    this.suckerSin = Math.sin(tilt);
+    this.side = chain.side;
+    this.tilt = Float32Array.from({ length: n + 1 }, (_, k) => suckerTilt(k / n, profile));
 
     const ring = radial + 1;
-    const count = (n + 1) * ring;
+    // The arm's rings, then a rounded cap past the tip.
+    const count = (n + 1 + CAP_RINGS) * ring;
     this.positions = new Float32Array(count * 3);
     this.normals = new Float32Array(count * 3);
     const under = new Float32Array(count);
     const arcU = new Float32Array(count);
     const speck = new Float32Array(count * 2);
-    const suckerAngle = Math.atan2(this.suckerSin, this.suckerCos);
-    for (let k = 0; k <= n; k++) {
+    for (let k = 0; k <= n + CAP_RINGS; k++) {
+      const kk = Math.min(k, n);
+      const suckerAngle = Math.atan2(Math.sin(this.tilt[kk]), chain.side * Math.cos(this.tilt[kk]));
       for (let j = 0; j <= radial; j++) {
         const v = k * ring + j;
         under[v] = Math.cos((j / radial) * Math.PI * 2 - suckerAngle);
-        arcU[v] = k / n;
+        arcU[v] = kk / n;
         speck[v * 2] = k * chain.segmentLength * 15;
         speck[v * 2 + 1] = (j / radial) * 8;
       }
     }
     const indices: number[] = [];
-    for (let k = 0; k < n; k++) {
+    for (let k = 0; k < n + CAP_RINGS; k++) {
       for (let j = 0; j < radial; j++) {
         const a = k * ring + j;
         const b = a + ring;
@@ -89,6 +109,17 @@ export class ArmTube {
     this.update();
   }
 
+  /**
+   * Outward direction at ring k of a point `offset` radians round the arm from the oral
+   * midline (positive is toward the viewer), written into `out`.
+   */
+  suckerDirection(k: number, offset: number, out: THREE.Vector3) {
+    const a = this.tilt[k] + offset;
+    const c = this.side * Math.cos(a);
+    const s = Math.sin(a);
+    return out.set(c * this.nx[k] + s * this.bx[k], c * this.ny[k] + s * this.by[k], s * this.bz[k]).normalize();
+  }
+
   /** Radius at arc fraction u. */
   radiusAt(u: number) {
     const n = this.chain.segments;
@@ -101,6 +132,9 @@ export class ArmTube {
   update() {
     const { px, py, pz, segments: n } = this.chain;
     const ring = this.radial + 1;
+    let ex = 0;
+    let ey = 0;
+    let ez = 0;
     for (let k = 0; k <= n; k++) {
       const k0 = Math.max(k - 1, 0);
       const k1 = Math.min(k + 1, n);
@@ -109,6 +143,7 @@ export class ArmTube {
       let tz = pz[k1] - pz[k0];
       const tl = Math.hypot(tx, ty, tz) || 1;
       tx /= tl; ty /= tl; tz /= tl;
+      ex = tx; ey = ty; ez = tz;
       const nl = Math.hypot(ty, tx) || 1;
       const nx = -ty / nl;
       const ny = tx / nl;
@@ -130,6 +165,30 @@ export class ArmTube {
         this.normals[o] = dx;
         this.normals[o + 1] = dy;
         this.normals[o + 2] = dz;
+      }
+    }
+    // Rounded cap: a quarter circle past the tip, closing to a point one tip radius beyond it.
+    const r = this.radius[n];
+    const nx = this.nx[n];
+    const ny = this.ny[n];
+    const bx = this.bx[n];
+    const by = this.by[n];
+    const bz = this.bz[n];
+    for (let c = 1; c <= CAP_RINGS; c++) {
+      const a = (c / CAP_RINGS) * (Math.PI / 2);
+      const along = r * Math.sin(a);
+      const across = r * Math.cos(a);
+      for (let j = 0; j <= this.radial; j++) {
+        const dx = this.ringCos[j] * nx + this.ringSin[j] * bx;
+        const dy = this.ringCos[j] * ny + this.ringSin[j] * by;
+        const dz = this.ringSin[j] * bz;
+        const o = ((n + c) * ring + j) * 3;
+        this.positions[o] = px[n] + ex * along + dx * across;
+        this.positions[o + 1] = py[n] + ey * along + dy * across;
+        this.positions[o + 2] = pz[n] + ez * along + dz * across;
+        this.normals[o] = dx * Math.cos(a) + ex * Math.sin(a);
+        this.normals[o + 1] = dy * Math.cos(a) + ey * Math.sin(a);
+        this.normals[o + 2] = dz * Math.cos(a) + ez * Math.sin(a);
       }
     }
     this.geometry.attributes.position.needsUpdate = true;
