@@ -1,14 +1,15 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { BlinkScheduler, breath, floatOffset, spring } from '../behavior/ambient';
+import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention } from '../behavior/attention';
+import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
+import type { PoseBlender } from '../behavior/poseBlend';
 import { reachingArm } from '../behavior/reach';
-import { EXPRESSIONS, type ExpressionId } from '../behavior/expressions';
-import { ARM_IDS, type CharacterConfig } from '../config/types';
+import { isRestful } from '../behavior/stageMachine';
+import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
-import type { StagePose } from '../poses/types';
-import { ArmChain, restFromCurve } from './armChain';
+import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
@@ -24,16 +25,28 @@ const PIVOT_Y = -0.6;
 
 export interface OctopusProps {
   config: CharacterConfig;
-  pose: StagePose;
-  expression: ExpressionId;
+  /** Moves Nox between stage poses; sampled every frame. */
+  blender: PoseBlender;
+  /** The current stage, for resting in the intro. */
+  stage: StageId;
+  /** A face shown instead of the stage's own, for expression captures. */
+  expression?: ExpressionId;
   /** Rest pose with no motion, for comparison captures. */
   freeze: boolean;
+  /** Visitors who prefer reduced motion: no float or sway. */
+  reducedMotion?: boolean;
+  /** A panel is open over the stage, so Nox stays awake. */
+  panelOpen?: boolean;
   /** Silhouette capture: hide additive glow cards that would read as solid shape. */
   silhouette?: boolean;
 }
 
+/** Seconds for Nox to settle into rest, and to wake from it. */
+const REST_IN = 2;
+const WAKE = 0.5;
+
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, pose, expression, freeze, silhouette = false }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -43,8 +56,9 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
     const uniforms = createSkinUniforms(config);
     const face = new FaceCanvas(config.face, config.facePalette);
     const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist, flatten: config.armFlatten };
+    const start = blender.sample(performance.now());
     const arms = config.arms.map((spec, i) => {
-      const chain = new ArmChain(restFromCurve(pose.arms[spec.id]), spec, i);
+      const chain = new ArmChain(start.arms[spec.id], spec, i);
       const tube = new ArmTube(chain, spec, profile);
       return { chain, tube, row: new SuckerRow(chain, tube, config.suckers, i) };
     });
@@ -87,12 +101,8 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0)),
       glowLocal: new THREE.Vector3(...config.glow.center),
     };
-    // Built once per character; later pose changes are applied as new rests below.
-  }, [config]);
-
-  useEffect(() => {
-    ARM_IDS.forEach((id, i) => rig.arms[i].chain.setRest(restFromCurve(pose.arms[id], rig.arms[i].chain.segments)));
-  }, [pose, rig]);
+    // Built once per character; stage poses reach the arms as new rests each frame.
+  }, [config, blender]);
 
   const motion = useRef({
     attention: new Attention(config.personality),
@@ -105,16 +115,26 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
     glow: new THREE.Vector3(),
     reach: config.arms.map(() => ({ x: 0, v: 0 })),
     reachPoint: config.arms.map(() => new THREE.Vector2()),
+    lastInput: performance.now(),
+    rest: 0,
+    breathPhase: 0,
   });
 
   useEffect(() => {
     const m = motion.current;
-    const enter = () => { m.pointerInside = true; };
+    const enter = () => { m.pointerInside = true; m.lastInput = performance.now(); };
     const leave = () => { m.pointerInside = false; };
+    const wake = () => { m.lastInput = performance.now(); };
     window.addEventListener('pointermove', enter);
+    window.addEventListener('pointerdown', wake);
+    window.addEventListener('keydown', wake);
+    window.addEventListener('touchstart', wake);
     document.documentElement.addEventListener('mouseleave', leave);
     return () => {
       window.removeEventListener('pointermove', enter);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+      window.removeEventListener('touchstart', wake);
       document.documentElement.removeEventListener('mouseleave', leave);
     };
   }, []);
@@ -125,9 +145,16 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
     const live = freeze ? 0 : 1;
     const m = motion.current;
     const personality = config.personality;
+    const now = performance.now();
+    const pose = blender.sample(now);
+    const moving = reducedMotion ? 0 : live;
+
+    // After a long idle in the intro Nox rests; any input wakes it within half a second.
+    const resting = !freeze && isRestful(stage, now - m.lastInput, panelOpen);
+    m.rest = THREE.MathUtils.clamp(m.rest + (resting ? dt / REST_IN : -dt / WAKE), 0, 1);
 
     const drift = floatOffset(t, personality);
-    float.current!.position.set(pose.body.x + live * drift.x, pose.body.y + live * drift.y, 0);
+    float.current!.position.set(pose.body.x + moving * drift.x, pose.body.y + moving * drift.y, 0);
     float.current!.scale.setScalar(pose.body.scale);
 
     const p = state.pointer;
@@ -136,9 +163,9 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt);
     const near = gaze.tracking ? Math.max(0, 1 - Math.hypot(p.x, p.y + 0.17) * 1.4) : 0;
     spring(m.smile, near, 5, dt);
-    turn.current!.rotation.set(-gaze.headY * 0.08, pose.body.yaw + gaze.headX * 0.15, live * drift.roll - gaze.headX * 0.02);
+    turn.current!.rotation.set(-gaze.headY * 0.08, pose.body.yaw + gaze.headX * 0.15, moving * drift.roll - gaze.headX * 0.02);
 
-    const face = EXPRESSIONS[expression];
+    const face = blendExpression(expression ? EXPRESSIONS[expression] : pose.expression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
       ...face,
       mouthCurve: face.mouthCurve + m.smile.x * 0.7,
@@ -148,8 +175,10 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       gazeY: gaze.gazeY,
     });
 
-    // Breathing: the mantle swells slightly; arm roots stay buried in the web.
-    const b = live * breath(t, personality.breathPeriod);
+    // Breathing: the mantle swells slightly; arm roots stay buried in the web. At rest it slows
+    // by 1.4x; the phase is carried forward so a change of pace never jumps.
+    m.breathPhase += (live * dt) / (personality.breathPeriod * (1 + 0.4 * m.rest));
+    const b = live * Math.sin(m.breathPhase * Math.PI * 2);
     head.current!.scale.set(1 + b * 0.016, 1 + b * 0.011, 1 + b * 0.016);
 
     // Pointer on the z = 0 plane, in the space the arms are authored in.
@@ -167,9 +196,10 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       spring(weight, i === active ? 1 : 0, i === active ? 5 : 3, dt);
       if (i === active) m.reachPoint[i].set(m.target.x, m.target.y);
       const w = THREE.MathUtils.clamp(weight.x, 0, 1);
+      chain.setRest(pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
-        sway: live * personality.sway * (1 - 0.6 * w),
+        sway: moving * personality.sway * (1 - 0.6 * w),
         curl: live * personality.curl,
         droop: drift.vy * live * 2.2,
         reach: { x: m.reachPoint[i].x, y: m.reachPoint[i].y, weight: w },
@@ -185,7 +215,7 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
 
     m.glow.copy(rig.glowLocal).applyMatrix4(content.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
-    rig.uniforms.uGlowStrength.value = 1 + 0.06 * b;
+    rig.uniforms.uGlowStrength.value = (1 + 0.06 * b) * (1 - 0.15 * m.rest);
   });
 
   const [faceX, faceY] = config.head.faceOrigin;

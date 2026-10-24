@@ -25,7 +25,7 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   happy: { ...GENTLE, mouthCurve: 0.8, mouthOpen: 0.6, blush: 0.4 },
   focused: { ...GENTLE, browTilt: -0.6, lidRest: 0.25 },
   attentive: { ...GENTLE, browLift: 0.5 },
-  restful: GENTLE,
+  restful: { lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 },
 };
 
 export function blendExpression(a: ExpressionParams, b: ExpressionParams, t: number): ExpressionParams {

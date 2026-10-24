@@ -27,3 +27,7 @@ test('happy opens the mouth in a big smile with a blush', () => {
 test('gentle is the spike face', () => {
   expect(EXPRESSIONS.gentle).toEqual({ lidRest: 0, lidBottom: 0, browLift: 0, browTilt: 0, mouthCurve: 0.3, mouthOpen: 0, blush: 0 });
 });
+
+test('the restful face: lids half down, brows soft, a small smile', () => {
+  expect(EXPRESSIONS.restful).toEqual({ lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 });
+});

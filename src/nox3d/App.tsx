@@ -1,9 +1,11 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
-import { Suspense, useLayoutEffect, useMemo } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PoseBlender } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
+import { useStage } from './behavior/useStage';
 import { Octopus } from './character/Octopus';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
@@ -67,11 +69,26 @@ function SilhouetteOnly() {
 
 export function App() {
   const config = useMemo(() => clampCharacterConfig(NOX), []);
-  const stage = url.stage ?? 'intro';
-  const pose = NOX_POSES[stage];
-  const octopus = <Octopus config={config} pose={pose} expression={url.expression ?? pose.expression} freeze={url.freeze} silhouette={MASK} />;
+  const { state, dispatch, reducedMotion } = useStage(noxProject);
+  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage]), []);
+  const frame = useRef<HTMLDivElement>(null);
+  const first = useRef(true);
+  // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
+  // once and the view crossfades instead.
+  useEffect(() => {
+    blender.start(NOX_POSES[state.stage], performance.now(), reducedMotion ? 0 : 700);
+    if (first.current) first.current = false;
+    else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+  }, [blender, state.stage, reducedMotion]);
+  // The entrance is authored in Task 23; until then it ends at once.
+  useEffect(() => {
+    if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
+  }, [state.stage, dispatch]);
+  const octopus = (
+    <Octopus config={config} blender={blender} stage={state.stage} expression={url.expression} freeze={url.freeze} reducedMotion={reducedMotion} silhouette={MASK} />
+  );
   return (
-    <div className="spike">
+    <div className="spike" ref={frame}>
       <Canvas flat dpr={[1, 2]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 60 }}>
         <color attach="background" args={[MASK ? '#000000' : '#06040c']} />
         <StageCamera />
