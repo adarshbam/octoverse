@@ -17,3 +17,14 @@ export const COMPONENT_VIEWS: Record<ComponentId, { panel: 2; box: [number, numb
 
 /** Panel 2's rectangle in Nox.jpeg, for cropping the reference. */
 export const PANEL_2 = { left: 512, top: 0, width: 506, height: 504, imageWidth: 1536, imageHeight: 1024 };
+
+/**
+ * The high-quality panel 2 (docs/design/references/Nox/Nox Introduces the Security Lab.png),
+ * registered to world units by the eyes' catchlights.
+ */
+export const HQ_PANEL_2 = { src: '/spike/nox-panel2-hq.jpg', width: 1536, height: 1024, originX: 783.6, originY: 495.4, pxPerUnit: 204.5 };
+
+/** Where a world point lands in the high-quality panel 2, in image pixels. */
+export function hqPixel(x: number, y: number) {
+  return { x: HQ_PANEL_2.originX + HQ_PANEL_2.pxPerUnit * x, y: HQ_PANEL_2.originY - HQ_PANEL_2.pxPerUnit * y };
+}

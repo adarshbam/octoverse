@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { COMPONENT_VIEWS, PANEL_2, type ComponentId } from './components';
+import { COMPONENT_VIEWS, HQ_PANEL_2, PANEL_2, hqPixel, type ComponentId } from './components';
 
 // One character component at a time: the reference crop beside the live render,
 // frozen, moving and in an orbit view, all framing the same world box.
@@ -14,10 +14,14 @@ const PANE_WIDTH = Math.floor(Math.min((innerWidth - 44) / 2, (innerHeight - 150
 const height = Math.round(PANE_WIDTH * aspect);
 const box = view.box.join(',');
 
+// The high-quality panel 2 by default; `&ref=panel` shows the original storyboard panel.
+const ORIGINAL = params.get('ref') === 'panel';
+
 function Reference() {
-  const cropLeft = PANEL_2.left + PANEL_2.width / 2 + x0 * 100;
-  const cropTop = PANEL_2.top + PANEL_2.height / 2 - y0 * 100;
-  const k = PANE_WIDTH / ((x1 - x0) * 100);
+  const crop = ORIGINAL
+    ? { left: PANEL_2.left + PANEL_2.width / 2 + x0 * 100, top: PANEL_2.top + PANEL_2.height / 2 - y0 * 100, k: PANE_WIDTH / ((x1 - x0) * 100) }
+    : { left: hqPixel(x0, y0).x, top: hqPixel(x0, y0).y, k: PANE_WIDTH / ((x1 - x0) * HQ_PANEL_2.pxPerUnit) };
+  const image = ORIGINAL ? { src: '/spike/Nox.jpeg', width: PANEL_2.imageWidth, height: PANEL_2.imageHeight } : HQ_PANEL_2;
   return (
     <div
       role="img"
@@ -25,9 +29,9 @@ function Reference() {
       style={{
         width: PANE_WIDTH,
         height,
-        backgroundImage: 'url(/spike/Nox.jpeg)',
-        backgroundSize: `${PANEL_2.imageWidth * k}px ${PANEL_2.imageHeight * k}px`,
-        backgroundPosition: `${-cropLeft * k}px ${-cropTop * k}px`,
+        backgroundImage: `url(${image.src})`,
+        backgroundSize: `${image.width * crop.k}px ${image.height * crop.k}px`,
+        backgroundPosition: `${-crop.left * crop.k}px ${-crop.top * crop.k}px`,
       }}
     />
   );
@@ -48,7 +52,7 @@ function Review() {
       <h1 style={{ fontSize: 18, margin: '0 0 12px' }}>{view.label}</h1>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(2, ${PANE_WIDTH}px)`, gap: 12 }}>
         {[
-          ['Reference (panel 2)', <Reference key="ref" />],
+          [ORIGINAL ? 'Reference (panel 2)' : 'Reference (high-quality panel 2)', <Reference key="ref" />],
           ['Live, frozen', live('freeze', 'Live frozen')],
           ['Live, moving', live('', 'Live moving')],
           ['3D orbit (drag to rotate)', live('freeze&orbit', 'Orbit view')],

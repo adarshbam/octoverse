@@ -39,3 +39,20 @@ Raised during the mantle work: "Noo eyes lashes or too small lashes. And cheeks 
 The owner supplied `docs/design/references/Nox-face-hq.png`, a high-quality version of the face, after the eyelid pass. Their notes: the eyelid in this reference "is really intentionally created" and "creates a kind of border around the whole eye". The border "is thicker, and more on the right side, left side the border gets like really thin, but that distinction adds layer to the eyes". "Inside the pupil there are multiple layers." The whole eye "is much more detailed. It has reflections and the whole eye is inside of a certain kind of black border", for "both areas, white areas as well as those red areas".
 
 **v2 (approved):** the mantle is re-fitted to the rim line as a dome that runs past its widest point, with cheek lobes pushed out below it that carry the blush into the arms. T3/T6 now emerge from behind the neck, so the chin crease is gone. T4/T5 carry their suckers along the V, and sucker rows start small next to the body. The glow down the centre arms measured within range of the reference, so it was left for the glow task. Known gaps raised at the v2 review: each cheek lobe ends in a small point where an arm edge meets it (in the reference that arm is T1, not T2), and from the side the cheeks read as a soft ridge.
+
+## Whole-character critique (2026-10-24)
+
+After eyes v4, the owner sent a ten-point critique of the whole character, with high-quality versions of the storyboard panels (`docs/design/references/Nox/`). The eyes v4 question got no direct verdict; the critique asks to preserve "Nox's adorable facial identity, large expressive eyes". The critique, in short:
+
+1. Cheeks look like separate rounded attachments; integrate them into the head silhouette.
+2. Arms appear to emerge from behind the face; give all eight a unified central base.
+3. Arms are too thin and ribbon-like; thicken by about 15–20%, fuller bases, gradual taper.
+4. Curves are mathematically smooth; add asymmetry, twists, natural bends.
+5. Suckers are glowing dots; make concave cups with raised rims, varied sizes, wet highlights.
+6. The skin looks like rubber or plastic; make it wet, slimy and gelatinous, with glossy specular reflections.
+7. The surface is too smooth; add fine bumps, translucent patches, subtle pigmentation.
+8. The head is nearly a perfect sphere; make it more organic, with a smooth transition into a rounded central body.
+9. Arms look layered, not connected; add occlusion and contact shadows, and shade foreground and background arms differently.
+10. Gradients give brightness, not depth; layer purple tones with warm reddish subsurface light and small irregular wet reflections.
+
+Priorities, quoted: "Anatomically connected cheeks, thicker organic tentacles, realistic suction cups, and especially wet, slimy, translucent skin with convincing 3D depth." The pasted prompt also said "Keep the existing SVG-based architecture"; the build is the 3D one the owner chose on 2026-10-23, so the existing 3D architecture is kept and only Nox changes.
