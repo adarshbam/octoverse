@@ -11,6 +11,12 @@ export interface BlendedPose {
   headMorph: number;
 }
 
+/**
+ * How Nox moves between stages: slowly enough to feel calm and immersive, each arm setting off a
+ * little after the one before, so the change ripples out round the body.
+ */
+export const STAGE_TRANSITION = { durationMs: 1800, staggerMs: 70 };
+
 const smootherstep = (x: number) => {
   const t = Math.min(1, Math.max(0, x));
   return t * t * t * (t * (t * 6 - 15) + 10);

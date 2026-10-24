@@ -3,7 +3,7 @@ import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
 import { NOX_POSES } from '../poses/nox.poses';
 import type { StagePose } from '../poses/types';
 import { EXPRESSIONS } from './expressions';
-import { PoseBlender, blendAngles } from './poseBlend';
+import { PoseBlender, STAGE_TRANSITION, blendAngles } from './poseBlend';
 
 /** The intro pose with every arm curve shifted and the body moved, as a distinct stage. */
 function shifted(dx: number, dy: number, expression: StagePose['expression'] = 'happy'): StagePose {
@@ -65,4 +65,20 @@ test('a zero duration (reduced motion) lands on the target at once', () => {
   const target = shifted(0.5, 0.2);
   blender.start(target, 100, 0, 0);
   expect(blender.sample(100).body).toEqual(target.body);
+});
+
+// The tip curls turn by up to ~2.5 rad between stages; at the old 0.7 s a joint swung 0.14 rad in a frame.
+test('a stage change is slow and gentle: no joint turns more than 0.06 rad in a 60 fps frame', () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  blender.start(NOX_POSES.overview, 0, STAGE_TRANSITION.durationMs, STAGE_TRANSITION.staggerMs);
+  let before = ARM_IDS.map(id => Float32Array.from(blender.sample(0).arms[id].angles));
+  const end = STAGE_TRANSITION.durationMs + 8 * STAGE_TRANSITION.staggerMs;
+  for (let t = 1000 / 60; t <= end + 20; t += 1000 / 60) {
+    const now = ARM_IDS.map(id => Float32Array.from(blender.sample(t).arms[id].angles));
+    now.forEach((angles, a) => angles.forEach((v, k) => {
+      const d = Math.atan2(Math.sin(v - before[a][k]), Math.cos(v - before[a][k]));
+      expect(Math.abs(d), `${ARM_IDS[a]} joint ${k} at ${t.toFixed(0)} ms`).toBeLessThan(0.06);
+    }));
+    before = now;
+  }
 });

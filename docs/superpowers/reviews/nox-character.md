@@ -143,3 +143,14 @@ Capture: `assets/overview-v1*.png` (stage, beside the high-quality panel 3, face
 
 Known gaps: no technology orbs yet (Task 20); the face under the dome has slightly crisper corners than the painting; the arms are a little pinker and thinner than the painting's deep violet ones; the panel is laid out for wide screens (phones come in Task 25).
 
+Owner, on v1: "It look good but the transition is a bit too fast make it feel smooth. The overall experience should feel, inner healing, immersive, consuming, butter smooth."
+
+### Overview v2 (2026-10-25)
+
+Capture: `assets/overview-v2-transition.webm` (sheet `assets/overview-v2-transition-sheet.png`). Verdict: pending.
+
+- **Slower, calmer change:** Nox now takes 1.8 s to move between stages (was 0.7 s), each arm setting off 70 ms after the one before, so the change ripples out round the body; no joint turns more than 0.06 rad in a frame (was 0.14). The camera settles at the same pace.
+- **The dome:** it eases once (it was eased twice, which rushed the middle) and starts larger, so it swells out of the crown instead of popping.
+- **The panel and words:** the panel fades in once the dome has formed; on closing, the intro's title waits until the dome has nearly closed, so text never overlaps.
+- **Smoothness:** every shader is compiled at load, so the first opening does not stall; edges use SMAA instead of 4x multisampling, the same look at stage size (`assets/overview-v2-aa-compare.png`) for about 40% more frame rate. The transition recording draws ~36 frames a second on this laptop (was ~21).
+

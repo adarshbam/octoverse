@@ -1,4 +1,4 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
@@ -113,6 +113,19 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
   }, [config, blender, quality]);
+
+  // Every shader, the dome's too, is compiled up front, so the first opening never stalls.
+  const gl = useThree(s => s.gl);
+  const scene = useThree(s => s.scene);
+  const camera = useThree(s => s.camera);
+  useEffect(() => {
+    const mesh = dome.current;
+    if (!mesh) return;
+    const was = mesh.visible;
+    mesh.visible = true;
+    gl.compile(scene, camera);
+    mesh.visible = was;
+  }, [gl, scene, camera, rig]);
 
   // A rebuilt rig (a lower tier) frees the old one's GPU buffers.
   useEffect(() => () => {
@@ -244,12 +257,12 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
 
     // The head opens into the glass dome: it grows out of the crown as the mantle top sinks under
     // it, and the mantle's own halo gives way to the dome's rim.
-    const open = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
-    const ease = open * open * (3 - 2 * open);
-    rig.uniforms.uMorph.value = open;
+    // headMorph is already eased by the blender; easing it again would rush the middle.
+    const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
+    rig.uniforms.uMorph.value = ease;
     const { center, halfHeight } = config.dome;
-    const grow = 0.3 + 0.7 * ease;
-    dome.current!.visible = open > 0.001 && !silhouette;
+    const grow = 0.55 + 0.45 * ease;
+    dome.current!.visible = ease > 0.001 && !silhouette;
     dome.current!.scale.setScalar(grow);
     dome.current!.position.set(
       THREE.MathUtils.lerp(config.head.centerX, center[0], ease),

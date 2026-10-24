@@ -7,14 +7,15 @@
   color: #fff;
   opacity: 0;
   transform: translateY(2%) scale(0.97);
-  transition: opacity 260ms ease, transform 260ms ease;
+  transition: opacity 500ms ease, transform 500ms ease;
   pointer-events: none;
 }
 
 .overview-panel.is-open {
   opacity: 1;
   transform: none;
-  transition: opacity 420ms ease 420ms, transform 420ms ease 420ms;
+  /* In once the dome has formed round it. */
+  transition: opacity 800ms ease 1100ms, transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms;
   pointer-events: auto;
 }
 
@@ -114,12 +115,14 @@
   outline-offset: 0.6cqh;
 }
 
+/* The intro's words leave at once and come back only as the dome finishes closing. */
 .stage {
-  transition: opacity 300ms ease;
+  transition: opacity 900ms ease 1000ms;
 }
 
 .stage.is-hidden {
   opacity: 0;
+  transition: opacity 500ms ease;
 }
 
 .stage.is-hidden .nameplate-button {
