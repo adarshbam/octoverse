@@ -10,6 +10,7 @@ import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
+import { type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -45,6 +46,8 @@ export interface OctopusProps {
   quality?: TierSettings;
   /** Clicking Nox's head (it opens into the overview). */
   onSelect?: () => void;
+  /** Technology orbs the arms carry while the head is open. */
+  orbs?: readonly PlacedOrb[];
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -52,12 +55,13 @@ const REST_IN = 2;
 const WAKE = 0.5;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [] }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
   const dome = useRef<THREE.Mesh>(null);
+  const opened = useRef(0);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
@@ -113,6 +117,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
   }, [config, blender, quality]);
+
+  const chains = useMemo(() => rig.arms.map(arm => arm.chain), [rig]);
+  const readOpen = useMemo(() => () => opened.current, []);
 
   // Every shader, the dome's too, is compiled up front, so the first opening never stalls.
   const gl = useThree(s => s.gl);
@@ -259,6 +266,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // it, and the mantle's own halo gives way to the dome's rim.
     // headMorph is already eased by the blender; easing it again would rush the middle.
     const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
+    opened.current = silhouette ? 0 : ease;
     rig.uniforms.uMorph.value = ease;
     const { center, halfHeight } = config.dome;
     const grow = 0.55 + 0.45 * ease;
@@ -288,6 +296,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
           <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
+          {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} open={readOpen} />}
           <mesh
             ref={head}
             geometry={rig.headGeometry}

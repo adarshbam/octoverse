@@ -154,3 +154,13 @@ Capture: `assets/overview-v2-transition.webm` (sheet `assets/overview-v2-transit
 - **The panel and words:** the panel fades in once the dome has formed; on closing, the intro's title waits until the dome has nearly closed, so text never overlaps.
 - **Smoothness:** every shader is compiled at load, so the first opening does not stall; edges use SMAA instead of 4x multisampling, the same look at stage size (`assets/overview-v2-aa-compare.png`) for about 40% more frame rate. The transition recording draws ~36 frames a second on this laptop (was ~21).
 
+### Technology orbs v1 (2026-10-25)
+
+Capture: `assets/orbs-v1.png`, `assets/orbs-v1-strip.png` (beside the high-quality panel 3), `assets/orbs-v1-zoom.png` (left orbs close up) and `assets/orbs-v1-transition.webm` (sheet `assets/orbs-v1-transition-sheet.png`). Verdict: pending.
+
+- **Placement:** 15 glass orbs, one per technology in the project's order. The first 13 sit where panel 3 paints them (HTML, CSS, JavaScript, TypeScript, Node.js, Redis, Docker, GitHub, Linux, Kali, MongoDB, Python, Kali); the last two (Burp Suite, Express) follow the same rhythm, right of the face and under it. Each rides a point of an arm (at most three to an arm) and gently bobs, so the orbs move with the arms.
+- **Look:** clear bubbles with a glowing rim in the logo's colour and one soft highlight; logos in their brand colours, white where the brand is black or, as in the painting, for Kali. They grow in as the dome opens and shrink away as it closes.
+- **Reaching them:** each orb has a button (at least 44 px) for pointer, keyboard and touch; pressing one focuses that technology (Task 21 gives that stage its own look). Technologies beyond 15, and every technology on an upright phone, go to a tray of buttons along the bottom.
+
+Known gaps: Git, Burp Suite and Express replace the painting's second Kali and the repeated logos, since Nox has 15 distinct technologies; the painting's orbs glow a little more and its logos are larger; pressing an orb currently keeps the overview pose (Task 21).
+

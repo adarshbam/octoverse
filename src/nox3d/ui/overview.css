@@ -101,6 +101,70 @@
   outline-offset: 0.8cqh;
 }
 
+/* Invisible buttons over the orbs (the orbs themselves are drawn in 3D); visible when focused. */
+.orb-buttons {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.orb-button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.orb-buttons.is-open .orb-button {
+  pointer-events: auto;
+}
+
+.orb-button:focus-visible {
+  outline: 3px solid #ffd0dc;
+  outline-offset: 2px;
+}
+
+.orb-tray {
+  position: absolute;
+  left: 50%;
+  bottom: 2vh;
+  transform: translate(-50%, 10px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 92vw;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+
+.orb-tray.is-open {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  transition: opacity 800ms ease 1100ms, transform 800ms ease 1100ms;
+}
+
+.orb-tray-item {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 160, 200, 0.45);
+  background: rgba(12, 6, 22, 0.7);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.orb-tray-item svg {
+  width: 22px;
+  height: 22px;
+}
+
 /* The nameplate is the way in: a button that opens the overview. */
 .nameplate-button {
   pointer-events: auto;

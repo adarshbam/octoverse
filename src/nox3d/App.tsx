@@ -18,11 +18,25 @@ import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
+import { OrbButtons } from './ui/OrbButtons';
+import { OrbTray } from './ui/OrbTray';
+import { NOX_OVERVIEW_SLOTS, assignOrbs } from './artifacts/orbSlots';
+import { noxTechnologies } from './content/noxTechnologies';
+import { layoutFor } from './stage/framing';
+
 import { Backdrop } from './world/Backdrop';
 import { ContactShadows } from './world/ContactShadows';
 import { Bubbles, Embers } from './world/Particles';
 
 const url = parseUrlState(location.search);
+// The project's technologies in its order, each riding an orb slot; the rest go to the tray.
+const ORDER = noxProject.primaryTechnologyIds ?? [];
+const TECH = new Map(noxTechnologies.map(t => [t.id, t]));
+const ASSIGNED = assignOrbs(ORDER, NOX_OVERVIEW_SLOTS);
+const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({ techId, slot, iconKey: TECH.get(techId)?.iconKey ?? techId, name: TECH.get(techId)?.name ?? techId }));
+// On a phone held upright the orbs are too small to pick out, so the tray lists every technology.
+const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.innerHeight }) === 'phone' && window.innerHeight > window.innerWidth;
+const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
 
 /**
@@ -122,6 +136,7 @@ export function App() {
       silhouette={MASK}
       quality={quality.settings}
       onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
+      orbs={ORBS}
     />
   );
   return (
@@ -163,6 +178,12 @@ export function App() {
         <>
           <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && state.stage !== 'entering'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
+          <OrbButtons orbs={ORBS} open={state.stage === 'overview' || state.stage === 'techFocus'} onChoose={id => dispatch({ type: 'FOCUS_TECH', id })} />
+          <OrbTray
+            items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
+            open={state.stage === 'overview' || state.stage === 'techFocus'}
+            onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
+          />
         </>
       )}
     </div>

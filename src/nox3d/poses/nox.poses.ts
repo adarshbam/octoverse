@@ -81,11 +81,12 @@ const OVERVIEW_ARMS = Object.fromEntries(
 
 const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1 };
 
-// Other stages are authored against their panels in Tasks 21 to 23; until then they reuse the intro.
+// Other stages are authored against their panels in Tasks 21 to 23; until then the entrance and
+// detail reuse the intro, and the tech focus keeps the overview so pressing an orb never closes it.
 export const NOX_POSES: Record<StageId, StagePose> = {
   entering: INTRO,
   intro: INTRO,
   overview: OVERVIEW,
-  techFocus: INTRO,
+  techFocus: OVERVIEW,
   detail: INTRO,
 };
