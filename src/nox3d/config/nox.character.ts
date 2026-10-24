@@ -52,8 +52,10 @@ export const NOX: CharacterConfig = {
       iris: { rx: 0.8, ry: 0.97, inset: 0.2 },
       pupil: { rx: 0.52, ry: 0.62, drop: 0.04 },
       catchlights: [{ x: -0.5, y: 0.36, r: 0.19 }, { x: 0.53, y: 0.4, r: 0.145 }],
-      lid: { inner: 0.012, outer: 0.03 },
+      lid: { inner: 0.022, outer: 0.036 },
       rim: 0.006,
+      // Eyelid traced from panel 2: crease ~0.035 above the lash line, a lighter lid band under it.
+      fold: { gap: 0.036, width: 0.014, band: 0.016, from: -0.6 },
       // Three clear lashes curling out from the outer top corner (owner: lashes were too small).
       lashes: [
         { at: 0.52, length: 0.042, width: 0.016, angle: 82 },
@@ -76,6 +78,8 @@ export const NOX: CharacterConfig = {
     pupil: '#190003',
     catchlight: '#fff7f5',
     lid: '#0b0008',
+    lidFold: '#1c0016',
+    lidSkin: '#5a2c56',
     outline: '#f7b4c0',
     brow: '#030016',
     mouth: '#3a0600',

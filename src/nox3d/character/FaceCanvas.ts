@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { FaceParams } from '../behavior/expressions';
 import type { FaceLayout, FacePalette, Point2 } from '../config/types';
 import { browStroke } from './browShape';
-import { catchlightSpots, irisCenter } from './eyeShape';
+import { catchlightSpots, eyelidCrease, irisCenter } from './eyeShape';
 import { mouthShape } from './mouthShape';
 
 const SIZE = 1024;
@@ -211,6 +211,48 @@ export class FaceCanvas {
         else ctx.lineTo(x, lowY(x));
       }
       ctx.stroke();
+    }
+
+    // Eyelid, for depth: the lit lid surface just above the lash line, then the crease as a
+    // soft shadow above it, strongest over the eye and fading out at both ends.
+    if (!closed) {
+      // The fold follows a lowering lid part of the way, and fades as the eye shuts.
+      const sink = 2 * blink * eye.ry * 0.6;
+      const fade = 1 - Math.min(1, Math.max(0, (blink - 0.55) / 0.37));
+      const crease = eyelidCrease(eye, side).map(p => ({ ...p, y: p.y - sink }));
+      const { gap, band, width } = eye.fold;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = palette.lidSkin;
+      ctx.lineWidth = band * U;
+      ctx.filter = `blur(${(band * U * 0.3).toFixed(1)}px)`;
+      for (let i = 0; i < crease.length - 1; i++) {
+        const a = crease[i];
+        const b = crease[i + 1];
+        // The lid sits between the crease and the lash line: pull the crease toward the eye.
+        const pull = (p: { x: number; y: number }) => {
+          const top = eye.ry * Math.sqrt(Math.max(0, 1 - (p.x / (eye.rx + gap)) ** 2)) - sink;
+          return top + (p.y - top) * ((gap - width / 2 - band / 2) / gap);
+        };
+        ctx.globalAlpha = fade * Math.min(1, ((a.strength + b.strength) / 2) * 1.6);
+        ctx.beginPath();
+        ctx.moveTo(a.x * U, -pull(a) * U);
+        ctx.lineTo(b.x * U, -pull(b) * U);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = palette.lidFold;
+      ctx.filter = `blur(${(width * U * 0.45).toFixed(1)}px)`;
+      for (let i = 0; i < crease.length - 1; i++) {
+        const a = crease[i];
+        const b = crease[i + 1];
+        ctx.globalAlpha = fade * ((a.strength + b.strength) / 2);
+        ctx.lineWidth = ((a.width + b.width) / 2) * U;
+        ctx.beginPath();
+        ctx.moveTo(a.x * U, -a.y * U);
+        ctx.lineTo(b.x * U, -b.y * U);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // Upper lid line: thin at the inner end, heaviest at the outer corner.

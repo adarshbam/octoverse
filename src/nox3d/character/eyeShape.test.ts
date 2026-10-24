@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { catchlightSpots, irisCenter } from './eyeShape';
+import { catchlightSpots, eyelidCrease, irisCenter } from './eyeShape';
 
 const eye = NOX.face.eye;
 
@@ -28,4 +28,26 @@ test('catchlights drift less than the iris when the gaze moves', () => {
   expect(looking.x - still.x).toBeGreaterThan(0);
   expect(after.x - before.x).toBeLessThan(looking.x - still.x);
   expect(after.x - before.x).toBeGreaterThan(0);
+});
+
+test('the eyelid crease arcs above the lash line, from the inner side round to the outer corner', () => {
+  for (const side of [-1, 1] as const) {
+    const crease = eyelidCrease(eye, side);
+    for (const p of crease) {
+      const top = eye.ry * Math.sqrt(Math.max(0, 1 - (p.x / eye.rx) ** 2));
+      expect(p.y, `side ${side}`).toBeGreaterThan(top + eye.fold.gap * 0.5);
+    }
+    // Starts on the nose side of the top, ends at the outer corner.
+    expect(Math.sign(crease[0].x)).toBe(-side);
+    expect(Math.sign(crease.at(-1)!.x)).toBe(side);
+    expect(Math.abs(crease.at(-1)!.x)).toBeGreaterThan(eye.rx * 0.85);
+  }
+});
+
+test('the crease is a soft shadow: strongest over the eye, fading out at both ends', () => {
+  const crease = eyelidCrease(eye, 1);
+  const middle = crease[Math.floor(crease.length / 2)];
+  expect(middle.strength).toBeGreaterThan(0.9);
+  expect(crease[0].strength).toBeLessThan(0.15);
+  expect(crease.at(-1)!.strength).toBeLessThan(0.15);
 });

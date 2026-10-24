@@ -86,6 +86,12 @@ export interface EyeLayout {
   /** Width of the light rim along the lower edge, world units. */
   rim: number;
   /**
+   * Eyelid above the lash line: a thin crease `gap` above it (centre to centre) with a
+   * lighter lid band of width `band` below the crease. The crease runs from `from` (-1 =
+   * inner side, 0 = top) round to the outer corner. World units.
+   */
+  fold: { gap: number; width: number; band: number; from: number };
+  /**
    * Lashes at the outer corner: where they leave the lid (0 = top, 1 = outer corner), length
    * and base width (world units), and angle above horizontal (degrees).
    */
@@ -113,6 +119,9 @@ export interface FacePalette {
   pupil: string;
   catchlight: string;
   lid: string;
+  /** Eyelid crease line and the lighter lid skin below it. */
+  lidFold: string;
+  lidSkin: string;
   /** Thin light rim along the lower edge of the eye. */
   outline: string;
   brow: string;
