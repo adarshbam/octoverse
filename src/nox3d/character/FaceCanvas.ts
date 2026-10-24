@@ -144,29 +144,34 @@ export class FaceCanvas {
       const lid = eyelidCrease(eye, side);
       ctx.save();
       ctx.lineCap = 'round';
+      // Soft edges come from feathering (a wide faint pass under a narrower solid one): canvas
+      // blur filters redrawn every frame cost the moving face most of its frame rate.
+      const feather = [[1.7, 0.3], [1.0, 1.0]] as const;
       ctx.strokeStyle = palette.lidSkin;
-      ctx.lineWidth = eye.fold.band * U;
-      ctx.filter = 'blur(0.8px)';
-      for (let i = 0; i < lid.length - 1; i++) {
-        const a = lid[i];
-        const b = lid[i + 1];
-        ctx.globalAlpha = fade * Math.min(1, ((a.strength + b.strength) / 2) * 2);
-        ctx.beginPath();
-        ctx.moveTo(a.bx * U, -(a.by - sink) * U);
-        ctx.lineTo(b.bx * U, -(b.by - sink) * U);
-        ctx.stroke();
+      for (const [grow, alpha] of feather) {
+        ctx.lineWidth = eye.fold.band * U * grow;
+        for (let i = 0; i < lid.length - 1; i++) {
+          const a = lid[i];
+          const b = lid[i + 1];
+          ctx.globalAlpha = alpha * fade * Math.min(1, ((a.strength + b.strength) / 2) * 2);
+          ctx.beginPath();
+          ctx.moveTo(a.bx * U, -(a.by - sink) * U);
+          ctx.lineTo(b.bx * U, -(b.by - sink) * U);
+          ctx.stroke();
+        }
       }
       ctx.strokeStyle = palette.lidFold;
-      ctx.filter = 'blur(1.2px)';
-      for (let i = 0; i < lid.length - 1; i++) {
-        const a = lid[i];
-        const b = lid[i + 1];
-        ctx.globalAlpha = fade * ((a.strength + b.strength) / 2);
-        ctx.lineWidth = ((a.width + b.width) / 2) * U;
-        ctx.beginPath();
-        ctx.moveTo(a.x * U, -(a.y - sink) * U);
-        ctx.lineTo(b.x * U, -(b.y - sink) * U);
-        ctx.stroke();
+      for (const [grow, alpha] of [[2.2, 0.25], [1.0, 0.85]] as const) {
+        for (let i = 0; i < lid.length - 1; i++) {
+          const a = lid[i];
+          const b = lid[i + 1];
+          ctx.globalAlpha = alpha * fade * ((a.strength + b.strength) / 2);
+          ctx.lineWidth = ((a.width + b.width) / 2) * U * grow;
+          ctx.beginPath();
+          ctx.moveTo(a.x * U, -(a.y - sink) * U);
+          ctx.lineTo(b.x * U, -(b.y - sink) * U);
+          ctx.stroke();
+        }
       }
       ctx.restore();
 

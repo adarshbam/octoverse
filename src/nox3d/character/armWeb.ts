@@ -48,8 +48,8 @@ export class ArmWeb {
         const v = i * (COLS + 1) + j;
         // Webs are body skin: keep them inside the shader's body-colour join (arc < 0.1).
         arcU[v] = (i / ROWS) * 0.08;
-        speck[v * 2] = (i / ROWS) * 9;
-        speck[v * 2 + 1] = (j / COLS) * 3;
+        speck[v * 2] = (i / ROWS) * 0.6;
+        speck[v * 2 + 1] = (j / COLS) * 1.5;
       }
     }
     const indices: number[] = [];

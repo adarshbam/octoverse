@@ -88,8 +88,9 @@ export class ArmTube {
         const v = k * ring + j;
         under[v] = Math.cos((j / radial) * Math.PI * 2 - suckerAngle);
         arcU[v] = kk / n;
-        speck[v * 2] = k * chain.segmentLength * 15;
-        speck[v * 2 + 1] = (j / radial) * 8;
+        // Skin detail coordinates: arc length along the arm, and the angle round it.
+        speck[v * 2] = k * chain.segmentLength;
+        speck[v * 2 + 1] = (j / radial) * Math.PI * 2;
       }
     }
     const indices: number[] = [];

@@ -56,7 +56,11 @@ export interface Palette {
   rimTop: string;
   rimLow: string;
   sky: string;
-  speck: string;
+  /** Skin detail: dark blotches, the cool and warm tints, and the wet highlight. */
+  blotch: string;
+  tintCool: string;
+  tintWarm: string;
+  wet: string;
   armShadow: string;
   armMid: string;
   armLit: string;
@@ -200,6 +204,30 @@ export interface Personality {
   breathPeriod: number;
 }
 
+/**
+ * Living skin detail: droplet bumps, dark blotches, cool and warm tints, wet gloss and light
+ * glowing through. Sizes are in world units unless noted; strengths run from 0 to 1.
+ */
+export interface SkinDetail {
+  /** Droplet bumps: fraction of cells holding one, radius range as fractions of a cell, cells per unit. */
+  speckDensity: number;
+  speckSize: [number, number];
+  speckScale: number;
+  /** Darker blotches: fraction of cells holding one, cells per unit. */
+  blotchDensity: number;
+  blotchScale: number;
+  /** How strongly the skin drifts between its cool (bluish) and warm (reddish) tints. */
+  tint: number;
+  /** Warm light glowing through the arms from their red underside, and through thin edges. */
+  translucency: number;
+  /** Wet gloss: strength (0 to 2) and sharpness (Blinn exponent). */
+  wetness: number;
+  gloss: number;
+  /** Fine wet streaks along the arms: how stretched they are, and how deep. */
+  streakScale: number;
+  streakStrength: number;
+}
+
 /** Sucker cups along each arm's oral side. Lengths in world units, angles in degrees. */
 export interface SuckerSettings {
   /** Cup radius = size * armRadius^sizePower, so cups shrink toward the tip more slowly than the arm. */
@@ -229,5 +257,6 @@ export interface CharacterConfig {
   /** Arm taper: radius falls as 1 - u^taperPower along the arm, so larger values keep arms thick for longer. */
   taperPower: number;
   suckers: SuckerSettings;
+  skin: SkinDetail;
   personality: Personality;
 }

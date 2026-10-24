@@ -14,8 +14,24 @@ export function clampCharacterConfig(config: CharacterConfig): CharacterConfig {
   const p = config.personality;
   const [blinkMin, blinkMax] = p.blinkInterval;
   const low = clamp(blinkMin, 2, 10);
+  const k = config.skin;
+  const [speckMin, speckMax] = [...k.speckSize].sort((a, b) => a - b).map(v => clamp(v, 0.02, 0.45));
   return {
     ...config,
+    skin: {
+      ...k,
+      speckDensity: clamp(k.speckDensity, 0, 1),
+      speckSize: [speckMin, speckMax],
+      speckScale: clamp(k.speckScale, 1, 60),
+      blotchDensity: clamp(k.blotchDensity, 0, 1),
+      blotchScale: clamp(k.blotchScale, 0.5, 20),
+      tint: clamp(k.tint, 0, 1),
+      translucency: clamp(k.translucency, 0, 1),
+      wetness: clamp(k.wetness, 0, 2),
+      gloss: clamp(k.gloss, 4, 400),
+      streakScale: clamp(k.streakScale, 0.1, 10),
+      streakStrength: clamp(k.streakStrength, 0, 1),
+    },
     personality: {
       ...p,
       sway: clamp(p.sway, 0, 1),

@@ -30,7 +30,7 @@ export type SkinUniforms = ReturnType<typeof createSkinUniforms>;
 
 /** One uniform set per character, shared by every skin surface so glow moves together. */
 export function createSkinUniforms(config: CharacterConfig) {
-  const { palette: p, glow } = config;
+  const { palette: p, glow, skin } = config;
   const color = (hex: string) => ({ value: new THREE.Color(hex) });
   const [[lx, ly], [rx, ry]] = config.face.eye.centers;
   return {
@@ -52,7 +52,16 @@ export function createSkinUniforms(config: CharacterConfig) {
     uSky: color(p.sky),
     uHeadEdge: color(p.headEdge),
     uCheek: color(p.cheek),
-    uSpeck: color(p.speck),
+    uBlotchColor: color(p.blotch),
+    uTintCool: color(p.tintCool),
+    uTintWarm: color(p.tintWarm),
+    uWetColor: color(p.wet),
+    /** Droplet bumps: density, smallest and largest radius (fractions of a cell), cells per unit. */
+    uSpeck: { value: new THREE.Vector4(skin.speckDensity, skin.speckSize[0], skin.speckSize[1], skin.speckScale) },
+    /** Blotch density and cells per unit, tint strength, translucency. */
+    uBlotch: { value: new THREE.Vector4(skin.blotchDensity, skin.blotchScale, skin.tint, skin.translucency) },
+    /** Wet gloss strength and sharpness, streak stretch and depth. */
+    uWet: { value: new THREE.Vector4(skin.wetness, skin.gloss, skin.streakScale, skin.streakStrength) },
     uKeyDir: { value: new THREE.Vector3(-0.45, 0.8, 0.55).normalize() },
   };
 }
@@ -66,7 +75,7 @@ const skinVertex = /* glsl */ `
   varying vec3 vNormalW;
   varying float vUnder;
   varying float vU;
-  varying vec2 vSpeck;
+  varying vec3 vSurf;
   varying vec2 vFaceUv;
   varying float vFront;
   void main() {
@@ -76,11 +85,13 @@ const skinVertex = /* glsl */ `
     #ifdef ARM
       vUnder = aUnder;
       vU = aU;
-      vSpeck = aSpeck;
+      // Skin detail rides on the surface: along the arm, and round it on a cylinder of fixed
+      // radius, so it stays put as the arm bends.
+      vSurf = vec3(aSpeck.x, cos(aSpeck.y) * 0.12, sin(aSpeck.y) * 0.12);
     #else
       vUnder = 0.0;
       vU = 1.0;
-      vSpeck = uv * vec2(46.0, 26.0);
+      vSurf = position;
     #endif
     vFaceUv = (position.xy - uFaceRect.xy) / uFaceRect.zw;
     vFront = normal.z;
@@ -103,7 +114,13 @@ const skinFragment = /* glsl */ `
   uniform vec3 uSky;
   uniform vec3 uHeadEdge;
   uniform vec3 uCheek;
-  uniform vec3 uSpeck;
+  uniform vec3 uBlotchColor;
+  uniform vec3 uTintCool;
+  uniform vec3 uTintWarm;
+  uniform vec3 uWetColor;
+  uniform vec4 uSpeck;
+  uniform vec4 uBlotch;
+  uniform vec4 uWet;
   uniform vec3 uKeyDir;
   uniform sampler2D uFace;
   uniform vec4 uFaceRect;
@@ -113,26 +130,81 @@ const skinFragment = /* glsl */ `
   varying vec3 vNormalW;
   varying float vUnder;
   varying float vU;
-  varying vec2 vSpeck;
+  varying vec3 vSurf;
   varying vec2 vFaceUv;
   varying float vFront;
 
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float hash31(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.zyx + 31.32);
+    return fract((p.x + p.y) * p.z);
+  }
+
+  vec3 hash33(vec3 p) {
+    p = fract(p * vec3(0.1031, 0.103, 0.0973));
+    p += dot(p, p.yxz + 33.33);
+    return fract((p.xxy + p.yxx) * p.zyx);
+  }
+
+  // Smooth value noise, 0 to 1.
+  float noise3(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    float a = mix(hash31(i), hash31(i + vec3(1.0, 0.0, 0.0)), u.x);
+    float b = mix(hash31(i + vec3(0.0, 1.0, 0.0)), hash31(i + vec3(1.0, 1.0, 0.0)), u.x);
+    float c = mix(hash31(i + vec3(0.0, 0.0, 1.0)), hash31(i + vec3(1.0, 0.0, 1.0)), u.x);
+    float d = mix(hash31(i + vec3(0.0, 1.0, 1.0)), hash31(i + vec3(1.0, 1.0, 1.0)), u.x);
+    return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
+  }
+
+  // Distance to the nearest scattered point and that point's cell, for droplets, blotches and
+  // glints; offset is the vector from the point to p, in cells. Points sit in the middle half of
+  // their cells, so the eight cells round p always hold the nearest one closer than 0.45.
+  vec4 nearestPoint(vec3 p, out vec3 offset) {
+    vec3 i = floor(p - 0.5);
+    float best = 8.0;
+    vec3 cell = i;
+    offset = vec3(0.0);
+    for (int x = 0; x <= 1; x++) {
+      for (int y = 0; y <= 1; y++) {
+        for (int z = 0; z <= 1; z++) {
+          vec3 c = i + vec3(float(x), float(y), float(z));
+          vec3 r = c + 0.25 + 0.5 * hash33(c) - p;
+          float d = dot(r, r);
+          if (d < best) { best = d; cell = c; offset = -r; }
+        }
+      }
+    }
+    return vec4(sqrt(best), cell);
+  }
+
+  // Normal tilted by a surface height, from screen-space derivatives (no tangents needed).
+  vec3 bumpNormal(vec3 N, float height) {
+    vec3 dpdx = dFdx(vWorld);
+    vec3 dpdy = dFdy(vWorld);
+    vec3 r1 = cross(dpdy, N);
+    vec3 r2 = cross(N, dpdx);
+    float det = dot(dpdx, r1);
+    vec3 grad = sign(det) * (dFdx(height) * r1 + dFdy(height) * r2);
+    return normalize(abs(det) * N - grad);
+  }
 
   void main() {
-    // Webs render double-sided; light the side the camera sees.
+    // Webs and the cups' insides render double-sided; light the side the camera sees.
     vec3 N = normalize(vNormalW) * (gl_FrontFacing ? 1.0 : -1.0);
     vec3 V = normalize(cameraPosition - vWorld);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec2 d = vWorld.xy - uGlowPos.xy;
     float sy = d.y > 0.0 ? uGlowShape.y : uGlowShape.z;
     float faceGlow = exp(-(d.x * d.x) / (uGlowShape.x * uGlowShape.x) - (d.y * d.y) / (sy * sy)) * uGlowStrength;
-    float fres = pow(1.0 - ndv, 3.0);
     float up = N.y * 0.5 + 0.5;
     vec3 col;
+    float under = 0.0;
+    float join = 0.0;
 
     #ifdef ARM
-      float under = smoothstep(0.25, 0.95, vUnder);
+      under = smoothstep(0.42, 0.98, vUnder);
       col = mix(uArmShadow, uArmMid, smoothstep(0.0, 0.5, up));
       col = mix(col, uArmLit, smoothstep(0.5, 1.0, up));
       vec3 toGlow = uGlowPos - vWorld;
@@ -144,18 +216,16 @@ const skinFragment = /* glsl */ `
       col = mix(col, rootGlow, smoothstep(0.3, 0.8, faceGlow) * 0.7);
       vec3 mantle = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
       mantle = mix(mantle, uCheek, smoothstep(-0.3, -0.72, vWorld.y) * 0.85 * (1.0 - smoothstep(0.3, 0.7, faceGlow)));
-      float join = 1.0 - smoothstep(0.05, 0.28, vU);
+      join = 1.0 - smoothstep(0.05, 0.28, vU);
       col = mix(col, mantle, join);
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(0.45, 0.9, up) * (1.0 - under));
       col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9 * (1.0 - join);
       col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under);
       col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9 * (1.0 - join);
-      vec2 cell = floor(vSpeck);
-      vec2 f = fract(vSpeck) - 0.5;
-      vec2 jitter = vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5;
-      float size = mix(0.06, 0.18, hash(cell + 1.7));
-      float speck = smoothstep(size, size * 0.4, length(f - jitter * 0.55)) * step(0.72, hash(cell));
-      col += uSpeck * speck * (1.0 - under) * (1.0 - near) * 0.12;
+      // Warm light glowing through the arm from its red underside: magenta in the flesh above
+      // the red band, strongest at thin, grazing edges.
+      float through = smoothstep(-0.1, 0.6, vUnder) * (1.0 - under) * (1.0 - join);
+      col += mix(uRimLow, uBelly, 0.35) * through * uBlotch.w * (0.12 + 0.35 * pow(1.0 - ndv, 1.5));
     #else
       col = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
       col = mix(col, uCheek, smoothstep(-0.3, -0.72, vWorld.y) * 0.85 * (1.0 - smoothstep(0.3, 0.7, faceGlow)));
@@ -168,13 +238,103 @@ const skinFragment = /* glsl */ `
       col += rim * pow(1.0 - ndv, 6.0) * 3.2 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
       // Crown sheen: a tight highlight toward the upper left; the forehead stays dark navy.
       col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 14.0) * 0.22 * (1.0 - faceGlow);
-      vec2 cell = floor(vSpeck);
-      vec2 f = fract(vSpeck) - 0.5;
-      vec2 jitter = vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5;
-      float size = mix(0.07, 0.2, hash(cell + 1.7));
-      float speck = smoothstep(size, size * 0.4, length(f - jitter * 0.55)) * step(0.8, hash(cell));
-      col += uSpeck * speck * (1.0 - faceGlow) * 0.14;
+      // Light glowing through the thin edge of the mantle.
+      col += uRimLow * pow(1.0 - ndv, 3.0) * uBlotch.w * 0.25 * (1.0 - faceGlow);
     #endif
+
+    // Living skin. Detail stays off the face, its glow and the red underside.
+    vec3 p = vSurf;
+    float detail = (1.0 - smoothstep(0.15, 0.5, faceGlow)) * (1.0 - under * 0.85) * (1.0 - join);
+    #ifdef HEAD
+      // Keep the face itself clean: brows, eyes, cheeks and mouth.
+      vec2 faceLocal = vFaceUv * uFaceRect.zw + uFaceRect.xy;
+      float faceZone = 1.0 - smoothstep(0.85, 1.05, length((faceLocal - vec2(0.0, -0.15)) / vec2(0.72, 0.52)));
+      detail *= 1.0 - faceZone * smoothstep(0.2, 0.5, vFront);
+    #endif
+
+    // The detail below is costly, so it is only worked out where it shows.
+    float dome = 0.0;
+    float radius = 0.0;
+    float streak = 0.0;
+    float glint = 0.0;
+    if (detail > 0.002) {
+      // Cool and warm drift, lighter and darker, like light through uneven flesh.
+      float drift = noise3(p * 2.2) * 0.65 + noise3(p * 5.3 + 7.1) * 0.35;
+      vec3 tint = mix(uTintCool, uTintWarm, smoothstep(0.3, 0.7, drift)) * 1.8;
+      col = mix(col, col * tint, uBlotch.z * detail);
+      #ifdef HEAD
+        // Lighter translucent patches on the dark dome, each with a faint darker edge.
+        float patchIn = smoothstep(0.56, 0.66, drift);
+        float patchEdge = smoothstep(0.5, 0.56, drift) * (1.0 - patchIn);
+        col += uTintCool * 0.16 * patchIn * uBlotch.z * detail;
+        col *= 1.0 - patchEdge * 0.18 * uBlotch.z * detail;
+      #endif
+
+      // Darker blotches.
+      vec3 offset;
+      vec4 b = nearestPoint(p * uBlotch.y, offset);
+      float blotch = step(hash31(b.yzw + 3.7), uBlotch.x) * (1.0 - smoothstep(0.25, 0.5, b.x));
+      col = mix(col, uBlotchColor, blotch * 0.45 * detail);
+
+      // Droplet bumps: round glassy domes, lit by the bumped normal below.
+      vec4 s = nearestPoint(p * uSpeck.w, offset);
+      radius = mix(uSpeck.y, uSpeck.z, hash31(s.yzw + 11.3));
+      // Droplets fade out where the surface turns away, so they never read as scratched outlines at the rim.
+      float present = step(hash31(s.yzw + 5.9), uSpeck.x) * detail * smoothstep(0.25, 0.55, ndv);
+      dome = sqrt(max(0.0, 1.0 - (s.x / radius) * (s.x / radius))) * present;
+      float edge = smoothstep(radius * 0.75, radius, s.x) * (1.0 - smoothstep(radius, radius * 1.15, s.x)) * present;
+      col *= 1.0 - edge * 0.06;
+      // Glassy: a droplet is a little lighter than the skin under it.
+      col = mix(col, col * 1.3 + uWetColor * 0.06, dome * 0.6);
+
+      // Fine wet streaks, stretched along the arms.
+      #ifdef ARM
+        streak = noise3(vec3(p.x * 2.0 / uWet.z, p.y * 60.0, p.z * 60.0)) - 0.5;
+      #else
+        streak = noise3(p * vec3(30.0, 8.0, 30.0) / uWet.z) - 0.5;
+      #endif
+
+      // Wet glints: short curved strokes of light, each an arc of a small ring facing the key light.
+      #ifdef ARM
+        vec4 g = nearestPoint(p * 5.0, offset);
+      #else
+        vec4 g = nearestPoint(p * 7.0, offset);
+      #endif
+      float ringR = mix(0.18, 0.34, hash31(g.yzw + 2.3));
+      float arc = smoothstep(ringR * 0.76, ringR * 0.88, g.x) * (1.0 - smoothstep(ringR * 0.88, ringR, g.x));
+      // Measure the arc in the surface's tangent plane, and keep only points lying close to the
+      // surface: a point far off it would cut the skin in a small full ring instead of an arc.
+      #ifdef ARM
+        vec3 across = normalize(vec3(0.0, p.y, p.z));
+        float glintDensity = 0.35;
+      #else
+        vec3 across = N;
+        float glintDensity = 0.7;
+      #endif
+      vec3 along = offset - across * dot(offset, across);
+      float onSurface = smoothstep(0.8, 0.97, length(along) / max(length(offset), 1e-4));
+      float facing = smoothstep(0.45, 0.85, dot(normalize(along + 1e-4), normalize(vec3(-0.6, 0.7, 0.4)))) * onSurface;
+      glint = arc * facing * step(hash31(g.yzw + 9.1), glintDensity) * detail * smoothstep(0.2, 0.5, ndv);
+    }
+
+    // Bumps light up toward the key light. Derivatives are taken here, outside the branch.
+    float height = dome * radius / uSpeck.w * 0.8 + streak * 0.004 * uWet.w * detail;
+    vec3 Nb = bumpNormal(N, height);
+    vec3 L = normalize(uKeyDir);
+    col *= 1.0 + clamp((dot(Nb, L) - dot(N, L)) * 0.9, -0.15, 0.6);
+
+    // Wet gloss: sharp highlights from the key light, broken into patches and streaks.
+    float spec = pow(max(dot(Nb, normalize(L + V)), 0.0), uWet.y);
+    #ifdef ARM
+      float wetPatch = mix(0.25, 1.0, smoothstep(0.35, 0.75, noise3(vec3(p.x * 2.5, p.y * 14.0, p.z * 14.0))));
+    #else
+      // The dome is too large and smooth for patchy gloss (it reads as fog): only droplets glint.
+      float wetPatch = 0.0;
+    #endif
+    col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail);
+    col += uWetColor * glint * uWet.x * 0.55;
+    // A crisp wet line along the lit top edge.
+    col += uWetColor * pow(1.0 - ndv, 4.0) * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join);
 
     #ifdef HEAD
       // Eye sockets: the skin darkens (at most 18%) within 1.25x each eye's radii, so the eyes sit in the face.

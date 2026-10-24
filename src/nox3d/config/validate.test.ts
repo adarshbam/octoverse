@@ -17,3 +17,14 @@ test('clamps personality into safe ranges', () => {
 test('rejects anything but exactly eight arms T1..T8', () => {
   expect(() => clampCharacterConfig({ ...NOX, arms: NOX.arms.slice(0, 7) })).toThrow(/eight arms/);
 });
+
+test('clamps skin detail into safe ranges', () => {
+  const wild = { ...NOX, skin: { ...NOX.skin, speckDensity: 3, blotchDensity: -1, speckSize: [0.5, 0.1] as [number, number], wetness: 9, translucency: -2 } };
+  const s = clampCharacterConfig(wild).skin;
+  expect(s.speckDensity).toBe(1);
+  expect(s.blotchDensity).toBe(0);
+  expect(s.speckSize[0]).toBeLessThanOrEqual(s.speckSize[1]);
+  expect(s.speckSize[1]).toBeLessThanOrEqual(0.45);
+  expect(s.wetness).toBe(2);
+  expect(s.translucency).toBe(0);
+});
