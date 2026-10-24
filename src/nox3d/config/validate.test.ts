@@ -28,3 +28,8 @@ test('clamps skin detail into safe ranges', () => {
   expect(s.wetness).toBe(2);
   expect(s.translucency).toBe(0);
 });
+
+test('clamps the arm rest bend into a gentle range', () => {
+  expect(clampCharacterConfig({ ...NOX, armBend: 2 }).armBend).toBe(0.3);
+  expect(clampCharacterConfig({ ...NOX, armBend: -1 }).armBend).toBe(0);
+});

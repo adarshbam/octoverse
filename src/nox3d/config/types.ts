@@ -61,6 +61,8 @@ export interface HaloSettings {
   headWidth: number;
   armWidth: number;
   color: string;
+  /** Colour along the crown of the head, where the outline faces up. */
+  crown: string;
   band: string;
   strength: number;
   bandStrength: number;
@@ -256,6 +258,8 @@ export interface SuckerSettings {
   /** How far the oral side turns from the arm's edge toward the viewer, along the arm and in the curls. */
   tilt: number;
   curlTilt: number;
+  /** How far the oral side rolls toward and away from the viewer along the middle of the arm. */
+  twist: number;
   /** Where the arm radius exceeds `rowRadius`, two staggered rows run this far apart round the arm, either side of the oral midline. */
   rowAngle: number;
   rowRadius: number;
@@ -272,6 +276,8 @@ export interface CharacterConfig {
   tipRadius: number;
   /** Arm taper: radius falls as 1 - u^taperPower along the arm, so larger values keep arms thick for longer. */
   taperPower: number;
+  /** Rest bend: how much the arms undulate along their length when still (radians of turn). */
+  armBend: number;
   suckers: SuckerSettings;
   skin: SkinDetail;
   personality: Personality;

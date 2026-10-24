@@ -19,6 +19,11 @@ export interface ArmDrive {
   droop: number;
   /** Point (arm space) the tip reaches toward, blended by weight 0..1. */
   reach?: { x: number; y: number; weight: number };
+  /**
+   * Rest bend: gentle undulations along the arm (radians of turn), always present, even when
+   * the arm is still, so it reads as flexible along its whole length rather than straight then curled.
+   */
+  bend?: number;
 }
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -65,6 +70,8 @@ export class ArmChain {
   private readonly work: Float32Array;
   private readonly qx: Float32Array;
   private readonly qy: Float32Array;
+  /** Rest-bend shape per segment: zero-mean waves through the middle of the arm. */
+  private readonly undulation: Float32Array;
 
   constructor(rest: ArmRest, spec: ArmSpec, index: number) {
     const n = rest.angles.length;
@@ -83,6 +90,15 @@ export class ArmChain {
     let turn = 0;
     for (let k = Math.floor(n * 0.6); k < n - 1; k++) turn += wrap(rest.angles[k + 1] - rest.angles[k]);
     this.side = spec.suckerSide ?? (turn >= 0 ? 1 : -1);
+    // Two gentle waves of turn between the root and the curl, with their mean removed so the
+    // curl beyond them stays where it was traced.
+    const shape = Array.from({ length: n }, (_, k) => {
+      const s = (k + 0.5) / n;
+      const env = smoothstep(0.12, 0.26, s) * (1 - smoothstep(0.68, 0.86, s));
+      return [Math.sin(Math.PI * 4 * s + this.phase * 0.9), env] as const;
+    });
+    const mean = shape.reduce((sum, [w, e]) => sum + w * e, 0) / shape.reduce((sum, [, e]) => sum + e, 0);
+    this.undulation = Float32Array.from(shape, ([w, e]) => (w - mean) * e);
     this.angle.set(rest.angles);
     this.integrate();
     this.updateZ(0);
@@ -99,17 +115,21 @@ export class ArmChain {
     this.rest = rest;
   }
 
-  solve({ time: t, sway, curl, droop, reach }: ArmDrive) {
+  solve({ time: t, sway, curl, droop, reach, bend = 0 }: ArmDrive) {
     const n = this.segments;
     const ph = this.phase;
     let acc = 0;
     for (let k = 0; k < n; k++) {
       const s = (k + 0.5) / n;
-      const wave = sway * ((0.35 + s) * Math.sin(t * 0.78 - s * 3.1 + ph) + 0.55 * s * s * Math.sin(t * 1.27 - s * 5.4 + ph * 1.9));
+      // A slow swing of the whole arm, plus a wave travelling out from the body with nearly two
+      // wavelengths along the arm, so it bends at several points from base to tip.
+      const swing = (0.3 + 0.7 * s) * Math.sin(t * 0.62 - s * 2.4 + ph);
+      const ripple = (0.6 + 0.4 * s) * Math.sin(t * 0.95 - s * 11 + ph * 1.7);
+      const wave = sway * (0.55 * swing + 1.7 * ripple) * smoothstep(0.02, 0.15, s);
       const tipCurl = curl * this.side * smoothstep(0.5, 1, s) * 0.5 * Math.sin(t * 0.53 + ph * 0.7);
       const trail = -droop * Math.cos(this.rest.angles[k]) * (1 - 0.5 * s);
       acc += (wave + tipCurl + trail) / n;
-      this.angle[k] = this.rest.angles[k] + acc;
+      this.angle[k] = this.rest.angles[k] + acc + bend * this.undulation[k];
     }
     this.integrate();
     if (reach && reach.weight > 0.001) {

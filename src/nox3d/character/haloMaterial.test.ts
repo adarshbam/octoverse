@@ -11,6 +11,7 @@ test('the halo takes its reach, colours and strengths from the character config'
   expect(head.uniforms.uWidth.value).toBe(halo.headWidth);
   expect(arm.uniforms.uColor.value.getHexString()).toBe(halo.color.slice(1));
   expect(arm.uniforms.uBand.value.getHexString()).toBe(halo.band.slice(1));
+  expect(head.uniforms.uCrown.value.getHexString()).toBe(halo.crown.slice(1));
   expect(arm.uniforms.uStrength.value.toArray()).toEqual([halo.strength, halo.bandStrength]);
 });
 

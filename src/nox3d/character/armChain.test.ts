@@ -85,3 +85,75 @@ test('arms fan out in depth from the body: centre arms come forward, top arms go
   // Most of the fan happens near the body, so the arms leave it already spread.
   expect(Math.abs(at('T1', 0.5) - at('T1', 0))).toBeGreaterThan(0.6 * Math.abs(at('T1', 1) - at('T1', 0)));
 });
+
+test('in motion each arm bends at several points along its length, not only near the tip', () => {
+  for (const id of ['T2', 'T3', 'T6'] as ArmId[]) {
+    const rest = restFromCurve(NOX_POSES.intro.arms[id]);
+    const chain = new ArmChain(rest, spec(id), 1);
+    const n = rest.angles.length;
+    let multi = 0;
+    let inner = 0;
+    let outer = 0;
+    const times = [0.7, 1.9, 3.1, 4.4, 5.6, 6.8];
+    for (const time of times) {
+      chain.solve({ ...still, time, sway: 0.5 });
+      // Bending added by the motion, segment by segment.
+      const bend: number[] = [];
+      for (let k = 1; k < n; k++) {
+        const a = Math.atan2(chain.py[k + 1] - chain.py[k], chain.px[k + 1] - chain.px[k]) - rest.angles[k];
+        const b = Math.atan2(chain.py[k] - chain.py[k - 1], chain.px[k] - chain.px[k - 1]) - rest.angles[k - 1];
+        bend.push(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+      }
+      const span = bend.slice(Math.floor(0.1 * n), Math.floor(0.9 * n));
+      let flips = 0;
+      for (let i = 1; i < span.length; i++) if (Math.sign(span[i]) !== Math.sign(span[i - 1])) flips++;
+      if (flips >= 2) multi++;
+      const mean = (from: number, to: number) => bend.slice(Math.floor(from * n), Math.floor(to * n)).reduce((sum, v) => sum + Math.abs(v), 0) / ((to - from) * n);
+      inner += mean(0.15, 0.5);
+      outer += mean(0.5, 0.95);
+    }
+    expect(multi, `${id}: times with two or more bend points`).toBeGreaterThanOrEqual(times.length / 2);
+    expect(inner / outer, `${id}: bending in the inner half against the outer half`).toBeGreaterThan(0.45);
+  }
+});
+
+test('the motion bends arms visibly but keeps them in place', () => {
+  const rest = restFromCurve(NOX_POSES.intro.arms.T2);
+  const chain = new ArmChain(rest, spec('T2'), 1);
+  let largest = 0;
+  for (const time of [0.5, 1.5, 2.5, 3.5, 4.5]) {
+    chain.solve({ ...still, time, sway: 0.5 });
+    const end = rest.angles.length;
+    let x = rest.rootX;
+    let y = rest.rootY;
+    for (let k = 0; k < end; k++) { x += rest.segmentLength * Math.cos(rest.angles[k]); y += rest.segmentLength * Math.sin(rest.angles[k]); }
+    largest = Math.max(largest, Math.hypot(chain.tipX - x, chain.tipY - y));
+  }
+  expect(largest).toBeGreaterThan(0.05);
+  expect(largest).toBeLessThan(0.45);
+});
+
+test('a rest bend gives each arm gentle undulations along its length while keeping it close to its rest', () => {
+  for (const id of ['T2', 'T3', 'T6', 'T7'] as ArmId[]) {
+    const rest = restFromCurve(NOX_POSES.intro.arms[id]);
+    const plain = new ArmChain(rest, spec(id), 1);
+    plain.solve(still);
+    const bent = new ArmChain(rest, spec(id), 1);
+    bent.solve({ ...still, bend: 0.15 });
+    const n = rest.angles.length;
+    const bend: number[] = [];
+    for (let k = 1; k < n; k++) {
+      const a = Math.atan2(bent.py[k + 1] - bent.py[k], bent.px[k + 1] - bent.px[k]) - rest.angles[k];
+      const b = Math.atan2(bent.py[k] - bent.py[k - 1], bent.px[k] - bent.px[k - 1]) - rest.angles[k - 1];
+      bend.push(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    }
+    const span = bend.slice(Math.floor(0.1 * n), Math.floor(0.85 * n));
+    let flips = 0;
+    for (let i = 1; i < span.length; i++) if (Math.sign(span[i]) !== Math.sign(span[i - 1]) && Math.abs(span[i]) > 1e-4) flips++;
+    expect(flips, `${id}: bend points`).toBeGreaterThanOrEqual(2);
+    let furthest = 0;
+    for (let k = 0; k <= n; k++) furthest = Math.max(furthest, Math.hypot(bent.px[k] - plain.px[k], bent.py[k] - plain.py[k]));
+    expect(furthest, `${id}: drift`).toBeGreaterThan(0.01);
+    expect(furthest, `${id}: drift`).toBeLessThan(0.07);
+  }
+});

@@ -31,3 +31,17 @@ test('seen from the stage camera, every arm at rest lies on its traced curve', (
     }
   });
 });
+
+test('with the character rest bend, every arm still follows its traced curve closely', () => {
+  ARM_IDS.forEach((id, i) => {
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), NOX.arms[i], i);
+    chain.solve({ time: 0, sway: 0, curl: 0, droop: 0, bend: NOX.armBend });
+    const seen = Array.from(chain.px, (x, k) => {
+      const f = CAMERA_Z / (CAMERA_Z - chain.pz[k]);
+      return [x * f, chain.py[k] * f];
+    });
+    for (const [tx, ty] of INTRO_TRACED[id].slice(1)) {
+      expect(distance(seen, tx, ty), `${id} (${tx}, ${ty})`).toBeLessThan(0.06);
+    }
+  });
+});

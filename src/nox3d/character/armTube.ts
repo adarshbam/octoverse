@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ArmSpec } from '../config/types';
+import { ARM_IDS, type ArmSpec } from '../config/types';
 import type { ArmChain } from './armChain';
 
 /** The base swells by up to 12%, easing out along the arm, so it fills the joint with the body. */
@@ -57,7 +57,7 @@ export class ArmTube {
   private readonly positions: Float32Array;
   private readonly normals: Float32Array;
 
-  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number }, radial = 24) {
+  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number; twist: number }, radial = 24) {
     const n = chain.segments;
     this.chain = chain;
     this.radial = radial;
@@ -71,7 +71,15 @@ export class ArmTube {
     this.ringCos = Float32Array.from({ length: radial + 1 }, (_, j) => Math.cos((j / radial) * Math.PI * 2));
     this.ringSin = Float32Array.from({ length: radial + 1 }, (_, j) => Math.sin((j / radial) * Math.PI * 2));
     this.side = chain.side;
-    this.tilt = Float32Array.from({ length: n + 1 }, (_, k) => suckerTilt(k / n, profile));
+    // Along the middle of the arm the oral side rolls toward and away from the viewer, so the
+    // red band widens and narrows as the arm turns; the root and the curl keep their tilt.
+    const twist = THREE.MathUtils.degToRad(profile.twist);
+    const phase = ARM_IDS.indexOf(spec.id) * 2.1;
+    this.tilt = Float32Array.from({ length: n + 1 }, (_, k) => {
+      const u = k / n;
+      const roll = Math.sin(Math.PI * 2.6 * u + phase) * smoothstep(0.06, 0.18, u) * (1 - smoothstep(0.55, 0.72, u));
+      return suckerTilt(u, profile) + twist * roll;
+    });
 
     const ring = radial + 1;
     // The arm's rings, then a rounded cap past the tip.

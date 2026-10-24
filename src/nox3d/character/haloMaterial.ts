@@ -19,12 +19,14 @@ export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', cen
       /** The head shell grows out from this point (head-local), so it never folds into the notches by the cheeks. */
       uCentre: { value: centre },
       uColor: { value: new THREE.Color(halo.color) },
+      uCrown: { value: new THREE.Color(halo.crown) },
       uBand: { value: new THREE.Color(halo.band) },
       uStrength: { value: new THREE.Vector2(halo.strength, halo.bandStrength) },
     },
     vertexShader: /* glsl */ `
       #ifdef ARM
         attribute float aUnder;
+        attribute float aU;
         attribute vec3 aSpeck;
       #endif
       uniform float uWidth;
@@ -33,12 +35,17 @@ export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', cen
       varying vec3 vNormalW;
       varying float vUnder;
       varying float vEdge;
+      varying float vFade;
       void main() {
         #ifdef ARM
           vUnder = aUnder;
+          // No neon edge where the arm leaves the body: it would outline the arm's root over the
+          // glowing face and neck, where the painting has none.
+          vFade = smoothstep(0.2, 0.42, aU);
           float r = aSpeck.z;
         #else
           vUnder = 0.0;
+          vFade = 1.0;
           float r = 0.75;
         #endif
         // Seen face on, the shape's own outline lies where the shell's normal is this far round
@@ -57,19 +64,26 @@ export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', cen
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
+      uniform vec3 uCrown;
       uniform vec3 uBand;
       uniform vec2 uStrength;
       varying vec3 vWorld;
       varying vec3 vNormalW;
       varying float vUnder;
       varying float vEdge;
+      varying float vFade;
       void main() {
         vec3 V = normalize(cameraPosition - vWorld);
         float c = clamp(-dot(normalize(vNormalW), V) / max(vEdge, 1e-3), 0.0, 1.0);
-        float glow = c * c * c;
+        // Steep falloff: a tight neon edge, not a soft haze.
+        float glow = pow(c, 5.0);
         float band = smoothstep(0.35, 0.95, vUnder);
-        vec3 col = mix(uColor * uStrength.x, uBand * uStrength.y, band);
-        gl_FragColor = vec4(col * glow, 1.0);
+        vec3 edge = uColor;
+        #ifdef HEAD
+          edge = mix(uColor, uCrown, smoothstep(0.35, 0.85, normalize(vNormalW).y));
+        #endif
+        vec3 col = mix(edge * uStrength.x, uBand * uStrength.y, band);
+        gl_FragColor = vec4(col * glow * vFade, 1.0);
       }
     `,
   });

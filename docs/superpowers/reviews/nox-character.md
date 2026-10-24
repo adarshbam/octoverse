@@ -60,3 +60,13 @@ Priorities, quoted: "Anatomically connected cheeks, thicker organic tentacles, r
 ### Eyes v4 and the critique (2026-10-24)
 
 Eyes v4 (rebuilt from `Nox-face-hq.png`; `assets/eyes-v4*.png`) was shown; the owner answered with the whole-character critique, which asks to "preserve Nox's adorable facial identity, large expressive eyes". No explicit verdict on v4; the eyes are kept as v4 and come back at the character sign-off.
+
+### Glow and depth v1 (2026-10-24)
+
+Capture: `assets/glow-v1*.png`. Verdict: changes requested. The owner sent a review saying the structure is "mostly working now" and asking for five things:
+
+- **Aura:** "Replace the blurry outer aura with a thin, crisp, high-contrast luminous rim light around Nox's silhouette. Keep the glow tight to the body so it feels like a clean neon edge, not a soft halo."
+- **Skin:** "Add subtle wet octopus skin texture with glossy specular reflections, slight translucency, soft organic unevenness, and delicate micro-surface variation. Keep it smooth and cute, but clearly moist, slimy, and alive."
+- **Arm bending:** "Improve the rigging and posing of the tentacles so each arm feels flexible along its full length, with multiple natural bend points from base to tip. Avoid stiff tube-like arms that only curl at the ends."
+- **Colour:** "richer purples", a "hotter reddish-pink underside glow", "stronger contrast between cool top and warm underside", "brighter highlights".
+- **Material lighting:** "stronger rim light", "clearer specular highlights", "better wet reflections", "stronger form separation".

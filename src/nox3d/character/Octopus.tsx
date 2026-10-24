@@ -42,7 +42,7 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
     const face = new FaceCanvas(config.face, config.facePalette);
-    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt };
+    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist };
     const arms = config.arms.map((spec, i) => {
       const chain = new ArmChain(restFromCurve(pose.arms[spec.id]), spec, i);
       const tube = new ArmTube(chain, spec, profile);
@@ -167,6 +167,7 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
         curl: live * personality.curl,
         droop: drift.vy * live * 2.2,
         reach: { x: m.reachPoint[i].x, y: m.reachPoint[i].y, weight: w },
+        bend: config.armBend,
       });
       tube.update();
       row.write(suckers.current!, offset);

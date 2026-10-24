@@ -31,23 +31,23 @@ export const NOX: CharacterConfig = {
     // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
     // fades about 0.2 out from the outline, red below the cup bands.
     cheekWarmth: 0.75,
-    halo: { headWidth: 0.15, armWidth: 0.08, color: '#d0187a', band: '#ff1a30', strength: 0.28, bandStrength: 0.7 },
+    halo: { headWidth: 0.05, armWidth: 0.035, color: '#ff3cb4', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
   },
   palette: {
     cheek: '#7a1078',
     headEdge: '#5c2a8c',
-    rimTop: '#a477c8',
-    rimLow: '#d070c0',
+    rimTop: '#9480ff',
+    rimLow: '#ff4cc0',
     sky: '#3a48c8',
     blotch: '#0c0a3a',
     tintCool: '#5a6ad8',
     tintWarm: '#c84a8a',
     wet: '#f6d0ff',
     armShadow: '#12022e',
-    armMid: '#2a0662',
-    armLit: '#6418b0',
+    armMid: '#2e0874',
+    armLit: '#7020cc',
     armGlow: '#ff4a5a',
-    belly: '#e8183a',
+    belly: '#ff1745',
     suckerEdge: '#c8102c',
     suckerBody: '#fb7350',
     suckerHot: '#fd8a60',
@@ -113,8 +113,10 @@ export const NOX: CharacterConfig = {
   // Arm thickness traced from the high-quality panel 2: full through the middle, tapering into the curls.
   tipRadius: 0.042,
   taperPower: 2.2,
+  // Owner: arms should bend at several points along their whole length, not only curl at the tips.
+  armBend: 0.2,
   // Cups traced from the high-quality panel 2: ~0.1 across mid-arm, oval as they turn toward the viewer.
-  suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, rowAngle: 36, rowRadius: 0.08 },
+  suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08 },
   // Skin detail traced from the high-quality panel 2: droplet bumps 0.01 to 0.035 across, dark
   // blotches, bluish and reddish drift, sharp wet highlights and warm light through the underside.
   skin: {

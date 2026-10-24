@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
 import { ArmChain, restFromCurve } from './armChain';
-import { ArmTube, armRadius } from './armTube';
+import { ArmTube, armRadius, suckerTilt } from './armTube';
 
 const profile = { tipRadius: NOX.tipRadius, taperPower: NOX.taperPower };
 const samples = (spec = NOX.arms[0]) => Array.from({ length: 201 }, (_, i) => armRadius(i / 200, spec, profile));
@@ -42,7 +42,7 @@ test('arm tips end in a rounded cap that closes to a point, not a flat cut', () 
   const spec = NOX.arms[1];
   const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[spec.id]), spec, 1);
   chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
-  const tube = new ArmTube(chain, spec, { ...profile, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt });
+  const tube = new ArmTube(chain, spec, { ...profile, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt, twist: NOX.suckers.twist });
   const p = tube.geometry.attributes.position.array as Float32Array;
   const n = chain.segments;
   const ring = tube.radial + 1;
@@ -62,5 +62,18 @@ test('arm tips end in a rounded cap that closes to a point, not a flat cut', () 
   for (let v = (n + 1) * ring; v < rings * ring; v++) {
     const d = Math.hypot(p[v * 3] - tip[0], p[v * 3 + 1] - tip[1], p[v * 3 + 2] - tip[2]);
     expect(d).toBeCloseTo(r, 4);
+  }
+});
+
+test('the oral side rolls toward and away from the viewer along the arm, then faces it in the curl', () => {
+  const tubeProfile = { ...profile, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt, twist: NOX.suckers.twist };
+  for (const [i, spec] of NOX.arms.entries()) {
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[spec.id]), spec, i);
+    const tube = new ArmTube(chain, spec, tubeProfile);
+    const n = chain.segments;
+    const middle = Array.from(tube.tilt.slice(Math.floor(0.15 * n), Math.floor(0.6 * n)));
+    const twist = (NOX.suckers.twist * Math.PI) / 180;
+    expect(Math.max(...middle) - Math.min(...middle), spec.id).toBeGreaterThan(1.2 * twist);
+    expect(tube.tilt[n], spec.id).toBeCloseTo(suckerTilt(1, tubeProfile), 6);
   }
 });

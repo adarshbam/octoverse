@@ -18,6 +18,7 @@ export function clampCharacterConfig(config: CharacterConfig): CharacterConfig {
   const [speckMin, speckMax] = [...k.speckSize].sort((a, b) => a - b).map(v => clamp(v, 0.02, 0.45));
   return {
     ...config,
+    armBend: clamp(config.armBend, 0, 0.3),
     skin: {
       ...k,
       speckDensity: clamp(k.speckDensity, 0, 1),

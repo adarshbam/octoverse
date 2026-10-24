@@ -224,15 +224,20 @@ const skinFragment = /* glsl */ `
       float near = exp(-dot(toGlow, toGlow) / 0.14);
       col = mix(col, uArmGlow * 0.75, near * 0.45);
       col = mix(col, uBelly, under * 0.62);
-      col += uBelly * pow(under, 2.0) * 0.35;
+      col += uBelly * pow(under, 2.0) * 0.6;
       vec3 rootGlow = texture2D(uGlowRamp, vec2(clamp(faceGlow * 0.9, 0.0, 1.0), 0.5)).rgb;
       col = mix(col, rootGlow, smoothstep(0.3, 0.8, faceGlow) * 0.7);
       vec3 mantle = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
       mantle = mix(mantle, uCheek, smoothstep(-0.3, -0.72, vWorld.y) * 0.85 * (1.0 - smoothstep(0.3, 0.7, faceGlow)));
       join = 1.0 - smoothstep(0.05, 0.28, vU);
       col = mix(col, mantle, join);
+      // A crisp neon rim: cool violet along the top, hot pink below, white-hot right at the edge.
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(0.45, 0.9, up) * (1.0 - under));
-      col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9 * (1.0 - join) * (1.0 - 0.5 * headShade);
+      float rimLine = pow(1.0 - ndv, 5.0);
+      // No neon line over the glowing neck, where the arms rise out of the body.
+      float rimFade = (1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow));
+      col += rim * rimLine * 3.0 * rimFade * (1.0 - 0.4 * headShade);
+      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.6) * pow(1.0 - ndv, 14.0) * 1.6 * rimFade;
       col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under) * (1.0 - headShade);
       col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9 * (1.0 - join);
       // Warm light glowing through the arm from its red underside: magenta in the flesh above
@@ -248,7 +253,8 @@ const skinFragment = /* glsl */ `
       // Rim and edge colour run down around the cheeks, and fade out on the neck between the arms.
       float belowChin = smoothstep(uGlowPos.y - 0.05, uGlowPos.y + 0.15, vWorld.y);
       col += uHeadEdge * pow(1.0 - ndv, 2.0) * 0.32 * (1.0 - faceGlow) * belowChin;
-      col += rim * pow(1.0 - ndv, 6.0) * 3.2 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
+      col += rim * pow(1.0 - ndv, 7.0) * 4.0 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
+      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.6) * pow(1.0 - ndv, 16.0) * 1.6 * belowChin;
       // Crown sheen: a tight highlight toward the upper left; the forehead stays dark navy.
       col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 14.0) * 0.22 * (1.0 - faceGlow);
       // Light glowing through the thin edge of the mantle.
@@ -283,6 +289,7 @@ const skinFragment = /* glsl */ `
     float dome = 0.0;
     vec3 domeGrad = vec3(0.0);
     float streak = 0.0;
+    float micro = 0.0;
     float glint = 0.0;
     if (detail > 0.002) {
       // Cool and warm drift, lighter and darker, like light through uneven flesh.
@@ -332,6 +339,10 @@ const skinFragment = /* glsl */ `
         streak *= smoothstep(2.0, 4.0, 1.0 / (footprint * 30.0 / uWet.z));
       #endif
 
+      // Micro-surface unevenness: tiny bumps that break the highlights into small irregular patches,
+      // faded out before they are too fine to draw.
+      micro = (noise3(p * 55.0) - 0.5) * smoothstep(2.0, 4.0, 1.0 / (footprint * 55.0));
+
       // Wet glints: short curved strokes of light, each an arc of a small ring facing the key light.
       #ifdef ARM
         float glintScale = 5.0;
@@ -360,7 +371,7 @@ const skinFragment = /* glsl */ `
     }
 
     // Bumps light up toward the key light. Derivatives are taken here, outside the branch.
-    float streakHeight = streak * 0.004 * uWet.w * detail;
+    float streakHeight = streak * 0.004 * uWet.w * detail + micro * 0.0016 * detail;
     vec3 Nb = bumpNormal(N, dFdx(streakHeight) + dot(domeGrad, dpx), dFdy(streakHeight) + dot(domeGrad, dpy));
     vec3 L = normalize(uKeyDir);
     col *= 1.0 + clamp((dot(Nb, L) - dot(N, L)) * 0.9, -0.15, 0.6);
@@ -374,7 +385,25 @@ const skinFragment = /* glsl */ `
       // The dome is too large and smooth for patchy gloss (it reads as fog): only droplets glint.
       float wetPatch = 0.0;
     #endif
-    col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail) * (1.0 - headShade * 0.7);
+    col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail) * (1.0 - headShade * 0.7) * (1.0 - join);
+    // A soft moist sheen over the forms, and the lit water above reflected at grazing angles.
+    float moist = pow(max(dot(Nb, normalize(L + V)), 0.0), 22.0);
+    // On the dome a broad sheen reads as haze over the dark navy: only the arms get it.
+    #ifdef ARM
+      float moistAmount = 0.09;
+    #else
+      float moistAmount = 0.0;
+    #endif
+    col += uWetColor * moist * moistAmount * uWet.x * (1.0 - headShade * 0.6) * (1.0 - smoothstep(0.2, 0.6, faceGlow));
+    vec3 R = reflect(-V, Nb);
+    // On the arms the reflection spreads over their curved sides; on the dome it stays near the
+    // outline, so the dome's top stays dark navy as in the painting.
+    #ifdef ARM
+      float reflection = smoothstep(0.35, 0.95, R.y) * pow(1.0 - ndv, 2.0);
+    #else
+      float reflection = smoothstep(0.35, 0.95, R.y) * pow(1.0 - ndv, 5.0);
+    #endif
+    col += mix(uRimTop, uWetColor, 0.5) * reflection * 0.22 * uWet.x * (1.0 - headShade * 0.5) * (1.0 - join);
     col += uWetColor * glint * uWet.x * 0.75;
 
     // A second, broader wet sheen from a light above: long broken bands along the tops of the
@@ -399,6 +428,13 @@ const skinFragment = /* glsl */ `
       float edgeLine = pow(1.0 - ndv, 9.0);
     #endif
     col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
+
+    // Richer, more vivid arms, as in the painting; the head and its face glow already match it,
+    // so the boost fades out where the arms join the body and inside the face glow (no seam).
+    #ifdef ARM
+      float vivid = 0.2 * (1.0 - join) * (1.0 - smoothstep(0.2, 0.6, faceGlow));
+      col = max(mix(vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), col, 1.0 + vivid), 0.0);
+    #endif
 
     #ifdef HEAD
       // Eye sockets: the skin darkens (at most 18%) within 1.25x each eye's radii, so the eyes sit in the face.

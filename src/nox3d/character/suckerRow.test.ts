@@ -7,7 +7,7 @@ import { ArmChain, restFromCurve } from './armChain';
 import { ArmTube, suckerTilt } from './armTube';
 import { SuckerRow, createSuckerCup } from './suckerRow';
 
-const profile = { tipRadius: NOX.tipRadius, taperPower: NOX.taperPower, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt };
+const profile = { tipRadius: NOX.tipRadius, taperPower: NOX.taperPower, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt, twist: NOX.suckers.twist };
 const rad = (d: number) => (d * Math.PI) / 180;
 
 function arm(id: ArmId) {
