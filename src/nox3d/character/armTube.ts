@@ -48,6 +48,8 @@ export class ArmTube {
   /** Per-ring tilt of the oral side toward the viewer (radians), and which side of the arm carries it. */
   readonly tilt: Float32Array;
   readonly side: 1 | -1;
+  /** The sucker side is flattened to this fraction of the radius; the back stays round. */
+  readonly flatten: number;
   private readonly chain: ArmChain;
   private readonly radius: Float32Array;
   /** Vertices round each ring, less one (the seam repeats the first). */
@@ -57,7 +59,7 @@ export class ArmTube {
   private readonly positions: Float32Array;
   private readonly normals: Float32Array;
 
-  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number; twist: number }, radial = 24) {
+  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number; twist: number; flatten: number }, radial = 24) {
     const n = chain.segments;
     this.chain = chain;
     this.radial = radial;
@@ -71,6 +73,7 @@ export class ArmTube {
     this.ringCos = Float32Array.from({ length: radial + 1 }, (_, j) => Math.cos((j / radial) * Math.PI * 2));
     this.ringSin = Float32Array.from({ length: radial + 1 }, (_, j) => Math.sin((j / radial) * Math.PI * 2));
     this.side = chain.side;
+    this.flatten = profile.flatten;
     // Along the middle of the arm the oral side rolls toward and away from the viewer, so the
     // red band widens and narrows as the arm turns; the root and the curl keep their tilt.
     const twist = THREE.MathUtils.degToRad(profile.twist);
@@ -130,6 +133,28 @@ export class ArmTube {
     return out.set(c * this.nx[k] + s * this.bx[k], c * this.ny[k] + s * this.by[k], s * this.bz[k]).normalize();
   }
 
+  /**
+   * Distance from the arm's centre line to its surface at arc fraction u, `offset` radians round
+   * from the oral midline: shorter on the flattened sucker half, the full radius on the back.
+   */
+  surfaceRadius(u: number, offset: number) {
+    const r = this.radiusAt(u);
+    const along = Math.max(0, Math.cos(offset));
+    return r / Math.sqrt((along * along) / (this.flatten * this.flatten) + 1 - along * along);
+  }
+
+  /** How far `p` lies outside the skin, measured round ring k's section (negative inside). */
+  heightAbove(k: number, p: THREE.Vector3) {
+    const { px, py, pz, segments: n } = this.chain;
+    const rx = p.x - px[k];
+    const ry = p.y - py[k];
+    const rz = p.z - pz[k];
+    const toward = rx * this.nx[k] + ry * this.ny[k];
+    const round = rx * this.bx[k] + ry * this.by[k] + rz * this.bz[k];
+    const a = Math.atan2(round, this.side * toward) - this.tilt[k];
+    return Math.hypot(toward, round) - this.surfaceRadius(k / n, Math.atan2(Math.sin(a), Math.cos(a)));
+  }
+
   /** Radius at arc fraction u. */
   radiusAt(u: number) {
     const n = this.chain.segments;
@@ -162,19 +187,34 @@ export class ArmTube {
       const bz = tx * ny - ty * nx;
       this.nx[k] = nx; this.ny[k] = ny; this.bx[k] = bx; this.by[k] = by; this.bz[k] = bz;
       const r = this.radius[k];
+      // The oral direction in this ring, and how strongly the flattened half bends normals toward it.
+      const oc = this.side * Math.cos(this.tilt[k]);
+      const os = Math.sin(this.tilt[k]);
+      const ox = oc * nx + os * bx;
+      const oy = oc * ny + os * by;
+      const oz = os * bz;
+      const pull = 1 / (this.flatten * this.flatten) - 1;
       for (let j = 0; j <= this.radial; j++) {
         const c = this.ringCos[j];
         const s = this.ringSin[j];
         const dx = c * nx + s * bx;
         const dy = c * ny + s * by;
         const dz = s * bz;
+        // On the sucker half the cross-section is half an ellipse, flatter toward the suckers.
+        const along = Math.max(0, c * oc + s * os);
+        const rho = r / Math.sqrt(along * along * (pull + 1) + 1 - along * along);
+        let mx = dx + pull * along * ox;
+        let my = dy + pull * along * oy;
+        let mz = dz + pull * along * oz;
+        const ml = Math.hypot(mx, my, mz) || 1;
+        mx /= ml; my /= ml; mz /= ml;
         const o = (k * ring + j) * 3;
-        this.positions[o] = px[k] + r * dx;
-        this.positions[o + 1] = py[k] + r * dy;
-        this.positions[o + 2] = pz[k] + r * dz;
-        this.normals[o] = dx;
-        this.normals[o + 1] = dy;
-        this.normals[o + 2] = dz;
+        this.positions[o] = px[k] + rho * dx;
+        this.positions[o + 1] = py[k] + rho * dy;
+        this.positions[o + 2] = pz[k] + rho * dz;
+        this.normals[o] = mx;
+        this.normals[o + 1] = my;
+        this.normals[o + 2] = mz;
       }
     }
     // Rounded cap: a quarter circle past the tip, closing to a point one tip radius beyond it.

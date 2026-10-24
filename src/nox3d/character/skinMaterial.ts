@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { INTRO_LIGHTING, type StageLighting } from '../config/lighting';
 import type { CharacterConfig } from '../config/types';
 import { cheekCentres } from './headGeometry';
 
@@ -30,7 +31,7 @@ export function createRampTexture(stops: readonly (readonly [number, string])[])
 export type SkinUniforms = ReturnType<typeof createSkinUniforms>;
 
 /** One uniform set per character, shared by every skin surface so glow moves together. */
-export function createSkinUniforms(config: CharacterConfig) {
+export function createSkinUniforms(config: CharacterConfig, lighting: StageLighting = INTRO_LIGHTING) {
   const { palette: p, glow, skin } = config;
   const color = (hex: string) => ({ value: new THREE.Color(hex) });
   const [[lx, ly], [rx, ry]] = config.face.eye.centers;
@@ -48,9 +49,8 @@ export function createSkinUniforms(config: CharacterConfig) {
     /** Face glow extent: x spread, upward reach, downward reach. */
     uGlowShape: { value: new THREE.Vector3(glow.spreadX, glow.reachUp, glow.reachDown) },
     uGlowStrength: { value: 1.0 },
-    uArmShadow: color(p.armShadow),
-    uArmMid: color(p.armMid),
-    uArmLit: color(p.armLit),
+    uArmBody: color(p.armBody),
+    uTerminator: color(p.terminator),
     uArmGlow: color(p.armGlow),
     uBelly: color(p.belly),
     uRimTop: color(p.rimTop),
@@ -68,7 +68,15 @@ export function createSkinUniforms(config: CharacterConfig) {
     uBlotch: { value: new THREE.Vector4(skin.blotchDensity, skin.blotchScale, skin.tint, skin.translucency) },
     /** Wet gloss strength and sharpness, streak stretch and depth. */
     uWet: { value: new THREE.Vector4(skin.wetness, skin.gloss, skin.streakScale, skin.streakStrength) },
-    uKeyDir: { value: new THREE.Vector3(-0.45, 0.8, 0.55).normalize() },
+    uKeyDir: { value: new THREE.Vector3(...lighting.key.direction).normalize() },
+    uKeyLight: { value: new THREE.Color(lighting.key.color).multiplyScalar(lighting.key.intensity) },
+    uWrap: { value: lighting.key.wrap },
+    /** Warm underglow colour times intensity, and its wrap. */
+    uUnderglow: { value: new THREE.Vector4(...new THREE.Color(lighting.underglow.color).multiplyScalar(lighting.underglow.intensity).toArray(), lighting.underglow.wrap) },
+    uSkyLight: { value: new THREE.Color(lighting.ambient.sky).multiplyScalar(lighting.ambient.intensity) },
+    uGroundLight: { value: new THREE.Color(lighting.ambient.ground).multiplyScalar(lighting.ambient.intensity) },
+    uHaze: { value: new THREE.Vector3(lighting.haze.near, lighting.haze.far, lighting.haze.strength) },
+    uHazeColor: { value: new THREE.Color(lighting.haze.color) },
   };
 }
 
@@ -110,9 +118,15 @@ const skinFragment = /* glsl */ `
   uniform vec3 uGlowPos;
   uniform vec3 uGlowShape;
   uniform float uGlowStrength;
-  uniform vec3 uArmShadow;
-  uniform vec3 uArmMid;
-  uniform vec3 uArmLit;
+  uniform vec3 uArmBody;
+  uniform vec3 uTerminator;
+  uniform vec3 uKeyLight;
+  uniform float uWrap;
+  uniform vec4 uUnderglow;
+  uniform vec3 uSkyLight;
+  uniform vec3 uGroundLight;
+  uniform vec3 uHaze;
+  uniform vec3 uHazeColor;
   uniform vec3 uArmGlow;
   uniform vec3 uBelly;
   uniform vec3 uRimTop;
@@ -207,6 +221,7 @@ const skinFragment = /* glsl */ `
     float sy = d.y > 0.0 ? uGlowShape.y : uGlowShape.z;
     float faceGlow = exp(-(d.x * d.x) / (uGlowShape.x * uGlowShape.x) - (d.y * d.y) / (sy * sy)) * uGlowStrength;
     float up = N.y * 0.5 + 0.5;
+    vec3 L = normalize(uKeyDir);
     vec3 col;
     float under = 0.0;
     float join = 0.0;
@@ -218,13 +233,24 @@ const skinFragment = /* glsl */ `
       // lit mostly by the red glow from below, as in the painting.
       float fromHead = length(vWorld.xy - uGlowPos.xy - vec2(-0.04, 0.53));
       headShade = (1.0 - smoothstep(0.75, 1.3, fromHead)) * 0.75;
-      col = mix(uArmShadow, uArmMid, smoothstep(0.0, 0.5, up));
-      col = mix(col, uArmLit, smoothstep(0.5, 1.0, up) * (1.0 - headShade));
+      // One strong key light from above left, wrapped softly round into the shadow side.
+      float nl = dot(N, L);
+      float key = max(0.0, (nl + uWrap) / (1.0 + uWrap)) * (1.0 - headShade);
+      // Bounce light: cool from the water above, warm from the lava below.
+      vec3 bounce = mix(uGroundLight, uSkyLight, smoothstep(-0.6, 0.6, N.y));
+      // The subtle warm underglow, wrapped up from below.
+      float below = max(0.0, (-N.y + uUnderglow.w) / (1.0 + uUnderglow.w));
+      col = uArmBody * (uKeyLight * key + bounce + uUnderglow.rgb * below);
+      // Just past where the key fades, light scattered through the flesh shows as magenta.
+      float scatter = smoothstep(-0.6, -0.2, nl) * (1.0 - smoothstep(-0.05, 0.25, nl));
+      col += uTerminator * scatter * 0.22 * (1.0 - 0.6 * headShade);
+      // The bioluminescent oral band glows red at its core and fades softly up through magenta
+      // into the body: a subsurface glow, not a flat fill.
+      float band = smoothstep(0.05, 0.95, vUnder);
+      col += mix(uTerminator, uBelly, smoothstep(0.45, 0.95, vUnder)) * pow(band, 1.6) * 0.95;
       vec3 toGlow = uGlowPos - vWorld;
       float near = exp(-dot(toGlow, toGlow) / 0.14);
       col = mix(col, uArmGlow * 0.75, near * 0.45);
-      col = mix(col, uBelly, under * 0.62);
-      col += uBelly * pow(under, 2.0) * 0.6;
       vec3 rootGlow = texture2D(uGlowRamp, vec2(clamp(faceGlow * 0.9, 0.0, 1.0), 0.5)).rgb;
       col = mix(col, rootGlow, smoothstep(0.3, 0.8, faceGlow) * 0.7);
       vec3 mantle = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
@@ -237,13 +263,8 @@ const skinFragment = /* glsl */ `
       // No neon line over the glowing neck, where the arms rise out of the body.
       float rimFade = (1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow));
       col += rim * rimLine * 3.0 * rimFade * (1.0 - 0.4 * headShade);
-      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.6) * pow(1.0 - ndv, 14.0) * 1.6 * rimFade;
-      col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under) * (1.0 - headShade);
-      col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9 * (1.0 - join);
-      // Warm light glowing through the arm from its red underside: magenta in the flesh above
-      // the red band, strongest at thin, grazing edges.
-      float through = smoothstep(-0.1, 0.6, vUnder) * (1.0 - under) * (1.0 - join);
-      col += mix(uRimLow, uBelly, 0.35) * through * uBlotch.w * (0.12 + 0.35 * pow(1.0 - ndv, 1.5));
+      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.3) * pow(1.0 - ndv, 14.0) * 1.6 * rimFade;
+      col += uRimLow * pow(1.0 - ndv, 7.0) * 0.6 * (1.0 - join);
     #else
       col = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
       col = mix(col, uCheek, smoothstep(-0.3, -0.72, vWorld.y) * 0.85 * (1.0 - smoothstep(0.3, 0.7, faceGlow)));
@@ -340,8 +361,14 @@ const skinFragment = /* glsl */ `
       #endif
 
       // Micro-surface unevenness: tiny bumps that break the highlights into small irregular patches,
-      // faded out before they are too fine to draw.
-      micro = (noise3(p * 55.0) - 0.5) * smoothstep(2.0, 4.0, 1.0 / (footprint * 55.0));
+      // faded out before they are too fine to draw, and wherever they loom large in any direction on
+      // screen (up close, or stretched along an arm seen at a grazing angle), where they would smear
+      // the highlights instead of breaking them; there the droplets and glints carry the wet look.
+      float ja = dot(dpx, dpx);
+      float jb = dot(dpx, dpy);
+      float jc = dot(dpy, dpy);
+      float leastChange = sqrt(max(0.5 * (ja + jc) - sqrt(0.25 * (ja - jc) * (ja - jc) + jb * jb), 1e-12));
+      micro = (noise3(p * 55.0) - 0.5) * smoothstep(2.0, 4.0, 1.0 / (footprint * 55.0)) * (1.0 - smoothstep(9.0, 16.0, 1.0 / (leastChange * 55.0)));
 
       // Wet glints: short curved strokes of light, each an arc of a small ring facing the key light.
       #ifdef ARM
@@ -373,53 +400,33 @@ const skinFragment = /* glsl */ `
     // Bumps light up toward the key light. Derivatives are taken here, outside the branch.
     float streakHeight = streak * 0.004 * uWet.w * detail + micro * 0.0016 * detail;
     vec3 Nb = bumpNormal(N, dFdx(streakHeight) + dot(domeGrad, dpx), dFdy(streakHeight) + dot(domeGrad, dpy));
-    vec3 L = normalize(uKeyDir);
     col *= 1.0 + clamp((dot(Nb, L) - dot(N, L)) * 0.9, -0.15, 0.6);
 
     // Wet gloss: sharp highlights from the key light, broken into patches and streaks.
     float spec = pow(max(dot(Nb, normalize(L + V)), 0.0), uWet.y);
     #ifdef ARM
-      // Broken into patches, so the highlight never runs as one stripe down the arm.
-      float wetPatch = smoothstep(0.45, 0.8, noise3(vec3(p.x * 5.0, p.y * 14.0, p.z * 14.0)));
+      // Broken into crisp-edged patches, like painted wet strokes, so the highlight never runs as one
+      // stripe down the arm or smears; the edge is anti-aliased to the pixel.
+      float wetNoise = noise3(vec3(p.x * 5.0, p.y * 14.0, p.z * 14.0));
+      float wetAA = fwidth(wetNoise) + 1e-4;
+      float wetPatch = smoothstep(0.6 - wetAA, 0.6 + wetAA, wetNoise);
     #else
       // The dome is too large and smooth for patchy gloss (it reads as fog): only droplets glint.
       float wetPatch = 0.0;
     #endif
     col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail) * (1.0 - headShade * 0.7) * (1.0 - join);
-    // A soft moist sheen over the forms, and the lit water above reflected at grazing angles.
-    float moist = pow(max(dot(Nb, normalize(L + V)), 0.0), 22.0);
-    // On the dome a broad sheen reads as haze over the dark navy: only the arms get it.
-    #ifdef ARM
-      float moistAmount = 0.09;
-    #else
-      float moistAmount = 0.0;
-    #endif
-    col += uWetColor * moist * moistAmount * uWet.x * (1.0 - headShade * 0.6) * (1.0 - smoothstep(0.2, 0.6, faceGlow));
+    // Wet, not plastic: no broad sheen. The surroundings reflect at grazing angles instead, cool
+    // water above and the ruin's warm glow below, tinting the edges.
     vec3 R = reflect(-V, Nb);
-    // On the arms the reflection spreads over their curved sides; on the dome it stays near the
-    // outline, so the dome's top stays dark navy as in the painting.
+    vec3 surround = mix(uGroundLight, uSkyLight, smoothstep(-0.5, 0.5, R.y));
     #ifdef ARM
-      float reflection = smoothstep(0.35, 0.95, R.y) * pow(1.0 - ndv, 2.0);
+      float grazing = pow(1.0 - ndv, 3.0);
     #else
-      float reflection = smoothstep(0.35, 0.95, R.y) * pow(1.0 - ndv, 5.0);
+      float grazing = pow(1.0 - ndv, 5.0);
     #endif
-    col += mix(uRimTop, uWetColor, 0.5) * reflection * 0.22 * uWet.x * (1.0 - headShade * 0.5) * (1.0 - join);
+    col += surround * grazing * 2.2 * (1.0 - join);
     col += uWetColor * glint * uWet.x * 0.75;
 
-    // A second, broader wet sheen from a light above: long broken bands along the tops of the
-    // arms, and a broken reflection just inside the dome's upper-left rim.
-    vec3 L2 = normalize(vec3(0.15, 1.0, 0.45));
-    float sheen = pow(max(dot(Nb, normalize(L2 + V)), 0.0), 60.0);
-    #ifdef ARM
-      // Short broken streaks, not long stripes; none on the arms' roots, which lie in the body's shade.
-      float sheenMask = smoothstep(0.55, 0.78, noise3(vec3(p.x * 5.0, p.y * 9.0, p.z * 9.0))) * (1.0 - under) * smoothstep(0.18, 0.4, vU);
-    #else
-      // On the dome, the reflection runs along the upper-left rim, as in the painting; the top stays dark.
-      float upperLeft = smoothstep(0.35, 0.85, dot(normalize(N.xy + 1e-4), normalize(vec2(-0.75, 0.66))));
-      float sheenMask = smoothstep(0.35, 0.65, noise3(p * 4.0)) * pow(1.0 - ndv, 1.5) * upperLeft * (1.0 - smoothstep(0.15, 0.5, faceGlow));
-    #endif
-    // No sheen inside the face glow, where the skin is lit warm from within.
-    col += uWetColor * sheen * sheenMask * uWet.x * 0.4 * (1.0 - join) * (1.0 - smoothstep(0.1, 0.45, faceGlow)) * (1.0 - headShade);
     // A crisp wet line along the lit top edge: a broad neon line on the arms, a thin one on the
     // dome, whose top stays dark navy inside its rim.
     #ifdef ARM
@@ -428,6 +435,9 @@ const skinFragment = /* glsl */ `
       float edgeLine = pow(1.0 - ndv, 9.0);
     #endif
     col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
+
+    // Atmospheric depth: parts behind the body blend into the water's haze.
+    col = mix(col, uHazeColor, smoothstep(uHaze.x, uHaze.y, -vWorld.z) * uHaze.z);
 
     // Richer, more vivid arms, as in the painting; the head and its face glow already match it,
     // so the boost fades out where the arms join the body and inside the face glow (no seam).
@@ -444,7 +454,8 @@ const skinFragment = /* glsl */ `
         1.0 - smoothstep(0.55, 1.0, length((local - uEyeCenters.xy) / radii)),
         1.0 - smoothstep(0.55, 1.0, length((local - uEyeCenters.zw) / radii)));
       col *= 1.0 - 0.18 * socket * smoothstep(0.05, 0.3, vFront);
-      vec4 face = texture2D(uFace, vFaceUv);
+      // A slightly finer mip than the default keeps the eyes and lashes crisp at stage size.
+      vec4 face = texture2D(uFace, vFaceUv, -0.5);
       float inside = step(0.0, vFaceUv.x) * step(vFaceUv.x, 1.0) * step(0.0, vFaceUv.y) * step(vFaceUv.y, 1.0);
       float mask = face.a * inside * smoothstep(0.05, 0.3, vFront);
       col = mix(col, face.rgb, mask);

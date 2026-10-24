@@ -33,3 +33,9 @@ test('clamps the arm rest bend into a gentle range', () => {
   expect(clampCharacterConfig({ ...NOX, armBend: 2 }).armBend).toBe(0.3);
   expect(clampCharacterConfig({ ...NOX, armBend: -1 }).armBend).toBe(0);
 });
+
+test('keeps the flattened sucker side between a gentle oval and a round arm', () => {
+  expect(clampCharacterConfig({ ...NOX, armFlatten: 0.2 }).armFlatten).toBe(0.7);
+  expect(clampCharacterConfig({ ...NOX, armFlatten: 1.4 }).armFlatten).toBe(1);
+  expect(clampCharacterConfig(NOX).armFlatten).toBe(NOX.armFlatten);
+});

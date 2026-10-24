@@ -79,16 +79,19 @@ export interface Palette {
   tintCool: string;
   tintWarm: string;
   wet: string;
-  armShadow: string;
-  armMid: string;
-  armLit: string;
+  /** The arms' own colour (lit by the stage's key light, bounce and underglow). */
+  armBody: string;
+  /** Light scattered through the flesh where the key fades, and where the red band glows up into the body. */
+  terminator: string;
   armGlow: string;
   belly: string;
-  /** Sucker cup: outer wall, inner wall, glowing rim, and the slit of the hollow centre. */
+  /** Sucker cup: its edge where it meets the skin, its face, its glowing rim, and the slit of the hollow. */
   suckerEdge: string;
   suckerBody: string;
   suckerHot: string;
   suckerHollow: string;
+  /** The soft contact shadow each cup casts onto the band round it. */
+  suckerShadow: string;
 }
 
 /**
@@ -263,6 +266,8 @@ export interface SuckerSettings {
   /** Where the arm radius exceeds `rowRadius`, two staggered rows run this far apart round the arm, either side of the oral midline. */
   rowAngle: number;
   rowRadius: number;
+  /** Strength of the soft contact shadow each cup casts onto the skin round it (0-1). */
+  shadow: number;
 }
 
 export interface CharacterConfig {
@@ -278,6 +283,8 @@ export interface CharacterConfig {
   taperPower: number;
   /** Rest bend: how much the arms undulate along their length when still (radians of turn). */
   armBend: number;
+  /** The arms' sucker side is flattened to this fraction of the radius; their backs stay round. */
+  armFlatten: number;
   suckers: SuckerSettings;
   skin: SkinDetail;
   personality: Personality;

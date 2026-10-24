@@ -15,8 +15,8 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createHeadGeometry } from './headGeometry';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
-import { createSuckerMaterial } from './suckerMaterial';
-import { SuckerRow, createSuckerCup } from './suckerRow';
+import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
+import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 
 /** Rotation pivot for head turns: the middle of the body. */
 const PIVOT_Y = -0.6;
@@ -37,12 +37,11 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
-  const suckers = useRef<THREE.InstancedMesh>(null);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
     const face = new FaceCanvas(config.face, config.facePalette);
-    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist };
+    const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist, flatten: config.armFlatten };
     const arms = config.arms.map((spec, i) => {
       const chain = new ArmChain(restFromCurve(pose.arms[spec.id]), spec, i);
       const tube = new ArmTube(chain, spec, profile);
@@ -57,6 +56,19 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
     });
     const webMaterial = createSkinMaterial('ARM', uniforms);
     webMaterial.side = THREE.DoubleSide;
+    // The cups and their contact shadows share one set of placements and bends.
+    const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
+    const suckerBend = new THREE.InstancedBufferAttribute(new Float32Array(suckerTotal * 2), 2).setUsage(THREE.DynamicDrawUsage);
+    const cupGeometry = createSuckerCup();
+    cupGeometry.setAttribute('aBend', suckerBend);
+    const shadowGeometry = createCupShadow();
+    shadowGeometry.setAttribute('aBend', suckerBend);
+    const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms), suckerTotal);
+    suckers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    suckers.frustumCulled = false;
+    const cupShadows = new THREE.InstancedMesh(shadowGeometry, createCupShadowMaterial(config.palette, config.suckers, uniforms), suckerTotal);
+    cupShadows.instanceMatrix = suckers.instanceMatrix;
+    cupShadows.frustumCulled = false;
     return {
       uniforms,
       face,
@@ -64,11 +76,11 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       webs,
       webMaterial,
       headGeometry: createHeadGeometry(config.head),
-      suckerGeometry: createSuckerCup(),
-      suckerTotal: arms.reduce((n, a) => n + a.row.count, 0),
+      suckers,
+      cupShadows,
+      suckerBend,
       headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
       armMaterial: createSkinMaterial('ARM', uniforms),
-      suckerMaterial: createSuckerMaterial(config.palette, uniforms.uKeyDir.value),
       coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0)),
@@ -170,10 +182,11 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
         bend: config.armBend,
       });
       tube.update();
-      row.write(suckers.current!, offset);
+      row.write(rig.suckers, offset, rig.suckerBend);
       offset += row.count;
     });
-    suckers.current!.instanceMatrix.needsUpdate = true;
+    rig.suckers.instanceMatrix.needsUpdate = true;
+    rig.suckerBend.needsUpdate = true;
     for (const web of rig.webs) web.update();
 
     m.glow.copy(rig.glowLocal).applyMatrix4(content.current!.matrixWorld);
@@ -198,7 +211,8 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
           <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]}>
             {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
           </mesh>
-          <instancedMesh ref={suckers} args={[rig.suckerGeometry, rig.suckerMaterial, rig.suckerTotal]} frustumCulled={false} />
+          <primitive object={rig.suckers} />
+          <primitive object={rig.cupShadows} visible={!silhouette} />
           <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
             <planeGeometry args={[1, 1]} />
           </mesh>

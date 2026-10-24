@@ -17,7 +17,7 @@ export const NOX: CharacterConfig = {
   // Dome, notch and cheeks traced from the panel 2 rim line (junction v2).
   head: {
     centerX: 0.01, halfWidth: 0.752, waist: -0.44, top: 0.255, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.035, -0.42],
-    cheeks: { y: -0.835, distance: 0.678, angle: 72, radius: 0.115, blend: 0.05 },
+    cheeks: { y: -0.835, distance: 0.678, angle: 72, radius: 0.115, blend: 0.08 },
   },
   glow: {
     center: [0.05, -0.97, 0.6],
@@ -31,7 +31,7 @@ export const NOX: CharacterConfig = {
     // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
     // fades about 0.2 out from the outline, red below the cup bands.
     cheekWarmth: 0.75,
-    halo: { headWidth: 0.05, armWidth: 0.035, color: '#ff3cb4', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
+    halo: { headWidth: 0.05, armWidth: 0.035, color: '#e83cf0', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
   },
   palette: {
     cheek: '#7a1078',
@@ -43,15 +43,15 @@ export const NOX: CharacterConfig = {
     tintCool: '#5a6ad8',
     tintWarm: '#c84a8a',
     wet: '#f6d0ff',
-    armShadow: '#12022e',
-    armMid: '#2e0874',
-    armLit: '#7020cc',
+    armBody: '#640a90',
+    terminator: '#a8085a',
     armGlow: '#ff4a5a',
     belly: '#ff1745',
     suckerEdge: '#c8102c',
     suckerBody: '#fb7350',
     suckerHot: '#fd8a60',
     suckerHollow: '#e2232f',
+    suckerShadow: '#2a0212',
   },
   face: {
     // Placed and sized from panel 2; border, lid and iris layers traced from the
@@ -115,8 +115,9 @@ export const NOX: CharacterConfig = {
   taperPower: 2.2,
   // Owner: arms should bend at several points along their whole length, not only curl at the tips.
   armBend: 0.2,
+  armFlatten: 0.86,
   // Cups traced from the high-quality panel 2: ~0.1 across mid-arm, oval as they turn toward the viewer.
-  suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08 },
+  suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.85 },
   // Skin detail traced from the high-quality panel 2: droplet bumps 0.01 to 0.035 across, dark
   // blotches, bluish and reddish drift, sharp wet highlights and warm light through the underside.
   skin: {

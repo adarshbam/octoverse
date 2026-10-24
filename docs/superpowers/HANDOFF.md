@@ -1,6 +1,6 @@
 # Nox 3D build: handoff
 
-Updated 2026-10-23. Read this first in a new session, then the files it points to.
+Updated 2026-10-24. Read this first in a new session, then the files it points to.
 
 ## Where the work lives
 
@@ -15,10 +15,10 @@ Updated 2026-10-23. Read this first in a new session, then the files it points t
 ## Status
 
 - **Phase A, foundation (Tasks 1–6):** complete. 29 Vitest tests pass and `npm run typecheck` is clean.
-- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 to 13 (junction, eyebrows, eyes, mouth and blush, mantle, arms, suckers, skin). Each verdict is in the review log. The eyes were rebuilt from the owner's high-quality face reference (v4); the owner asked to keep them while sending a whole-character critique. **Next: Task 14, glow and halo**, which also covers the critique's contact shadows, cheek shading and the neon red band under the cups. Then Task 15 (motion) and the Task 16 sign-off.
+- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 to 13 (junction, eyebrows, eyes, mouth and blush, mantle, arms, suckers, skin). Each verdict is in the review log. The eyes were rebuilt from the owner's high-quality face reference (v4); the owner asked to keep them while sending a whole-character critique. **Task 14 (glow, lighting and material) is in review:** v3 answers the owner's 12-point final-polish brief and awaits a verdict (review log "Glow and material v3"; base commit 136dab1, WIP commits after it). On approval: record the verdict, commit `feat(nox3d): silhouette halo and glow balance`, run task-done 14 with base 136dab1, then Task 15 (motion) and the Task 16 sign-off.
 - **High-quality references:** `docs/design/references/Nox/` (the owner's HQ panels) and `docs/design/references/Nox-face-hq.png`. The review page compares against the HQ panel 2 by default (`&ref=panel` for the old one). In scratch tooling, world (x, y) maps to HQ px (783.6 + 204.5 x, 495.4 - 204.5 y).
-- **Owner critique still open (2026-10-24, review log "Whole-character critique"):** points 1 and 9, cheek blending and contact shadows or depth between arms (Task 14), and point 10, layered lighting (Task 14). Points 2 to 8 are done.
-- **Performance:** on this laptop's Intel UHD, the moving intro runs at ~30–44 fps at DPR 1 and ~16 at DPR 2 (headless Edge). Task 18's tiers must cap DPR and bloom resolution on integrated GPUs. Never use canvas `filter` in `FaceCanvas`: it redraws every frame and costs most of the frame rate.
+- **Owner critique (2026-10-24, review log "Whole-character critique"):** all ten points are addressed; points 1, 9 and 10 land with Task 14 and wait on its verdict.
+- **Performance:** on this laptop's Intel UHD, the moving intro ran at ~40 fps at DPR 1 and ~11-13 at DPR 2 (headless Edge) under light load; with other apps busy (CPU ~55%) it reads ~19-32 and ~9-11, so compare A/B back to back. Task 18's tiers must cap DPR, bloom resolution and the contact-shadow pass on integrated GPUs. Never use canvas `filter` in `FaceCanvas`: it redraws every frame and costs most of the frame rate. Keep the browser pane off the live stage while measuring: it renders too.
 
 ## How each character component is done (plan: "Pattern: character component tasks")
 
@@ -42,7 +42,7 @@ Updated 2026-10-23. Read this first in a new session, then the files it points t
 - **Image generation:** the OpenAI key exists as a user-scope environment variable. The account had no credits on 2026-10-23, and the owner said they would add them. Load the key without printing it: `$env:OPENAI_API_KEY = [Environment]::GetEnvironmentVariable('OPENAI_API_KEY','User')`.
 - **Known gaps for later tasks:**
   - Arms right under the head read heavier and flatter than the reference, and the long arms lie too horizontal (Task 11). Each cheek lobe meets T2/T7 where the painting has T1.
-  - The suckers are beads, not cups (Task 12).
+  - The last cup at each tip can hang past the rounded end of the arm, and at a steep 70-degree orbit an arm seen end-on shows a large pale highlight (rim terms add up at grazing angles).
   - The painting's face is not quite symmetric: its left brow sits lower and its left eye is wider. Ours are symmetric.
 - **Perspective:** face features land about 4% further out in the render than in head-local units, because of the face's depth in the camera. The brow, eye, mouth and blush values compensate for this, so trace in render space.
 - **Dev server:** if port 5191 is taken by an older Vite on the same worktree, `preview_start` moves to another port. The capture scripts still use 5191, which serves the same files.

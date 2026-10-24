@@ -70,3 +70,40 @@ Capture: `assets/glow-v1*.png`. Verdict: changes requested. The owner sent a rev
 - **Arm bending:** "Improve the rigging and posing of the tentacles so each arm feels flexible along its full length, with multiple natural bend points from base to tip. Avoid stiff tube-like arms that only curl at the ends."
 - **Colour:** "richer purples", a "hotter reddish-pink underside glow", "stronger contrast between cool top and warm underside", "brighter highlights".
 - **Material lighting:** "stronger rim light", "clearer specular highlights", "better wet reflections", "stronger form separation".
+
+### Glow and material v2 (2026-10-24)
+
+Capture: `assets/glow-v2*.png`. No direct verdict; the owner sent a final-polish brief. It asks to "preserve Nox's identity, cuteness, proportions, facial expression, and overall silhouette, but fix the remaining flaws in material, color, lighting, anatomy, tentacle posing, and environmental integration". The twelve points, in short:
+
+1. Less plastic shine: gloss "more controlled, natural, and selective".
+2. Body colour: "a richer, deeper violet-blue base with better magenta transitions".
+3. Underside: "soft subsurface glow, not a flat red/orange fill".
+4. Lighting: "stronger form lighting, better shadow wrapping, clearer volume, and better contrast".
+5. Glow: "a thin crisp luminous edge/rim light and a clean neon border, with less foggy airbrushed aura".
+6. Skin: "moist, slimy, slightly translucent, delicate micro-variation, not noisy".
+7. Arm anatomy: "better taper, more natural thickness transitions, clearer muscle flow, less tube-like".
+8. Arm posing: bending "along the full length with multiple bend points".
+9. Suckers: "more integrated, dimensional, and natural in spacing, size, and embedding".
+10. Cheek-to-head and arm-root transitions: "anatomically smooth and unified".
+11. Environment: "bounce light, reflected color, edge tinting, and atmospheric blending".
+12. Depth: "better overlap, occlusion, silhouette clarity, and dimensional form separation".
+
+The brief also asks to go "better than the reference", with "one strong key light, one crisp rim light, and one subtle warm underglow", better violet–magenta–coral harmony, and slightly sharper facial rendering. Constraints: no redesign, keep the cute identity, and do not reduce the glow energy.
+
+### Glow and material v3 (2026-10-24)
+
+Capture: `assets/glow-v3*.png` (full, left, right, head, body strips against the HQ panel and glow v2; cups close-up; review page suckers view; motion sheet; orbit). Verdict: pending.
+
+How v3 answers the brief:
+
+- **Lighting hierarchy (4, 11 and "better than the reference"):** one key light from the upper left with soft wrap, then magenta light scattered at the terminator, the red band's subsurface glow, cool bounce from the water above and warm from below, a subtle warm underglow, surroundings reflected at grazing angles, and depth haze behind the body. The arms are rebuilt on it; the cups share the same lights. Stage values live in `config/lighting.ts`.
+- **Plastic shine (1):** the broad sheen and the second top light are gone; gloss stays in wet patches, droplets and glints. The wet patches now have crisp, anti-aliased edges.
+- **Colour (2, 3):** deeper violet body (#640a90) with a magenta terminator (#a8085a) and a red underside that glows up into the body instead of a flat fill. Arm colours track the HQ arm profile.
+- **Arm anatomy (7):** the sucker side is flattened to 86% of the radius; the back stays round.
+- **Suckers (9):** shallow coral discs sunk into the skin, each with a red slit along the arm instead of a round hole. Each sits on the skin itself, levelled to the skin under its edges and bent across and along the arm so it hugs it. Each casts a soft contact shadow onto the band, deeper away from the key light. Spacing varies by up to 9%. In tight curls, where the skin is squeezed, cups are squashed along the arm only when they would otherwise overlap. Cups seen edge-on flatten so they do not break the outline.
+- **Transitions (10):** the cheek lobes blend into the head over a wider band (0.05 to 0.08); arm highlights, rim and saturation fade out where the arms rise from the neck.
+- **Face (sharpen slightly):** the face texture is sampled one mip finer.
+- **Skin (6):** the micro-bumps fade out wherever they would loom large on screen (up close, or along an arm seen at a grazing angle), where they smeared the highlights into blurry dashes.
+
+Checks: suite 108/108, typecheck clean, `check_stage` PASS, no shader errors. Known gaps: the last cup at each tip can hang past the rounded end; at a steep 70-degree orbit an arm seen end-on still shows a large pale highlight (from v2); the HQ dome is lighter blue with more visible texture than ours; the lava environment is weaker than the painting's (stage work, not this task). Frame rate on the Intel UHD read ~19-32 fps at DPR 1 under a busy machine (v2 measured ~41 under light load); an A/B of the new cup-shadow pass was within noise.
+

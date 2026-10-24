@@ -19,6 +19,7 @@ export function clampCharacterConfig(config: CharacterConfig): CharacterConfig {
   return {
     ...config,
     armBend: clamp(config.armBend, 0, 0.3),
+    armFlatten: clamp(config.armFlatten, 0.7, 1),
     skin: {
       ...k,
       speckDensity: clamp(k.speckDensity, 0, 1),
