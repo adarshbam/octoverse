@@ -15,12 +15,10 @@ Updated 2026-10-23. Read this first in a new session, then the files it points t
 ## Status
 
 - **Phase A, foundation (Tasks 1–6):** complete. 29 Vitest tests pass and `npm run typecheck` is clean.
-- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 (body–arm junction), 8 (eyebrows), 9 (eyes, then mouth and blush) and 10 (mantle, with round cheeks and bigger lashes added after their 2026-10-24 note). Each verdict is in the review log. **Next: Task 11, arms (`arms-left`, then `arms-right`).** Then come Tasks 12 to 15 and the Task 16 sign-off, each ending with the owner's approval.
-- **Owner notes still open, raised on junction v1 (see "Change requests" in the review log):**
-  - Arm volume and glow: the arms look flat (Tasks 11 and 14).
-  - Skin colour variation and fine texture: the model looks flat (Task 13).
-  - Suckers on every arm everywhere (Task 12). T4/T5 already carry theirs along the V.
-- **Phase C, stages (Tasks 17–26):** not started. It is gated on the owner signing off the whole character in Task 16.
+- **Phase B, character upgrade (Tasks 7–16):** in progress. The owner has approved Tasks 7 to 13 (junction, eyebrows, eyes, mouth and blush, mantle, arms, suckers, skin). Each verdict is in the review log. The eyes were rebuilt from the owner's high-quality face reference (v4); the owner asked to keep them while sending a whole-character critique. **Next: Task 14, glow and halo**, which also covers the critique's contact shadows, cheek shading and the neon red band under the cups. Then Task 15 (motion) and the Task 16 sign-off.
+- **High-quality references:** `docs/design/references/Nox/` (the owner's HQ panels) and `docs/design/references/Nox-face-hq.png`. The review page compares against the HQ panel 2 by default (`&ref=panel` for the old one). In scratch tooling, world (x, y) maps to HQ px (783.6 + 204.5 x, 495.4 - 204.5 y).
+- **Owner critique still open (2026-10-24, review log "Whole-character critique"):** points 1 and 9, cheek blending and contact shadows or depth between arms (Task 14), and point 10, layered lighting (Task 14). Points 2 to 8 are done.
+- **Performance:** on this laptop's Intel UHD, the moving intro runs at ~30–44 fps at DPR 1 and ~16 at DPR 2 (headless Edge). Task 18's tiers must cap DPR and bloom resolution on integrated GPUs. Never use canvas `filter` in `FaceCanvas`: it redraws every frame and costs most of the frame rate.
 
 ## How each character component is done (plan: "Pattern: character component tasks")
 
