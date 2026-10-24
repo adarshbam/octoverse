@@ -121,3 +121,11 @@ Before review, the recording showed three motion defects, now fixed:
 
 Personality values are unchanged: blinks every 2.6-7 s (20% double), gaze speed 16, head 3.2, sway 0.5, curl 1.1, float 0.045 over 6.2 s, breath 4.6 s. Known gaps: reaches are gentle (the arm leans toward the pointer rather than stretching to it); breathing and float are subtle at stage size.
 
+## Character sign-off (2026-10-25)
+
+The owner signed off the base Nox: asked "Is this the base Nox we build everything on?", they answered "Yes, this is the base Nox." Every component, Tasks 7 to 15, was approved before this. Stage work (Task 17 onward) may now start.
+
+Captures: `assets/signoff.png` (stage, `check_stage` PASS against panel 2), `assets/signoff-full.png` (beside the HQ panel), `assets/signoff-review-full.png` (review page), `assets/signoff-orbit.png`, and the approved motion `assets/motion-v1.webm`.
+
+Known gaps carried into the stages: the last cup at each tip can hang past the rounded end; a steep 70-degree orbit shows a pale highlight on an arm seen end-on; the dome is darker and less textured than the painting's; the face is symmetric where the painting's is slightly uneven; reaches are gentle; the lava environment is weaker than the painting's (stage work).
+
