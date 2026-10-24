@@ -12,6 +12,7 @@ export const noxProject: Project = {
   id: 'security-lab',
   name: nox.project,
   tagline: nox.tagline,
+  summary: nox.summary,
   characterName: nox.name,
   characterEpithet: nox.epithet,
   introduction: nox.introduction,

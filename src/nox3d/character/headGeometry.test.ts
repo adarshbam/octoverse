@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { cheekCentres, cheekReach, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
+import * as THREE from 'three';
+import { cheekCentres, cheekReach, createDomeGeometry, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
 
 // Rim-line trace of panel 2 (world units): the dome is widest at y = -0.44, the outline
 // dips into a notch at y = -0.725, then each cheek bulges out as a round lobe, fullest
@@ -54,4 +55,39 @@ test('each cheek lobe centre sits inside the outline, one lobe radius in from it
   expect(left.x).toBeCloseTo(2 * head.centerX - right.x, 9);
   expect(Math.abs(right.x - head.centerX + head.cheeks.radius - silhouetteHalfWidth(head, head.cheeks.y))).toBeLessThan(0.02);
   expect(right.z).toBeGreaterThan(0);
+});
+
+test('the overview dome: a wide glass capsule at the traced size, centred over the face', () => {
+  const dome = NOX.dome;
+  const box = new THREE.Box3().setFromBufferAttribute(createDomeGeometry(dome).attributes.position as THREE.BufferAttribute);
+  expect(box.min.x).toBeCloseTo(-dome.halfWidth, 3);
+  expect(box.max.x).toBeCloseTo(dome.halfWidth, 3);
+  expect(box.max.y - box.min.y).toBeCloseTo(2 * dome.halfHeight, 3);
+  expect(box.max.z).toBeCloseTo(dome.depth, 3);
+  // Built round its own centre; the stage places it.
+  expect((box.min.y + box.max.y) / 2).toBeCloseTo(0, 6);
+});
+
+test('as the dome opens, the mantle top sinks beneath it, its sides rising straight into it, and the face below stays put', () => {
+  const g = createHeadGeometry(head, NOX.dome.mantleTop);
+  const p = g.attributes.position;
+  const m = g.attributes.aMorph;
+  const oy = head.faceOrigin[1];
+  let top = -Infinity;
+  let widestNearTop = 0;
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i) + oy;
+    const my = m.getY(i) + oy;
+    top = Math.max(top, my);
+    if (my > NOX.dome.mantleTop - 0.03) widestNearTop = Math.max(widestNearTop, Math.abs(m.getX(i) - (head.centerX - head.faceOrigin[0])));
+    if (y < -0.56) {
+      expect(m.getX(i)).toBeCloseTo(p.getX(i), 6);
+      expect(m.getY(i)).toBeCloseTo(p.getY(i), 6);
+      expect(m.getZ(i)).toBeCloseTo(p.getZ(i), 6);
+    }
+  }
+  expect(top).toBeCloseTo(NOX.dome.mantleTop, 2);
+  // Under the dome the sides stay nearly full width: no rounded lid.
+  expect(widestNearTop).toBeGreaterThan(0.85 * head.halfWidth);
+  expect(g.attributes.aMorphNormal.count).toBe(p.count);
 });

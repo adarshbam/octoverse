@@ -1,4 +1,5 @@
 import type { Project } from '../content/projectTypes';
+import { ExploreNameplate } from './ExploreNameplate';
 import './intro.css';
 
 function Flame() {
@@ -18,11 +19,11 @@ function Flame() {
   );
 }
 
-/** Panel 2's title block and nameplate, laid out on the square stage. */
-export function IntroOverlay({ project }: { project: Project }) {
+/** Panel 2's title block and nameplate, laid out on the square stage; it fades out when `hidden`. */
+export function IntroOverlay({ project, onExplore, hidden = false }: { project: Project; onExplore: () => void; hidden?: boolean }) {
   const [first, ...rest] = project.name.split(' ');
   return (
-    <div className="stage">
+    <div className={`stage${hidden ? ' is-hidden' : ''}`} aria-hidden={hidden}>
       <p className="kicker">OCTOVERSE</p>
       <h1 className="title">
         <Flame />
@@ -39,10 +40,7 @@ export function IntroOverlay({ project }: { project: Project }) {
           </span>
         ))}
       </p>
-      <div className="nameplate">
-        <b>{project.characterName}</b>
-        <span>{project.characterEpithet}</span>
-      </div>
+      <ExploreNameplate project={project} onExplore={onExplore} disabled={hidden} />
     </div>
   );
 }

@@ -52,6 +52,10 @@ export const NOX: CharacterConfig = {
     suckerHot: '#fd8a60',
     suckerHollow: '#e2232f',
     suckerShadow: '#2a0212',
+    domeTint: '#0c0720',
+    domeRim: '#ff3a78',
+    domeRimTop: '#ff86c4',
+    domeSheen: '#ff8fc8',
   },
   face: {
     // Placed and sized from panel 2; border, lid and iris layers traced from the
@@ -117,6 +121,9 @@ export const NOX: CharacterConfig = {
   armBend: 0.2,
   armFlatten: 0.86,
   // Cups traced from the high-quality panel 2: ~0.1 across mid-arm, oval as they turn toward the viewer.
+  // Traced from the high-quality panel 3 (scripts/hq3.py): the dome spans x -1.38..1.51 and
+  // y 0.0..1.25 in world units, over the body placed at (0.03, 0.353).
+  dome: { center: [0.035, 0.272], halfWidth: 1.445, halfHeight: 0.625, depth: 0.6, power: 3.2, mantleTop: -0.32 },
   suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.85 },
   // Skin detail traced from the high-quality panel 2: droplet bumps 0.01 to 0.035 across, dark
   // blotches, bluish and reddish drift, sharp wet highlights and warm light through the underside.

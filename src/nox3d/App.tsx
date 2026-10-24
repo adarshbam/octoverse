@@ -17,6 +17,7 @@ import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
+import { OverviewPanel } from './ui/OverviewPanel';
 import { Backdrop } from './world/Backdrop';
 import { ContactShadows } from './world/ContactShadows';
 import { Bubbles, Embers } from './world/Particles';
@@ -97,6 +98,14 @@ export function App() {
     if (first.current) first.current = false;
     else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
   }, [blender, state.stage, reducedMotion]);
+  // Escape steps back a stage: detail to overview, overview to intro.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dispatch({ type: 'CLOSE' });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dispatch]);
   // The entrance is authored in Task 23; until then it ends at once.
   useEffect(() => {
     if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
@@ -111,6 +120,7 @@ export function App() {
       reducedMotion={reducedMotion}
       silhouette={MASK}
       quality={quality.settings}
+      onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
     />
   );
   return (
@@ -146,7 +156,12 @@ export function App() {
           </>
         )}
       </Canvas>
-      {!MASK && !url.view && <IntroOverlay project={noxProject} />}
+      {!MASK && !url.view && (
+        <>
+          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && state.stage !== 'entering'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
+          <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
+        </>
+      )}
     </div>
   );
 }

@@ -129,3 +129,17 @@ Captures: `assets/signoff.png` (stage, `check_stage` PASS against panel 2), `ass
 
 Known gaps carried into the stages: the last cup at each tip can hang past the rounded end; a steep 70-degree orbit shows a pale highlight on an arm seen end-on; the dome is darker and less textured than the painting's; the face is symmetric where the painting's is slightly uneven; reaches are gentle; the lava environment is weaker than the painting's (stage work).
 
+## Stages
+
+### Overview v1 (2026-10-25)
+
+Capture: `assets/overview-v1*.png` (stage, beside the high-quality panel 3, face close-up) and `assets/overview-v1-transition.webm` (intro, nameplate pressed, overview, Escape, back; sheet `assets/overview-v1-transition-sheet.png`). Verdict: pending.
+
+- **Reference:** traced from the high-quality panel 3, registered on the character so the approved face keeps its size (`scripts/hq3.py`). Its composition differs from the old storyboard panel 3, so the stage check samples the high-quality image.
+- **Dome:** the head opens into a wide glass capsule over the face (x -1.38 to 1.51, y 0.0 to 1.25), growing out of the crown as the mantle top sinks beneath it. Dark see-through glass, a hot pink rim, a bright line where it sits on the face, a soft inner reflection band.
+- **Panel:** in the dome, the project preview, "Security Lab", a short line (storyboard placeholder until you supply the text), "View Project" (opens the detail stage) and "GitHub" (the repository).
+- **Face and arms:** the happy open smile; the arms spread wide round the dome, curling where the technology orbs will hang (Task 20).
+- **Opening and closing:** the nameplate is now a button, "Nox, The Watcher, Explore Security Lab"; clicking Nox's head does the same. Escape steps back.
+
+Known gaps: no technology orbs yet (Task 20); the face under the dome has slightly crisper corners than the painting; the arms are a little pinker and thinner than the painting's deep violet ones; the panel is laid out for wide screens (phones come in Task 25).
+

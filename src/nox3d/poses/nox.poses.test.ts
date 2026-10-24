@@ -3,7 +3,7 @@ import { ArmChain, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS } from '../config/types';
-import { INTRO_TRACED, NOX_POSES } from './nox.poses';
+import { INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED } from './nox.poses';
 
 /** Distance from a point to a polyline, projecting onto its segments. */
 function distance(points: number[][], x: number, y: number) {
@@ -44,4 +44,25 @@ test('with the character rest bend, every arm still follows its traced curve clo
       expect(distance(seen, tx, ty), `${id} (${tx}, ${ty})`).toBeLessThan(0.06);
     }
   });
+});
+
+test('overview: seen from the stage camera, every arm lies on its panel 3 trace', () => {
+  const { body } = NOX_POSES.overview;
+  ARM_IDS.forEach((id, i) => {
+    const chain = new ArmChain(restFromCurve(NOX_POSES.overview.arms[id]), NOX.arms[i], i);
+    chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+    const seen = Array.from(chain.px, (x, k) => {
+      const f = CAMERA_Z / (CAMERA_Z - chain.pz[k]);
+      return [x * f + body.x, chain.py[k] * f + body.y];
+    });
+    for (const [tx, ty] of OVERVIEW_TRACED[id]) {
+      expect(distance(seen, tx, ty), `${id} (${tx}, ${ty})`).toBeLessThan(0.03);
+    }
+  });
+});
+
+test('overview: the head opens into the dome and Nox smiles', () => {
+  expect(NOX_POSES.overview.headMorph).toBe(1);
+  expect(NOX_POSES.overview.expression).toBe('happy');
+  expect(NOX_POSES.intro.headMorph).toBe(0);
 });

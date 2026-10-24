@@ -49,6 +49,8 @@ export function createSkinUniforms(config: CharacterConfig, lighting: StageLight
     /** Face glow extent: x spread, upward reach, downward reach. */
     uGlowShape: { value: new THREE.Vector3(glow.spreadX, glow.reachUp, glow.reachDown) },
     uGlowStrength: { value: 1.0 },
+    /** How far the head has opened into the overview dome (0..1): the mantle top sinks under it. */
+    uMorph: { value: 0 },
     uArmBody: color(p.armBody),
     uTerminator: color(p.terminator),
     uArmGlow: color(p.armGlow),
@@ -84,6 +86,11 @@ const skinVertex = /* glsl */ `
   attribute float aUnder;
   attribute float aU;
   attribute vec3 aSpeck;
+  #ifdef HEAD
+    attribute vec3 aMorph;
+    attribute vec3 aMorphNormal;
+    uniform float uMorph;
+  #endif
   uniform vec4 uFaceRect;
   varying vec3 vWorld;
   varying vec3 vNormalW;
@@ -93,9 +100,16 @@ const skinVertex = /* glsl */ `
   varying vec2 vFaceUv;
   varying float vFront;
   void main() {
-    vec4 world = modelMatrix * vec4(position, 1.0);
+    #ifdef HEAD
+      vec3 p = mix(position, aMorph, uMorph);
+      vec3 n = normalize(mix(normal, aMorphNormal, uMorph));
+    #else
+      vec3 p = position;
+      vec3 n = normal;
+    #endif
+    vec4 world = modelMatrix * vec4(p, 1.0);
     vWorld = world.xyz;
-    vNormalW = normalize(mat3(modelMatrix) * normal);
+    vNormalW = normalize(mat3(modelMatrix) * n);
     #ifdef ARM
       vUnder = aUnder;
       vU = aU;
@@ -105,10 +119,10 @@ const skinVertex = /* glsl */ `
     #else
       vUnder = 0.0;
       vU = 1.0;
-      vSurf = position;
+      vSurf = p;
     #endif
-    vFaceUv = (position.xy - uFaceRect.xy) / uFaceRect.zw;
-    vFront = normal.z;
+    vFaceUv = (p.xy - uFaceRect.xy) / uFaceRect.zw;
+    vFront = n.z;
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
@@ -118,6 +132,7 @@ const skinFragment = /* glsl */ `
   uniform vec3 uGlowPos;
   uniform vec3 uGlowShape;
   uniform float uGlowStrength;
+  uniform float uMorph;
   uniform vec3 uArmBody;
   uniform vec3 uTerminator;
   uniform vec3 uKeyLight;
@@ -287,6 +302,12 @@ const skinFragment = /* glsl */ `
       float lobeR = 1.0 - smoothstep(0.2, 1.6, length((cheekLocal - uCheekCentres.zw + vec2(0.05, 0.0)) / uCheekShape.x));
       vec3 warm = texture2D(uGlowRamp, vec2(0.5, 0.5)).rgb;
       col = mix(col, warm, max(lobeL, lobeR) * uCheekShape.y * smoothstep(0.15, 0.6, ndv));
+      #ifdef HEAD
+        // Opened into the dome, the mantle's sunk top tucks into the glass's shadow, with no rim
+        // light round it, so the face rises out of the dome instead of a lidded box.
+        float capped = uMorph * smoothstep(-0.2, -0.04, cheekLocal.y);
+        col = mix(col, col * 0.4, capped);
+      #endif
     #endif
 
     // Living skin. Detail stays off the face, its glow and the red underside.

@@ -1,0 +1,127 @@
+/* The project panel inside the overview dome; sizes are relative to the dome's inner rectangle
+   (traced from panel 3), so the layout scales with the stage. */
+.overview-panel {
+  position: absolute;
+  container-type: size;
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(2%) scale(0.97);
+  transition: opacity 260ms ease, transform 260ms ease;
+  pointer-events: none;
+}
+
+.overview-panel.is-open {
+  opacity: 1;
+  transform: none;
+  transition: opacity 420ms ease 420ms, transform 420ms ease 420ms;
+  pointer-events: auto;
+}
+
+.overview-preview {
+  position: absolute;
+  left: 6.3%;
+  top: 14.8%;
+  width: 47.5%;
+  height: 64%;
+  object-fit: cover;
+  object-position: top left;
+  border-radius: 2.4cqh;
+  border: 0.4cqh solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 3cqh rgba(0, 0, 0, 0.6);
+}
+
+.overview-copy {
+  position: absolute;
+  left: 58.4%;
+  top: 13%;
+  width: 40%;
+}
+
+.overview-copy h2 {
+  margin: 0;
+  font-size: 11.5cqh;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.overview-copy p {
+  margin: 3cqh 0 0;
+  font-size: 7.4cqh;
+  line-height: 1.45;
+  color: #e7e0f0;
+}
+
+.overview-actions {
+  position: absolute;
+  inset: 75% 0 3% 0;
+}
+
+.overview-actions > * {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqh;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 7.6cqh;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.overview-actions svg {
+  width: 9cqh;
+  height: 9cqh;
+}
+
+.overview-view {
+  left: 16.5%;
+  width: 38%;
+  border: none;
+  color: #1a0710;
+  background: linear-gradient(180deg, #ff7a86 0%, #ff4c62 100%);
+  box-shadow: 0 0 4cqh rgba(255, 70, 100, 0.55);
+}
+
+.overview-github {
+  left: 56.5%;
+  width: 29.8%;
+  color: #fff;
+  background: rgba(10, 6, 18, 0.72);
+  border: 0.45cqh solid rgba(255, 120, 160, 0.35);
+}
+
+.overview-actions > *:focus-visible {
+  outline: 0.6cqh solid #ffd0dc;
+  outline-offset: 0.8cqh;
+}
+
+/* The nameplate is the way in: a button that opens the overview. */
+.nameplate-button {
+  pointer-events: auto;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+.nameplate-button:focus-visible {
+  outline: 0.4cqh solid #ffd0dc;
+  outline-offset: 0.6cqh;
+}
+
+.stage {
+  transition: opacity 300ms ease;
+}
+
+.stage.is-hidden {
+  opacity: 0;
+}
+
+.stage.is-hidden .nameplate-button {
+  pointer-events: none;
+}

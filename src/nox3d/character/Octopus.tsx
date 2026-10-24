@@ -16,8 +16,9 @@ import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
 import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
-import { createHeadGeometry } from './headGeometry';
+import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
+import { createDomeMaterial } from './domeMaterial';
 import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 
@@ -42,6 +43,8 @@ export interface OctopusProps {
   silhouette?: boolean;
   /** Mesh detail from the quality tier. */
   quality?: TierSettings;
+  /** Clicking Nox's head (it opens into the overview). */
+  onSelect?: () => void;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -49,11 +52,12 @@ const REST_IN = 2;
 const WAKE = 0.5;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
+  const dome = useRef<THREE.Mesh>(null);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
@@ -94,7 +98,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       arms,
       webs,
       webMaterial,
-      headGeometry: createHeadGeometry(config.head),
+      headGeometry: createHeadGeometry(config.head, config.dome.mantleTop),
+      domeGeometry: createDomeGeometry(config.dome),
+      domeMaterial: createDomeMaterial(config.palette, config.dome),
       suckers,
       cupShadows,
       suckerBend,
@@ -113,6 +119,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     for (const { tube } of rig.arms) tube.geometry.dispose();
     for (const web of rig.webs) web.geometry.dispose();
     rig.headGeometry.dispose();
+    rig.domeGeometry.dispose();
+    rig.domeMaterial.dispose();
     for (const mesh of [rig.suckers, rig.cupShadows]) {
       mesh.geometry.dispose();
       (mesh.material as THREE.Material).dispose();
@@ -233,6 +241,23 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     m.glow.copy(rig.glowLocal).applyMatrix4(content.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b) * (1 - 0.15 * m.rest);
+
+    // The head opens into the glass dome: it grows out of the crown as the mantle top sinks under
+    // it, and the mantle's own halo gives way to the dome's rim.
+    const open = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
+    const ease = open * open * (3 - 2 * open);
+    rig.uniforms.uMorph.value = open;
+    const { center, halfHeight } = config.dome;
+    const grow = 0.3 + 0.7 * ease;
+    dome.current!.visible = open > 0.001 && !silhouette;
+    dome.current!.scale.setScalar(grow);
+    dome.current!.position.set(
+      THREE.MathUtils.lerp(config.head.centerX, center[0], ease),
+      THREE.MathUtils.lerp(config.head.top - halfHeight * grow, center[1], ease),
+      0,
+    );
+    rig.domeMaterial.uniforms.uOpacity.value = ease;
+    rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease), config.glow.halo.bandStrength * (1 - ease));
   });
 
   const [faceX, faceY] = config.head.faceOrigin;
@@ -249,7 +274,16 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
-          <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]}>
+          <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
+          <mesh
+            ref={head}
+            geometry={rig.headGeometry}
+            material={rig.headMaterial}
+            position={[faceX, faceY, 0]}
+            onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
+            onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
+            onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
+          >
             {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
           </mesh>
           <primitive object={rig.suckers} />

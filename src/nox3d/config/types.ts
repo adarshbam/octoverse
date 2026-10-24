@@ -92,6 +92,11 @@ export interface Palette {
   suckerHollow: string;
   /** The soft contact shadow each cup casts onto the band round it. */
   suckerShadow: string;
+  /** The overview dome's glass body, its rim (hot pink, lavender over the crown) and inner sheen. */
+  domeTint: string;
+  domeRim: string;
+  domeRimTop: string;
+  domeSheen: string;
 }
 
 /**
@@ -270,6 +275,22 @@ export interface SuckerSettings {
   shadow: number;
 }
 
+/**
+ * The glass dome the head opens into in the overview (panel 3), in the space the head is authored
+ * in: a capsule with rounded-square corners round `center`.
+ */
+export interface DomeShape {
+  center: Point2;
+  halfWidth: number;
+  halfHeight: number;
+  /** z radius toward the viewer. */
+  depth: number;
+  /** Corner squareness: 2 is an ellipse, higher is squarer. */
+  power: number;
+  /** Where the mantle's top sinks to, beneath the dome, when it is fully open. */
+  mantleTop: number;
+}
+
 export interface CharacterConfig {
   id: string;
   head: HeadShape;
@@ -286,6 +307,7 @@ export interface CharacterConfig {
   /** The arms' sucker side is flattened to this fraction of the radius; their backs stay round. */
   armFlatten: number;
   suckers: SuckerSettings;
+  dome: DomeShape;
   skin: SkinDetail;
   personality: Personality;
 }

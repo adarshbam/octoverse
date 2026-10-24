@@ -225,6 +225,8 @@ export interface Project {
   readonly id: string;
   readonly name: string;
   readonly tagline?: string;
+  /** One or two lines for the overview panel. */
+  readonly summary?: string;
   readonly characterName: string;
   readonly characterEpithet: string;
   readonly introduction: readonly string[];
