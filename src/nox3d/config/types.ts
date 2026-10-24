@@ -207,6 +207,7 @@ export interface CharacterConfig {
   facePalette: FacePalette;
   arms: readonly ArmSpec[];
   tipRadius: number;
+  /** Arm taper: radius falls as 1 - u^taperPower along the arm, so larger values keep arms thick for longer. */
   taperPower: number;
   suckers: { sizeRatio: number; spacing: number; tilt: number };
   personality: Personality;

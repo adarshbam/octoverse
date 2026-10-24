@@ -3,12 +3,14 @@ import type { ArmSpec, CharacterConfig } from './types';
 // Nox, measured against Nox.jpeg panel 2 in the 3D spike (commit 58cf458).
 // These are the baseline to upgrade component by component, not the final look.
 
-const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.42] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.17, z: [0.05, -0.22] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.0, 0.06] });
+// Arms fan out in depth from the body: centre arms forward, side arms level, upper arms back,
+// top arms behind the head. The intro curves are flattened so the stage camera still sees the trace.
+const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.165, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.18, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.18, z: [0.0, 0.3] });
 // The centre arms show their suckers along the V between them, outside their tip curls,
 // starting where the V opens below the web.
-const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.158, z: [0.22, 0.25], suckerSide, suckerStart: 0.2 });
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.18, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
 
 export const NOX: CharacterConfig = {
   id: 'nox',
@@ -100,8 +102,9 @@ export const NOX: CharacterConfig = {
     blushGlow: '#e8344c',
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
-  tipRadius: 0.035,
-  taperPower: 0.75,
+  // Arm thickness traced from the high-quality panel 2: full through the middle, tapering into the curls.
+  tipRadius: 0.042,
+  taperPower: 2.2,
   suckers: { sizeRatio: 0.6, spacing: 2.2, tilt: 12 },
   personality: {
     blinkInterval: [2.6, 7.0],

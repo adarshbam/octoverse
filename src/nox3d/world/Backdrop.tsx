@@ -2,13 +2,13 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { createGlowMaterial } from '../character/glowMaterial';
+import { CAMERA_Z } from '../config/stage';
 
 // The security realm is a painted plate (panel 2 with Nox and text removed) with live
 // 3D particles, bubbles and haze in front of it. Outside the square stage the plate
 // feathers into a matching gradient so wide windows never show a hard edge.
 
 const PLATE_Z = -3;
-const CAMERA_Z = 12;
 /** Panel 2 spans 5.06 x 5.04 units at z = 0; grow it so it covers the same view at PLATE_Z. */
 const PLATE_SCALE = (CAMERA_Z - PLATE_Z) / CAMERA_Z;
 

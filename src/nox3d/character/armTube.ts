@@ -2,9 +2,18 @@ import * as THREE from 'three';
 import type { ArmSpec } from '../config/types';
 import type { ArmChain } from './armChain';
 
-/** Roots swell by up to 30% over the first 12% of the arm, filling the joint with the body. */
-const ROOT_FLARE = 0.3;
-const ROOT_FLARE_SPAN = 0.12;
+/** The base swells by up to 12%, easing out along the arm, so it fills the joint with the body. */
+const BASE_SWELL = 0.12;
+
+/**
+ * Arm radius at arc fraction u (0 = root, 1 = tip): thick for most of the length, then
+ * tapering into the curl (1 - u^taperPower), with a fuller base and a rounded tip.
+ */
+export function armRadius(u: number, spec: ArmSpec, profile: { tipRadius: number; taperPower: number }) {
+  const t = Math.min(1, Math.max(0, u));
+  const taper = profile.tipRadius + (spec.rootRadius - profile.tipRadius) * (1 - t ** profile.taperPower);
+  return taper * (1 + BASE_SWELL * (1 - t) ** 4);
+}
 
 /**
  * A tapered tube rebuilt around an arm chain every frame. Ring 0 of each
@@ -39,11 +48,7 @@ export class ArmTube {
     this.by = new Float32Array(n + 1);
     this.bz = new Float32Array(n + 1);
     this.radius = new Float32Array(n + 1);
-    for (let k = 0; k <= n; k++) {
-      const s = k / n;
-      const flare = s < ROOT_FLARE_SPAN ? 1 + ROOT_FLARE * (1 - s / ROOT_FLARE_SPAN) ** 2 : 1;
-      this.radius[k] = (profile.tipRadius + (spec.rootRadius - profile.tipRadius) * Math.pow(1 - s, profile.taperPower)) * flare;
-    }
+    for (let k = 0; k <= n; k++) this.radius[k] = armRadius(k / n, spec, profile);
     this.ringCos = Float32Array.from({ length: radial + 1 }, (_, j) => Math.cos((j / radial) * Math.PI * 2));
     this.ringSin = Float32Array.from({ length: radial + 1 }, (_, j) => Math.sin((j / radial) * Math.PI * 2));
     const tilt = THREE.MathUtils.degToRad(profile.suckerTilt);

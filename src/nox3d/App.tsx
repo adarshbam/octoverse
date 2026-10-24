@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { parseUrlState } from './behavior/urlState';
 import { Octopus } from './character/Octopus';
 import { NOX } from './config/nox.character';
+import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
 import { NOX_POSES } from './poses/nox.poses';
@@ -13,9 +14,6 @@ import { IntroOverlay } from './ui/IntroOverlay';
 import { Backdrop } from './world/Backdrop';
 import { Bubbles, Embers } from './world/Particles';
 
-const CAMERA_Z = 12;
-/** World units from stage centre to the top edge (panel 2 is 504 px = 5.04 units tall). */
-const STAGE_HALF = 2.52;
 const url = parseUrlState(location.search);
 const MASK = new URLSearchParams(location.search).has('mask');
 
@@ -26,7 +24,16 @@ function StageCamera() {
   const gl = useThree(s => s.gl);
   useLayoutEffect(() => {
     const aspect = size.width / size.height;
-    if (url.view) {
+    camera.clearViewOffset();
+    if (url.view && !url.orbit) {
+      // A zoom is a window onto the unmoved stage camera, so arms in front of or behind the
+      // traced plane line up exactly as they do on the stage.
+      const w = viewWindow(url.view, size.width, size.height);
+      camera.position.set(0, 0, CAMERA_Z);
+      camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(STAGE_HALF / CAMERA_Z));
+      camera.setViewOffset(w.fullWidth, w.fullHeight, w.x, w.y, w.width, w.height);
+    } else if (url.view) {
+      // The orbit view circles the box instead.
       const [x0, y0, x1, y1] = url.view;
       const halfHeight = Math.max(y0 - y1, (x1 - x0) / aspect) / 2;
       camera.position.set((x0 + x1) / 2, (y0 + y1) / 2, CAMERA_Z);

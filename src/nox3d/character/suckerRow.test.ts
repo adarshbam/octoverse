@@ -21,7 +21,7 @@ test('suckers start small next to the body', () => {
   for (const id of ARM_IDS) {
     const { chain, row } = arm(id);
     const length = chain.segmentLength * chain.segments;
-    const full = Math.max(...row.suckers.filter(s => s.arc > 0.25 * length && s.arc < 0.35 * length).map(s => s.size));
+    const full = Math.max(...row.suckers.filter(s => s.arc > 0.25 * length && s.arc < 0.45 * length).map(s => s.size));
     expect(row.suckers[0].size, id).toBeLessThan(full * 0.6);
   }
 });

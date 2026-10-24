@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import type { ArmId, Point2 } from '../config/types';
 import { NOX_POSES } from '../poses/nox.poses';
-import { ArmChain, restFromCurve } from './armChain';
+import { ArmChain, armDepth, restFromCurve } from './armChain';
 
 // Intro curves of T1 and T8 from the spike (src/spike/nox/armPoses.ts), hidden root included.
 const T1: Point2[] = [[-0.112, -1.02], [-0.72, -0.95], [-0.85, -0.77], [-0.93, -0.53], [-1.0, -0.33], [-1.07, -0.2], [-1.17, -0.15], [-1.25, -0.18], [-1.28, -0.27], [-1.23, -0.32], [-1.18, -0.3]];
@@ -72,4 +72,16 @@ test('pointAt runs from the root at 0 to the tip at 1', () => {
 
 test('segment count follows the rest', () => {
   expect(new ArmChain(restFromCurve(T1, 32), spec('T1'), 0).px).toHaveLength(33);
+});
+
+test('arms fan out in depth from the body: centre arms come forward, top arms go back behind the head', () => {
+  const at = (id: ArmId, u: number) => armDepth(u, spec(id));
+  expect(at('T4', 1)).toBeGreaterThanOrEqual(0.4);
+  expect(at('T4', 1)).toBeGreaterThan(at('T4', 0));
+  expect(at('T3', 1)).toBeLessThan(at('T4', 1));
+  expect(at('T2', 1)).toBeLessThan(at('T3', 1));
+  expect(at('T1', 1)).toBeLessThan(at('T2', 1));
+  expect(at('T1', 1)).toBeLessThanOrEqual(-0.5);
+  // Most of the fan happens near the body, so the arms leave it already spread.
+  expect(Math.abs(at('T1', 0.5) - at('T1', 0))).toBeGreaterThan(0.6 * Math.abs(at('T1', 1) - at('T1', 0)));
 });

@@ -21,12 +21,18 @@ function vertices(web: ArmWeb) {
   return Array.from({ length: p.length / 3 }, (_, i) => [p[i * 3], p[i * 3 + 1], p[i * 3 + 2]]);
 }
 
+/** Nearest point on the chain's polyline (projected onto its segments, not just its samples). */
 function nearest(c: ArmChain, x: number, y: number) {
   let best = [c.px[0], c.py[0]];
   let d = Infinity;
-  for (let k = 0; k < c.px.length; k++) {
-    const e = Math.hypot(c.px[k] - x, c.py[k] - y);
-    if (e < d) { d = e; best = [c.px[k], c.py[k]]; }
+  for (let k = 0; k < c.px.length - 1; k++) {
+    const sx = c.px[k + 1] - c.px[k];
+    const sy = c.py[k + 1] - c.py[k];
+    const t = Math.min(1, Math.max(0, ((x - c.px[k]) * sx + (y - c.py[k]) * sy) / (sx * sx + sy * sy || 1)));
+    const qx = c.px[k] + sx * t;
+    const qy = c.py[k] + sy * t;
+    const e = Math.hypot(qx - x, qy - y);
+    if (e < d) { d = e; best = [qx, qy]; }
   }
   return best;
 }

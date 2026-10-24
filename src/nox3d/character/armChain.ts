@@ -27,6 +27,16 @@ const smoothstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
+/**
+ * Arm depth (world z) at arc fraction u: from the root depth toward the tip depth, with most of
+ * the change near the body, so the arms leave it already fanned out front to back.
+ */
+export function armDepth(u: number, spec: ArmSpec) {
+  const [z0, z1] = spec.z;
+  const t = Math.min(1, Math.max(0, u));
+  return z0 + (z1 - z0) * (1 - (1 - t) ** 2);
+}
+
 /** Resamples a traced curve (centripetal Catmull-Rom) into equal-length segments. */
 export function restFromCurve(curve: readonly Point2[], segments = ArmChain.SEGMENTS): ArmRest {
   const spline = new THREE.CatmullRomCurve3(curve.map(([x, y]) => new THREE.Vector3(x, y, 0)), false, 'centripetal');
@@ -132,10 +142,9 @@ export class ArmChain {
 
   private updateZ(t: number) {
     const n = this.segments;
-    const [z0, z1] = this.spec.z;
     for (let k = 0; k <= n; k++) {
       const s = k / n;
-      this.pz[k] = z0 + (z1 - z0) * s + (k === 0 ? 0 : 0.035 * s * Math.sin(t * 0.9 + this.phase + s * 2.5));
+      this.pz[k] = armDepth(s, this.spec) + (k === 0 ? 0 : 0.035 * s * Math.sin(t * 0.9 + this.phase + s * 2.5));
     }
   }
 
