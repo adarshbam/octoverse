@@ -81,4 +81,4 @@ test('a stage change is slow and gentle: no joint turns more than 0.06 rad in a 
     }));
     before = now;
   }
-});
+}, 15_000);

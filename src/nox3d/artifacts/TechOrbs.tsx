@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import type { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
 import { logoColour, logoTexture } from './logoTexture';
-import { createOrbMaterial } from './orbMaterial';
+import { createOrbHaloMaterial, createOrbMaterial, ORB_HALO_SCALE } from './orbMaterial';
 import { ORB_Z, type OrbSlot, orbRestPosition } from './orbSlots';
 
 export interface PlacedOrb {
@@ -29,8 +29,9 @@ export function TechOrbs({ orbs, chains, open }: { orbs: readonly PlacedOrb[]; c
         orb,
         chain: chains[ARM_IDS.indexOf(orb.slot.armId)],
         glass: createOrbMaterial(logoColour(orb.iconKey)),
-        // Brighter than the plain logo, so the bloom catches it and it glows as in the painting.
-        logo: new THREE.MeshBasicMaterial({ map: logoTexture(orb.iconKey), color: new THREE.Color(1.35, 1.35, 1.35), transparent: true, depthWrite: false }),
+        halo: createOrbHaloMaterial(logoColour(orb.iconKey)),
+        // At its plain brightness, so the bloom does not haze the glass round it.
+        logo: new THREE.MeshBasicMaterial({ map: logoTexture(orb.iconKey), color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false }),
       })),
     };
   }, [orbs, chains]);
@@ -40,6 +41,7 @@ export function TechOrbs({ orbs, chains, open }: { orbs: readonly PlacedOrb[]; c
     parts.plane.dispose();
     for (const item of parts.items) {
       item.glass.dispose();
+      item.halo.dispose();
       item.logo.dispose();
     }
   }, [parts]);
@@ -54,6 +56,7 @@ export function TechOrbs({ orbs, chains, open }: { orbs: readonly PlacedOrb[]; c
       node.position.set(x, y + 0.025 * Math.sin(t * 0.9 + i * 1.7), ORB_Z);
       node.scale.setScalar(item.orb.slot.radius * (0.4 + 0.6 * shown));
       item.glass.uniforms.uOpacity.value = shown;
+      item.halo.uniforms.uOpacity.value = shown;
       item.logo.opacity = shown;
     });
   });
@@ -62,8 +65,9 @@ export function TechOrbs({ orbs, chains, open }: { orbs: readonly PlacedOrb[]; c
     <group ref={group} visible={false}>
       {parts.items.map(item => (
         <group key={item.orb.techId}>
+          <mesh geometry={parts.sphere} material={item.halo} scale={ORB_HALO_SCALE} renderOrder={1} />
           <mesh geometry={parts.sphere} material={item.glass} renderOrder={2} />
-          <mesh geometry={parts.plane} material={item.logo} scale={1.8} position={[0, 0, 0.02]} renderOrder={3} />
+          <mesh geometry={parts.plane} material={item.logo} scale={2.1} position={[0, 0, 0.02]} renderOrder={3} />
         </group>
       ))}
     </group>

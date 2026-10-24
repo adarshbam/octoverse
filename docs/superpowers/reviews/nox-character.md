@@ -156,11 +156,28 @@ Capture: `assets/overview-v2-transition.webm` (sheet `assets/overview-v2-transit
 
 ### Technology orbs v1 (2026-10-25)
 
-Capture: `assets/orbs-v1.png`, `assets/orbs-v1-strip.png` (beside the high-quality panel 3), `assets/orbs-v1-zoom.png` (left orbs close up) and `assets/orbs-v1-transition.webm` (sheet `assets/orbs-v1-transition-sheet.png`). Verdict: pending.
+Capture: `assets/orbs-v1.png`, `assets/orbs-v1-strip.png` (beside the high-quality panel 3), `assets/orbs-v1-zoom.png` (left orbs close up) and `assets/orbs-v1-transition.webm` (sheet `assets/orbs-v1-transition-sheet.png`). Verdict: changes requested (critique below).
 
 - **Placement:** 15 glass orbs, one per technology in the project's order. The first 13 sit where panel 3 paints them (HTML, CSS, JavaScript, TypeScript, Node.js, Redis, Docker, GitHub, Linux, Kali, MongoDB, Python, Kali); the last two (Burp Suite, Express) follow the same rhythm, right of the face and under it. Each rides a point of an arm (at most three to an arm) and gently bobs, so the orbs move with the arms.
 - **Look:** clear bubbles with a glowing rim in the logo's colour and one soft highlight; logos in their brand colours, white where the brand is black or, as in the painting, for Kali. They grow in as the dome opens and shrink away as it closes.
 - **Reaching them:** each orb has a button (at least 44 px) for pointer, keyboard and touch; pressing one focuses that technology (Task 21 gives that stage its own look). Technologies beyond 15, and every technology on an upright phone, go to a tray of buttons along the bottom.
 
-Known gaps: Git, Burp Suite and Express replace the painting's second Kali and the repeated logos, since Nox has 15 distinct technologies; the painting's orbs glow a little more and its logos are larger; pressing an orb currently keeps the overview pose (Task 21).
+Owner critique on v1:
+1. Weak specular highlights (reference bubbles have concentrated, almost white reflections along their curved surfaces).
+2. Insufficient Fresnel contrast (reference edges are intensely illuminated while the centres remain relatively dark).
+3. Washed-out technology logos (reference icons are vibrant, opaque).
+4. Missing localized color reflections (reference bubbles pick up distinct orange, purple, and blue highlights).
+5. Excessive transparency (tentacles and pink lighting show through too strongly).
+
+### Technology orbs v2 (2026-10-25)
+
+Capture: `assets/orbs-v2.png`, `assets/orbs-v2-strip.png`, `assets/orbs-v2-zoom.png`, `assets/orbs-v2-compare.png`, `assets/orb-one-v2-compare.png`, `assets/orbs-v2-transition.webm` (sheet `assets/orbs-v2-transition-sheet.png`). Verdict: review-ready.
+
+- **Sharp, concentrated specular arcs:** replaced the soft wide glint with crisp near-white highlights placed along curved rim arcs (`band * arcs`), matching the concentrated glints of the painting without threshold bloom hazing the glass.
+- **Steep Fresnel & dark interior:** Fresnel curve steepened (`pow(1.0 - ndv, 7.0)`), keeping the sphere center dark and clear (linear `0.006` base tint) while the edge ring illuminates intensely.
+- **Opaque, vivid logos:** scale enlarged to 2.1x; logos drawn with boosted saturation in sRGB (`s * 1.3 + 0.2` so muted icons like Node reach the painting's vivid neon); letter counter holes filled (HTML, CSS, TS, JS) matching the painting.
+- **Localized reflections & colored outer halo:** each orb carries an additive outer halo shell (`scale 1.16`) softly glowing in the logo's own hue; glass reflections mix the logo tint with environment gradients (warm lava orange below, purple above, cool blue on the left).
+- **Substantial body:** interior alpha raised to 0.72 (`clamp(0.72 + fresnel * 0.4 + shine, 0.0, 1.0)`), holding background tentacle details back so orbs stand out crisp and clean.
+
+Checks: suite 160/160 tests PASS, `npm run typecheck` clean, `check_stage` panel 2 and panel 3 PASS.
 
