@@ -9,7 +9,7 @@ The base Nox is upgraded one component at a time (design doc section 8.0). Each 
 | Eyes | 2026-10-23 | Approved v1. The owner chose "Approve eyes" after the redraw that answered their v1 junction note on staring eyes (dark iris with a pooled glow, soft pupil, small catchlights, light lower rim, traced size, wider face glow). Known gap raised at review: the painting's two eyes differ slightly; ours are symmetric. Lashes revised 2026-10-24 after "Noo eyes lashes or too small lashes"; the owner chose "Lashes look right" (`assets/eyes-v2-lashes.png`). | `assets/eyes-v1.png`, `assets/eyes-v1-face.png`, `assets/eyes-v1-strip.png`, `assets/eyes-v1-expressions.png` |
 | Mouth and blush | 2026-10-23 | Approved v1. The owner chose "Approve mouth and blush" (traced smile with round corners, coral blush with a warm halo, and the open happy smile from panel 3). Known gap raised at review: the blush is slightly duller than the painting at high zoom. | `assets/mouth-v1.png`, `assets/mouth-v1-face.png`, `assets/mouth-v1-strip.png`, `assets/mouth-v1-happy-vs-panel3.png` |
 | Mantle | 2026-10-24 | Approved v1. The owner chose "Approve head and cheeks" after their note "cheeks are not round enough": round cheek lobes with the rim around them, apex lowered to the reference, navy dome, lilac rim, sheen on the upper-left crown. Known gaps raised at review: the dome's glossy streaks and texture (Task 13) and the outer halo (Task 14). | `assets/mantle-v1.png`, `assets/mantle-v1-strip.png`, `assets/mantle-v1-cheek.png`, `assets/mantle-v1-full.png` |
-| Arms (T1–T8) | pending | | |
+| Arms (T1–T8) | 2026-10-24 | Approved v1. The owner chose "Approve, do suckers next": all eight arms re-traced against the high-quality panel 2, about 30% thicker (full through the middle, fuller base, tapering into the curls) and fanned out in depth from the body. No arm was singled out. Known gap: the painting shows two extra arm tips low on each side; Nox keeps eight. | `assets/arms-v1.png`, `assets/arms-v1-strip.png`, `assets/arms-v1-trace.png`, `assets/arms-v1-orbit.png`, `assets/arms-v1-left.png`, `assets/arms-v1-right.png` |
 | Suckers | pending | | |
 | Skin detail | pending | | |
 | Glow and halo | pending | | |
@@ -56,3 +56,7 @@ After eyes v4, the owner sent a ten-point critique of the whole character, with 
 10. Gradients give brightness, not depth; layer purple tones with warm reddish subsurface light and small irregular wet reflections.
 
 Priorities, quoted: "Anatomically connected cheeks, thicker organic tentacles, realistic suction cups, and especially wet, slimy, translucent skin with convincing 3D depth." The pasted prompt also said "Keep the existing SVG-based architecture"; the build is the 3D one the owner chose on 2026-10-23, so the existing 3D architecture is kept and only Nox changes.
+
+### Eyes v4 and the critique (2026-10-24)
+
+Eyes v4 (rebuilt from `Nox-face-hq.png`; `assets/eyes-v4*.png`) was shown; the owner answered with the whole-character critique, which asks to "preserve Nox's adorable facial identity, large expressive eyes". No explicit verdict on v4; the eyes are kept as v4 and come back at the character sign-off.
