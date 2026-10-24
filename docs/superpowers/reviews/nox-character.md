@@ -133,7 +133,7 @@ Known gaps carried into the stages: the last cup at each tip can hang past the r
 
 ### Overview v1 (2026-10-25)
 
-Capture: `assets/overview-v1*.png` (stage, beside the high-quality panel 3, face close-up) and `assets/overview-v1-transition.webm` (intro, nameplate pressed, overview, Escape, back; sheet `assets/overview-v1-transition-sheet.png`). Verdict: pending.
+Capture: `assets/overview-v1*.png` (stage, beside the high-quality panel 3, face close-up) and `assets/overview-v1-transition.webm` (intro, nameplate pressed, overview, Escape, back; sheet `assets/overview-v1-transition-sheet.png`). Verdict: changes requested (the transition, below).
 
 - **Reference:** traced from the high-quality panel 3, registered on the character so the approved face keeps its size (`scripts/hq3.py`). Its composition differs from the old storyboard panel 3, so the stage check samples the high-quality image.
 - **Dome:** the head opens into a wide glass capsule over the face (x -1.38 to 1.51, y 0.0 to 1.25), growing out of the crown as the mantle top sinks beneath it. Dark see-through glass, a hot pink rim, a bright line where it sits on the face, a soft inner reflection band.
@@ -147,7 +147,7 @@ Owner, on v1: "It look good but the transition is a bit too fast make it feel sm
 
 ### Overview v2 (2026-10-25)
 
-Capture: `assets/overview-v2-transition.webm` (sheet `assets/overview-v2-transition-sheet.png`). Verdict: pending.
+Capture: `assets/overview-v2-transition.webm` (sheet `assets/overview-v2-transition-sheet.png`). Verdict: approved. The owner wrote "Approve overview v2".
 
 - **Slower, calmer change:** Nox now takes 1.8 s to move between stages (was 0.7 s), each arm setting off 70 ms after the one before, so the change ripples out round the body; no joint turns more than 0.06 rad in a frame (was 0.14). The camera settles at the same pace.
 - **The dome:** it eases once (it was eased twice, which rushed the middle) and starts larger, so it swells out of the crown instead of popping.
