@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { cheekReach, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
+import { cheekCentres, cheekReach, createHeadGeometry, silhouetteHalfWidth } from './headGeometry';
 
 // Rim-line trace of panel 2 (world units): the dome is widest at y = -0.44, the outline
 // dips into a notch at y = -0.725, then each cheek bulges out as a round lobe, fullest
@@ -46,4 +46,12 @@ test('the head mesh carries the cheeks', () => {
     if (Math.abs(y - CHEEK.y) < 0.02) widest = Math.max(widest, Math.abs(p[i] + ox - head.centerX));
   }
   expect(Math.abs(widest - CHEEK.half)).toBeLessThan(0.02);
+});
+
+test('each cheek lobe centre sits inside the outline, one lobe radius in from its fullest point', () => {
+  const [left, right] = cheekCentres(head);
+  expect(right.y).toBeCloseTo(head.cheeks.y, 9);
+  expect(left.x).toBeCloseTo(2 * head.centerX - right.x, 9);
+  expect(Math.abs(right.x - head.centerX + head.cheeks.radius - silhouetteHalfWidth(head, head.cheeks.y))).toBeLessThan(0.02);
+  expect(right.z).toBeGreaterThan(0);
 });

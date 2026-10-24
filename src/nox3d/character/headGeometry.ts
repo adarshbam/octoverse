@@ -23,6 +23,14 @@ export function cheekReach(cheeks: CheekShape, y: number, theta: number) {
   return disc <= 0 || along <= 0 ? 0 : along + Math.sqrt(disc);
 }
 
+/** Both cheek lobes' centres in world units, left then right. */
+export function cheekCentres(head: HeadShape) {
+  const { distance, angle, y } = head.cheeks;
+  const a = THREE.MathUtils.degToRad(angle);
+  const z = distance * Math.cos(a) * head.depth;
+  return [-1, 1].map(side => ({ x: head.centerX + side * distance * Math.sin(a), y, z }));
+}
+
 /** Mantle radius along a ray with the cheeks merged in: a smooth maximum keeps the join soft. */
 function withCheeks(head: HeadShape, r: number, y: number, theta: number) {
   const reach = cheekReach(head.cheeks, y, theta);

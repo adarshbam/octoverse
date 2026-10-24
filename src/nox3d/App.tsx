@@ -10,8 +10,10 @@ import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
 import { NOX_POSES } from './poses/nox.poses';
+import { POST } from './post';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { Backdrop } from './world/Backdrop';
+import { ContactShadows } from './world/ContactShadows';
 import { Bubbles, Embers } from './world/Particles';
 
 const url = parseUrlState(location.search);
@@ -87,8 +89,9 @@ export function App() {
             <Bubbles />
             <Embers />
             <EffectComposer multisampling={4}>
-              <Bloom mipmapBlur luminanceThreshold={0.66} luminanceSmoothing={0.25} intensity={1.05} radius={0.85} />
-              <Vignette offset={0.22} darkness={0.72} />
+              <ContactShadows settings={POST.contactShadows} />
+              <Bloom mipmapBlur {...POST.bloom} />
+              <Vignette {...POST.vignette} />
             </EffectComposer>
           </>
         )}

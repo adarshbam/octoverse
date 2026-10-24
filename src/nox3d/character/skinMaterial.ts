@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { CharacterConfig } from '../config/types';
+import { cheekCentres } from './headGeometry';
 
 /**
  * Mantle colour ramp texture: raw sRGB bytes, tagged sRGB so the GPU decodes
@@ -33,7 +34,12 @@ export function createSkinUniforms(config: CharacterConfig) {
   const { palette: p, glow, skin } = config;
   const color = (hex: string) => ({ value: new THREE.Color(hex) });
   const [[lx, ly], [rx, ry]] = config.face.eye.centers;
+  const [fx, fy] = config.head.faceOrigin;
+  const [cheekL, cheekR] = cheekCentres(config.head);
   return {
+    /** Cheek lobes in head-local units (x, y, x, y), their radius, and how much the face glow warms them. */
+    uCheekCentres: { value: new THREE.Vector4(cheekL.x - fx, cheekL.y - fy, cheekR.x - fx, cheekR.y - fy) },
+    uCheekShape: { value: new THREE.Vector2(config.head.cheeks.radius, glow.cheekWarmth) },
     /** Eye sockets in head-local units: both centres (x, y, x, y) and the eye radii. */
     uEyeCenters: { value: new THREE.Vector4(lx, ly, rx, ry) },
     uEyeRadii: { value: new THREE.Vector2(config.face.eye.rx, config.face.eye.ry) },
@@ -126,6 +132,8 @@ const skinFragment = /* glsl */ `
   uniform vec4 uFaceRect;
   uniform vec4 uEyeCenters;
   uniform vec2 uEyeRadii;
+  uniform vec4 uCheekCentres;
+  uniform vec2 uCheekShape;
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying float vUnder;
@@ -202,11 +210,16 @@ const skinFragment = /* glsl */ `
     vec3 col;
     float under = 0.0;
     float join = 0.0;
+    float headShade = 0.0;
 
     #ifdef ARM
       under = smoothstep(0.42, 0.98, vUnder);
+      // The head shades the arms' roots from the light above: near the body they stay dark violet,
+      // lit mostly by the red glow from below, as in the painting.
+      float fromHead = length(vWorld.xy - uGlowPos.xy - vec2(-0.04, 0.53));
+      headShade = (1.0 - smoothstep(0.75, 1.3, fromHead)) * 0.75;
       col = mix(uArmShadow, uArmMid, smoothstep(0.0, 0.5, up));
-      col = mix(col, uArmLit, smoothstep(0.5, 1.0, up));
+      col = mix(col, uArmLit, smoothstep(0.5, 1.0, up) * (1.0 - headShade));
       vec3 toGlow = uGlowPos - vWorld;
       float near = exp(-dot(toGlow, toGlow) / 0.14);
       col = mix(col, uArmGlow * 0.75, near * 0.45);
@@ -219,8 +232,8 @@ const skinFragment = /* glsl */ `
       join = 1.0 - smoothstep(0.05, 0.28, vU);
       col = mix(col, mantle, join);
       vec3 rim = mix(uRimLow, uRimTop, smoothstep(0.45, 0.9, up) * (1.0 - under));
-      col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9 * (1.0 - join);
-      col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under);
+      col += rim * pow(1.0 - ndv, 2.6) * (0.4 + 1.0 * smoothstep(0.3, 0.8, up)) * 1.9 * (1.0 - join) * (1.0 - 0.5 * headShade);
+      col += uRimTop * pow(max(N.y, 0.0), 3.0) * 0.32 * (1.0 - under) * (1.0 - headShade);
       col += uRimLow * pow(1.0 - ndv, 7.0) * 0.9 * (1.0 - join);
       // Warm light glowing through the arm from its red underside: magenta in the flesh above
       // the red band, strongest at thin, grazing edges.
@@ -240,6 +253,13 @@ const skinFragment = /* glsl */ `
       col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 14.0) * 0.22 * (1.0 - faceGlow);
       // Light glowing through the thin edge of the mantle.
       col += uRimLow * pow(1.0 - ndv, 3.0) * uBlotch.w * 0.25 * (1.0 - faceGlow);
+      // The face glow warms each cheek lobe from the face side, so the cheeks read as part of the
+      // face; their outer edge stays magenta.
+      vec2 cheekLocal = vFaceUv * uFaceRect.zw + uFaceRect.xy;
+      float lobeL = 1.0 - smoothstep(0.2, 1.6, length((cheekLocal - uCheekCentres.xy - vec2(0.05, 0.0)) / uCheekShape.x));
+      float lobeR = 1.0 - smoothstep(0.2, 1.6, length((cheekLocal - uCheekCentres.zw + vec2(0.05, 0.0)) / uCheekShape.x));
+      vec3 warm = texture2D(uGlowRamp, vec2(0.5, 0.5)).rgb;
+      col = mix(col, warm, max(lobeL, lobeR) * uCheekShape.y * smoothstep(0.15, 0.6, ndv));
     #endif
 
     // Living skin. Detail stays off the face, its glow and the red underside.
@@ -348,12 +368,13 @@ const skinFragment = /* glsl */ `
     // Wet gloss: sharp highlights from the key light, broken into patches and streaks.
     float spec = pow(max(dot(Nb, normalize(L + V)), 0.0), uWet.y);
     #ifdef ARM
-      float wetPatch = mix(0.4, 1.0, smoothstep(0.35, 0.75, noise3(vec3(p.x * 2.5, p.y * 14.0, p.z * 14.0))));
+      // Broken into patches, so the highlight never runs as one stripe down the arm.
+      float wetPatch = smoothstep(0.45, 0.8, noise3(vec3(p.x * 5.0, p.y * 14.0, p.z * 14.0)));
     #else
       // The dome is too large and smooth for patchy gloss (it reads as fog): only droplets glint.
       float wetPatch = 0.0;
     #endif
-    col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail);
+    col += uWetColor * spec * uWet.x * max(wetPatch, dome) * mix(0.3, 1.0, detail) * (1.0 - headShade * 0.7);
     col += uWetColor * glint * uWet.x * 0.75;
 
     // A second, broader wet sheen from a light above: long broken bands along the tops of the
@@ -361,13 +382,15 @@ const skinFragment = /* glsl */ `
     vec3 L2 = normalize(vec3(0.15, 1.0, 0.45));
     float sheen = pow(max(dot(Nb, normalize(L2 + V)), 0.0), 60.0);
     #ifdef ARM
-      float sheenMask = smoothstep(0.4, 0.7, noise3(vec3(p.x * 1.4, p.y * 6.0, p.z * 6.0))) * (1.0 - under);
+      // Short broken streaks, not long stripes; none on the arms' roots, which lie in the body's shade.
+      float sheenMask = smoothstep(0.55, 0.78, noise3(vec3(p.x * 5.0, p.y * 9.0, p.z * 9.0))) * (1.0 - under) * smoothstep(0.18, 0.4, vU);
     #else
       // On the dome, the reflection runs along the upper-left rim, as in the painting; the top stays dark.
       float upperLeft = smoothstep(0.35, 0.85, dot(normalize(N.xy + 1e-4), normalize(vec2(-0.75, 0.66))));
       float sheenMask = smoothstep(0.35, 0.65, noise3(p * 4.0)) * pow(1.0 - ndv, 1.5) * upperLeft * (1.0 - smoothstep(0.15, 0.5, faceGlow));
     #endif
-    col += uWetColor * sheen * sheenMask * uWet.x * 0.45 * (1.0 - join);
+    // No sheen inside the face glow, where the skin is lit warm from within.
+    col += uWetColor * sheen * sheenMask * uWet.x * 0.4 * (1.0 - join) * (1.0 - smoothstep(0.1, 0.45, faceGlow)) * (1.0 - headShade);
     // A crisp wet line along the lit top edge: a broad neon line on the arms, a thin one on the
     // dome, whose top stays dark navy inside its rim.
     #ifdef ARM
@@ -375,7 +398,7 @@ const skinFragment = /* glsl */ `
     #else
       float edgeLine = pow(1.0 - ndv, 9.0);
     #endif
-    col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join);
+    col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
 
     #ifdef HEAD
       // Eye sockets: the skin darkens (at most 18%) within 1.25x each eye's radii, so the eyes sit in the face.

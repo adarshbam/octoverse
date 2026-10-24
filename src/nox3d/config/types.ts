@@ -48,6 +48,22 @@ export interface GlowShape {
   reachDown: number;
   /** Mantle colour by glow strength (0 = unlit, 1 = core), sRGB hex. */
   ramp: readonly (readonly [number, string])[];
+  /** How strongly the face glow warms the cheek lobes, 0 to 1. */
+  cheekWarmth: number;
+  halo: HaloSettings;
+}
+
+/**
+ * The soft glow round the silhouette: magenta round the head and arms, red below the arms'
+ * cup bands. Reach in world units; strengths are the glow's brightness at the silhouette.
+ */
+export interface HaloSettings {
+  headWidth: number;
+  armWidth: number;
+  color: string;
+  band: string;
+  strength: number;
+  bandStrength: number;
 }
 
 export interface Palette {

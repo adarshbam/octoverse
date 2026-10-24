@@ -28,9 +28,13 @@ export const NOX: CharacterConfig = {
       [0, '#0a0d2c'], [0.07, '#1e0c30'], [0.17, '#45133e'], [0.27, '#641542'], [0.37, '#891d45'],
       [0.49, '#b9254b'], [0.61, '#e8364d'], [0.74, '#fb5254'], [0.94, '#fd7c5b'], [1, '#ff8765'],
     ],
+    // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
+    // fades about 0.2 out from the outline, red below the cup bands.
+    cheekWarmth: 0.75,
+    halo: { headWidth: 0.15, armWidth: 0.08, color: '#d0187a', band: '#ff1a30', strength: 0.28, bandStrength: 0.7 },
   },
   palette: {
-    cheek: '#7c2066',
+    cheek: '#7a1078',
     headEdge: '#5c2a8c',
     rimTop: '#a477c8',
     rimLow: '#d070c0',

@@ -12,6 +12,7 @@ import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
 import { createGlowMaterial } from './glowMaterial';
+import { createHaloMaterial } from './haloMaterial';
 import { createHeadGeometry } from './headGeometry';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createSuckerMaterial } from './suckerMaterial';
@@ -69,6 +70,8 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
       armMaterial: createSkinMaterial('ARM', uniforms),
       suckerMaterial: createSuckerMaterial(config.palette, uniforms.uKeyDir.value),
       coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
+      armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
+      headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0)),
       glowLocal: new THREE.Vector3(...config.glow.center),
     };
     // Built once per character; later pose changes are applied as new rests below.
@@ -185,10 +188,15 @@ export function Octopus({ config, pose, expression, freeze, silhouette = false }
           {rig.arms.map(({ tube }, i) => (
             <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} />
           ))}
+          {!silhouette && rig.arms.map(({ tube }, i) => (
+            <mesh key={`halo-${i}`} geometry={tube.geometry} material={rig.armHalo} frustumCulled={false} />
+          ))}
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
-          <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]} />
+          <mesh ref={head} geometry={rig.headGeometry} material={rig.headMaterial} position={[faceX, faceY, 0]}>
+            {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
+          </mesh>
           <instancedMesh ref={suckers} args={[rig.suckerGeometry, rig.suckerMaterial, rig.suckerTotal]} frustumCulled={false} />
           <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
             <planeGeometry args={[1, 1]} />
