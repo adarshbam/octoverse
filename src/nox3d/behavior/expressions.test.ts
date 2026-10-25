@@ -31,3 +31,10 @@ test('gentle is the spike face', () => {
 test('the restful face: lids half down, brows soft, a small smile', () => {
   expect(EXPRESSIONS.restful).toEqual({ lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 });
 });
+
+test('focused (panel 4) is keen, not sleepy: lids only a little lowered and an open, eager grin', () => {
+  const f = EXPRESSIONS.focused;
+  expect(f.lidRest).toBeLessThanOrEqual(0.15);
+  expect(f.mouthOpen).toBeGreaterThan(0.3);
+  expect(f.mouthCurve).toBeGreaterThan(EXPRESSIONS.gentle.mouthCurve);
+});

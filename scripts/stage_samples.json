@@ -96,5 +96,41 @@
         1.3
       ]
     }
+  },
+  "4": {
+    "colorTolerance": 40,
+    "widthTolerance": 0.03,
+    "hq": {
+      "image": "docs/design/references/Nox/Nox holding technologies.png",
+      "origin": [
+        786.3,
+        403.2
+      ],
+      "pxPerUnit": 164.0,
+      "frame": [
+        5.15,
+        5.04
+      ]
+    },
+    "points": {
+      "face glow under the eyes": [
+        0.065,
+        -0.4,
+        797,
+        466
+      ],
+      "left cheek blush": [
+        -0.48,
+        -0.42,
+        683,
+        500
+      ],
+      "focused orb ring": [
+        1.94,
+        0.4,
+        1048,
+        310
+      ]
+    }
   }
 }

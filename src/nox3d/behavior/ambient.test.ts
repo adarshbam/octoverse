@@ -67,3 +67,12 @@ test('attention follows the pointer, then drifts to idle glances after 3.5 s', (
   for (let t = 1; t < 6; t += 1 / 60) gaze = attention.update({ x: 1, y: -0.17 }, t, 1 / 60);
   expect(Math.abs(gaze.gazeX)).toBeLessThan(0.3);
 });
+
+test('attention holds a fixed target (a focused orb) without drifting to idle glances', () => {
+  const attention = new Attention(NOX.personality, () => 0.5);
+  let gaze = attention.update(null, 0, 1 / 60, { x: 0.6, y: 0.4 });
+  for (let t = 1 / 60; t < 8; t += 1 / 60) gaze = attention.update(null, t, 1 / 60, { x: 0.6, y: 0.4 });
+  expect(gaze.tracking).toBe(true);
+  expect(gaze.gazeX).toBeCloseTo(Math.min(1, 0.6 * 1.6), 3);
+  expect(gaze.gazeY).toBeCloseTo(Math.min(1, (0.4 + 0.17) * 1.6), 3);
+});

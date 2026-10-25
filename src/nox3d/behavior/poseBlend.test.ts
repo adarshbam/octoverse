@@ -9,7 +9,7 @@ import { PoseBlender, STAGE_TRANSITION, blendAngles } from './poseBlend';
 function shifted(dx: number, dy: number, expression: StagePose['expression'] = 'happy'): StagePose {
   const intro = NOX_POSES.intro;
   const arms = Object.fromEntries(ARM_IDS.map(id => [id, intro.arms[id].map(([x, y], i) => [x + dx * i * 0.1, y + dy * i * 0.1] as Point2)])) as Record<ArmId, Point2[]>;
-  return { arms, body: { x: dx, y: dy, scale: 1.1, yaw: 0.3 }, expression, headMorph: 1 };
+  return { arms, body: { x: dx, y: dy, scale: 1.1, yaw: 0.3 }, expression, headMorph: 1, orbs: 1 };
 }
 
 test('blendAngles takes the short way across ±π', () => {
@@ -82,3 +82,11 @@ test('a stage change is slow and gentle: no joint turns more than 0.06 rad in a 
     before = now;
   }
 }, 15_000);
+
+test('whether the orbs are out blends with the pose', () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  expect(blender.sample(0).orbs).toBe(0);
+  blender.start(NOX_POSES.overview, 0, 1000, 0);
+  expect(blender.sample(500).orbs).toBeCloseTo(0.5, 6);
+  expect(blender.sample(1000).orbs).toBe(1);
+});

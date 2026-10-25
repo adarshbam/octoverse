@@ -52,7 +52,7 @@ export const INTRO_TRACED: Record<ArmId, Point2[]> = {
 
 const INTRO_ARMS = Object.fromEntries(ARM_IDS.map(id => [id, flattenForDepth(INTRO_TRACED[id], spec(id))])) as Record<ArmId, Point2[]>;
 
-const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: 'gentle', headMorph: 0 };
+const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: 'gentle', headMorph: 0, orbs: 0 };
 
 // Panel 3, the overview, traced in world units against the high-quality panel
 // (docs/design/references/Nox/Nox head expands on click or hover.png), registered on the character:
@@ -79,14 +79,18 @@ const OVERVIEW_ARMS = Object.fromEntries(
   ARM_IDS.map(id => [id, flattenForDepth(withRoot(spec(id), toContent(OVERVIEW_TRACED[id], OVERVIEW_BODY)), spec(id))]),
 ) as Record<ArmId, Point2[]>;
 
-const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1 };
+const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1, orbs: 1 };
 
-// Other stages are authored against their panels in Tasks 21 to 23; until then the entrance and
-// detail reuse the intro, and the tech focus keeps the overview so pressing an orb never closes it.
+// Panel 4, a technology in focus: the head closes again and Nox looks at the orb with a focused
+// face, while the arms keep the overview's places so the orbs do not move round (the focused
+// arm reaches up with its orb, in Octopus).
+const TECH_FOCUS: StagePose = { ...OVERVIEW, expression: 'focused', headMorph: 0 };
+
+// The entrance and detail are authored against their panels in Tasks 22 and 23; until then they reuse the intro.
 export const NOX_POSES: Record<StageId, StagePose> = {
   entering: INTRO,
   intro: INTRO,
   overview: OVERVIEW,
-  techFocus: OVERVIEW,
+  techFocus: TECH_FOCUS,
   detail: INTRO,
 };

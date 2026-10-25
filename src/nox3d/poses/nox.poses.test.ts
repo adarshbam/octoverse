@@ -66,3 +66,14 @@ test('overview: the head opens into the dome and Nox smiles', () => {
   expect(NOX_POSES.overview.expression).toBe('happy');
   expect(NOX_POSES.intro.headMorph).toBe(0);
 });
+
+test('tech focus (panel 4): the head closes again, the orbs stay out round the same arms, and Nox looks focused', () => {
+  const focus = NOX_POSES.techFocus;
+  expect(focus.headMorph).toBe(0);
+  expect(focus.orbs).toBe(1);
+  expect(focus.expression).toBe('focused');
+  expect(focus.arms).toBe(NOX_POSES.overview.arms);
+  expect(focus.body).toEqual(NOX_POSES.overview.body);
+  expect(NOX_POSES.overview.orbs).toBe(1);
+  expect(NOX_POSES.intro.orbs).toBe(0);
+});

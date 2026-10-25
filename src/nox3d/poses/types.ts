@@ -9,4 +9,6 @@ export interface StagePose {
   expression: ExpressionId;
   /** 0 = normal mantle, 1 = overview glass dome. */
   headMorph: number;
+  /** 0 = no technology orbs, 1 = the orbs out round the arms. */
+  orbs: number;
 }

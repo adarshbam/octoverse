@@ -18,7 +18,8 @@ import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
-import { OrbButtons } from './ui/OrbButtons';
+import { OrbButtons, faceSpot, orbSpots } from './ui/OrbButtons';
+import { TechTooltip } from './ui/TechTooltip';
 import { OrbTray } from './ui/OrbTray';
 import { NOX_OVERVIEW_SLOTS, assignOrbs } from './artifacts/orbSlots';
 import { noxTechnologies } from './content/noxTechnologies';
@@ -36,6 +37,8 @@ const ASSIGNED = assignOrbs(ORDER, NOX_OVERVIEW_SLOTS);
 const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({ techId, slot, iconKey: TECH.get(techId)?.iconKey ?? techId, name: TECH.get(techId)?.name ?? techId }));
 // On a phone held upright the orbs are too small to pick out, so the tray lists every technology.
 const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.innerHeight }) === 'phone' && window.innerHeight > window.innerWidth;
+const USAGE = new Map((noxProject.technologyUsages ?? []).map(u => [u.technologyId, u]));
+const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
 
@@ -113,14 +116,29 @@ export function App() {
     if (first.current) first.current = false;
     else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
   }, [blender, state.stage, reducedMotion]);
-  // Escape steps back a stage: detail to overview, overview to intro.
+  // Escape steps back: a focused technology lets go, detail goes to the overview, the overview to
+  // the intro. With a technology in focus, a press anywhere but an orb or its tooltip lets go too.
+  const focusing = state.stage === 'techFocus';
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') dispatch({ type: 'CLOSE' });
+      if (event.key === 'Escape') dispatch({ type: focusing ? 'BLUR_TECH' : 'CLOSE' });
+    };
+    const onPress = (event: PointerEvent) => {
+      if (focusing && !(event.target as Element | null)?.closest?.('.orb-button, .tech-tooltip')) dispatch({ type: 'BLUR_TECH' });
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [dispatch]);
+    window.addEventListener('pointerdown', onPress);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPress);
+    };
+  }, [dispatch, focusing]);
+  const focusedTech = focusing ? state.techId : null;
+  const presented = useMemo(() => {
+    const i = ORBS.findIndex(o => o.techId === focusedTech);
+    return i >= 0 ? orbSpots(ORBS, true)[i] : null;
+  }, [focusedTech]);
+  const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech]);
   // The entrance is authored in Task 23; until then it ends at once.
   useEffect(() => {
     if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
@@ -137,6 +155,7 @@ export function App() {
       quality={quality.settings}
       onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
       orbs={ORBS}
+      focusTechId={focusedTech}
     />
   );
   return (
@@ -178,7 +197,16 @@ export function App() {
         <>
           <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && state.stage !== 'entering'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
-          <OrbButtons orbs={ORBS} open={state.stage === 'overview' || state.stage === 'techFocus'} onChoose={id => dispatch({ type: 'FOCUS_TECH', id })} />
+          <OrbButtons
+            orbs={ORBS}
+            open={state.stage === 'overview' || focusing}
+            focused={focusedTech}
+            tooltipId={TOOLTIP_ID}
+            onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
+          />
+          {focusedTech && (
+            <TechTooltip id={TOOLTIP_ID} name={TECH.get(focusedTech)?.name ?? focusedTech} usage={USAGE.get(focusedTech)} orb={presented} face={face} />
+          )}
           <OrbTray
             items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
             open={state.stage === 'overview' || state.stage === 'techFocus'}

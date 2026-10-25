@@ -23,7 +23,7 @@ const GENTLE: ExpressionParams = { lidRest: 0, lidBottom: 0, browLift: 0, browTi
 export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   gentle: GENTLE,
   happy: { ...GENTLE, mouthCurve: 0.8, mouthOpen: 0.6, blush: 0.4 },
-  focused: { ...GENTLE, browTilt: -0.6, lidRest: 0.25 },
+  focused: { ...GENTLE, browTilt: -0.6, lidRest: 0.12, mouthCurve: 0.65, mouthOpen: 0.45, blush: 0.2 },
   attentive: { ...GENTLE, browLift: 0.5 },
   restful: { lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 },
 };

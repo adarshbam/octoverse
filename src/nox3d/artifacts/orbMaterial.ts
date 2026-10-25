@@ -7,11 +7,17 @@ import * as THREE from 'three';
  * highlights as short arcs along the rim, outside the logo: a long one up left from the key
  * light, short dashes up right, low right and low left. `uOpacity` fades it in with the overview.
  */
+/** The hot red-pink ring a technology's orb glows with while it is in focus (panel 4). */
+export const ORB_FOCUS_COLOUR = '#ff2e5a';
+
 export function createOrbMaterial(tint: string) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTint: { value: new THREE.Color(tint) },
       uOpacity: { value: 0 },
+      /** How far the orb is in focus (0..1): its edge turns to ORB_FOCUS_COLOUR and brightens. */
+      uFocus: { value: 0 },
+      uFocusColour: { value: new THREE.Color(ORB_FOCUS_COLOUR) },
     },
     vertexShader: /* glsl */ `
       varying vec3 vN;
@@ -28,6 +34,8 @@ export function createOrbMaterial(tint: string) {
     fragmentShader: /* glsl */ `
       uniform vec3 uTint;
       uniform float uOpacity;
+      uniform float uFocus;
+      uniform vec3 uFocusColour;
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vLocal;
@@ -47,6 +55,8 @@ export function createOrbMaterial(tint: string) {
         vec3 env = mix(vec3(1.0, 0.42, 0.12), vec3(0.62, 0.36, 1.0), smoothstep(-0.55, 0.55, N.y));
         env = mix(env, vec3(0.25, 0.55, 1.0), smoothstep(0.25, 0.9, -N.x) * smoothstep(0.6, -0.2, N.y) * 0.7);
         env = mix(env, uTint, 0.8);
+        // In focus, the edge glows hot red-pink.
+        env = mix(env, uFocusColour, uFocus * 0.85);
 
         // Fresnel: a dark, clear centre with a faint glow of the logo's colour, a saturated ring in
         // the logo's colour (as painted: red round HTML, blue round CSS, green round Node), and a
@@ -56,7 +66,8 @@ export function createOrbMaterial(tint: string) {
         // Bright ring colours (white, yellow) are held to the luminance of a saturated red, so the
         // threshold bloom does not haze their glass.
         float ringLevel = min(1.0, 0.3 / max(dot(env, vec3(0.2126, 0.7152, 0.0722)), 1e-3));
-        float ring = pow(1.0 - ndv, 5.0) * 1.9 * ringLevel;
+        // In focus the ring thickens and brightens into the painting's bold neon circle.
+        float ring = pow(1.0 - ndv, 5.0 - 1.4 * uFocus) * 1.9 * ringLevel * (1.0 + 1.9 * uFocus);
         vec3 col = uTint * 0.006 + vec3(0.002, 0.0015, 0.004) + env * ring + env * fresnel * 1.2 * ringLevel
           + env * pow(1.0 - ndv, 2.5) * 0.18 * ringLevel
           + mix(env, vec3(1.0), 0.25) * pow(1.0 - ndv, 18.0) * 0.9;
@@ -92,6 +103,8 @@ export function createOrbHaloMaterial(tint: string) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTint: { value: new THREE.Color(tint) },
+      uFocus: { value: 0 },
+      uFocusColour: { value: new THREE.Color(ORB_FOCUS_COLOUR) },
       uOpacity: { value: 0 },
       uEdge: { value: Math.sqrt(1 - 1 / (ORB_HALO_SCALE * ORB_HALO_SCALE)) },
     },
@@ -109,6 +122,8 @@ export function createOrbHaloMaterial(tint: string) {
       uniform vec3 uTint;
       uniform float uOpacity;
       uniform float uEdge;
+      uniform float uFocus;
+      uniform vec3 uFocusColour;
       varying vec3 vN;
       varying vec3 vV;
       void main() {
@@ -117,8 +132,11 @@ export function createOrbHaloMaterial(tint: string) {
         // 0 at the shell's outline, 1 at the orb's outline (and behind the orb).
         float t = clamp(ndv / uEdge, 0.0, 1.0);
         float glow = t * t * t;
-        float level = min(1.0, 0.3 / max(dot(uTint, vec3(0.2126, 0.7152, 0.0722)), 1e-3));
-        gl_FragColor = vec4(uTint * glow * 0.55 * level * uOpacity, 1.0);
+        // Behind the orb itself only a little shows, so its centre stays dark (most of all in focus).
+        glow *= 1.0 - 0.75 * smoothstep(uEdge, uEdge + 0.12, ndv);
+        vec3 tint = mix(uTint, uFocusColour, uFocus);
+        float level = min(1.0, 0.3 / max(dot(tint, vec3(0.2126, 0.7152, 0.0722)), 1e-3));
+        gl_FragColor = vec4(tint * glow * 0.55 * level * (1.0 + 1.4 * uFocus) * uOpacity, 1.0);
       }
     `,
     side: THREE.BackSide,

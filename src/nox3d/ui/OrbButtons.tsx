@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { ArmChain, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS } from '../config/types';
+import { FOCUS_GROW, FOCUS_RAISE } from '../artifacts/TechOrbs';
 import { ORB_Z, type OrbSlot, orbRestPosition } from '../artifacts/orbSlots';
 import { NOX_POSES } from '../poses/nox.poses';
 import { projectToScreen } from '../stage/anchors';
@@ -15,49 +16,85 @@ export interface OrbChoice {
   slot: OrbSlot;
 }
 
-/** Where each orb rests on the page in the overview, and how big it looks, in CSS pixels. */
-function measure(orbs: readonly OrbChoice[]) {
-  const size = { width: window.innerWidth, height: window.innerHeight };
+function overviewCamera(size: { width: number; height: number }) {
   const camera = new THREE.PerspectiveCamera(fovFor(STAGE_FRAMES.overview, size), size.width / size.height, 0.1, 60);
   camera.position.set(0, 0, CAMERA_Z);
   camera.updateMatrixWorld();
+  return camera;
+}
+
+/** Where Nox's face is on the page in the overview, in CSS pixels. */
+export function faceSpot() {
+  const size = { width: window.innerWidth, height: window.innerHeight };
+  const { body } = NOX_POSES.overview;
+  const [ox, oy] = NOX.head.faceOrigin;
+  return projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth), overviewCamera(size), size);
+}
+
+/**
+ * Where each orb rests on the page in the overview, and how big it looks, in CSS pixels; with
+ * `presented`, where it sits once raised and grown in focus.
+ */
+export function orbSpots(orbs: readonly OrbChoice[], presented = false) {
+  const size = { width: window.innerWidth, height: window.innerHeight };
+  const camera = overviewCamera(size);
   const { body } = NOX_POSES.overview;
   return orbs.map(({ slot }) => {
     const index = ARM_IDS.indexOf(slot.armId);
     const chain = new ArmChain(restFromCurve(NOX_POSES.overview.arms[slot.armId]), NOX.arms[index], index);
     chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
     const p = orbRestPosition(chain, slot);
-    const centre = projectToScreen(new THREE.Vector3(p.x + body.x, p.y + body.y, ORB_Z), camera, size);
-    const edge = projectToScreen(new THREE.Vector3(p.x + body.x + slot.radius, p.y + body.y, ORB_Z), camera, size);
+    const lift = presented ? FOCUS_RAISE : 0;
+    const radius = slot.radius * (presented ? FOCUS_GROW : 1);
+    const centre = projectToScreen(new THREE.Vector3(p.x + body.x, p.y + body.y + lift, ORB_Z), camera, size);
+    const edge = projectToScreen(new THREE.Vector3(p.x + body.x + radius, p.y + body.y + lift, ORB_Z), camera, size);
     return { x: centre.x, y: centre.y, size: Math.max(44, 2 * (edge.x - centre.x)) };
   });
 }
 
+/** How long the pointer rests on an orb before it is focused, so gliding across orbs focuses none of them. */
+const HOVER_INTENT_MS = 180;
+
 /**
- * One button over each orb in the overview, so every technology can be reached by pointer,
- * keyboard or touch (at least 44 px); pressing one focuses that technology.
+ * One button over each orb's resting place in the overview, so every technology can be reached
+ * by pointer, keyboard or touch (at least 44 px). Resting the pointer on one, focusing or pressing
+ * it focuses that technology; the focused one is described by the tooltip. The buttons never move,
+ * so letting go of a focus never counts as a new hover.
  */
-export function OrbButtons({ orbs, open, onChoose }: { orbs: readonly OrbChoice[]; open: boolean; onChoose: (techId: string) => void }) {
-  const [spots, setSpots] = useState(() => measure(orbs));
+export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs: readonly OrbChoice[]; open: boolean; focused: string | null; tooltipId: string; onChoose: (techId: string) => void }) {
+  const [spots, setSpots] = useState(() => orbSpots(orbs));
+  const hover = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(hover.current), []);
   useEffect(() => {
-    const update = () => setSpots(measure(orbs));
+    const update = () => setSpots(orbSpots(orbs));
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, [orbs]);
   return (
     <div className={`orb-buttons${open ? ' is-open' : ''}`} aria-hidden={!open}>
-      {orbs.map((orb, i) => (
-        <button
-          key={orb.techId}
-          type="button"
-          className="orb-button"
-          aria-label={orb.name}
-          tabIndex={open ? 0 : -1}
-          style={{ left: spots[i].x, top: spots[i].y, width: spots[i].size, height: spots[i].size }}
-          onClick={() => onChoose(orb.techId)}
-        />
-      ))}
+      {orbs.map((orb, i) => {
+        const spot = spots[i];
+        return (
+          <button
+            key={orb.techId}
+            type="button"
+            className="orb-button"
+            aria-label={orb.name}
+            aria-describedby={orb.techId === focused ? tooltipId : undefined}
+            tabIndex={open ? 0 : -1}
+            style={{ left: spot.x, top: spot.y, width: spot.size, height: spot.size }}
+            onClick={() => onChoose(orb.techId)}
+            onFocus={() => onChoose(orb.techId)}
+            onPointerEnter={event => {
+              if (event.pointerType !== 'mouse') return;
+              window.clearTimeout(hover.current);
+              hover.current = window.setTimeout(() => onChoose(orb.techId), HOVER_INTENT_MS);
+            }}
+            onPointerLeave={() => window.clearTimeout(hover.current)}
+          />
+        );
+      })}
     </div>
   );
 }

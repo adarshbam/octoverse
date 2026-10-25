@@ -40,3 +40,7 @@ test('projectToScreen puts the stage centre in the middle and hides points behin
   expect(up.y).toBeLessThan(300);
   expect(projectToScreen(new THREE.Vector3(0, 0, 20), camera, { width: 800, height: 600 }).visible).toBe(false);
 });
+
+test('focusing a technology keeps the overview framing, so the orbs stay where they were', () => {
+  expect(STAGE_FRAMES.techFocus).toEqual(STAGE_FRAMES.overview);
+});

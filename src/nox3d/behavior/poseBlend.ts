@@ -9,6 +9,7 @@ export interface BlendedPose {
   body: StagePose['body'];
   expression: ExpressionParams;
   headMorph: number;
+  orbs: number;
 }
 
 /**
@@ -42,6 +43,7 @@ function settle(pose: StagePose, segments: number): BlendedPose {
     body: { ...pose.body },
     expression: { ...EXPRESSIONS[pose.expression] },
     headMorph: pose.headMorph,
+    orbs: pose.orbs,
   };
 }
 
@@ -51,6 +53,7 @@ function copyPose(pose: BlendedPose): BlendedPose {
     body: { ...pose.body },
     expression: { ...pose.expression },
     headMorph: pose.headMorph,
+    orbs: pose.orbs,
   };
 }
 
@@ -107,6 +110,7 @@ export class PoseBlender {
     };
     current.expression = blendExpression(from.expression, to.expression, t);
     current.headMorph = mix(from.headMorph, to.headMorph, t);
+    current.orbs = mix(from.orbs, to.orbs, t);
     return current;
   }
 }

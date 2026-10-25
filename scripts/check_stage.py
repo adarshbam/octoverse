@@ -3,6 +3,8 @@ Usage: python scripts/check_stage.py render.png --panel N
 Colour: mean of a small patch at each sample point, max channel delta. A panel whose samples
 name an "hq" reference is read from that high-quality image instead, through its registration
 (world (x, y) -> px (origin + pxPerUnit * (x, -y))), and from a capture framing `frame` world units.
+A point given as [x, y, px, py] names its feature in both images: world (x, y) in the render and
+pixel (px, py) in the high-quality image, for panels painted with different proportions.
 Silhouette: head half-width per row; reference from its bright rim line,
 render from <render>-mask.png (exact geometry) when present."""
 import json, sys, pathlib
@@ -46,10 +48,10 @@ def main():
         fw, fh = hq['frame']
         unit = min(506 / fw, 504 / fh)
         cs = ren.width / 506
-        def ref_patch(wx, wy, r=3):
+        def ref_patch(wx, wy, r=3, at=None):
             ox, oy = hq['origin']
             k = hq['pxPerUnit'] / unit
-            cx, cy = ox + hq['pxPerUnit'] * wx, oy - hq['pxPerUnit'] * wy
+            cx, cy = at if at else (ox + hq['pxPerUnit'] * wx, oy - hq['pxPerUnit'] * wy)
             arr = np.asarray(hq_img.crop((int(cx - r * k), int(cy - r * k), int(cx + r * k), int(cy + r * k))), dtype=float)
             return arr.reshape(-1, 3).mean(0)
         def ren_patch(wx, wy, r=3):
@@ -57,11 +59,12 @@ def main():
             arr = np.asarray(ren.crop((int(cx - r * cs), int(cy - r * cs), int(cx + r * cs), int(cy + r * cs))), dtype=float)
             return arr.reshape(-1, 3).mean(0)
     else:
-        ref_patch = lambda wx, wy: patch(ref, 1, wx, wy, w, h)
+        ref_patch = lambda wx, wy, at=None: patch(ref, 1, wx, wy, w, h)
         ren_patch = lambda wx, wy: patch(ren, s, wx, wy, w, h)
     misses = 0
-    for name, (wx, wy) in spec['points'].items():
-        a, b = ref_patch(wx, wy), ren_patch(wx, wy)
+    for name, point in spec['points'].items():
+        wx, wy = point[:2]
+        a, b = ref_patch(wx, wy, at=point[2:] or None), ren_patch(wx, wy)
         d = int(np.abs(b - a).max())
         ok = d <= spec['colorTolerance']
         misses += not ok

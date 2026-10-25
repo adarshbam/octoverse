@@ -10,7 +10,8 @@ import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
-import { type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
+import { FOCUS_RAISE, type OrbState, type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
+import { ORB_Z, orbRestPosition } from '../artifacts/orbSlots';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -48,6 +49,8 @@ export interface OctopusProps {
   onSelect?: () => void;
   /** Technology orbs the arms carry while the head is open. */
   orbs?: readonly PlacedOrb[];
+  /** The technology in focus: its arm presents its orb and Nox looks at it. */
+  focusTechId?: string | null;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -55,13 +58,17 @@ const REST_IN = 2;
 const WAKE = 0.5;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [] }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
   const dome = useRef<THREE.Mesh>(null);
-  const opened = useRef(0);
+  const orbState = useMemo<OrbState>(
+    () => ({ out: 0, focus: new Float32Array(orbs.length), anchors: orbs.map(() => new THREE.Vector2()), armReach: new Float32Array(ARM_IDS.length) }),
+    [orbs],
+  );
+  const lookAt = useMemo(() => new THREE.Vector3(), []);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
@@ -119,7 +126,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   }, [config, blender, quality]);
 
   const chains = useMemo(() => rig.arms.map(arm => arm.chain), [rig]);
-  const readOpen = useMemo(() => () => opened.current, []);
+  const readOrbs = useMemo(() => () => orbState, [orbState]);
 
   // Every shader, the dome's too, is compiled up front, so the first opening never stalls.
   const gl = useThree(s => s.gl);
@@ -202,13 +209,39 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     float.current!.position.set(pose.body.x + moving * drift.x, pose.body.y + moving * drift.y, 0);
     float.current!.scale.setScalar(pose.body.scale);
 
+    // The technology in focus: its orb rises to an anchor above where it rode and grows, its arm
+    // reaches up to hold it from below, and Nox looks at it. Each orb eases in and out over 0.7 s.
+    const focusIndex = focusTechId ? orbs.findIndex(o => o.techId === focusTechId) : -1;
+    orbs.forEach((orb, i) => {
+      const f = orbState.focus;
+      if (i === focusIndex && f[i] === 0) {
+        const at = orbRestPosition(rig.arms[ARM_IDS.indexOf(orb.slot.armId)].chain, orb.slot);
+        orbState.anchors[i].set(at.x, at.y + FOCUS_RAISE);
+      }
+      const step = reducedMotion ? 1 : dt / 0.7;
+      f[i] = THREE.MathUtils.clamp(f[i] + (i === focusIndex ? step : -step), 0, 1);
+    });
+    let fixed: { x: number; y: number } | undefined;
+    if (focusIndex >= 0) {
+      const a = orbState.anchors[focusIndex];
+      lookAt.set(a.x, a.y, ORB_Z).applyMatrix4(content.current!.matrixWorld).project(state.camera);
+      fixed = { x: lookAt.x, y: lookAt.y };
+    }
+
     const p = state.pointer;
     const gaze = freeze
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt);
+      : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt, fixed);
     const near = gaze.tracking ? Math.max(0, 1 - Math.hypot(p.x, p.y + 0.17) * 1.4) : 0;
     spring(m.smile, near, 5, dt);
-    turn.current!.rotation.set(-gaze.headY * 0.08, pose.body.yaw + gaze.headX * 0.15, moving * drift.roll - gaze.headX * 0.02);
+    // In focus, Nox tilts its head toward the orb, as in panel 4.
+    let tilt = 0;
+    if (focusIndex >= 0 || orbState.focus.some(v => v > 0)) {
+      const i = focusIndex >= 0 ? focusIndex : orbState.focus.indexOf(Math.max(...orbState.focus));
+      const f = orbState.focus[i];
+      tilt = 0.16 * f * f * (3 - 2 * f) * Math.sign(orbState.anchors[i].x - config.head.centerX);
+    }
+    turn.current!.rotation.set(-gaze.headY * 0.08, pose.body.yaw + gaze.headX * 0.15, moving * drift.roll - gaze.headX * 0.02 - tilt);
 
     const face = blendExpression(expression ? EXPRESSIONS[expression] : pose.expression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
@@ -233,14 +266,20 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     m.inverse.copy(content.current!.matrixWorld).invert();
     m.target.applyMatrix4(m.inverse);
 
-    // Only the arm whose tip is nearest the pointer reaches, never into the face; it lets go gently.
-    const active = gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    // With a technology in focus, its arm reaches up to hold the orb. Otherwise only the arm whose
+    // tip is nearest the pointer reaches, never into the face; either lets go gently.
+    const focusArm = focusIndex >= 0 ? ARM_IDS.indexOf(orbs[focusIndex].slot.armId) : -1;
+    const active = focusArm >= 0 ? focusArm : gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
       spring(weight, i === active ? 1 : 0, i === active ? 5 : 3, dt);
-      if (i === active) m.reachPoint[i].set(m.target.x, m.target.y);
+      if (i === focusArm) {
+        const a = orbState.anchors[focusIndex];
+        m.reachPoint[i].set(a.x, a.y - orbs[focusIndex].slot.radius * 0.8);
+      } else if (i === active) m.reachPoint[i].set(m.target.x, m.target.y);
       const w = THREE.MathUtils.clamp(weight.x, 0, 1);
+      orbState.armReach[i] = w;
       chain.setRest(pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
@@ -266,7 +305,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // it, and the mantle's own halo gives way to the dome's rim.
     // headMorph is already eased by the blender; easing it again would rush the middle.
     const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
-    opened.current = silhouette ? 0 : ease;
+    orbState.out = silhouette ? 0 : THREE.MathUtils.clamp(pose.orbs, 0, 1);
     rig.uniforms.uMorph.value = ease;
     const { center, halfHeight } = config.dome;
     const grow = 0.55 + 0.45 * ease;
@@ -296,7 +335,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
           <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
-          {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} open={readOpen} />}
+          {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />}
           <mesh
             ref={head}
             geometry={rig.headGeometry}

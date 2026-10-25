@@ -8,12 +8,15 @@ export interface StageFrame {
   height: number;
 }
 
-/** What each stage frames, from its storyboard panel. */
+/**
+ * What each stage frames, from its storyboard panel. Focusing a technology keeps the overview's
+ * framing: re-framing would move every orb under the visitor's pointer as focus begins.
+ */
 export const STAGE_FRAMES: Record<StageId, StageFrame> = {
   entering: { width: 5.1, height: 5.04 },
   intro: { width: 5.06, height: 5.04 },
   overview: { width: 5.15, height: 5.04 },
-  techFocus: { width: 6.84, height: 5.18 },
+  techFocus: { width: 5.15, height: 5.04 },
   detail: { width: 8.51, height: 5.18 },
 };
 

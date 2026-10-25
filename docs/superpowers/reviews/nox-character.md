@@ -182,3 +182,16 @@ Capture: `assets/orbs-v2.png`, `assets/orbs-v2-strip.png`, `assets/orbs-v2-zoom.
 Checks: suite 160/160 tests PASS, `npm run typecheck` clean, `check_stage` panel 2 and panel 3 PASS.
 
 Verdict on v2: approved. The owner wrote "Approve technology orbs v2".
+
+### Tech focus v1 (2026-10-25)
+
+Capture: `assets/techfocus-v1-compare.png` (beside the high-quality panel 4), `assets/techfocus-v1.png`, `assets/techfocus-v1-orb.png` (the focused orb close up) and `assets/techfocus-v1-interaction.webm` (overview, the pointer rests on Kali Linux, then TypeScript, then Escape; sheet `assets/techfocus-v1-interaction-sheet.png`). Verdict: pending.
+
+- **Focusing a technology:** resting the pointer on an orb (180 ms, so gliding across orbs focuses none of them), tabbing to it or tapping it focuses it. Its orb rises and grows by a third, its ring turns into the painting's bold hot-pink neon circle with a dark centre, and the other orbs dim to 70%. Its arm reaches up to hold it from below; other orbs on that arm hold their places.
+- **Nox:** the dome closes again, as in panel 4; Nox looks at the orb, tilts its head toward it and gives a keen, open grin under angled brows.
+- **Tooltip:** beside the orb on the side away from Nox's face (above or below when there is no room), with the name, the role, the details as bullets and a "Placeholder" badge while the text is storyboard copy. Only Kali has panel 4's text so far; the others show a placeholder line.
+- **Letting go:** Escape, or a press anywhere but an orb or the tooltip, returns to the overview. Moving to another orb switches focus without leaving the stage, so nothing re-frames.
+- **Calm:** each orb eases in and out of focus over 0.7 s; the camera keeps the overview's framing (see gaps).
+
+Known gaps: panel 4 pulls the camera back (Nox smaller, centred higher) and paints the arms and orbs in a new arrangement; we keep the overview's framing and arrangement so the orbs never move under the visitor's pointer as focus begins. Panel 4's face is painted with larger eyes and a bolder glow than the signed-off face.
+
