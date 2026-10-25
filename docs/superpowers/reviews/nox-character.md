@@ -181,3 +181,4 @@ Capture: `assets/orbs-v2.png`, `assets/orbs-v2-strip.png`, `assets/orbs-v2-zoom.
 
 Checks: suite 160/160 tests PASS, `npm run typecheck` clean, `check_stage` panel 2 and panel 3 PASS.
 
+Verdict on v2: approved. The owner wrote "Approve technology orbs v2".
