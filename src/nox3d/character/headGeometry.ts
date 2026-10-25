@@ -60,13 +60,13 @@ export function silhouetteHalfWidth(head: HeadShape, y: number) {
 /** Below this height (world units) the mantle keeps its shape as the dome opens: the face. */
 const MORPH_KEEP = -0.55;
 /** Height of the rounded rim the sunk mantle closes with, under the dome. */
-const MORPH_RIM = 0.04;
+const MORPH_RIM = 0.06;
 
 /**
  * The mantle, with `mantleTop` given, also carries the shape it morphs to as the dome opens
  * (attributes aMorph and aMorphNormal): above the face its profile is pressed down beneath
- * `mantleTop`, its sides rising straight at the waist's width and closing in a small round rim,
- * so the face rises into the dome with no lid. Below MORPH_KEEP nothing moves.
+ * `mantleTop`, its sides smoothly rising into it and closing in a rounded organic rim,
+ * so the face rises into the dome with no exposed gaps or flat lid. Below MORPH_KEEP nothing moves.
  */
 export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
   const profile = mantleProfile(head);
@@ -74,7 +74,8 @@ export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
   if (mantleTop !== undefined) {
     const sunk = profile.map(([r, y]) => {
       if (y <= MORPH_KEEP) return [r, y] as const;
-      const y2 = MORPH_KEEP + ((y - MORPH_KEEP) * (mantleTop - MORPH_KEEP)) / (head.top - MORPH_KEEP);
+      const t = (y - MORPH_KEEP) / (head.top - MORPH_KEEP);
+      const y2 = MORPH_KEEP + t * (mantleTop - MORPH_KEEP);
       if (r === 0) return [0, y2] as const;
       const side = mantleRadius(head, Math.min(y2, head.waist));
       const over = Math.max(0, (y2 - (mantleTop - MORPH_RIM)) / MORPH_RIM);

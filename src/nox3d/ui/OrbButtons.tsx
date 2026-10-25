@@ -23,12 +23,27 @@ function overviewCamera(size: { width: number; height: number }) {
   return camera;
 }
 
-/** Where Nox's face is on the page in the overview, in CSS pixels. */
+/** Where Nox's face is on the page in the overview, in CSS pixels, with its protected bounding box. */
 export function faceSpot() {
   const size = { width: window.innerWidth, height: window.innerHeight };
   const { body } = NOX_POSES.overview;
   const [ox, oy] = NOX.head.faceOrigin;
-  return projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth), overviewCamera(size), size);
+  const camera = overviewCamera(size);
+  const center = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth), camera, size);
+  const pRight = projectToScreen(new THREE.Vector3(body.x + ox + 1.05, body.y + oy - 0.1, 0), camera, size);
+  const pLeft = projectToScreen(new THREE.Vector3(body.x + ox - 1.05, body.y + oy - 0.1, 0), camera, size);
+  const pTop = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy + 0.45, 0), camera, size);
+  const pBottom = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.55, 0), camera, size);
+  return {
+    x: center.x,
+    y: center.y,
+    bounds: {
+      left: Math.min(pLeft.x, pRight.x),
+      right: Math.max(pLeft.x, pRight.x),
+      top: Math.min(pTop.y, pBottom.y),
+      bottom: Math.max(pTop.y, pBottom.y),
+    },
+  };
 }
 
 /**

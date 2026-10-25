@@ -1,22 +1,39 @@
 /* The technology tooltip (panel 4): a dark glass card with a glowing pink edge and red bullets. */
 .tech-tooltip {
   position: absolute;
-  width: min(300px, 80vw);
-  padding: 16px 18px 14px;
-  border-radius: 14px;
+  box-sizing: border-box;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px 10px;
+  border-radius: 12px;
   border: 1.5px solid rgba(255, 70, 110, 0.75);
-  background: rgba(10, 6, 18, 0.86);
+  background: rgba(10, 6, 18, 0.92);
+  backdrop-filter: blur(8px);
   box-shadow: 0 0 22px rgba(255, 40, 90, 0.35), inset 0 0 14px rgba(255, 50, 100, 0.12);
   color: #f3eef8;
   font-family: 'Poppins', system-ui, sans-serif;
   pointer-events: auto;
-  animation: tech-tooltip-in 500ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+  animation: tech-tooltip-in 350ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+  z-index: 50;
 }
 
 @keyframes tech-tooltip-in {
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+}
+
+@media (max-width: 640px) {
+  .tech-tooltip {
+    position: fixed;
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 24px !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    box-sizing: border-box;
   }
 }
 

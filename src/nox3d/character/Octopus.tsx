@@ -160,6 +160,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     attention: new Attention(config.personality),
     blinks: new BlinkScheduler(config.personality.blinkInterval, config.personality.doubleBlinkChance),
     smile: { x: 0, v: 0 },
+    tilt: { x: 0, v: 0 },
     pointerInside: false,
     ray: new THREE.Vector3(),
     target: new THREE.Vector3(),
@@ -228,22 +229,41 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
+    const faceNDC = new THREE.Vector3(
+      config.head.faceOrigin[0] + pose.body.x,
+      config.head.faceOrigin[1] + pose.body.y,
+      0,
+    ).project(state.camera);
+
     const p = state.pointer;
     const gaze = freeze
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt, fixed);
+      : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceNDC.x, y: faceNDC.y });
     const near = gaze.tracking ? Math.max(0, 1 - Math.hypot(p.x, p.y + 0.17) * 1.4) : 0;
     spring(m.smile, near, 5, dt);
-    // In focus, Nox tilts its head toward the orb, as in panel 4.
-    let tilt = 0;
+
+    // In focus, Nox tilts its head toward the orb, as in panel 4, sprung smoothly to avoid jumps.
+    let targetTilt = 0;
     if (focusIndex >= 0 || orbState.focus.some(v => v > 0)) {
       const i = focusIndex >= 0 ? focusIndex : orbState.focus.indexOf(Math.max(...orbState.focus));
       const f = orbState.focus[i];
-      tilt = 0.16 * f * f * (3 - 2 * f) * Math.sign(orbState.anchors[i].x - config.head.centerX);
+      targetTilt = 0.14 * f * f * (3 - 2 * f) * Math.sign(orbState.anchors[i].x - config.head.centerX);
     }
-    turn.current!.rotation.set(-gaze.headY * 0.08, pose.body.yaw + gaze.headX * 0.15, moving * drift.roll - gaze.headX * 0.02 - tilt);
+    spring(m.tilt, targetTilt, 5, dt);
+    turn.current!.rotation.set(
+      -gaze.headY * 0.08,
+      pose.body.yaw + gaze.headX * 0.15,
+      moving * drift.roll - gaze.headX * 0.02 - m.tilt.x,
+    );
 
-    const face = blendExpression(expression ? EXPRESSIONS[expression] : pose.expression, EXPRESSIONS.restful, m.rest);
+    let activeExpression = expression ? EXPRESSIONS[expression] : pose.expression;
+    if (focusIndex >= 0) {
+      const isKali = orbs[focusIndex].techId === 'kali';
+      const targetExp = isKali ? EXPRESSIONS.focused : EXPRESSIONS.curious;
+      const f = orbState.focus[focusIndex];
+      activeExpression = blendExpression(pose.expression, targetExp, f);
+    }
+    const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
       ...face,
       mouthCurve: face.mouthCurve + m.smile.x * 0.7,

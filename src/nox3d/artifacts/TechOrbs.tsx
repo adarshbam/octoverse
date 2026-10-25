@@ -83,10 +83,10 @@ export function TechOrbs({ orbs, chains, state }: { orbs: readonly PlacedOrb[]; 
       const f = s.focus[i] * s.focus[i] * (3 - 2 * s.focus[i]);
       x = THREE.MathUtils.lerp(x, s.anchors[i].x, f);
       y = THREE.MathUtils.lerp(y, s.anchors[i].y, f);
-      node.position.set(x, y + 0.025 * Math.sin(t * 0.9 + i * 1.7), ORB_Z + 0.1 * f);
+      node.position.set(x, y + 0.025 * Math.sin(t * 0.9 + i * 1.7), ORB_Z + 0.14 * f);
       node.scale.setScalar(item.orb.slot.radius * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW - 1) * f));
-      // The focused orb glows; the others dim to 70% while something is in focus.
-      const dim = 1 - 0.3 * Math.max(0, strongest - f);
+      // The focused orb glows; the others dim subtly to 75% while something is in focus.
+      const dim = 1 - 0.25 * Math.max(0, strongest - f);
       item.glass.uniforms.uOpacity.value = shown * dim;
       item.halo.uniforms.uOpacity.value = shown * dim;
       item.halo.uniforms.uFocus.value = f;

@@ -29,3 +29,21 @@ test('it always stays inside the window', () => {
     expect(p.top + card.height).toBeLessThanOrEqual(viewport.height);
   }
 });
+
+test('it protects the facial region (eyes and cheeks) when outward does not fit', () => {
+  // Kali Linux in 960x640: orb in upper right, face center at 480, 280 with cheeks spanning 340..650
+  const vp = { width: 960, height: 640 };
+  const kaliOrb = { x: 733, y: 212, size: 68 };
+  const cardSize = { width: 280, height: 160 };
+  const faceData = {
+    x: 480,
+    y: 280,
+    bounds: { left: 330, right: 650, top: 180, bottom: 400 },
+  };
+  const p = placeTooltip(kaliOrb, cardSize, faceData, vp);
+  // Tooltip must NOT overlap the face bounds
+  const overlapsFace = !(p.left + cardSize.width <= faceData.bounds.left || p.left >= faceData.bounds.right || p.top + cardSize.height <= faceData.bounds.top || p.top >= faceData.bounds.bottom);
+  expect(overlapsFace).toBe(false);
+  expect(p.left).toBeGreaterThanOrEqual(faceData.bounds.right);
+  expect(p.left + cardSize.width).toBeLessThanOrEqual(vp.width);
+});

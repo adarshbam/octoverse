@@ -1,4 +1,4 @@
-export type ExpressionId = 'gentle' | 'happy' | 'focused' | 'attentive' | 'restful';
+export type ExpressionId = 'gentle' | 'happy' | 'focused' | 'attentive' | 'curious' | 'restful';
 
 /** Authored face shape, all values roughly -1..1 or 0..1. */
 export interface ExpressionParams {
@@ -25,6 +25,7 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   happy: { ...GENTLE, mouthCurve: 0.8, mouthOpen: 0.6, blush: 0.4 },
   focused: { ...GENTLE, browTilt: -0.6, lidRest: 0.12, mouthCurve: 0.65, mouthOpen: 0.45, blush: 0.2 },
   attentive: { ...GENTLE, browLift: 0.5 },
+  curious: { ...GENTLE, browTilt: -0.3, browLift: 0.2, mouthCurve: 0.6, mouthOpen: 0.3, blush: 0.25 },
   restful: { lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 },
 };
 

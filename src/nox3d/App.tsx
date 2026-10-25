@@ -109,10 +109,18 @@ export function App() {
   const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments), [segments]);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
+  const prevStage = useRef(state.stage);
   // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
-  // once and the view crossfades instead.
+  // once and the view crossfades instead. Tech focus transitions are swifter (650ms, 0 stagger)
+  // so limbs do not rearrange while focusing or returning to overview.
   useEffect(() => {
-    blender.start(NOX_POSES[state.stage], performance.now(), reducedMotion ? 0 : STAGE_TRANSITION.durationMs, STAGE_TRANSITION.staggerMs);
+    const fromTech = prevStage.current === 'techFocus';
+    const toTech = state.stage === 'techFocus';
+    const isTechTransition = toTech || fromTech;
+    const duration = reducedMotion ? 0 : isTechTransition ? 650 : STAGE_TRANSITION.durationMs;
+    const stagger = isTechTransition ? 0 : STAGE_TRANSITION.staggerMs;
+    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger);
+    prevStage.current = state.stage;
     if (first.current) first.current = false;
     else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
   }, [blender, state.stage, reducedMotion]);
@@ -205,7 +213,14 @@ export function App() {
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
           />
           {focusedTech && (
-            <TechTooltip id={TOOLTIP_ID} name={TECH.get(focusedTech)?.name ?? focusedTech} usage={USAGE.get(focusedTech)} orb={presented} face={face} />
+            <TechTooltip
+              key={focusedTech}
+              id={TOOLTIP_ID}
+              name={TECH.get(focusedTech)?.name ?? focusedTech}
+              usage={USAGE.get(focusedTech)}
+              orb={presented}
+              face={face}
+            />
           )}
           <OrbTray
             items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
