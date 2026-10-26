@@ -199,7 +199,7 @@ Owner, on v1: a motion-director brief listing ten problems: the mantle becomes a
 
 ### Tech focus v2 (2026-10-26)
 
-Capture: every recording runs on the page's own clock, one frame at a time, so it shows the motion as it really plays whatever the machine's load (`scripts/stepped-capture.mjs`, 30 fps, 960x640 unless noted). Verdict: pending.
+Capture: every recording runs on the page's own clock, one frame at a time, so it shows the motion as it really plays whatever the machine's load (`scripts/stepped-capture.mjs`, 30 fps, 960x640 unless noted). Verdict: approved. The owner wrote "Approve tech focus v2".
 
 - `assets/techfocus-v2-focus.webm`: the overview, the pointer rests on Kali Linux, moves to TypeScript, then Escape (scenarios 1 and 3-7; sheet `assets/techfocus-v2-focus-sheet.jpg`).
 - `assets/techfocus-v2-idle.webm`: the overview with no input (scenario 2).
