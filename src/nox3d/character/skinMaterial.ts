@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { headMorphVertex } from './headMorph';
 import { INTRO_LIGHTING, type StageLighting } from '../config/lighting';
 import type { CharacterConfig } from '../config/types';
 import { cheekCentres } from './headGeometry';
@@ -87,9 +88,7 @@ const skinVertex = /* glsl */ `
   attribute float aU;
   attribute vec3 aSpeck;
   #ifdef HEAD
-    attribute vec3 aMorph;
-    attribute vec3 aMorphNormal;
-    uniform float uMorph;
+    ${headMorphVertex}
   #endif
   uniform vec4 uFaceRect;
   varying vec3 vWorld;
@@ -101,8 +100,8 @@ const skinVertex = /* glsl */ `
   varying float vFront;
   void main() {
     #ifdef HEAD
-      vec3 p = mix(position, aMorph, uMorph);
-      vec3 n = normalize(mix(normal, aMorphNormal, uMorph));
+      vec3 p = morphedPosition();
+      vec3 n = morphedNormal();
     #else
       vec3 p = position;
       vec3 n = normal;
@@ -305,7 +304,7 @@ const skinFragment = /* glsl */ `
       #ifdef HEAD
         // Opened into the dome, the mantle's sunk top tucks into the glass's shadow, with no rim
         // light round it, so the face rises out of the dome instead of a lidded box.
-        float capped = uMorph * smoothstep(-0.2, -0.04, cheekLocal.y);
+        float capped = smoothstep(0.45, 1.0, uMorph) * smoothstep(-0.2, -0.04, cheekLocal.y);
         col = mix(col, col * 0.4, capped);
       #endif
     #endif

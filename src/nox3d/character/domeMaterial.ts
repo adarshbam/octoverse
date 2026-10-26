@@ -2,10 +2,35 @@ import * as THREE from 'three';
 import type { DomeShape, Palette } from '../config/types';
 
 /**
+ * How far the reveal must travel to show the whole dome: the reveal front is an ellipse growing
+ * from the dome's seat (the middle of its lower edge, where it meets the head), measured in
+ * half-widths across and full heights up, so a top corner is sqrt(2) away; a little more covers
+ * the soft front.
+ */
+export const DOME_REACH = 1.5;
+
+/**
+ * The dome at a given openness (0..1, already eased): it keeps its full size and its place over
+ * the face, so it never becomes a shrinking, sliding lid; instead its glass is revealed outward
+ * from its seat on the head (`reveal`, in reach units), fading in over the first moments.
+ */
+export function domeState(open: number) {
+  const o = Math.min(1, Math.max(0, open));
+  return {
+    visible: o > 0.001,
+    scale: 1,
+    offset: 0,
+    reveal: o * DOME_REACH,
+    opacity: Math.min(1, o / 0.12),
+  };
+}
+
+/**
  * The overview dome's glass, as in panel 3: a dark, see-through violet body (alpha 0.55 face-on),
  * a hot pink rim, softer pink over the crown, a bright line along its lower edge where it sits on
- * the face, and a soft reflection band across the inside near the top. `uOpacity` fades it in as
- * the head opens.
+ * the face, and a soft reflection band across the inside near the top. While the head opens or
+ * closes, only the glass within `uReveal` of its seat shows, behind a glowing front, so the dome
+ * blooms out of the crown and folds back into it (see domeState).
  */
 export function createDomeMaterial(palette: Palette, dome: DomeShape) {
   return new THREE.ShaderMaterial({
@@ -15,7 +40,9 @@ export function createDomeMaterial(palette: Palette, dome: DomeShape) {
       uRimTop: { value: new THREE.Color(palette.domeRimTop) },
       uSheen: { value: new THREE.Color(palette.domeSheen) },
       uHalfHeight: { value: dome.halfHeight },
+      uHalfWidth: { value: dome.halfWidth },
       uOpacity: { value: 0 },
+      uReveal: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vN;
@@ -35,7 +62,9 @@ export function createDomeMaterial(palette: Palette, dome: DomeShape) {
       uniform vec3 uRimTop;
       uniform vec3 uSheen;
       uniform float uHalfHeight;
+      uniform float uHalfWidth;
       uniform float uOpacity;
+      uniform float uReveal;
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vLocal;
@@ -51,6 +80,15 @@ export function createDomeMaterial(palette: Palette, dome: DomeShape) {
         float seat = 1.0 - smoothstep(0.0, 0.1, up);
         col += uRim * seat * 1.4;
         float alpha = max(mix(0.55, 0.98, pow(1.0 - ndv, 3.0)), seat);
+
+        // The reveal: distance from the seat, in half-widths across and full heights up. Glass
+        // beyond the front is not there yet; just inside it, a glowing band leads the way, gone
+        // once the dome is whole.
+        float m = length(vec2(vLocal.x / uHalfWidth, (vLocal.y + uHalfHeight) / (2.0 * uHalfHeight)));
+        float shown = 1.0 - smoothstep(uReveal - 0.07, uReveal, m);
+        float front = exp(-pow((m - (uReveal - 0.05)) / 0.035, 2.0)) * (1.0 - smoothstep(1.3, ${DOME_REACH.toFixed(2)}, uReveal));
+        col += mix(uRim, vec3(1.0, 0.85, 0.95), 0.35) * front * 1.8;
+        alpha = max(alpha, front * 0.9) * shown;
         gl_FragColor = vec4(col, alpha * uOpacity);
       }
     `,

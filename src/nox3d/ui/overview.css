@@ -7,7 +7,8 @@
   color: #fff;
   opacity: 0;
   transform: translateY(2%) scale(0.97);
-  transition: opacity 500ms ease, transform 500ms ease;
+  /* Out quickly, before the dome folds away round it. */
+  transition: opacity 250ms ease, transform 250ms ease;
   pointer-events: none;
 }
 

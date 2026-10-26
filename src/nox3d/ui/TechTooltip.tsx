@@ -1,36 +1,50 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import type { ProjectTechnologyUsage } from '../content/projectTypes';
 import './tooltip.css';
-import { type FaceInput, placeTooltip } from './tooltipPlacement';
+import type { TooltipContent } from './tooltipContent';
+import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPlacement';
 
 /**
  * How a technology is used in this project, beside its presented orb (panel 4): the name, the
- * role, the details as bullets (or a one-line summary). It sits beside the orb on the side
- * away from Nox's face (placeTooltip), strictly outside protected facial bounds.
+ * role, the details as bullets (or a one-line summary), and, while developing, a Placeholder badge
+ * on storyboard or missing text. It sits beside the orb, clear of Nox's face (placeTooltip), or on
+ * a phone held upright along the bottom of the window when that is clear of the face (sheetFits); it
+ * fades in with a small rise once the presentation reads (`delayMs`). A tooltip that is `leaving`
+ * fades out quickly and is no longer announced.
  */
-export function TechTooltip({ id, name, usage, orb, face }: { id: string; name: string; usage?: ProjectTechnologyUsage; orb: { x: number; y: number; size: number } | null; face: FaceInput }) {
+export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
-  const [place, setPlace] = useState({ left: 0, top: 0 });
+  // Where it goes; null for the sheet along the bottom. Measured as a card, which is never shorter
+  // than the wider sheet, so a sheet that fits as measured fits as shown.
+  const [place, setPlace] = useState<{ left: number; top: number } | null>({ left: 0, top: 0 });
   useLayoutEffect(() => {
     if (!orb || !box.current) return;
     const { width, height } = box.current.getBoundingClientRect();
-    setPlace(placeTooltip(orb, { width, height }, face, { width: window.innerWidth, height: window.innerHeight }));
-  }, [orb, face, name, usage]);
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    setPlace(sheetFits(viewport, face, height) ? null : placeTooltip(orb, { width, height }, face, viewport, others));
+  }, [orb, face, others, content]);
   if (!orb) return null;
   return (
-    <div ref={box} id={id} role="tooltip" className="tech-tooltip" style={place}>
+    <div
+      ref={box}
+      id={leaving ? undefined : id}
+      role={leaving ? undefined : 'tooltip'}
+      aria-hidden={leaving || undefined}
+      className={`tech-tooltip${place ? '' : ' is-sheet'}${leaving ? ' is-leaving' : ''}`}
+      style={{ ...place, animationDelay: leaving ? undefined : `${delayMs}ms` }}
+    >
       <div className="tech-tooltip-head">
-        <h3>{name}</h3>
+        <h3>{content.name}</h3>
+        {content.badge && <span className="tech-tooltip-badge">Placeholder</span>}
       </div>
-      {usage?.role && <p className="tech-tooltip-role">{usage.role}</p>}
-      {usage?.details?.length ? (
+      {content.role && <p className="tech-tooltip-role">{content.role}</p>}
+      {content.details.length > 0 ? (
         <ul>
-          {usage.details.map(detail => (
+          {content.details.map(detail => (
             <li key={detail}>{detail}</li>
           ))}
         </ul>
       ) : (
-        usage?.summary && <p>{usage.summary}</p>
+        content.summary && <p>{content.summary}</p>
       )}
     </div>
   );

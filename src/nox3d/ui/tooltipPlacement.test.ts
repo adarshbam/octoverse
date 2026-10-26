@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { placeTooltip } from './tooltipPlacement';
+import { placeTooltip, sheetFits } from './tooltipPlacement';
 
 const viewport = { width: 1280, height: 720 };
 const card = { width: 300, height: 160 };
@@ -46,4 +46,41 @@ test('it protects the facial region (eyes and cheeks) when outward does not fit'
   expect(overlapsFace).toBe(false);
   expect(p.left).toBeGreaterThanOrEqual(faceData.bounds.right);
   expect(p.left + cardSize.width).toBeLessThanOrEqual(vp.width);
+});
+
+test('with no room outward it finds empty space instead of covering the other orbs (960x640, Kali)', () => {
+  // Measured from a 960x640 recording: Kali presented at the upper right, the other orbs at rest.
+  const vp = { width: 960, height: 640 };
+  const kali = { x: 752, y: 200, size: 92 };
+  const others = [[235, 245], [205, 315], [240, 375], [322, 405], [250, 430], [320, 475], [420, 497], [545, 490], [490, 542], [660, 465], [652, 393], [718, 365], [770, 440], [770, 295]].map(([x, y]) => ({ x, y, size: 70 }));
+  const faceBox = { x: 485, y: 370, bounds: { left: 352, right: 618, top: 313, bottom: 440 } };
+  const size = { width: 280, height: 170 };
+  const p = placeTooltip(kali, size, faceBox, vp, others);
+  const covers = (o: { x: number; y: number; size: number }) => {
+    const nx = Math.max(p.left, Math.min(o.x, p.left + size.width));
+    const ny = Math.max(p.top, Math.min(o.y, p.top + size.height));
+    return Math.hypot(nx - o.x, ny - o.y) < o.size / 2;
+  };
+  expect(others.filter(covers)).toEqual([]);
+  expect(covers(kali)).toBe(false);
+  const f = faceBox.bounds;
+  expect(p.left + size.width <= f.left || p.left >= f.right || p.top + size.height <= f.top || p.top >= f.bottom).toBe(true);
+  expect(p.left).toBeGreaterThanOrEqual(0);
+  expect(p.top).toBeGreaterThanOrEqual(0);
+  expect(p.left + size.width).toBeLessThanOrEqual(vp.width);
+  expect(p.top + size.height).toBeLessThanOrEqual(vp.height);
+});
+
+test('on a phone held upright the tooltip is a sheet along the bottom, below the face', () => {
+  const face = { x: 195, y: 420, bounds: { left: 115, right: 275, top: 385, bottom: 455 } };
+  expect(sheetFits({ width: 390, height: 844 }, face, 170)).toBe(true);
+});
+
+test('where a sheet would reach the face the tooltip stays beside its orb', () => {
+  // A small landscape window: Nox fills it, so a sheet along the bottom would cover the face.
+  expect(sheetFits({ width: 506, height: 504 }, { x: 253, y: 280, bounds: { left: 150, right: 356, top: 236, bottom: 334 } }, 170)).toBe(false);
+  // Upright but nearly square: the sheet would still come up over the mouth.
+  expect(sheetFits({ width: 600, height: 640 }, { x: 300, y: 330, bounds: { left: 180, right: 420, top: 280, bottom: 400 } }, 260)).toBe(false);
+  // Wide windows always set the card beside the orb.
+  expect(sheetFits({ width: 1280, height: 720 }, { x: 640, y: 420 }, 120)).toBe(false);
 });

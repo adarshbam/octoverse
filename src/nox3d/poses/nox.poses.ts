@@ -81,10 +81,10 @@ const OVERVIEW_ARMS = Object.fromEntries(
 
 const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1, orbs: 1 };
 
-// Panel 4, a technology in focus: the head closes again and Nox looks at the orb with a focused
-// face, while the arms keep the overview's places so the orbs do not move round (the focused
-// arm reaches up with its orb, in Octopus).
-const TECH_FOCUS: StagePose = { ...OVERVIEW, expression: 'focused', headMorph: 0 };
+// Panel 4, a technology in focus: the head closes again, while the arms keep the overview's places
+// so the orbs do not move round. The presenting arm, Nox's gaze and its face's reaction to the
+// technology come from the focus choreography, in Octopus.
+const TECH_FOCUS: StagePose = { ...OVERVIEW, headMorph: 0 };
 
 // The entrance and detail are authored against their panels in Tasks 22 and 23; until then they reuse the intro.
 export const NOX_POSES: Record<StageId, StagePose> = {

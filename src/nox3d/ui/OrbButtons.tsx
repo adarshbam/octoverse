@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { HoverIntent } from './hoverIntent';
 import * as THREE from 'three';
 import { ArmChain, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS } from '../config/types';
-import { FOCUS_GROW, FOCUS_RAISE } from '../artifacts/TechOrbs';
-import { ORB_Z, type OrbSlot, orbRestPosition } from '../artifacts/orbSlots';
+import { FOCUS_GROW, ORB_Z, type OrbSlot, orbRestPosition } from '../artifacts/orbSlots';
 import { NOX_POSES } from '../poses/nox.poses';
 import { projectToScreen } from '../stage/anchors';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
@@ -23,8 +23,20 @@ function overviewCamera(size: { width: number; height: number }) {
   return camera;
 }
 
+/** Spots worked out for a window size, so a focus change never rebuilds the arms to place things. */
+const spotCache = new Map<string, unknown>();
+function cached<T>(key: string, make: () => T): T {
+  const full = `${key}@${window.innerWidth}x${window.innerHeight}`;
+  if (!spotCache.has(full)) spotCache.set(full, make());
+  return spotCache.get(full) as T;
+}
+
 /** Where Nox's face is on the page in the overview, in CSS pixels, with its protected bounding box. */
 export function faceSpot() {
+  return cached('face', faceSpotNow);
+}
+
+function faceSpotNow() {
   const size = { width: window.innerWidth, height: window.innerHeight };
   const { body } = NOX_POSES.overview;
   const [ox, oy] = NOX.head.faceOrigin;
@@ -48,9 +60,13 @@ export function faceSpot() {
 
 /**
  * Where each orb rests on the page in the overview, and how big it looks, in CSS pixels; with
- * `presented`, where it sits once raised and grown in focus.
+ * `presented`, where it sits when its arm presents it (its slot's presentation pose), grown.
  */
 export function orbSpots(orbs: readonly OrbChoice[], presented = false) {
+  return cached(`orbs:${presented}:${orbs.map(o => o.techId).join()}`, () => orbSpotsNow(orbs, presented));
+}
+
+function orbSpotsNow(orbs: readonly OrbChoice[], presented: boolean) {
   const size = { width: window.innerWidth, height: window.innerHeight };
   const camera = overviewCamera(size);
   const { body } = NOX_POSES.overview;
@@ -58,28 +74,36 @@ export function orbSpots(orbs: readonly OrbChoice[], presented = false) {
     const index = ARM_IDS.indexOf(slot.armId);
     const chain = new ArmChain(restFromCurve(NOX_POSES.overview.arms[slot.armId]), NOX.arms[index], index);
     chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
-    const p = orbRestPosition(chain, slot);
-    const lift = presented ? FOCUS_RAISE : 0;
+    const p = presented ? { x: slot.present[0], y: slot.present[1] } : orbRestPosition(chain, slot);
     const radius = slot.radius * (presented ? FOCUS_GROW : 1);
-    const centre = projectToScreen(new THREE.Vector3(p.x + body.x, p.y + body.y + lift, ORB_Z), camera, size);
-    const edge = projectToScreen(new THREE.Vector3(p.x + body.x + radius, p.y + body.y + lift, ORB_Z), camera, size);
+    const centre = projectToScreen(new THREE.Vector3(p.x + body.x, p.y + body.y, ORB_Z), camera, size);
+    const edge = projectToScreen(new THREE.Vector3(p.x + body.x + radius, p.y + body.y, ORB_Z), camera, size);
     return { x: centre.x, y: centre.y, size: Math.max(44, 2 * (edge.x - centre.x)) };
   });
 }
 
-/** How long the pointer rests on an orb before it is focused, so gliding across orbs focuses none of them. */
-const HOVER_INTENT_MS = 180;
-
 /**
  * One button over each orb's resting place in the overview, so every technology can be reached
- * by pointer, keyboard or touch (at least 44 px). Resting the pointer on one, focusing or pressing
- * it focuses that technology; the focused one is described by the tooltip. The buttons never move,
- * so letting go of a focus never counts as a new hover.
+ * by pointer, keyboard or touch (at least 44 px). Bringing the pointer to rest on one (HoverIntent:
+ * gliding across orbs chooses none of them), focusing or pressing it focuses that technology; the
+ * focused one is described by the tooltip. The buttons never move, so letting go of a focus never
+ * counts as a new hover.
  */
 export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs: readonly OrbChoice[]; open: boolean; focused: string | null; tooltipId: string; onChoose: (techId: string) => void }) {
   const [spots, setSpots] = useState(() => orbSpots(orbs));
-  const hover = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(hover.current), []);
+  const hover = useRef<{ techId: string | null; timer?: number }>({ techId: null });
+  const intent = useMemo(() => new HoverIntent(), []);
+  useEffect(() => () => window.clearTimeout(hover.current.timer), []);
+  // Chooses the orb under the pointer once it has come to rest there; checks again when it might.
+  const consider = (techId: string, x: number, y: number) => {
+    const now = performance.now();
+    intent.move(x, y, now);
+    window.clearTimeout(hover.current.timer);
+    if (intent.due(now)) return onChoose(techId);
+    hover.current.timer = window.setTimeout(() => {
+      if (hover.current.techId === techId && intent.due(performance.now())) onChoose(techId);
+    }, intent.wait(now) + 5);
+  };
   useEffect(() => {
     const update = () => setSpots(orbSpots(orbs));
     update();
@@ -103,10 +127,17 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
             onFocus={() => onChoose(orb.techId)}
             onPointerEnter={event => {
               if (event.pointerType !== 'mouse') return;
-              window.clearTimeout(hover.current);
-              hover.current = window.setTimeout(() => onChoose(orb.techId), HOVER_INTENT_MS);
+              hover.current.techId = orb.techId;
+              intent.reset();
+              consider(orb.techId, event.clientX, event.clientY);
             }}
-            onPointerLeave={() => window.clearTimeout(hover.current)}
+            onPointerMove={event => {
+              if (event.pointerType === 'mouse' && hover.current.techId === orb.techId) consider(orb.techId, event.clientX, event.clientY);
+            }}
+            onPointerLeave={() => {
+              hover.current.techId = null;
+              window.clearTimeout(hover.current.timer);
+            }}
           />
         );
       })}

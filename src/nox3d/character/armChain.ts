@@ -14,6 +14,8 @@ export interface ArmRest {
   angles: Float32Array;
 }
 
+const fract = (x: number) => x - Math.floor(x);
+
 export interface ArmDrive {
   time: number;
   /** Travelling-wave amplitude, radians accumulated toward the tip. */
@@ -65,6 +67,12 @@ export class ArmChain {
   /** Enough segments that the tightest tip curls stay smooth at review zoom. */
   static readonly SEGMENTS = 128;
   readonly side: 1 | -1;
+  /**
+   * This arm's own pace and strength of idle drift, so the eight never move in lock-step: rates
+   * spread over about 0.87-1.17 by the golden ratio, amplitudes over 0.88-1.12.
+   */
+  readonly driftRate: number;
+  readonly driftGain: number;
   readonly px: Float32Array;
   readonly py: Float32Array;
   readonly pz: Float32Array;
@@ -87,6 +95,8 @@ export class ArmChain {
     this.rest = rest;
     this.spec = spec;
     this.phase = index * 1.37 + 0.4;
+    this.driftRate = 0.82 + 0.36 * fract(index * 0.618034 + 0.13);
+    this.driftGain = 0.88 + 0.24 * fract(index * 0.381966 + 0.41);
     this.px = new Float32Array(n + 1);
     this.py = new Float32Array(n + 1);
     this.pz = new Float32Array(n + 1);
@@ -134,10 +144,11 @@ export class ArmChain {
       const s = (k + 0.5) / n;
       // A slow swing of the whole arm, plus a wave travelling out from the body with nearly two
       // wavelengths along the arm, so it bends at several points from base to tip.
-      const swing = (0.3 + 0.7 * s) * Math.sin(t * 0.62 - s * 2.4 + ph);
-      const ripple = (0.6 + 0.4 * s) * Math.sin(t * 0.95 - s * 11 + ph * 1.7);
-      const wave = sway * (0.55 * swing + 1.7 * ripple) * smoothstep(0.02, 0.15, s);
-      const tipCurl = curl * this.side * smoothstep(0.5, 1, s) * 0.5 * Math.sin(t * 0.53 + ph * 0.7);
+      const tt = t * this.driftRate;
+      const swing = (0.3 + 0.7 * s) * Math.sin(tt * 0.62 - s * 2.4 + ph);
+      const ripple = (0.6 + 0.4 * s) * Math.sin(tt * 0.95 - s * 11 + ph * 1.7);
+      const wave = sway * this.driftGain * (0.55 * swing + 1.7 * ripple) * smoothstep(0.02, 0.15, s);
+      const tipCurl = curl * this.side * smoothstep(0.5, 1, s) * 0.5 * Math.sin(tt * 0.53 + ph * 0.7);
       const trail = -droop * Math.cos(this.rest.angles[k]) * (1 - 0.5 * s);
       acc += (wave + tipCurl + trail) / n;
       this.angle[k] = this.rest.angles[k] + acc + bend * this.undulation[k];
@@ -198,7 +209,7 @@ export class ArmChain {
     const n = this.segments;
     for (let k = 0; k <= n; k++) {
       const s = k / n;
-      this.pz[k] = armDepth(s, this.spec) + (k === 0 ? 0 : 0.035 * s * Math.sin(t * 0.9 + this.phase + s * 2.5));
+      this.pz[k] = armDepth(s, this.spec) + (k === 0 ? 0 : 0.035 * s * Math.sin(t * this.driftRate * 0.9 + this.phase + s * 2.5));
     }
   }
 

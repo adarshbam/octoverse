@@ -185,7 +185,7 @@ Verdict on v2: approved. The owner wrote "Approve technology orbs v2".
 
 ### Tech focus v1 (2026-10-25)
 
-Capture: `assets/techfocus-v1-compare.png` (beside the high-quality panel 4), `assets/techfocus-v1.png`, `assets/techfocus-v1-orb.png` (the focused orb close up) and `assets/techfocus-v1-interaction.webm` (overview, the pointer rests on Kali Linux, then TypeScript, then Escape; sheet `assets/techfocus-v1-interaction-sheet.png`). Verdict: pending.
+Capture: `assets/techfocus-v1-compare.png` (beside the high-quality panel 4), `assets/techfocus-v1.png`, `assets/techfocus-v1-orb.png` (the focused orb close up) and `assets/techfocus-v1-interaction.webm` (overview, the pointer rests on Kali Linux, then TypeScript, then Escape; sheet `assets/techfocus-v1-interaction-sheet.png`). Verdict: changes requested (the owner's brief, below).
 
 - **Focusing a technology:** resting the pointer on an orb (180 ms, so gliding across orbs focuses none of them), tabbing to it or tapping it focuses it. Its orb rises and grows by a third, its ring turns into the painting's bold hot-pink neon circle with a dark centre, and the other orbs dim to 70%. Its arm reaches up to hold it from below; other orbs on that arm hold their places.
 - **Nox:** the dome closes again, as in panel 4; Nox looks at the orb, tilts its head toward it and gives a keen, open grin under angled brows.
@@ -195,3 +195,42 @@ Capture: `assets/techfocus-v1-compare.png` (beside the high-quality panel 4), `a
 
 Known gaps: panel 4 pulls the camera back (Nox smaller, centred higher) and paints the arms and orbs in a new arrangement; we keep the overview's framing and arrangement so the orbs never move under the visitor's pointer as focus begins. Panel 4's face is painted with larger eyes and a bolder glow than the signed-off face.
 
+Owner, on v1: a motion-director brief listing ten problems: the mantle becomes a floating cap; the tooltip covers the face; the arms do not present their orb; the face barely reacts; the idle is uniform; switching is abrupt; there is no anticipation or follow-through; the orbs are static and crowded; the content is placeholder; the return to the overview is unconvincing. It set priorities (P0 mantle, tooltip, presenting arm; P1 face, idle, poses, choreography; P2 spacing, content, polish), a beat timing (eyes 0-200 ms, face 150-600 ms, arm 300-900 ms, tooltip 500-900 ms) and eleven scenarios to record and review as video. It ends: "The final goal is to make Nox feel like a living creature that deliberately interacts with the visitor."
+
+### Tech focus v2 (2026-10-26)
+
+Capture: every recording runs on the page's own clock, one frame at a time, so it shows the motion as it really plays whatever the machine's load (`scripts/stepped-capture.mjs`, 30 fps, 960x640 unless noted). Verdict: pending.
+
+- `assets/techfocus-v2-focus.webm`: the overview, the pointer rests on Kali Linux, moves to TypeScript, then Escape (scenarios 1 and 3-7; sheet `assets/techfocus-v2-focus-sheet.jpg`).
+- `assets/techfocus-v2-idle.webm`: the overview with no input (scenario 2).
+- `assets/techfocus-v2-rapid.webm`: Kali, HTML, Docker and Python in quick succession, then Escape (scenario 8).
+- `assets/techfocus-v2-keys.webm`: Tab to Kali, Shift+Tab to Linux, Escape (scenario 9).
+- `assets/techfocus-v2-reduced.webm`: the focus run with reduced motion (scenario 10).
+- `assets/techfocus-v2-phone.webm`: a 390x844 touch phone; Kali from the tray, tap away, TypeScript, tap away (scenario 11).
+- Stills: `assets/techfocus-v2.png` (Kali in focus), `assets/techfocus-v2-compare-panel4.png` and `assets/techfocus-v2-compare-panel3.png` (beside the high-quality panels, same frame), `assets/techfocus-v2-restored.png` (the overview before focus and after Escape), `assets/techfocus-v2-dome-fold.png` (six frames of the dome folding back). Each recording also has a sheet (`-sheet.jpg`).
+
+What changed, by the brief's priorities:
+
+- **P0, the mantle:** the dome no longer shrinks into a cap. It keeps its size and place while its glass folds back into the crown behind a glowing edge, and the head rounds up in two steps to meet it. Opening runs the same way outward.
+- **P0, the tooltip:** placed by scoring the spots round the orb: never over the face or the orb, then covering the fewest other orbs, then nearest, outward first. It fades in 0.6 s after the choice, as the orb arrives; the one before fades out in 0.18 s. On an upright phone it is a sheet along the bottom, but only where that sheet clears the face; in a small landscape window it stays beside the orb.
+- **P0, presenting:** the orb's own arm reaches under it, takes it on its tip and lifts it to a presentation spot in open water, out from the face. The orb grows by a third and takes the hot-pink ring; the other orbs dim. Each technology has its own spot, checked so its arm can reach it.
+- **P1, the face:** the eyes turn to the orb at once; 0.12 s later the face reacts (Kali: the keen focused grin; the others: curiosity), and the head, on its own neck rather than the whole body, turns and tilts toward the orb.
+- **P1, idle:** each arm sways at its own pace and size; the eyes make tiny quick movements every 0.35-1.25 s; the orbs' halos breathe; the face glow drifts.
+- **P1, choreography:** one timeline runs every beat from the moment of choice: eyes at 0 ms, face 120-620 ms, dome 150-800 ms, arm 280-930 ms, tooltip from 600 ms. Letting go runs back (arm 480 ms, dome 250-1250 ms). These are the brief's four states: overview, moving to a technology, focused, moving back. Every part moves on from where it is, so switching and rapid choices never jump.
+- **P1, hover:** an orb is chosen when the pointer comes to rest on it (within 6 px for 0.13 s), so gliding across orbs chooses none of them.
+- **P2, content:** Kali keeps panel 4's text; the others say "How it is used here: text to come." The Placeholder badge shows while developing; the live site shows only the name and category for those.
+- **P2, smoothness:** a focus change no longer rebuilds arms to place things, and the face texture redraws at most every 30 ms.
+
+Verification:
+
+- All eleven scenarios recorded and reviewed frame by frame. Frame-to-frame change stays under 1.7 (of 255) in the idle; the largest steps in the focus runs (about 4.4) are the dome folding, spread over about four frames; no single-frame jumps. Reduced motion changes pose at once, under its 300 ms fade.
+- Checks: 197 tests pass, typecheck clean, lint without errors, keyboard e2e passes, `check_stage` panels 2, 3 and 4 PASS. Panel 4 now samples the presented Kali ring; a still capture shows the focus settled (before this pass it showed no presented orb and failed all three samples).
+- The restored overview matches the first one; the differences are the idle sway, the bubbles and where the eyes look.
+
+Known gaps:
+
+- **Dome fold:** most of the visible fold happens in about 0.15 s of its 0.65 s beat; in the last 0.1 s the dark glass is faint, so it reads mostly as its bright edge, a thin arc over the head.
+- **TypeScript:** it presents into the crowded left side and sits in front of JavaScript, overlapping it by about a quarter.
+- **Phone:** while open, the sheet covers the lower rows of the tray; tap elsewhere to let go before choosing another.
+- **Panel 4:** its composition still differs (a pulled-back camera, bigger orbs in another arrangement, larger eyes and a bolder glow in the painted face); we keep the overview's framing so the orbs never move under the pointer.
+- **Content:** placeholder text for every technology but Kali; the CSS logo is the modern purple one, not the painting's blue shield.

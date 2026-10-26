@@ -4,14 +4,15 @@ import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention } from '../behavior/attention';
 import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
+import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
-import { FOCUS_RAISE, type OrbState, type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
-import { ORB_Z, orbRestPosition } from '../artifacts/orbSlots';
+import { type OrbState, type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
+import { ORB_Z, orbRestPosition, tipTarget } from '../artifacts/orbSlots';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -20,12 +21,14 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
-import { createDomeMaterial } from './domeMaterial';
+import { createDomeMaterial, domeState } from './domeMaterial';
 import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 
-/** Rotation pivot for head turns: the middle of the body. */
+/** Rotation pivot for whole-body turns: the middle of the body. */
 const PIVOT_Y = -0.6;
+/** Pivot for the head's own turns and tilt (head-local height): the neck, under the chin. */
+const NECK_Y = -1.05;
 
 export interface OctopusProps {
   config: CharacterConfig;
@@ -64,11 +67,22 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
   const dome = useRef<THREE.Mesh>(null);
+  const headTurn = useRef<THREE.Group>(null);
+  const headSpace = useRef<THREE.Group>(null);
   const orbState = useMemo<OrbState>(
-    () => ({ out: 0, focus: new Float32Array(orbs.length), anchors: orbs.map(() => new THREE.Vector2()), armReach: new Float32Array(ARM_IDS.length) }),
+    () => ({
+      out: 0,
+      focus: new Float32Array(orbs.length),
+      tips: ARM_IDS.map(() => new THREE.Vector2()),
+      armReach: new Float32Array(ARM_IDS.length),
+      driver: new Int8Array(ARM_IDS.length).fill(-1),
+    }),
     [orbs],
   );
+  // One timeline for every technology focus: eyes, face, arm, emphasis, release.
+  const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
+  const faceAt = useMemo(() => new THREE.Vector3(), []);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
@@ -119,7 +133,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       armMaterial: createSkinMaterial('ARM', uniforms),
       coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
-      headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0)),
+      headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
       glowLocal: new THREE.Vector3(...config.glow.center),
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
@@ -210,59 +224,57 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     float.current!.position.set(pose.body.x + moving * drift.x, pose.body.y + moving * drift.y, 0);
     float.current!.scale.setScalar(pose.body.scale);
 
-    // The technology in focus: its orb rises to an anchor above where it rode and grows, its arm
-    // reaches up to hold it from below, and Nox looks at it. Each orb eases in and out over 0.7 s.
-    const focusIndex = focusTechId ? orbs.findIndex(o => o.techId === focusTechId) : -1;
-    orbs.forEach((orb, i) => {
-      const f = orbState.focus;
-      if (i === focusIndex && f[i] === 0) {
-        const at = orbRestPosition(rig.arms[ARM_IDS.indexOf(orb.slot.armId)].chain, orb.slot);
-        orbState.anchors[i].set(at.x, at.y + FOCUS_RAISE);
-      }
-      const step = reducedMotion ? 1 : dt / 0.7;
-      f[i] = THREE.MathUtils.clamp(f[i] + (i === focusIndex ? step : -step), 0, 1);
-    });
+    // The technology in focus. One timeline (FocusChoreography) runs it: the eyes turn at once,
+    // the face reacts a beat later, then the orb's arm reaches its tip under the orb and lifts it
+    // to its presentation pose while the orb glows and the others dim. Letting go runs back the
+    // same way. Every value retargets from where it is, so quick changes never jump.
+    const selected = focusTechId ? orbs.findIndex(o => o.techId === focusTechId) : -1;
+    // A still capture (freeze) shows the focus as it settles, at once.
+    choreography.update(selected, now, dt * 1000, reducedMotion || freeze);
+    const out = THREE.MathUtils.clamp(pose.orbs, 0, 1);
     let fixed: { x: number; y: number } | undefined;
-    if (focusIndex >= 0) {
-      const a = orbState.anchors[focusIndex];
-      lookAt.set(a.x, a.y, ORB_Z).applyMatrix4(content.current!.matrixWorld).project(state.camera);
+    if (selected >= 0) {
+      // Eyes follow the orb as its arm brings it to where it is presented.
+      const orb = orbs[selected];
+      const riding = orbRestPosition(rig.arms[ARM_IDS.indexOf(orb.slot.armId)].chain, orb.slot);
+      const f = choreography.arm(selected);
+      lookAt.set(riding.x + (orb.slot.present[0] - riding.x) * f, riding.y + (orb.slot.present[1] - riding.y) * f, ORB_Z);
+      lookAt.applyMatrix4(content.current!.matrixWorld).project(state.camera);
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
-    const faceNDC = new THREE.Vector3(
-      config.head.faceOrigin[0] + pose.body.x,
-      config.head.faceOrigin[1] + pose.body.y,
-      0,
-    ).project(state.camera);
+    faceAt.set(config.head.faceOrigin[0] + pose.body.x, config.head.faceOrigin[1] + pose.body.y, 0).project(state.camera);
 
     const p = state.pointer;
-    const gaze = freeze
+    // Frozen, the eyes rest ahead, or settle on the orb in focus.
+    const gaze = freeze && !fixed
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceNDC.x, y: faceNDC.y });
+      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y });
     const near = gaze.tracking ? Math.max(0, 1 - Math.hypot(p.x, p.y + 0.17) * 1.4) : 0;
     spring(m.smile, near, 5, dt);
 
-    // In focus, Nox tilts its head toward the orb, as in panel 4, sprung smoothly to avoid jumps.
-    let targetTilt = 0;
-    if (focusIndex >= 0 || orbState.focus.some(v => v > 0)) {
-      const i = focusIndex >= 0 ? focusIndex : orbState.focus.indexOf(Math.max(...orbState.focus));
-      const f = orbState.focus[i];
-      targetTilt = 0.14 * f * f * (3 - 2 * f) * Math.sign(orbState.anchors[i].x - config.head.centerX);
-    }
-    spring(m.tilt, targetTilt, 5, dt);
-    turn.current!.rotation.set(
-      -gaze.headY * 0.08,
-      pose.body.yaw + gaze.headX * 0.15,
-      moving * drift.roll - gaze.headX * 0.02 - m.tilt.x,
-    );
-
+    // The face reacts to each technology in its own way (Kali: the focused face of panel 4;
+    // others: a subtle curiosity), and the head tilts a little toward it.
     let activeExpression = expression ? EXPRESSIONS[expression] : pose.expression;
-    if (focusIndex >= 0) {
-      const isKali = orbs[focusIndex].techId === 'kali';
-      const targetExp = isKali ? EXPRESSIONS.focused : EXPRESSIONS.curious;
-      const f = orbState.focus[focusIndex];
-      activeExpression = blendExpression(pose.expression, targetExp, f);
-    }
+    let tiltTarget = 0;
+    let strongest = 0;
+    orbs.forEach((orb, i) => {
+      const f = choreography.face(i);
+      if (f <= 0) return;
+      activeExpression = blendExpression(activeExpression, EXPRESSIONS[orb.reaction ?? 'curious'], f);
+      if (f > strongest) {
+        strongest = f;
+        tiltTarget = 0.1 * f * Math.sign(orb.slot.present[0] - config.head.faceOrigin[0]);
+      }
+    });
+    spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
+    // While the orbs are out the body barely turns, so the orbs and arms hold still under the
+    // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
+    // turns, as before.
+    const bodyTurn = 1 - 0.75 * out;
+    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, -m.tilt.x);
+
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
       ...face,
@@ -286,29 +298,43 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     m.inverse.copy(content.current!.matrixWorld).invert();
     m.target.applyMatrix4(m.inverse);
 
-    // With a technology in focus, its arm reaches up to hold the orb. Otherwise only the arm whose
-    // tip is nearest the pointer reaches, never into the face; either lets go gently.
-    const focusArm = focusIndex >= 0 ? ARM_IDS.indexOf(orbs[focusIndex].slot.armId) : -1;
-    const active = focusArm >= 0 ? focusArm : gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    // Which orb each arm presents (the one furthest along), and how far: that arm reaches its tip
+    // to hold the orb at its presentation pose. With reduced motion no arm moves.
+    orbState.armReach.fill(0);
+    orbState.driver.fill(-1);
+    orbs.forEach((orb, i) => {
+      const f = choreography.arm(i);
+      orbState.focus[i] = f;
+      const a = ARM_IDS.indexOf(orb.slot.armId);
+      if (f > orbState.armReach[a]) {
+        orbState.armReach[a] = f;
+        orbState.driver[a] = i;
+      }
+    });
+    if (reducedMotion) orbState.armReach.fill(0);
+    // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
+    // face. While the orbs are out, only arms presenting a technology move.
+    const pointerArm = out < 0.5 && gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
-      spring(weight, i === active ? 1 : 0, i === active ? 5 : 3, dt);
-      if (i === focusArm) {
-        const a = orbState.anchors[focusIndex];
-        m.reachPoint[i].set(a.x, a.y - orbs[focusIndex].slot.radius * 0.8);
-      } else if (i === active) m.reachPoint[i].set(m.target.x, m.target.y);
-      const w = THREE.MathUtils.clamp(weight.x, 0, 1);
-      orbState.armReach[i] = w;
+      spring(weight, i === pointerArm ? 1 : 0, i === pointerArm ? 5 : 3, dt);
+      if (i === pointerArm) m.reachPoint[i].set(m.target.x, m.target.y);
+      const pointerW = THREE.MathUtils.clamp(weight.x, 0, 1);
+      const presentW = orbState.armReach[i];
+      const driver = orbState.driver[i];
+      const target = presentW > 0 && driver >= 0 ? tipTarget(orbs[driver].slot) : m.reachPoint[i];
+      const w = presentW > 0 && driver >= 0 ? presentW : pointerW;
       chain.setRest(pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
         sway: moving * personality.sway * (1 - 0.6 * w),
         curl: live * personality.curl,
         droop: drift.vy * live * 2.2,
-        reach: { x: m.reachPoint[i].x, y: m.reachPoint[i].y, weight: w },
+        reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
       });
+      orbState.tips[i].set(chain.tipX, chain.tipY);
       tube.update();
       row.write(rig.suckers, offset, rig.suckerBend);
       offset += row.count;
@@ -317,26 +343,25 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     rig.suckerBend.needsUpdate = true;
     for (const web of rig.webs) web.update();
 
-    m.glow.copy(rig.glowLocal).applyMatrix4(content.current!.matrixWorld);
+    // The face glow follows the head as it turns; it breathes, and drifts a little on its own.
+    headSpace.current!.updateWorldMatrix(true, false);
+    m.glow.copy(rig.glowLocal).applyMatrix4(headSpace.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
-    rig.uniforms.uGlowStrength.value = (1 + 0.06 * b) * (1 - 0.15 * m.rest);
+    rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 
-    // The head opens into the glass dome: it grows out of the crown as the mantle top sinks under
-    // it, and the mantle's own halo gives way to the dome's rim.
+    // The head opens into the glass dome: the dome stays whole and in place while its glass is
+    // revealed outward from where it sits on the head, and the mantle top sinks inside it in step;
+    // closing folds the glass back into the head. The mantle's own halo gives way to the dome's rim.
     // headMorph is already eased by the blender; easing it again would rush the middle.
     const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
-    orbState.out = silhouette ? 0 : THREE.MathUtils.clamp(pose.orbs, 0, 1);
     rig.uniforms.uMorph.value = ease;
-    const { center, halfHeight } = config.dome;
-    const grow = 0.55 + 0.45 * ease;
-    dome.current!.visible = ease > 0.001 && !silhouette;
-    dome.current!.scale.setScalar(grow);
-    dome.current!.position.set(
-      THREE.MathUtils.lerp(config.head.centerX, center[0], ease),
-      THREE.MathUtils.lerp(config.head.top - halfHeight * grow, center[1], ease),
-      0,
-    );
-    rig.domeMaterial.uniforms.uOpacity.value = ease;
+    const glass = domeState(ease);
+    dome.current!.visible = glass.visible && !silhouette;
+    dome.current!.scale.setScalar(glass.scale);
+    dome.current!.position.set(config.dome.center[0], config.dome.center[1], 0);
+    rig.domeMaterial.uniforms.uOpacity.value = glass.opacity;
+    rig.domeMaterial.uniforms.uReveal.value = glass.reveal;
+    orbState.out = silhouette ? 0 : THREE.MathUtils.clamp(pose.orbs, 0, 1);
     rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease), config.glow.halo.bandStrength * (1 - ease));
   });
 
@@ -354,24 +379,29 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
           ))}
-          <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
           {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />}
-          <mesh
-            ref={head}
-            geometry={rig.headGeometry}
-            material={rig.headMaterial}
-            position={[faceX, faceY, 0]}
-            onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
-            onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
-            onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
-          >
-            {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
-          </mesh>
+          {/* The head, its dome and its glow turn and tilt together about the neck. */}
+          <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
+            <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
+              <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
+              <mesh
+                ref={head}
+                geometry={rig.headGeometry}
+                material={rig.headMaterial}
+                position={[faceX, faceY, 0]}
+                onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
+                onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
+                onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
+              >
+                {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
+              </mesh>
+              <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
+                <planeGeometry args={[1, 1]} />
+              </mesh>
+            </group>
+          </group>
           <primitive object={rig.suckers} />
           <primitive object={rig.cupShadows} visible={!silhouette} />
-          <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
-            <planeGeometry args={[1, 1]} />
-          </mesh>
         </group>
       </group>
     </group>

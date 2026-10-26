@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { HaloSettings } from '../config/types';
+import { headMorphVertex } from './headMorph';
 
 /**
  * The soft glow round the silhouette, drawn as an inflated back-facing shell of the arm or head
@@ -7,7 +8,7 @@ import type { HaloSettings } from '../config/types';
  * outside. It fades from the shape's edge out to the shell's own edge, and turns red below the
  * arms' cup bands.
  */
-export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', centre = new THREE.Vector3()) {
+export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', centre = new THREE.Vector3(), morph?: { value: number }) {
   return new THREE.ShaderMaterial({
     defines: { [kind]: '' },
     transparent: true,
@@ -22,12 +23,16 @@ export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', cen
       uCrown: { value: new THREE.Color(halo.crown) },
       uBand: { value: new THREE.Color(halo.band) },
       uStrength: { value: new THREE.Vector2(halo.strength, halo.bandStrength) },
+      /** The head's change into the dome, shared with the skin, so the glow follows the shape. */
+      uMorph: morph ?? { value: 0 },
     },
     vertexShader: /* glsl */ `
       #ifdef ARM
         attribute float aUnder;
         attribute float aU;
         attribute vec3 aSpeck;
+      #else
+        ${headMorphVertex}
       #endif
       uniform float uWidth;
       uniform vec3 uCentre;
@@ -52,13 +57,16 @@ export function createHaloMaterial(halo: HaloSettings, kind: 'ARM' | 'HEAD', cen
         // from the view direction; the glow is brightest there and fades to the shell's edge.
         vEdge = sqrt(max(0.0, 1.0 - (r / (r + uWidth)) * (r / (r + uWidth))));
         #ifdef ARM
+          vec3 n = normal;
           vec3 grown = position + normal * uWidth;
         #else
-          vec3 grown = position + normalize(position - uCentre) * uWidth;
+          vec3 p = morphedPosition();
+          vec3 n = morphedNormal();
+          vec3 grown = p + normalize(p - uCentre) * uWidth;
         #endif
         vec4 world = modelMatrix * vec4(grown, 1.0);
         vWorld = world.xyz;
-        vNormalW = normalize(mat3(modelMatrix) * normal);
+        vNormalW = normalize(mat3(modelMatrix) * n);
         gl_Position = projectionMatrix * viewMatrix * world;
       }
     `,

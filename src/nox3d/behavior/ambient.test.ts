@@ -76,3 +76,17 @@ test('attention holds a fixed target (a focused orb) without drifting to idle gl
   expect(gaze.gazeX).toBeCloseTo(Math.min(1, 0.6 * 1.6), 3);
   expect(gaze.gazeY).toBeCloseTo(Math.min(1, (0.4 + 0.17) * 1.6), 3);
 });
+
+test('between glances the eyes make tiny movements, so they never look frozen', () => {
+  const attention = new Attention(NOX.personality, (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })());
+  const xs: number[] = [];
+  for (let t = 0; t < 12; t += 1 / 60) xs.push(attention.update(null, t, 1 / 60).gazeX);
+  // Over half-second windows inside a glance, the gaze still moves a little, and only a little.
+  let moving = 0;
+  for (let k = 0; k + 30 < xs.length; k += 30) {
+    const window = xs.slice(k, k + 30);
+    const span = Math.max(...window) - Math.min(...window);
+    if (span > 0.004) moving++;
+  }
+  expect(moving).toBeGreaterThan(xs.length / 30 / 2);
+});

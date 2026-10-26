@@ -1,6 +1,6 @@
 // Usage: node scripts/focus-capture.mjs <out>   (writes <out>.webm and <out>-sheet.png)
-// Records technology focus in the overview (11 s): 1.5 s idle, the pointer glides onto the Kali
-// Linux orb, then on to TypeScript, then Escape lets go. The sheet tiles 12 frames, about 0.9 s apart.
+// Records technology focus in the overview (12.5 s): 1.5 s idle, the pointer glides onto the Kali
+// Linux orb, then on to TypeScript, then Escape lets go. The sheet tiles 12 frames, about 1 s apart.
 import { chromium } from '@playwright/test';
 import { screencast } from './screencast.mjs';
 
@@ -8,7 +8,7 @@ const [out] = process.argv.slice(2);
 if (!out) throw new Error('usage: focus-capture.mjs <out>');
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
 const size = { width: 960, height: 640 };
-const SECONDS = 11;
+const SECONDS = 12.5;
 
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 const page = await browser.newPage({ viewport: size, deviceScaleFactor: 1 });

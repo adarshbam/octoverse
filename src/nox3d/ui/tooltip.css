@@ -8,7 +8,6 @@
   border-radius: 12px;
   border: 1.5px solid rgba(255, 70, 110, 0.75);
   background: rgba(10, 6, 18, 0.92);
-  backdrop-filter: blur(8px);
   box-shadow: 0 0 22px rgba(255, 40, 90, 0.35), inset 0 0 14px rgba(255, 50, 100, 0.12);
   color: #f3eef8;
   font-family: 'Poppins', system-ui, sans-serif;
@@ -24,17 +23,27 @@
   }
 }
 
-@media (max-width: 640px) {
-  .tech-tooltip {
-    position: fixed;
-    left: 16px !important;
-    right: 16px !important;
-    bottom: 24px !important;
-    top: auto !important;
-    width: auto !important;
-    max-width: none !important;
-    box-sizing: border-box;
+/* The tooltip before, fading out quickly as the next technology is chosen or Nox lets go. */
+.tech-tooltip.is-leaving {
+  animation: tech-tooltip-out 180ms ease forwards;
+  pointer-events: none;
+}
+
+@keyframes tech-tooltip-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
   }
+}
+
+/* On a phone held upright the tooltip is a sheet along the bottom, clear of Nox's face (sheetFits). */
+.tech-tooltip.is-sheet {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 24px;
+  width: auto;
+  max-width: none;
 }
 
 .tech-tooltip-head {
@@ -98,7 +107,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tech-tooltip {
-    animation: none;
+  .tech-tooltip,
+  .tech-tooltip.is-leaving {
+    animation-duration: 1ms;
+    animation-delay: 0ms !important;
   }
 }

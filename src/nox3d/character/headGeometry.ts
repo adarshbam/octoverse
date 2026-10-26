@@ -23,6 +23,11 @@ export function cheekReach(cheeks: CheekShape, y: number, theta: number) {
   return disc <= 0 || along <= 0 ? 0 : along + Math.sqrt(disc);
 }
 
+/** The middle of Nox's face (eyes to mouth), in the space the head is authored in. */
+export function faceCentre(head: HeadShape) {
+  return { x: head.faceOrigin[0], y: head.faceOrigin[1] - 0.25 };
+}
+
 /** Both cheek lobes' centres in world units, left then right. */
 export function cheekCentres(head: HeadShape) {
   const { distance, angle, y } = head.cheeks;
@@ -61,12 +66,16 @@ export function silhouetteHalfWidth(head: HeadShape, y: number) {
 const MORPH_KEEP = -0.55;
 /** Height of the rounded rim the sunk mantle closes with, under the dome. */
 const MORPH_RIM = 0.06;
+/** How far up the mantle's round top sits half-way through the change (0 = the sunk top, 1 = the head's). */
+const MORPH_MID_TOP = 0.42;
 
 /**
- * The mantle, with `mantleTop` given, also carries the shape it morphs to as the dome opens
- * (attributes aMorph and aMorphNormal): above the face its profile is pressed down beneath
- * `mantleTop`, its sides smoothly rising into it and closing in a rounded organic rim,
- * so the face rises into the dome with no exposed gaps or flat lid. Below MORPH_KEEP nothing moves.
+ * The mantle, with `mantleTop` given, also carries the shapes it morphs through as the dome opens
+ * (see headMorph): half-way, a lower round dome (aMorphMid, aMorphMidNormal), the head squashed
+ * down so it never looks like a flat-topped bucket; then, under the glass, the overview shape
+ * (aMorph, aMorphNormal), pressed down beneath `mantleTop`, its sides rising straight into the
+ * dome and closing in a rounded rim, so the face rises into the dome with no gap or lid.
+ * Below MORPH_KEEP nothing moves.
  */
 export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
   const profile = mantleProfile(head);
@@ -84,6 +93,11 @@ export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
     const morphed = buildMantle(head, sunk);
     geometry.setAttribute('aMorph', morphed.attributes.position);
     geometry.setAttribute('aMorphNormal', morphed.attributes.normal);
+    const midTop = mantleTop + MORPH_MID_TOP * (head.top - mantleTop);
+    const squashed = profile.map(([r, y]) => (y <= MORPH_KEEP ? ([r, y] as const) : ([r, MORPH_KEEP + ((y - MORPH_KEEP) * (midTop - MORPH_KEEP)) / (head.top - MORPH_KEEP)] as const)));
+    const mid = buildMantle(head, squashed);
+    geometry.setAttribute('aMorphMid', mid.attributes.position);
+    geometry.setAttribute('aMorphMidNormal', mid.attributes.normal);
   }
   return geometry;
 }

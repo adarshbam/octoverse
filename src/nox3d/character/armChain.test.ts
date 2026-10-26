@@ -190,3 +190,10 @@ test('a rest bend gives each arm gentle undulations along its length while keepi
     expect(furthest, `${id}: drift`).toBeLessThan(0.07);
   }
 });
+
+test('idle drift is not synchronised: each arm sways at its own pace', () => {
+  const rates = NOX.arms.map((arm, i) => new ArmChain(restFromCurve(NOX_POSES.intro.arms[arm.id]), arm, i).driftRate);
+  const sorted = [...rates].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) expect(sorted[i] - sorted[i - 1]).toBeGreaterThan(0.02);
+  expect(sorted.at(-1)! / sorted[0]).toBeGreaterThan(1.25);
+});

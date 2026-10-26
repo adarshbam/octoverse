@@ -5,34 +5,36 @@ import type { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
 import { logoColour, logoTexture } from './logoTexture';
 import { createOrbHaloMaterial, createOrbMaterial, ORB_HALO_SCALE } from './orbMaterial';
-import { ORB_Z, type OrbSlot, orbRestPosition } from './orbSlots';
+import type { ExpressionId } from '../behavior/expressions';
+import { FOCUS_GROW, ORB_Z, type OrbSlot, heldPosition, orbRestPosition } from './orbSlots';
 
 export interface PlacedOrb {
   techId: string;
   iconKey: string;
   slot: OrbSlot;
+  /** How Nox's face reacts when this technology is in focus. */
+  reaction?: ExpressionId;
 }
 
-/** How far a focused orb rises (world units) and grows as it is presented. */
-export const FOCUS_RAISE = 0.35;
-export const FOCUS_GROW = 1.35;
-
 /**
- * What the orbs need from Nox each frame: how far they are out (0..1), how far each is in focus
- * (0..1, eased) with the point it rises to, and how hard each arm is reaching (0..1).
+ * What the orbs need from Nox each frame: how far they are out (0..1), how far each is presented
+ * (0..1, eased), each arm's tip, how far each arm is reaching to present an orb, and which orb.
  */
 export interface OrbState {
   out: number;
   focus: Float32Array;
-  anchors: THREE.Vector2[];
+  tips: THREE.Vector2[];
   armReach: Float32Array;
+  driver: Int8Array;
 }
 
 /**
- * The technology orbs, each riding a point of the arm that carries it and gently bobbing; they
- * grow in as they come out (`state().out`, 0..1). A focused orb rises to its anchor, grows and
- * glows while the others dim; orbs on an arm that is reaching hold where they were, so the reach
- * never swings them round. Lives in the space the arms are authored in.
+ * The technology orbs, each riding a point of the arm that carries it and gently bobbing, their
+ * glow breathing a little, each at its own pace; they grow in as they come out (`state().out`).
+ * A presented orb moves onto its arm's tip as the tip comes for it and rides it, grows, comes a
+ * little forward and glows, while the others dim slightly; orbs on an arm that is presenting
+ * another hold where they were, so the arm never drags them round. Lives in the space the arms
+ * are authored in.
  */
 export function TechOrbs({ orbs, chains, state }: { orbs: readonly PlacedOrb[]; chains: readonly ArmChain[]; state: () => OrbState }) {
   const group = useRef<THREE.Group>(null);
@@ -63,7 +65,7 @@ export function TechOrbs({ orbs, chains, state }: { orbs: readonly PlacedOrb[]; 
     }
   }, [parts]);
 
-  // Where each orb last rode while its arm was not reaching.
+  // Where each orb last showed while its arm was not presenting another orb.
   const held = useMemo(() => orbs.map(() => new THREE.Vector2(Number.NaN, 0)), [orbs]);
 
   useFrame(frame => {
@@ -71,24 +73,35 @@ export function TechOrbs({ orbs, chains, state }: { orbs: readonly PlacedOrb[]; 
     const shown = THREE.MathUtils.clamp(s.out, 0, 1);
     const t = frame.clock.elapsedTime;
     group.current!.visible = shown > 0.001;
-    const strongest = s.focus.reduce((a, b) => Math.max(a, b * b * (3 - 2 * b)), 0);
+    const strongest = s.focus.reduce((a, b) => Math.max(a, b), 0);
     parts.items.forEach((item, i) => {
       const node = group.current!.children[i];
-      const arm = ARM_IDS.indexOf(item.orb.slot.armId);
-      const riding = orbRestPosition(item.chain, item.orb.slot);
+      const slot = item.orb.slot;
+      const arm = ARM_IDS.indexOf(slot.armId);
+      const riding = orbRestPosition(item.chain, slot);
       const reach = s.armReach[arm];
-      if (reach < 0.01 || Number.isNaN(held[i].x)) held[i].set(riding.x, riding.y);
-      let x = THREE.MathUtils.lerp(riding.x, held[i].x, reach);
-      let y = THREE.MathUtils.lerp(riding.y, held[i].y, reach);
-      const f = s.focus[i] * s.focus[i] * (3 - 2 * s.focus[i]);
-      x = THREE.MathUtils.lerp(x, s.anchors[i].x, f);
-      y = THREE.MathUtils.lerp(y, s.anchors[i].y, f);
+      let x: number;
+      let y: number;
+      if (s.driver[arm] === i && reach > 0) {
+        const tip = s.tips[arm];
+        const p = heldPosition(riding, { x: tip.x + slot.hold[0], y: tip.y + slot.hold[1] }, reach);
+        x = p.x;
+        y = p.y;
+        held[i].set(x, y);
+      } else {
+        if (reach < 0.01 || Number.isNaN(held[i].x)) held[i].set(riding.x, riding.y);
+        x = THREE.MathUtils.lerp(riding.x, held[i].x, reach);
+        y = THREE.MathUtils.lerp(riding.y, held[i].y, reach);
+      }
+      const f = s.focus[i];
       node.position.set(x, y + 0.025 * Math.sin(t * 0.9 + i * 1.7), ORB_Z + 0.14 * f);
-      node.scale.setScalar(item.orb.slot.radius * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW - 1) * f));
-      // The focused orb glows; the others dim subtly to 75% while something is in focus.
+      node.scale.setScalar(slot.radius * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW - 1) * f));
+      // The presented orb glows; the others dim subtly while something is presented. Each halo
+      // breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
+      const breathe = 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
       item.glass.uniforms.uOpacity.value = shown * dim;
-      item.halo.uniforms.uOpacity.value = shown * dim;
+      item.halo.uniforms.uOpacity.value = shown * dim * breathe;
       item.halo.uniforms.uFocus.value = f;
       item.glass.uniforms.uFocus.value = f;
       item.logo.opacity = shown * dim;

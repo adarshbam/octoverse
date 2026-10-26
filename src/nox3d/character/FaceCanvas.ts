@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { faceRedrawDue } from './faceRedraw';
 import type { FaceParams } from '../behavior/expressions';
 import type { FaceLayout, FacePalette, Point2 } from '../config/types';
 import { browStroke } from './browShape';
@@ -28,6 +29,7 @@ export class FaceCanvas {
   private readonly layout: FaceLayout;
   private readonly palette: FacePalette;
   private last = '';
+  private lastDrawn = -Infinity;
 
   constructor(layout: FaceLayout, palette: FacePalette) {
     const canvas = document.createElement('canvas');
@@ -40,11 +42,15 @@ export class FaceCanvas {
     this.texture.anisotropy = 8;
   }
 
-  /** Redraws only when a parameter changed; returns whether the texture was updated. */
-  draw(p: FaceParams): boolean {
+  /**
+   * Redraws only when a parameter changed, and at most about 30 times a second (faceRedrawDue);
+   * returns whether the texture was updated. A change held back is drawn on a later frame.
+   */
+  draw(p: FaceParams, nowMs = performance.now()): boolean {
     const key = [p.lidRest, p.lidBottom, p.browLift, p.browTilt, p.mouthCurve, p.mouthOpen, p.blush, p.blink, p.gazeX, p.gazeY].map(v => v.toFixed(3)).join();
-    if (key === this.last) return false;
+    if (!faceRedrawDue(key, this.last, nowMs, this.lastDrawn)) return false;
     this.last = key;
+    this.lastDrawn = nowMs;
     this.ctx.clearRect(0, 0, SIZE, SIZE);
     this.drawBlush(p.blush);
     this.drawBrows(p);

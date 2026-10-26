@@ -3,7 +3,7 @@ import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
 import { NOX_POSES } from '../poses/nox.poses';
 import type { StagePose } from '../poses/types';
 import { EXPRESSIONS } from './expressions';
-import { PoseBlender, STAGE_TRANSITION, blendAngles } from './poseBlend';
+import { PoseBlender, STAGE_TRANSITION, blendAngles, settledArms } from './poseBlend';
 
 /** The intro pose with every arm curve shifted and the body moved, as a distinct stage. */
 function shifted(dx: number, dy: number, expression: StagePose['expression'] = 'happy'): StagePose {
@@ -89,4 +89,25 @@ test('whether the orbs are out blends with the pose', () => {
   blender.start(NOX_POSES.overview, 0, 1000, 0);
   expect(blender.sample(500).orbs).toBeCloseTo(0.5, 6);
   expect(blender.sample(1000).orbs).toBe(1);
+});
+
+test('a delayed start holds the current pose until its beat, then blends', () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  const target = shifted(0.5, 0.2);
+  blender.start(target, 0, 1000, 0, 200);
+  expect(blender.sample(150).body).toEqual(NOX_POSES.intro.body);
+  const mid = blender.sample(700).body.x;
+  expect(mid).toBeGreaterThan(0);
+  expect(mid).toBeLessThan(0.5);
+  expect(blender.sample(1200).body).toEqual(target.body);
+});
+
+test('starting the same pose again reuses its arms, worked out once', () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  blender.start(NOX_POSES.overview, 0, 100, 0);
+  const first = blender.sample(200).arms.T1.angles.slice();
+  blender.start(NOX_POSES.intro, 200, 100, 0);
+  blender.start(NOX_POSES.overview, 400, 100, 0);
+  expect(Array.from(blender.sample(600).arms.T1.angles)).toEqual(Array.from(first));
+  expect(settledArms(NOX_POSES.overview, 128)).toBe(settledArms(NOX_POSES.overview, 128));
 });

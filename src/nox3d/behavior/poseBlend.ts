@@ -37,9 +37,21 @@ export function blendAngles(from: Float32Array, to: Float32Array, t: number, out
   return out;
 }
 
+const settledCache = new WeakMap<StagePose, Map<number, Record<ArmId, ArmRest>>>();
+
+/** A pose's arm rests at a segment count, worked out once: a stage change never redoes it. */
+export function settledArms(pose: StagePose, segments: number) {
+  let bySegments = settledCache.get(pose);
+  if (!bySegments) settledCache.set(pose, (bySegments = new Map()));
+  let arms = bySegments.get(segments);
+  if (!arms) bySegments.set(segments, (arms = Object.fromEntries(ARM_IDS.map(id => [id, restFromCurve(pose.arms[id], segments)])) as Record<ArmId, ArmRest>));
+  return arms;
+}
+
 function settle(pose: StagePose, segments: number): BlendedPose {
   return {
-    arms: Object.fromEntries(ARM_IDS.map(id => [id, restFromCurve(pose.arms[id], segments)])) as Record<ArmId, ArmRest>,
+    // Shared and never written: the blender copies before it changes anything.
+    arms: settledArms(pose, segments),
     body: { ...pose.body },
     expression: { ...EXPRESSIONS[pose.expression] },
     headMorph: pose.headMorph,
@@ -79,10 +91,11 @@ export class PoseBlender {
     this.current = copyPose(this.to);
   }
 
-  start(target: StagePose, nowMs: number, durationMs = 700, staggerMs = 40) {
+  /** With `delayMs`, the pose holds where it is until then, so a change can wait for its beat. */
+  start(target: StagePose, nowMs: number, durationMs = 700, staggerMs = 40, delayMs = 0) {
     this.from = copyPose(this.sample(nowMs));
     this.to = settle(target, this.segments);
-    this.startMs = nowMs;
+    this.startMs = nowMs + delayMs;
     this.durationMs = durationMs;
     this.staggerMs = staggerMs;
   }

@@ -1,8 +1,9 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
 import { useStage } from './behavior/useStage';
@@ -20,6 +21,7 @@ import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { OrbButtons, faceSpot, orbSpots } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
+import { tooltipContent } from './ui/tooltipContent';
 import { OrbTray } from './ui/OrbTray';
 import { NOX_OVERVIEW_SLOTS, assignOrbs } from './artifacts/orbSlots';
 import { noxTechnologies } from './content/noxTechnologies';
@@ -33,11 +35,19 @@ const url = parseUrlState(location.search);
 // The project's technologies in its order, each riding an orb slot; the rest go to the tray.
 const ORDER = noxProject.primaryTechnologyIds ?? [];
 const TECH = new Map(noxTechnologies.map(t => [t.id, t]));
+const USAGE = new Map((noxProject.technologyUsages ?? []).map(u => [u.technologyId, u]));
 const ASSIGNED = assignOrbs(ORDER, NOX_OVERVIEW_SLOTS);
-const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({ techId, slot, iconKey: TECH.get(techId)?.iconKey ?? techId, name: TECH.get(techId)?.name ?? techId }));
+const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({
+  techId,
+  slot,
+  iconKey: TECH.get(techId)?.iconKey ?? techId,
+  name: TECH.get(techId)?.name ?? techId,
+  reaction: focusReaction(USAGE.get(techId)),
+}));
+/** Storyboard or missing text shows, badged, only while developing; never in the public build. */
+const SHOW_PLACEHOLDERS = import.meta.env.DEV;
 // On a phone held upright the orbs are too small to pick out, so the tray lists every technology.
 const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.innerHeight }) === 'phone' && window.innerHeight > window.innerWidth;
-const USAGE = new Map((noxProject.technologyUsages ?? []).map(u => [u.technologyId, u]));
 const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
@@ -111,15 +121,16 @@ export function App() {
   const first = useRef(true);
   const prevStage = useRef(state.stage);
   // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
-  // once and the view crossfades instead. Tech focus transitions are swifter (650ms, 0 stagger)
-  // so limbs do not rearrange while focusing or returning to overview.
+  // once and the view crossfades instead. Into and out of a technology focus, only the dome
+  // moves (the arms keep their places), on the focus choreography's beats: it folds away as the
+  // eyes settle, and reopens once the arm has let go.
   useEffect(() => {
     const fromTech = prevStage.current === 'techFocus';
     const toTech = state.stage === 'techFocus';
-    const isTechTransition = toTech || fromTech;
-    const duration = reducedMotion ? 0 : isTechTransition ? 650 : STAGE_TRANSITION.durationMs;
-    const stagger = isTechTransition ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger);
+    const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
+    const duration = reducedMotion ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
+    const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
+    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger, reducedMotion || !beat ? 0 : beat.delay);
     prevStage.current = state.stage;
     if (first.current) first.current = false;
     else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
@@ -146,7 +157,19 @@ export function App() {
     const i = ORBS.findIndex(o => o.techId === focusedTech);
     return i >= 0 ? orbSpots(ORBS, true)[i] : null;
   }, [focusedTech]);
+  // The other orbs, where they rest, so the tooltip finds a place clear of them.
+  const others = useMemo(() => orbSpots(ORBS).filter((_, i) => ORBS[i].techId !== focusedTech), [focusedTech]);
   const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech]);
+  // The tooltip shown, and the one before it fading out, each where it was placed.
+  const [tips, setTips] = useState<{ techId: string; orb: typeof presented; leaving: boolean }[]>([]);
+  useEffect(() => {
+    setTips(list => [
+      ...list.filter(tip => tip.techId !== focusedTech).map(tip => ({ ...tip, leaving: true })),
+      ...(focusedTech ? [{ techId: focusedTech, orb: presented, leaving: false }] : []),
+    ]);
+    const timer = window.setTimeout(() => setTips(list => list.filter(tip => !tip.leaving)), 240);
+    return () => window.clearTimeout(timer);
+  }, [focusedTech, presented]);
   // The entrance is authored in Task 23; until then it ends at once.
   useEffect(() => {
     if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
@@ -212,16 +235,22 @@ export function App() {
             tooltipId={TOOLTIP_ID}
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
           />
-          {focusedTech && (
-            <TechTooltip
-              key={focusedTech}
-              id={TOOLTIP_ID}
-              name={TECH.get(focusedTech)?.name ?? focusedTech}
-              usage={USAGE.get(focusedTech)}
-              orb={presented}
-              face={face}
-            />
-          )}
+          {tips.map(tip => {
+            const technology = TECH.get(tip.techId);
+            if (!technology) return null;
+            return (
+              <TechTooltip
+                key={tip.techId}
+                id={TOOLTIP_ID}
+                content={tooltipContent(technology, USAGE.get(tip.techId), SHOW_PLACEHOLDERS)}
+                orb={tip.orb}
+                face={face}
+                others={others}
+                delayMs={FOCUS_BEATS.tooltip}
+                leaving={tip.leaving}
+              />
+            );
+          })}
           <OrbTray
             items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
             open={state.stage === 'overview' || state.stage === 'techFocus'}

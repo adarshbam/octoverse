@@ -129,6 +129,8 @@ export interface ProjectTechnologyUsage {
   readonly role?: string;
   readonly summary?: string;
   readonly details?: readonly string[];
+  /** How the character reacts when this technology is in focus (default: a subtle curiosity). */
+  readonly reaction?: 'focused' | 'curious';
   /** Storyboard copy standing in until the owner supplies real text. */
   readonly placeholder?: boolean;
 }

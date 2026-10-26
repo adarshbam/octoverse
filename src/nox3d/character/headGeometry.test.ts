@@ -91,3 +91,25 @@ test('as the dome opens, the mantle top sinks beneath it, its sides rising strai
   expect(widestNearTop).toBeGreaterThan(0.85 * head.halfWidth);
   expect(g.attributes.aMorphNormal.count).toBe(p.count);
 });
+
+test('half-way through the change the mantle is a lower round dome, never a flat-topped bucket', () => {
+  const g = createHeadGeometry(head, NOX.dome.mantleTop);
+  const p = g.attributes.position;
+  const mid = g.attributes.aMorphMid;
+  expect(g.attributes.aMorphMidNormal.count).toBe(p.count);
+  const oy = head.faceOrigin[1];
+  const cx = head.centerX - head.faceOrigin[0];
+  let top = -Infinity;
+  for (let i = 0; i < mid.count; i++) top = Math.max(top, mid.getY(i) + oy);
+  // Lower than the head, higher than the sunk top under the glass.
+  expect(top).toBeLessThan(head.top - 0.2);
+  expect(top).toBeGreaterThan(NOX.dome.mantleTop + 0.1);
+  // Rounded: just under its top it is narrow, unlike the sunk shape, which is nearly full width there.
+  let nearTop = 0;
+  for (let i = 0; i < mid.count; i++) if (mid.getY(i) + oy > top - 0.02) nearTop = Math.max(nearTop, Math.abs(mid.getX(i) - cx));
+  expect(nearTop).toBeLessThan(0.45 * head.halfWidth);
+  // The face below it stays put.
+  for (let i = 0; i < p.count; i++) {
+    if (p.getY(i) + oy < -0.56) expect(mid.getY(i)).toBeCloseTo(p.getY(i), 6);
+  }
+});

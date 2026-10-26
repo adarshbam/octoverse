@@ -67,11 +67,12 @@ test('overview: the head opens into the dome and Nox smiles', () => {
   expect(NOX_POSES.intro.headMorph).toBe(0);
 });
 
-test('tech focus (panel 4): the head closes again, the orbs stay out round the same arms, and Nox looks focused', () => {
+test('tech focus (panel 4): the head closes again and the orbs stay out round the same arms', () => {
   const focus = NOX_POSES.techFocus;
   expect(focus.headMorph).toBe(0);
   expect(focus.orbs).toBe(1);
-  expect(focus.expression).toBe('focused');
+  // The face's reaction comes from the technology in focus, not from the stage.
+  expect(focus.expression).toBe(NOX_POSES.overview.expression);
   expect(focus.arms).toBe(NOX_POSES.overview.arms);
   expect(focus.body).toEqual(NOX_POSES.overview.body);
   expect(NOX_POSES.overview.orbs).toBe(1);

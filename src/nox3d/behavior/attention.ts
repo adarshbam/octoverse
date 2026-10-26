@@ -21,6 +21,9 @@ export class Attention {
   private lastMove = -Infinity;
   private glance = { x: 0, y: 0 };
   private nextGlance = 2;
+  /** Tiny eye movements between glances (normalised gaze units), so the eyes never look frozen. */
+  private micro = { x: 0, y: 0 };
+  private nextMicro = 0.4;
 
   constructor(personality: Personality, rng: () => number = Math.random) {
     this.personality = personality;
@@ -48,10 +51,18 @@ export class Attention {
     const originY = faceCenter ? faceCenter.y : FACE_NDC_Y;
     const tx = look ? clamp1((look.x - originX) * 1.6) : this.glance.x;
     const ty = look ? clamp1((look.y - originY) * 1.6) : this.glance.y;
+    if (t > this.nextMicro) {
+      this.micro = { x: (this.rng() - 0.5) * 0.07, y: (this.rng() - 0.5) * 0.05 };
+      this.nextMicro = t + 0.35 + this.rng() * 0.9;
+    }
     spring(this.gazeX, tx, this.personality.gazeOmega, dt);
     spring(this.gazeY, ty, this.personality.gazeOmega, dt);
     spring(this.headX, tx, this.personality.headOmega, dt);
     spring(this.headY, ty, this.personality.headOmega, dt);
-    return { gazeX: this.gazeX.x, gazeY: this.gazeY.x, headX: this.headX.x, headY: this.headY.x, tracking };
+    // The tiny movements are the eyes' alone, and instant, as real micro-saccades are: the face
+    // is redrawn once for each, not for every frame of a glide. The head only follows the look.
+    const gazeX = Math.min(1, Math.max(-1, this.gazeX.x + this.micro.x));
+    const gazeY = Math.min(1, Math.max(-1, this.gazeY.x + this.micro.y));
+    return { gazeX, gazeY, headX: this.headX.x, headY: this.headY.x, tracking };
   }
 }
