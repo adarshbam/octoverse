@@ -12,6 +12,7 @@ import {
   farHaze,
   pickAccentLights,
   warmthMask,
+  worldAccent,
   writeAccentLights,
 } from './worldAccent';
 
@@ -57,10 +58,32 @@ test('warmth mask is zero on the face, the crown and the rim, one on the undersi
   expect(warmthMask('HEAD', -0.5, 0.8, 1)).toBe(0);
   expect(warmthMask('ARM', -0.6, 0.05, 0)).toBe(0);
   expect(warmthMask('ARM', -0.6, 0.8, 0)).toBe(1);
+  // The arm's neon rim is still a fifth of its colour at n·v 0.6.
+  expect(warmthMask('ARM', -0.6, 0.6, 0)).toBe(0);
   // Sides take warmth too; only the head has a face.
   expect(warmthMask('ARM', 0, 0.8, 0)).toBe(1);
   expect(warmthMask('ARM', -0.6, 0.8, 1)).toBe(1);
   expect(warmthMask('ARM', 0.9, 0.8, 0)).toBe(0);
+});
+
+test('fades come after the caps: a 4% mask under strong light gives at most 4% of the cap', () => {
+  const base: RGB = [0.1, 0.02, 0.08];
+  const strong: RGB = [50, 1, 10];
+  const none: RGB = [0, 0, 0];
+  expect(luma(worldAccent(base, strong, 0.04, none, 0, 1))).toBeLessThanOrEqual(0.04 * WORLD_WARMTH_CAP * luma(base) + 1e-12);
+  expect(luma(worldAccent(base, none, 0, strong, 0.04, 1))).toBeLessThanOrEqual(0.04 * CAUSTIC_CAP * luma(base) + 1e-12);
+  // A mask of 0 lets nothing through, nor does Nox's own glow.
+  expect(worldAccent(base, strong, 0, strong, 0, 1)).toEqual([0, 0, 0]);
+  expect(worldAccent(base, strong, 1, strong, 1, 0)).toEqual([0, 0, 0]);
+  // Unmasked, warmth and caustics together stay within the warmth cap.
+  const random = seeded(5);
+  for (let i = 0; i < 1000; i++) {
+    const b: RGB = [random(), random() * 0.3, random()];
+    const w: RGB = [random() * 2, random() * 0.5, random() * 2];
+    const c: RGB = [random() * 0.5, random(), random() * 3];
+    const out = worldAccent(b, w, random(), c, random(), random());
+    expect(luma(out)).toBeLessThanOrEqual(WORLD_WARMTH_CAP * luma(b) + 1e-6);
+  }
 });
 
 const light = (x: number, y: number, z: number): WorldLight => ({ kind: 'glyph', position: [x, y, z], color: '#ff2436', intensity: 1, distance: 2, skinRange: 4 });
@@ -102,10 +125,11 @@ test('zero accents leave the shader output unchanged', () => {
   // the far haze.
   const writes = ACCENT_GLSL.match(/\bcol\s*[-+*/]?=[^;]*;/g);
   expect(writes).toEqual(['col += accent;', 'col = mix(col, uFarHazeColor, farHaze(length(cameraPosition - vWorld), uFarHaze));']);
-  // The accent is built only from warmth and caustics, each a product with its zero-default strength.
-  expect(ACCENT_GLSL).toMatch(/vec3 warmth = [^;]*\* uAccentWarmth \*[^;]*;/);
-  expect(ACCENT_GLSL).toMatch(/vec3 caustic = uCausticLight \*[^;]*;/);
-  expect(ACCENT_GLSL).toMatch(/vec3 accent = capAccent\(col, capAccent\(col, warmth, WORLD_WARMTH_CAP\) \+ capAccent\(col, caustic, CAUSTIC_CAP\), WORLD_WARMTH_CAP\);/);
+  // The accent is built only from warmth and caustics, each a product with its zero-default
+  // strength, capped first and faded after.
+  expect(ACCENT_GLSL).toMatch(/vec3 warmth = warmthMask\(N\.y, ndv, inFace\) \* capAccent\(col, light \* uAccentWarmth, WORLD_WARMTH_CAP\);/);
+  expect(ACCENT_GLSL).toMatch(/vec3 caustic = fromAbove \* awayFromRim\(ndv\) \* capAccent\(col, uCausticLight \*[^;]*, CAUSTIC_CAP\);/);
+  expect(ACCENT_GLSL).toMatch(/vec3 accent = clearOfGlow \* capAccent\(col, warmth \+ caustic, WORLD_WARMTH_CAP\);/);
   // The GLSL caps are the TypeScript ones.
   expect(ACCENT_GLSL).toContain(`#define WORLD_WARMTH_CAP ${WORLD_WARMTH_CAP}`);
   expect(ACCENT_GLSL).toContain(`#define CAUSTIC_CAP ${CAUSTIC_CAP}`);

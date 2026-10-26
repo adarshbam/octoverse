@@ -461,8 +461,9 @@ const skinFragment = /* glsl */ `
     #endif
     col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
 
-    // The world's light: small capped accents on the skin's own lighting, none outside a world.
-    col = worldAccent(col, N, ndv);
+    // The world's light: small capped accents on the skin's own lighting, none outside a world, and
+    // none on the face glow or where the arms join the body.
+    col = worldAccent(col, N, ndv, (1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow)));
 
     // Atmospheric depth: parts behind the body blend into the water's haze.
     col = mix(col, uHazeColor, smoothstep(uHaze.x, uHaze.y, -vWorld.z) * uHaze.z);

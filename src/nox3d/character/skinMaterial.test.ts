@@ -27,7 +27,15 @@ test('the world reaches the skin only through its accents: no world fog, accents
     expect(material.fog).toBe(false);
     const source = material.fragmentShader;
     expect(source).toContain(ACCENT_GLSL);
-    expect(source.indexOf('col = worldAccent(col, N, ndv);')).toBeGreaterThan(source.indexOf(ACCENT_GLSL));
-    expect(source.indexOf('col = worldAccent(col, N, ndv);')).toBeLessThan(source.indexOf('// Atmospheric depth'));
+    const call = source.indexOf('col = worldAccent(col, N, ndv, ');
+    expect(call).toBeGreaterThan(source.indexOf(ACCENT_GLSL));
+    expect(call).toBeLessThan(source.indexOf('// Atmospheric depth'));
   }
+});
+
+test('world accents stay off the face glow and the arm roots, as the neon rim does', () => {
+  const source = createSkinMaterial('ARM', createSkinUniforms(NOX)).fragmentShader;
+  const ownGlow = source.match(/float rimFade = ([^;]*);/)?.[1];
+  expect(ownGlow).toBe('(1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow))');
+  expect(source).toContain(`col = worldAccent(col, N, ndv, ${ownGlow});`);
 });

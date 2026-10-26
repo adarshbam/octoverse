@@ -5,8 +5,10 @@ import type { SkinKind } from './skinMaterial';
 // The world's light on Nox, as small accents on his own lighting, never in its place. Warmth from
 // nearby glyphs and lava falls on the sides and underside of the arms and lower body; the surface
 // light's caustics shimmer on top. Each is capped against the skin's own colour, and none touches
-// the face, the crown or the neon rim. The suckers and the halo are emitters and take none. Every
-// strength defaults to zero, so a skin outside a world renders exactly as approved.
+// the face, the crown, the neon rim or the face glow on the arm roots. Each light is capped first
+// and faded by its mask after, so a fade holds however strong the light. The suckers and the halo
+// are emitters and take none. Every strength defaults to zero, so a skin outside a world renders
+// exactly as approved.
 
 /** A linear colour: 0 to 1 per channel, more for bright light. */
 export type RGB = readonly [number, number, number];
@@ -22,12 +24,16 @@ export const ACCENT_LIGHTS = 8;
 
 /** Normal heights (y) over which the crown fades world warmth out. */
 const CROWN = [0.3, 0.7] as const;
-/** n·v over which accents fade in from the silhouette edge, where the neon rim is. */
-const RIM = [0.2, 0.45] as const;
+/**
+ * n·v over which accents fade in from the silhouette edge. The arm's neon rim is still a fifth of
+ * its colour at n·v 0.6 and a twentieth at 0.7: accents start at 0.6 and are at half by 0.7.
+ */
+const RIM = [0.6, 0.8] as const;
 /** How far world light wraps round into the shadow side, as through flesh. */
 const WRAP = 0.45;
 
 const luma = ([r, g, b]: RGB) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+const scaled = ([r, g, b]: RGB, k: number): RGB => [r * k, g * k, b * k];
 const smooth = (x: number, [from, to]: readonly [number, number]) => THREE.MathUtils.smoothstep(x, from, to);
 /** A number as a GLSL float literal. */
 const glsl = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
@@ -36,9 +42,7 @@ const glsl = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 export function capAccent(base: RGB, add: RGB, cap: number): RGB {
   const room = cap * Math.max(luma(base), 0);
   const amount = luma(add);
-  if (amount <= room) return add;
-  const scale = room / amount;
-  return [add[0] * scale, add[1] * scale, add[2] * scale];
+  return amount <= room ? add : scaled(add, room / amount);
 }
 
 /** 0 on the face rect, the crown (up-facing normals) and the silhouette edge (low n·v); 1 on sides and underside. Mirrors the GLSL. */
@@ -46,6 +50,17 @@ export function warmthMask(kind: SkinKind, normalY: number, ndv: number, inFace:
   // Only the head carries the face.
   const face = kind === 'HEAD' ? inFace : 0;
   return (1 - smooth(normalY, CROWN)) * smooth(ndv, RIM) * (1 - face);
+}
+
+/**
+ * The accent added to `base`: warmth and caustics are each capped against `base` first, then
+ * faded by their masks, then capped together and kept off Nox's own glow (`clearOfGlow`, 0 on
+ * the face glow and where the arms join the body). Mirrors the GLSL.
+ */
+export function worldAccent(base: RGB, warmth: RGB, warmthFade: number, caustic: RGB, causticFade: number, clearOfGlow: number): RGB {
+  const w = scaled(capAccent(base, warmth, WORLD_WARMTH_CAP), warmthFade);
+  const c = scaled(capAccent(base, caustic, CAUSTIC_CAP), causticFade);
+  return scaled(capAccent(base, [w[0] + c[0], w[1] + c[1], w[2] + c[2]], WORLD_WARMTH_CAP), clearOfGlow);
 }
 
 /** How much of the water's colour the skin takes at `distance` from the camera: exactly 0 within HAZE_FROM. Mirrors the GLSL. */
@@ -104,8 +119,8 @@ export interface AccentLink {
 }
 
 /**
- * Declarations and `worldAccent(col, N, ndv)`, which the skin calls just before its atmospheric
- * depth. It reads the skin's `vWorld` and `vFaceUv`.
+ * Declarations and `worldAccent(col, N, ndv, clearOfGlow)`, which the skin calls just before its
+ * atmospheric depth. It reads the skin's `vWorld` and `vFaceUv`.
  */
 export const ACCENT_GLSL = /* glsl */ `
   #define ACCENT_LIGHTS ${ACCENT_LIGHTS}
@@ -129,8 +144,12 @@ export const ACCENT_GLSL = /* glsl */ `
     return amount > room ? add * (room / amount) : add;
   }
 
+  float awayFromRim(float ndv) {
+    return smoothstep(${glsl(RIM[0])}, ${glsl(RIM[1])}, ndv);
+  }
+
   float warmthMask(float normalY, float ndv, float inFace) {
-    return (1.0 - smoothstep(${glsl(CROWN[0])}, ${glsl(CROWN[1])}, normalY)) * smoothstep(${glsl(RIM[0])}, ${glsl(RIM[1])}, ndv) * (1.0 - inFace);
+    return (1.0 - smoothstep(${glsl(CROWN[0])}, ${glsl(CROWN[1])}, normalY)) * awayFromRim(ndv) * (1.0 - inFace);
   }
 
   float farHaze(float dist, float density) {
@@ -138,7 +157,7 @@ export const ACCENT_GLSL = /* glsl */ `
     return 1.0 - exp(-beyond * beyond);
   }
 
-  vec3 worldAccent(vec3 col, vec3 N, float ndv) {
+  vec3 worldAccent(vec3 col, vec3 N, float ndv, float clearOfGlow) {
     #ifdef HEAD
       vec2 fromMiddle = abs(vFaceUv - 0.5);
       float inFace = 1.0 - smoothstep(0.45, 0.5, max(fromMiddle.x, fromMiddle.y));
@@ -155,12 +174,14 @@ export const ACCENT_GLSL = /* glsl */ `
       float wrapped = max(0.0, (dot(N, toLight * inversesqrt(d2)) + ${glsl(WRAP)}) / ${glsl(1 + WRAP)});
       light += uAccentColor[k] * (reach * reach / (1.0 + d2) * wrapped);
     }
-    vec3 warmth = light * uAccentWarmth * warmthMask(N.y, ndv, inFace);
+    // Capped first, then faded, so the masks hold however strong the light.
+    vec3 warmth = warmthMask(N.y, ndv, inFace) * capAccent(col, light * uAccentWarmth, WORLD_WARMTH_CAP);
     // Caustics: the surface light's cookie on skin facing up toward it, the head top included.
     vec4 cookie = uCausticMatrix * vec4(vWorld, 1.0);
     float fromAbove = smoothstep(0.2, 0.8, dot(N, uSurfaceDir));
-    vec3 caustic = uCausticLight * texture2D(uCausticMap, cookie.xy / cookie.w).rgb * fromAbove * smoothstep(${glsl(RIM[0])}, ${glsl(RIM[1])}, ndv);
-    vec3 accent = capAccent(col, capAccent(col, warmth, WORLD_WARMTH_CAP) + capAccent(col, caustic, CAUSTIC_CAP), WORLD_WARMTH_CAP);
+    vec3 caustic = fromAbove * awayFromRim(ndv) * capAccent(col, uCausticLight * texture2D(uCausticMap, cookie.xy / cookie.w).rgb, CAUSTIC_CAP);
+    // Together still within the warmth cap, and none on Nox's own glow.
+    vec3 accent = clearOfGlow * capAccent(col, warmth + caustic, WORLD_WARMTH_CAP);
     col += accent;
     // Far away, Nox fades into the water from his own shading; the world's fog never reaches him.
     col = mix(col, uFarHazeColor, farHaze(length(cameraPosition - vWorld), uFarHaze));
