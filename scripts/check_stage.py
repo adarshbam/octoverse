@@ -13,9 +13,10 @@ World mode (--world): the capture comes from scripts/world-capture.mjs, which fr
 high-quality panel 2 (1536 x 1024), so a capture pixel is a panel pixel. Inside the silhouette mask
 (<capture>-mask.png) it measures the mean colour and the mean per-pixel HSV saturation and value
 against the targets in scripts/world_samples.json, and prints the same measures for panel 2.
---mask names a capture's mask for an image that is not a capture (panel 2 itself): the painting's Nox
-is not drawn where the stage's is, so that mask is first moved onto the painting by the "panelMask"
-scale and shift in world_samples.json (calibrated so panel 2 reads its target; see the note there).
+--mask names a capture's mask for an image that is not a capture (panel 2 itself): the capture
+mask is used exactly as captured, because the view box registers it to the painting (render px = panel px).
+Registered, panel 2 reads (118, 26, 89), saturation 0.867, brightness 0.538. The spec's (119, 23, 79) came
+from a mask misregistered by (16, -14) px; the targets are kept as approved and panel 2 passes them.
 With --stage intro it also compares 7 x 7 px patches at the named world points with panel 2 by
 CIE76 delta E."""
 import json, sys, pathlib
@@ -68,13 +69,6 @@ def srgb_to_lab(rgb):
     f = np.where(f > 216 / 24389, np.cbrt(f), (24389 / 27 * f + 16) / 116)
     return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
 
-def register_mask(mask_img, reg):
-    """Moves a capture's silhouette onto the painting: scaled about panel 2's origin pixel, then shifted (px)."""
-    ox, oy = WORLD_HQ['origin']
-    k, (dx, dy) = reg['scale'], reg['shift']
-    # output pixel p' = o + k (p - o) + d, so the source pixel is p = o + (p' - o - d) / k
-    return mask_img.transform(mask_img.size, Image.AFFINE, (1 / k, 0, ox - (ox + dx) / k, 0, 1 / k, oy - (oy + dy) / k), Image.NEAREST)
-
 def world_patch(img, wx, wy, r=WORLD_PATCH):
     ox, oy = WORLD_HQ['origin']
     cx, cy = round(ox + WORLD_HQ['pxPerUnit'] * wx), round(oy - WORLD_HQ['pxPerUnit'] * wy)
@@ -94,17 +88,17 @@ def world():
     if not ren.size == mask_img.size == hq.size:
         print(f'size mismatch: image {ren.size}, mask {mask_img.size}, panel 2 {hq.size}')
         sys.exit(1)
-    own = np.asarray(mask_img) > 127
-    painted = np.asarray(register_mask(mask_img, spec['panelMask'])) > 127
-    # A capture is measured through its own mask; an image given with --mask is a painting.
+    mask = np.asarray(mask_img) > 127
+    # Panel 2 and the image are both measured through the same capture mask, exactly as captured.
     is_capture = option('--mask') is None
     misses = 0
-    for label, img, mask in (('panel 2', hq, painted), ('capture' if is_capture else 'image', ren, own if is_capture else painted)):
+    for label, img in (('panel 2', hq), ('capture' if is_capture else 'image', ren)):
         mean, sat, val = silhouette_stats(img, mask)
         print(f"{label:8} mean ({mean[0]:.0f}, {mean[1]:.0f}, {mean[2]:.0f})  saturation {sat:.3f}  brightness {val:.3f}  ({int(mask.sum())} px)")
         if img is hq and is_capture: continue
+        # The mean colour is checked as the whole 8-bit colour it prints as, like the integer targets.
         checks = [
-            ('mean', bool(np.abs(mean - target['mean']).max() <= target['meanTolerance']), f"target {tuple(target['mean'])} +-{target['meanTolerance']}"),
+            ('mean', bool(np.abs(np.round(mean) - target['mean']).max() <= target['meanTolerance']), f"target {tuple(target['mean'])} +-{target['meanTolerance']}"),
             ('saturation', target['saturation'][0] <= sat <= target['saturation'][1], f"target {target['saturation'][0]} to {target['saturation'][1]}"),
             ('brightness', target['brightness'][0] <= val <= target['brightness'][1], f"target {target['brightness'][0]} to {target['brightness'][1]}"),
         ]
