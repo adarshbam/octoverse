@@ -7,6 +7,7 @@ import { floorHeight } from './Floor';
 import { fbm2, seeded } from './noise';
 import { RUNE_SETS, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
+import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
 function applyPlacement(object: THREE.Object3D, p: Placement) {
@@ -178,7 +179,7 @@ export function Kit({ world }: { world: WorldConfig }) {
     };
 
     // Each glyph panel shape gets its own texture per rune set.
-    const glyphCache = new Map<string, THREE.Material>();
+    const glyphCache = new Map<string, THREE.MeshBasicMaterial>();
     const glyphMaterial = (mesh: THREE.Mesh, runes: number) => {
       mesh.geometry.computeBoundingBox();
       const box = mesh.geometry.boundingBox!;
@@ -259,8 +260,23 @@ export function Kit({ world }: { world: WorldConfig }) {
       return light;
     });
 
-    return { pillars, rocks, corals, chains, pebbles: pebbleField(pebble, layout.floorY), lights };
+    const pebbles = pebbleField(pebble, layout.floorY);
+
+    // What this memo made and owns. The pieces' own geometry and materials belong to the useGLTF
+    // cache (the clones above share them), so they are left out.
+    const glyphs = [...glyphCache.values()];
+    const disposables = [
+      stoneMaps.tone, stoneMaps.normal, rockMaps.tone, rockMaps.normal,
+      stone, rock, pebble, iron, coral,
+      ...glyphs.flatMap(material => [material, material.map!]),
+      ...chains.map(chain => chain.geometry),
+      pebbles.geometry,
+      pebbles,
+    ];
+
+    return { pillars, rocks, corals, chains, pebbles, lights, disposables };
   }, [gltf, world]);
+  useDisposables(built.disposables);
 
   useFrame(state => {
     coralTime.current.value = now(state);

@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { seeded } from './noise';
 import type { WorldConfig } from './types';
+import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
 /** Open water beyond the ruin: deep navy below, brightening up to the surface's rippling glow. */
@@ -60,6 +61,8 @@ export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: TH
       }),
     [world, caustics],
   );
+  const disposables = useMemo(() => [material], [material]);
+  useDisposables(disposables);
   useFrame(state => {
     material.uniforms.uTime.value = now(state);
   });
@@ -89,7 +92,7 @@ const SHAFTS = (() => {
 /** Shafts of light from the surface, soft-edged, flickering as the ripples above move. `amount` is the share of the shafts drawn, evenly thinned. */
 export function GodRays({ amount = 1 }: { amount?: number }) {
   const now = useWorldTime();
-  const { meshes, material } = useMemo(() => {
+  const { meshes, material, disposables } = useMemo(() => {
     const material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -147,8 +150,9 @@ export function GodRays({ amount = 1 }: { amount?: number }) {
       mesh.renderOrder = 5;
       return mesh;
     });
-    return { meshes, material };
+    return { meshes, material, disposables: [material, ...meshes.map(m => m.geometry)] };
   }, [amount]);
+  useDisposables(disposables);
   useFrame(state => {
     material.uniforms.uTime.value = now(state);
   });
@@ -164,7 +168,7 @@ const SNOW = 2600;
 /** Marine snow: fine flecks drifting down, catching the light from above, fading with distance. `amount` is the share of the flecks drawn. */
 export function MarineSnow({ amount = 1 }: { amount?: number }) {
   const now = useWorldTime();
-  const { geometry, material } = useMemo(() => {
+  const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(5);
     const positions = new Float32Array(SNOW * 3);
     const seeds = new Float32Array(SNOW * 2);
@@ -211,8 +215,9 @@ export function MarineSnow({ amount = 1 }: { amount?: number }) {
         }
       `,
     });
-    return { geometry, material };
+    return { geometry, material, disposables: [geometry, material] };
   }, []);
+  useDisposables(disposables);
   // A lower amount draws only the first part of the flecks, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(SNOW * amount)), [geometry, amount]);
   useFrame(state => {
@@ -228,7 +233,7 @@ const FISH = 16;
 /** A loose school far down the ruin, dark against the glow, tails beating. `amount` is the share of the fish drawn. */
 export function FarFish({ amount = 1 }: { amount?: number }) {
   const now = useWorldTime();
-  const { mesh, material, school } = useMemo(() => {
+  const { mesh, clock, school, disposables } = useMemo(() => {
     const body = new THREE.SphereGeometry(1, 14, 8);
     body.scale(1, 0.34, 0.16);
     const tail = new THREE.BufferGeometry();
@@ -260,15 +265,16 @@ export function FarFish({ amount = 1 }: { amount?: number }) {
       speed: 0.25 + rand() * 0.1,
       phase: rand() * 6.28,
     }));
-    return { mesh, material: { uTime }, school };
+    return { mesh, clock: { uTime }, school, disposables: [mesh, geometry, material] };
   }, []);
+  useDisposables(disposables);
   const m = useMemo(() => new THREE.Object3D(), []);
   useLayoutEffect(() => {
     mesh.count = Math.round(FISH * amount);
   }, [mesh, amount]);
   useFrame(state => {
     const t = now(state);
-    material.uTime.value = t;
+    clock.uTime.value = t;
     school.forEach((f, i) => {
       const x = ((f.x - t * f.speed + 8) % 16 + 16) % 16 - 8;
       m.position.set(x, f.y + Math.sin(t * 0.4 + f.phase) * 0.15, f.z);

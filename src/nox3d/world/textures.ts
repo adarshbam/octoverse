@@ -266,7 +266,8 @@ export function makeGlyphTexture(runes: readonly string[], aspect: number) {
 
 /**
  * The water's light from every direction, prefiltered for reflections: bright blue from the
- * surface above, deep navy round the horizon, the seabed's red glow below.
+ * surface above, deep navy round the horizon, the seabed's red glow below. Returns the render
+ * target: `.texture` is the environment map, and disposing the target frees it.
  */
 export function makeWaterEnvironment(renderer: THREE.WebGLRenderer, sunDir: THREE.Vector3) {
   const scene = new THREE.Scene();
@@ -305,10 +306,12 @@ export function makeWaterEnvironment(renderer: THREE.WebGLRenderer, sunDir: THRE
       }
     `,
   });
-  scene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 64, 32), material));
+  const sphere = new THREE.SphereGeometry(10, 64, 32);
+  scene.add(new THREE.Mesh(sphere, material));
   const pmrem = new THREE.PMREMGenerator(renderer);
   const target = pmrem.fromScene(scene, 0.02);
   pmrem.dispose();
   material.dispose();
-  return target.texture;
+  sphere.dispose();
+  return target;
 }

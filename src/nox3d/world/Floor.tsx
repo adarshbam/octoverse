@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { fbm2 } from './noise';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
+import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
 const WIDTH = 26;
@@ -50,7 +51,7 @@ const floorGlsl = /* glsl */ `
 /** The seabed: dark wet silt with glowing cracks, brightest in patches and toward the pillars. */
 export function Floor({ world }: { world: WorldConfig }) {
   const now = useWorldTime();
-  const { geometry, material, time } = useMemo(() => {
+  const { geometry, material, time, disposables } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, 110, 260);
     geometry.rotateX(-Math.PI / 2);
     geometry.translate(0, 0, (NEAR_Z + FAR_Z) / 2);
@@ -109,8 +110,9 @@ export function Floor({ world }: { world: WorldConfig }) {
           }`,
         );
     };
-    return { geometry, material, time };
+    return { geometry, material, time, disposables: [geometry, material, maps.normal, maps.tone, cracks] };
   }, [world]);
+  useDisposables(disposables);
   useFrame(state => {
     time.value = now(state);
   });

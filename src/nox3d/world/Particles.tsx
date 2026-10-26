@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useDisposables } from './useDisposables';
 
 function seeded(seed: number) {
   let s = seed;
@@ -17,7 +18,7 @@ const BOTTOM = -2.9;
 /** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. */
 export function Bubbles({ density = 1 }: { density?: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
-  const { bubbles, material, geometry } = useMemo(() => {
+  const { bubbles, material, geometry, disposables } = useMemo(() => {
     const rand = seeded(11);
     const bubbles = Array.from({ length: BUBBLE_COUNT }, () => {
       let x = (rand() - 0.5) * 5.2;
@@ -56,8 +57,10 @@ export function Bubbles({ density = 1 }: { density?: number }) {
         }
       `,
     });
-    return { bubbles, material, geometry: new THREE.SphereGeometry(1, 20, 14) };
+    const geometry = new THREE.SphereGeometry(1, 20, 14);
+    return { bubbles, material, geometry, disposables: [material, geometry] };
   }, []);
+  useDisposables(disposables);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
   useFrame(state => {
@@ -80,7 +83,7 @@ const EMBER_COUNT = 460;
 
 /** Drifting crimson motes, denser along the seabed like the reference. */
 export function Embers({ density = 1 }: { density?: number }) {
-  const { geometry, material } = useMemo(() => {
+  const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(23);
     const positions = new Float32Array(EMBER_COUNT * 3);
     const phase = new Float32Array(EMBER_COUNT);
@@ -132,8 +135,9 @@ export function Embers({ density = 1 }: { density?: number }) {
         }
       `,
     });
-    return { geometry, material };
+    return { geometry, material, disposables: [geometry, material] };
   }, []);
+  useDisposables(disposables);
   // Lower tiers draw only the first part of the motes, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(EMBER_COUNT * density)), [geometry, density]);
 

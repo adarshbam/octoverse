@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { seeded } from './noise';
+import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
 const COUNT = 900;
@@ -13,7 +14,7 @@ const COUNT = 900;
  */
 export function Motes({ amount = 1 }: { amount?: number }) {
   const now = useWorldTime();
-  const { geometry, material } = useMemo(() => {
+  const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(61);
     const positions = new Float32Array(COUNT * 3);
     const seeds = new Float32Array(COUNT * 3);
@@ -98,8 +99,9 @@ export function Motes({ amount = 1 }: { amount?: number }) {
         }
       `,
     });
-    return { geometry, material };
+    return { geometry, material, disposables: [geometry, material] };
   }, []);
+  useDisposables(disposables);
   // A lower amount draws only the first part of the motes, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(COUNT * amount)), [geometry, amount]);
   useFrame(state => {
