@@ -4,7 +4,7 @@ import { NOX } from '../config/nox.character';
 import { ARM_IDS } from '../config/types';
 import { NOX_POSES } from '../poses/nox.poses';
 import { STAGE_FRAMES } from '../stage/framing';
-import { ENTRANCE_MS, ENTRANCE_PANEL_MS, ENTRANCE_START_YAW, armFlare, entrancePath, entranceStartX, mantleSqueeze } from './entrance';
+import { ENTRANCE_MS, ENTRANCE_PANEL_MS, ENTRANCE_START_YAW, armFlare, coreGlowFacing, entrancePath, entranceStartX, mantleSqueeze } from './entrance';
 
 const intro = NOX_POSES.intro.body;
 const times = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
@@ -79,6 +79,17 @@ test('Nox swims in side-on and turns to face the visitor only as it slows', () =
     const { yaw } = entrancePath(t);
     expect(yaw).toBeLessThanOrEqual(last);
     last = yaw;
+  }
+});
+
+test('the glow card before the chin fades as the head turns side-on, so it never shows edge-on', () => {
+  expect(coreGlowFacing(0)).toBe(1);
+  expect(coreGlowFacing(ENTRANCE_START_YAW)).toBeLessThan(0.05);
+  let last = Infinity;
+  for (const yaw of times(0, 1400, 10).map(m => (m / 1400) * ENTRANCE_START_YAW)) {
+    const facing = coreGlowFacing(yaw);
+    expect(facing).toBeLessThanOrEqual(last);
+    last = facing;
   }
 });
 

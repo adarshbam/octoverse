@@ -112,6 +112,15 @@ export function mantleSqueeze(pulse: number) {
 }
 
 /**
+ * How much of the glow card before the chin shows with the head turned `yaw` radians from the
+ * visitor. The card faces the visitor from in front of the face; turned side-on it would swing out
+ * past the face and be seen edge-on as a bright streak, so it fades as the head turns.
+ */
+export function coreGlowFacing(yaw: number) {
+  return Math.cos(Math.min(Math.abs(yaw), Math.PI / 2)) ** 2;
+}
+
+/**
  * How far each arm swings out about its base at a pulse's height (radians; ArmDrive.flare). The
  * bundle trails T1 on top down to T8 (the entering pose), so the upper four turn up, clockwise,
  * the lower four down, the outer arms most.

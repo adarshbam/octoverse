@@ -8,10 +8,11 @@
 // phone (taps on a touch phone: Kali from the tray, let go, TypeScript, Escape; give 390 844),
 // detail (View Project, the pointer over the panel and still, then Escape; give 1280 720),
 // journey (the visitor's way in: the intro, Explore, View Project, a look over the panel, Escape;
-// give 1280 720).
+// give 1280 720), entrance (a first visit: Nox swims in and lands in the intro; give 1280 720).
+// KEEP=<dir> keeps the frames there (f0000.png is the first, 1/30 s of the page's time apart).
 import { chromium } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -29,14 +30,24 @@ const page = await context.newPage();
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 if (process.env.DEBUG) page.on('console', m => /focusin|pointerover|FOCUS/.test(m.text()) && console.log('[page]', m.text()));
 const start = scenario === 'open' || scenario === 'journey' ? 'intro' : 'overview';
-// The page runs on our clock from the start, so its time never jumps.
-await page.clock.install();
-await page.goto(`${base}/?stage=${start}&tier=high${extra}`, { waitUntil: 'load' });
-// From here the page's time moves only when we step it; otherwise it would also run on while each
-// (slow) screenshot is taken. The pause lands just ahead of the page's clock, which still runs.
-await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
-// Warm up: let the stage settle for 4 s of its own time.
-for (let i = 0; i < 40; i++) await page.clock.runFor(100);
+// The entrance is a first visit, with no stage in the address. The page's clock stands still from
+// its first script, so the swim, timed from its own first frame, is recorded from that frame on.
+const entrance = scenario === 'entrance';
+if (entrance) {
+  const now = Date.now();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(now + 50);
+  await page.goto(`${base}/?tier=high${extra}`, { waitUntil: 'load' });
+} else {
+  // The page runs on our clock from the start, so its time never jumps.
+  await page.clock.install();
+  await page.goto(`${base}/?stage=${start}&tier=high${extra}`, { waitUntil: 'load' });
+  // From here the page's time moves only when we step it; otherwise it would also run on while each
+  // (slow) screenshot is taken. The pause lands just ahead of the page's clock, which still runs.
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+  // Warm up: let the stage settle for 4 s of its own time.
+  for (let i = 0; i < 40; i++) await page.clock.runFor(100);
+}
 // With `hidden`, also a button whose panel is still closed.
 const centre = async (name, hidden = false) => {
   const box = await page.getByRole('button', { name, exact: true, includeHidden: hidden }).boundingBox();
@@ -142,12 +153,16 @@ if (scenario === 'focus') {
 } else if (scenario === 'probe') {
   seconds = 1;
   actions.push([0.05, () => page.mouse.move(...startPoint)]);
+} else if (entrance) {
+  // The 2.5 s swim, then the intro's words come in.
+  seconds = 4.5;
 } else if (scenario !== 'idle') throw new Error(`unknown scenario ${scenario}`);
 const timeline = [...actions, ...glideSteps].sort((a, b) => a[0] - b[0]);
 if (process.env.SECONDS) seconds = Number(process.env.SECONDS);
 
-for (let i = 0; i < 3; i++) await page.clock.runFor(1000 / FPS);
-const dir = mkdtempSync(join(tmpdir(), 'nox-step-'));
+if (!entrance) for (let i = 0; i < 3; i++) await page.clock.runFor(1000 / FPS);
+const dir = process.env.KEEP ?? mkdtempSync(join(tmpdir(), 'nox-step-'));
+mkdirSync(dir, { recursive: true });
 const frames = Math.round(seconds * FPS);
 let next = 0;
 for (let f = 0; f < frames; f++) {
@@ -160,5 +175,5 @@ for (let f = 0; f < frames; f++) {
 await browser.close();
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(dir, 'f%04d.png'), '-c:v', 'libvpx', '-b:v', '5M', `${out}.webm`]);
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', `${out}.webm`, '-vf', `fps=${12 / seconds},scale=480:-1,tile=4x3`, '-frames:v', '1', `${out}-sheet.png`]);
-rmSync(dir, { recursive: true, force: true });
+if (!process.env.KEEP) rmSync(dir, { recursive: true, force: true });
 console.log('saved', `${out}.webm`, `${out}-sheet.png`, `(${frames} frames, ${seconds} s)`);

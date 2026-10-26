@@ -257,10 +257,12 @@ export function App() {
           </>
         ) : (
           <>
+            {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
+                plate in place rather than the plate popping in behind it mid-swim. */}
             <Suspense fallback={null}>
               <Backdrop />
+              {octopus}
             </Suspense>
-            {octopus}
             <Bubbles density={quality.settings.particles} />
             <Embers density={quality.settings.particles} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
-import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, entrancePath, entranceStartX, mantleSqueeze } from '../behavior/entrance';
+import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, coreGlowFacing, entrancePath, entranceStartX, mantleSqueeze } from '../behavior/entrance';
 import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
@@ -64,6 +64,8 @@ export interface OctopusProps {
 /** Seconds for Nox to settle into rest, and to wake from it. */
 const REST_IN = 2;
 const WAKE = 0.5;
+/** The warm glow card before the chin, facing the visitor. */
+const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
 export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone }: OctopusProps) {
@@ -136,7 +138,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       suckerBend,
       headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
       armMaterial: createSkinMaterial('ARM', uniforms),
-      coreGlow: createGlowMaterial('#ff4a2a', 0.22, 2.4),
+      coreGlow: createGlowMaterial('#ff4a2a', CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
       glowLocal: new THREE.Vector3(...config.glow.center),
@@ -307,6 +309,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const bodyTurn = 1 - 0.75 * out;
     turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
     headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, (swim ? swim.yaw : 0) + gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
+    // The glow card turns with the head; swimming side-on it fades rather than show edge-on beside the face.
+    rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing(swim ? swim.yaw : 0);
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({

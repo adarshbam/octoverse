@@ -268,3 +268,36 @@ Known gaps:
 - **Phone:** on an upright phone the sheet covers Nox entirely; Task 25 lays out the phone.
 - **Cup sides:** each arm takes the side its cups face from the pose the page opens on. Opening on the overview (`?stage=overview`) puts the cups of T1, T2, T3, T7 and T8 on the other side from the usual way in. Recommendation: take each arm's side from the intro pose. That changes the overview and tech-focus stills approved from `?stage=overview`, so it waits for your decision.
 - **Content:** every section and feature card is placeholder text, and there is one screenshot.
+
+### Entrance v1 (2026-10-26)
+
+Capture: `assets/entrance-v1.webm` (a first visit, recorded on the page's own clock at 1280x720, 4.5 s from the page's first frame; sheet `assets/entrance-v1-sheet.png`), `assets/entrance-v1-side.png` (the high-quality panel 1 beside our frame 0.9 s into the swim, same frame; that frame is mid-pulse, so the arms are fanned and the mantle squeezed) and `assets/entrance-v1-closeup.png` (Nox close up beside the painting: our 900 ms pose as a still capture, without the pulse). Verdict: awaiting the owner.
+
+- **Swim:** on a first visit Nox swims in from just out of sight on the left (further out on wider windows), its head turned toward screen right near profile, its arms bundled and trailing. Only the head turns; the body stays square to the camera.
+- **Pulses:** a jet pulse at 0, 0.8 and 1.6 s. The mantle squeezes by 6%, the arms fan apart (upper arms up, lower arms down) and Nox surges on. The last pulse, as it slows, is gentler.
+- **Turn and landing:** from 1.4 s Nox slows, turns to face the visitor and gathers its arms into the intro pose one after another, landing at 2.5 s. On the way it grows from 0.87 to full size and settles from a little high to the intro's height. The intro's title and the nameplate stay hidden during the swim (panel 1 has none) and come in after it, as on any visit.
+- **Panel 1:** a still capture (`?freeze`) shows the moment panel 1 paints, 0.9 s in, without a pulse.
+- **Skip:** Skip intro (bottom right), a click anywhere or any key but a modifier ends the entrance at once. Nox cuts to the intro under a 0.3 s fade.
+- **Once:** a reload in the same browser session goes straight to the intro, and reduced motion skips the entrance.
+
+Fixed on the way (both visible only in motion):
+
+- **Glow streak:** the warm glow card in front of the chin turns with the head. Side-on, it swung out beside the face and showed edge-on as a thin orange streak. It now fades as the head turns away and is full again facing the visitor.
+- **Realm popping in:** Nox drew before the painted plate had loaded, so the realm popped in behind it about 0.6 s into the swim. Nox now waits for the plate, so the swim starts with the realm in place. On every stage, Nox now appears with the plate rather than before it.
+
+Verification:
+
+- `check_stage` panel 1 PASS (head dome 27, face glow under the eye 13, near cheek blush 21, upper arm body 9, upper arm cup 11, lower arm cup 4, red band above a cup 5); the intro frame fails it (6 misses). Panels 2, 3 and 5 PASS as before. Panel 4's cheek-blush sample sits on its tolerance of 40, as it did before this task (24-42 over nine captures of the checkpoint, 33-41 over six of this version), so an occasional capture misses it by a point or two.
+- 231 tests pass, typecheck clean, no new lint warnings, end-to-end 7 of 7 (the first visit and a reload, reduced motion, and Skip by button, click and key, with the earlier four).
+- The recording reviewed frame by frame: the realm and Nox appear together 0.27 s into the page's time; from then on the largest frame-to-frame change is 6.2 (of 255), at a pulse, with no jumps. No console errors at five window sizes, apart from the browser's request for a favicon the site does not have.
+
+Known gaps:
+
+- **Backdrop:** still the intro's plate; panel 1's gate, ruins and blue water come with Task 24. At 16:9 the square plate leaves dark margins at the sides.
+- **Arms:** panel 1 paints a longer bundle with more arms in view and loose spiral tips; ours has exactly eight, shorter, and the lower four curl up. The arm bodies read brighter and more violet than the painting's shadowed navy.
+- **Head:** a little taller and narrower than painted, and lighter purple with white flecks where panel 1 is dark navy. Our face glow runs lower, under the chin.
+- **Side-on glow:** the chin's glow card is faded out while Nox is side-on; the face's own glow stays.
+- **Gathering:** between about 2.0 and 2.3 s the right-hand arms swing under the body out of the trailing bundle, and one hangs straight down for about 0.2 s before they spread.
+- **First paint:** until the plate has loaded only the bubbles and embers show, on black; then the realm and Nox cut in together (0.27 s in the recording, longer on a slow connection).
+- **Captures:** the Skip intro button shows in them, and in the still a bubble sits over the cheek.
+- **Cup sides:** still open (Detail v1). The entrance lays its arms out from the intro pose, so a first visit matches a reload. Whether every arm takes its cup side from the intro pose everywhere waits for your decision.

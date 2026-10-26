@@ -1,4 +1,60 @@
 {
+  "1": {
+    "colorTolerance": 40,
+    "widthTolerance": 0.03,
+    "hq": {
+      "image": "docs/design/references/Nox/Nox Enters the Security Realm.png",
+      "origin": [
+        783.6,
+        495.4
+      ],
+      "pxPerUnit": 204.5,
+      "frame": [
+        5.1,
+        5.04
+      ]
+    },
+    "points": {
+      "head dome": [
+        -0.6,
+        0.3
+      ],
+      "face glow under the eye": [
+        -0.2,
+        -0.47
+      ],
+      "near cheek blush": [
+        -0.34,
+        -0.48,
+        722,
+        594
+      ],
+      "upper arm body": [
+        -1.5,
+        0.2,
+        490,
+        442
+      ],
+      "upper arm cup": [
+        -1.435,
+        0.034,
+        465,
+        472
+      ],
+      "lower arm cup": [
+        -1.295,
+        -0.742,
+        460,
+        654
+      ],
+      "red band above a cup": [
+        -1.1,
+        -0.65,
+        460,
+        642
+      ]
+    }
+  },
   "2": {
     "colorTolerance": 24,
     "widthTolerance": 0.02,
