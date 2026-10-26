@@ -14,6 +14,10 @@ export interface UrlState {
   /** Orbit camera for inspecting depth. */
   orbit: boolean;
   noWebgl: boolean;
+  /** The 3D world in place of the painted plate (until it replaces it for everyone). */
+  world: boolean;
+  /** Seconds of world time a frozen world shows, for still captures. */
+  t?: number;
   /** World box [x0, y0, x1, y1] the camera frames, for real zoom. */
   view?: [number, number, number, number];
   /** A quality tier forced for the session, instead of the one picked for the device. */
@@ -25,7 +29,7 @@ export interface UrlState {
 /** Review and debugging switches read from the page URL. Unknown values are ignored. */
 export function parseUrlState(search: string): UrlState {
   const params = new URLSearchParams(search);
-  const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl') };
+  const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl'), world: params.has('world') };
   const stage = params.get('stage');
   if (stage && (STAGES as readonly string[]).includes(stage)) state.stage = stage as StageId;
   const tech = params.get('tech');
@@ -34,6 +38,8 @@ export function parseUrlState(search: string): UrlState {
   if (expression && Object.hasOwn(EXPRESSIONS, expression)) state.expression = expression as ExpressionId;
   const view = params.get('view')?.split(',').map(Number);
   if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
+  const t = params.get('t');
+  if (t && Number.isFinite(Number(t))) state.t = Number(t);
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';

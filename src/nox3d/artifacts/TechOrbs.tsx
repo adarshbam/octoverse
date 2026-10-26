@@ -49,8 +49,9 @@ export function TechOrbs({ orbs, chains, state }: { orbs: readonly PlacedOrb[]; 
         chain: chains[ARM_IDS.indexOf(orb.slot.armId)],
         glass: createOrbMaterial(logoColour(orb.iconKey)),
         halo: createOrbHaloMaterial(logoColour(orb.iconKey)),
-        // At its plain brightness, so the bloom does not haze the glass round it.
-        logo: new THREE.MeshBasicMaterial({ map: logoTexture(orb.iconKey), color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false }),
+        // At its plain brightness, so the bloom does not haze the glass round it, and unfogged
+        // (a world's water fog must not tint it).
+        logo: new THREE.MeshBasicMaterial({ map: logoTexture(orb.iconKey), color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false, fog: false }),
       })),
     };
   }, [orbs, chains]);

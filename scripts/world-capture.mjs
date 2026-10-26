@@ -16,7 +16,14 @@ for (const mask of [false, true]) {
   page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
   page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
   await page.goto(base + query(mask), { waitUntil: 'load' });
-  await page.waitForTimeout(mask ? 2500 : 4500);
+  if (mask) await page.waitForTimeout(2500);
+  else {
+    // The world's kit (6 MB) loads and its shaders compile before the first frame, and a headless
+    // page is not drawn to until it is first captured: take one early shot, then let it settle.
+    await page.waitForTimeout(1000);
+    await page.screenshot();
+    await page.waitForTimeout(5000);
+  }
   const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
   await page.screenshot({ path });
   console.log('saved', path);

@@ -1,0 +1,62 @@
+{
+  "floorY": -2.45,
+  "pillars": [
+    { "piece": "pillar_d", "position": [-3.45, -2.45, -1.4], "rotY": 0.14, "runes": 0, "light": true },
+    { "piece": "pillar_b", "position": [-3.35, -2.45, -5.5], "rotY": -0.1, "runes": 1, "light": true },
+    { "piece": "pillar_a", "position": [-3.3, -2.45, -11], "rotY": 0.05, "tilt": 0.02, "runes": 2 },
+    { "piece": "pillar_c", "position": [-3, -2.45, -18], "rotY": 0.2, "runes": 3 },
+    { "piece": "pillar_b", "position": [-3.4, -2.45, -26], "rotY": -0.15, "runes": 4 },
+    { "piece": "pillar_b", "position": [3.75, -2.45, -1.6], "rotY": -0.1, "runes": 5, "light": true },
+    { "piece": "pillar_a", "position": [3.1, -2.45, -6.5], "rotY": 0.08, "runes": 2, "light": true },
+    { "piece": "pillar_b", "position": [3.4, -2.45, -12.5], "rotY": -0.05, "tilt": -0.025, "runes": 0 },
+    { "piece": "pillar_a", "position": [3, -2.45, -20], "rotY": 0.1, "runes": 1 },
+    { "piece": "pillar_c", "position": [3.4, -2.45, -29], "runes": 4 },
+    { "piece": "pillar_b", "position": [-6.3, -2.45, 0.4], "rotY": 0.3, "runes": 3 },
+    { "piece": "pillar_a", "position": [6.5, -2.45, -0.4], "rotY": -0.25, "runes": 5 },
+    { "piece": "pillar_a", "position": [-6.6, -2.45, -9], "rotY": 0.1, "runes": 4 },
+    { "piece": "pillar_b", "position": [6.9, -2.45, -10], "rotY": -0.1, "runes": 1 }
+  ],
+  "rocks": [
+    { "piece": "rock_0", "position": [-3.4, -2.6, 2.2], "rotY": 0.4, "scale": [1.6, 1.3, 1.2] },
+    { "piece": "rock_2", "position": [-2.55, -2.5, 1], "rotY": 1.2, "scale": 0.8 },
+    { "piece": "rock_3", "position": [-4.15, -2.3, 0.4], "rotY": 2, "scale": [1, 1.3, 1] },
+    { "piece": "rock_4", "position": [3.5, -2.6, 2], "rotY": -0.5, "scale": [1.5, 1.2, 1.2] },
+    { "piece": "rock_1", "position": [2.6, -2.55, 0.6], "rotY": 0.7, "scale": 0.7 },
+    { "piece": "rock_3", "position": [4.05, -2.3, 0.2], "rotY": -1.1, "scale": [0.9, 1.2, 0.9] },
+    { "piece": "rock_2", "position": [-3.15, -2.45, -0.5], "rotY": 0.9, "scale": [1.1, 0.95, 0.9] },
+    { "piece": "rock_0", "position": [3.35, -2.45, -0.7], "rotY": -0.6, "scale": [1, 0.9, 0.85] },
+    { "piece": "rock_1", "position": [-2.6, -2.45, -2.2], "rotY": 0.2, "scale": 0.5 },
+    { "piece": "rock_2", "position": [2.75, -2.45, -3.2], "rotY": 2.2, "scale": 0.6 },
+    { "piece": "rock_4", "position": [-2.7, -2.45, -8], "rotY": 1.4, "scale": 0.6 },
+    { "piece": "rock_0", "position": [2.5, -2.45, -9.5], "rotY": 0.9, "scale": 0.55 },
+    { "piece": "rock_3", "position": [-2.4, -2.45, -14], "rotY": 0.3, "scale": 0.6 },
+    { "piece": "rock_2", "position": [2.6, -2.45, -16], "rotY": 1.9, "scale": 0.5 },
+    { "piece": "rock_4", "position": [-5.6, -2.55, 2.6], "rotY": 0.6, "scale": 1.4 },
+    { "piece": "rock_0", "position": [5.9, -2.55, 2.4], "rotY": -0.8, "scale": 1.5 }
+  ],
+  "corals": [
+    { "piece": "coral_2", "position": [-3.05, 0, 2.35], "rotY": 0.3, "scale": 1.1 },
+    { "piece": "coral_1", "position": [-2.35, 0, 1.25], "rotY": -0.2, "scale": 1 },
+    { "piece": "coral_0", "position": [-3.25, 0, -0.15], "rotY": 0.1, "scale": 1.3 },
+    { "piece": "coral_2", "position": [3.15, 0, 2.05], "rotY": -0.4, "scale": 1.2 },
+    { "piece": "coral_1", "position": [2.35, 0, 0.85], "rotY": 0.3, "scale": 0.9 },
+    { "piece": "coral_0", "position": [3.3, 0, -1], "rotY": -0.1, "scale": 1.4 },
+    { "piece": "coral_1", "position": [-2.8, 0, -4.8], "rotY": 0.2, "scale": 1.1 },
+    { "piece": "coral_0", "position": [2.7, 0, -6], "rotY": -0.3, "scale": 1 },
+    { "piece": "coral_2", "position": [-2.7, 0, -10.4], "rotY": 0.1, "scale": 1.2 },
+    { "piece": "coral_1", "position": [2.8, 0, -12], "rotY": 0.4, "scale": 1.2 },
+    { "piece": "coral_0", "position": [-2.5, 0, -16.5], "rotY": 0.2, "scale": 1.3 }
+  ],
+  "chains": [
+    { "from": [7.2, 6.4, -9], "to": [-0.6, 6.2, -10], "sag": 2.6 },
+    { "from": [-1.6, 7, -8], "to": [-3.9, 2, -8.3], "sag": 0.35 },
+    { "from": [2.9, 7.2, -6.8], "to": [3.4, 0.9, -6.5], "sag": 0.08 },
+    { "from": [-7.5, 6.8, -12], "to": [-1.8, 7.2, -13], "sag": 2.2 }
+  ],
+  "coralLights": [
+    [-2.8, -1.7, 2],
+    [3, -1.8, 1.7],
+    [-2.5, -2, -3.6],
+    [2.6, -2, -4.4]
+  ]
+}

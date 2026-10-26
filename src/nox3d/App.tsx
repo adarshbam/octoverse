@@ -33,6 +33,8 @@ import { layoutFor } from './stage/framing';
 import { Backdrop } from './world/Backdrop';
 import { ContactShadows } from './world/ContactShadows';
 import { Bubbles, Embers } from './world/Particles';
+import { SECURITY_WORLD } from './world/security/config';
+import { WorldScene } from './world/WorldScene';
 
 const url = parseUrlState(location.search);
 // The project's technologies in its order, each riding an orb slot; the rest go to the tray.
@@ -244,10 +246,12 @@ export function App() {
         flat
         dpr={[1, quality.settings.dpr]}
         frameloop={visible ? 'always' : 'never'}
+        // The world's surface light casts shadows, and its sky sphere reaches 100 units.
+        shadows={url.world ? 'percentage' : false}
         gl={{ antialias: false, powerPreference: 'high-performance' }}
-        camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 60 }}
+        camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: url.world ? 140 : 60 }}
       >
-        <color attach="background" args={[MASK ? '#000000' : '#06040c']} />
+        <color attach="background" args={[MASK ? '#000000' : url.world ? SECURITY_WORLD.palette.waterFar : '#06040c']} />
         <StageCamera stage={state.stage} reducedMotion={reducedMotion} />
         {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
         {MASK ? (
@@ -258,18 +262,22 @@ export function App() {
         ) : (
           <>
             {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
-                plate in place rather than the plate popping in behind it mid-swim. */}
+                plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
             <Suspense fallback={null}>
-              <Backdrop />
+              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} /> : <Backdrop />}
               {octopus}
             </Suspense>
-            <Bubbles density={quality.settings.particles} />
-            <Embers density={quality.settings.particles} />
+            {!url.world && (
+              <>
+                <Bubbles density={quality.settings.particles} />
+                <Embers density={quality.settings.particles} />
+              </>
+            )}
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
             <EffectComposer multisampling={0}>
               {quality.settings.contactShadows ? <ContactShadows settings={POST.contactShadows} /> : <></>}
               <Bloom mipmapBlur {...POST.bloom} resolutionScale={0.5 * quality.settings.bloomScale} />
-              <Vignette {...POST.vignette} />
+              <Vignette {...(url.world ? POST.worldVignette : POST.vignette)} />
               <SMAA />
             </EffectComposer>
           </>
