@@ -1,4 +1,4 @@
-import { armDepth } from '../character/armChain';
+import { armDepth, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../config/types';
@@ -94,9 +94,49 @@ const TECH_FOCUS: StagePose = { ...OVERVIEW, headMorph: 0 };
 // painting's own arms are not traced.
 const DETAIL: StagePose = { ...INTRO, body: { x: -1.909, y: 0.536, scale: 1, yaw: 0.48 }, tilt: 0.22, look: [0.22, 0.26], expression: 'attentive' };
 
-// The entrance is authored against panel 1 in Task 23; until then it reuses the intro.
+// Panel 1, the entrance: Nox swims in side-on, its arms stretched out behind it in a bundle, T1 on
+// top down to T8, so neighbouring arms (and the webs between them) stay together. Shaped against
+// the high-quality panel (docs/design/references/Nox/Nox Enters the Security Realm.png) at the
+// moment it paints, 900 ms in (behavior/entrance.ts), in the space the arms are authored in; each
+// arm keeps its intro root. The painting curls every tip under; each arm here curls the way it
+// does in the intro, toward its cups, so the lower four curl up. The painting shows more than
+// eight tentacles; Nox keeps eight.
+const ENTERING_TRACED: Record<ArmId, Point2[]> = {
+  T1: [[-0.5, -0.5], [-0.75, -0.32], [-1.0, -0.15], [-1.35, 0.05], [-1.7, 0.16], [-2.0, 0.1], [-2.12, -0.02], [-2.1, -0.14], [-2.0, -0.18], [-1.93, -0.12]],
+  T2: [[-0.6, -0.68], [-0.95, -0.6], [-1.3, -0.5], [-1.65, -0.42], [-2.0, -0.38], [-2.35, -0.38], [-2.62, -0.45], [-2.76, -0.58], [-2.74, -0.72], [-2.64, -0.78], [-2.55, -0.72]],
+  T3: [[-0.6, -0.88], [-0.95, -0.86], [-1.3, -0.84], [-1.62, -0.85], [-1.9, -0.9], [-2.1, -1.0], [-2.15, -1.13], [-2.07, -1.21], [-1.98, -1.18], [-1.97, -1.1]],
+  T4: [[-0.55, -1.0], [-0.85, -1.02], [-1.12, -1.06], [-1.32, -1.14], [-1.38, -1.26], [-1.3, -1.34], [-1.21, -1.31], [-1.21, -1.23]],
+  T5: [[-0.35, -1.18], [-0.62, -1.24], [-0.88, -1.27], [-1.08, -1.25], [-1.18, -1.17], [-1.16, -1.07], [-1.08, -1.04], [-1.03, -1.1]],
+  T6: [[-0.4, -1.3], [-0.72, -1.38], [-1.05, -1.43], [-1.38, -1.45], [-1.68, -1.42], [-1.92, -1.33], [-2.02, -1.2], [-1.98, -1.08], [-1.88, -1.05], [-1.83, -1.12]],
+  T7: [[-0.32, -1.45], [-0.62, -1.58], [-0.98, -1.66], [-1.36, -1.68], [-1.72, -1.64], [-2.04, -1.55], [-2.28, -1.42], [-2.4, -1.27], [-2.36, -1.14], [-2.25, -1.11], [-2.2, -1.19]],
+  T8: [[-0.18, -1.5], [-0.42, -1.7], [-0.72, -1.82], [-1.04, -1.86], [-1.32, -1.81], [-1.5, -1.7], [-1.55, -1.57], [-1.48, -1.49], [-1.39, -1.52], [-1.39, -1.6]],
+};
+
+/** The arms stretch out by a fifth as Nox swims; they gather to their intro lengths as it turns. */
+export const SWIM_STRETCH = 1.2;
+
+const armLength = (curve: readonly Point2[]) => {
+  const rest = restFromCurve(curve);
+  return rest.segmentLength * rest.angles.length;
+};
+
+/** A curve scaled about its root to `length`. */
+function withLength(curve: readonly Point2[], length: number): Point2[] {
+  const k = length / armLength(curve);
+  const [rx, ry] = curve[0];
+  return curve.map(([x, y]) => [rx + (x - rx) * k, ry + (y - ry) * k] as Point2);
+}
+
+const ENTERING_ARMS = Object.fromEntries(
+  ARM_IDS.map(id => [id, withLength(flattenForDepth([INTRO_TRACED[id][0], ...ENTERING_TRACED[id]], spec(id)), SWIM_STRETCH * armLength(INTRO_ARMS[id]))]),
+) as Record<ArmId, Point2[]>;
+
+// The entrance path (behavior/entrance.ts) carries the body in and turns the head; the intro's
+// placement is where it lands.
+const ENTERING: StagePose = { ...INTRO, arms: ENTERING_ARMS };
+
 export const NOX_POSES: Record<StageId, StagePose> = {
-  entering: INTRO,
+  entering: ENTERING,
   intro: INTRO,
   overview: OVERVIEW,
   techFocus: TECH_FOCUS,

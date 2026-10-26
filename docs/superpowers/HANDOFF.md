@@ -46,3 +46,16 @@ Updated 2026-10-26. Read this first in a new session, then the files it points t
   - The painting's face is not quite symmetric: its left brow sits lower and its left eye is wider. Ours are symmetric.
 - **Perspective:** face features land about 4% further out in the render than in head-local units, because of the face's depth in the camera. The brow, eye, mouth and blush values compensate for this, so trace in render space.
 - **Dev server:** if port 5191 is taken by an older Vite on the same worktree, `preview_start` moves to another port. The capture scripts still use 5191, which serves the same files.
+
+## Resume point: Task 23 (entrance, panel 1), 2026-10-26
+
+Implemented on a checkpoint commit, not yet approved or task-done (base `d5ea0f3`). Green so far: unit tests in behavior, poses and character (22 files, 164 passed), `tsc -p tsconfig.nox3d.json`, e2e `tests/e2e/entrance.spec.ts` (3 passed). Rulings are in the ledger as `Task 23: Ruling:` lines.
+
+Left to do, in order:
+1. Add a panel 1 entry to `scripts/stage_samples.json`: `hq` image `docs/design/references/Nox/Nox Enters the Security Realm.png`, origin `[783.6, 495.4]`, pxPerUnit `204.5`, frame `[5.1, 5.04]`, colorTolerance 40. Use face and arm points (`[x, y, px, py]` where the painting differs). Avoid the backdrop, the gate (Task 24), the skip button corner and the bubble over the cheek at capture px (392, 600). Capture with `node scripts/stage-capture.mjs entering spike-out/entering.png`, then `python scripts/check_stage.py spike-out/entering.png --panel 1` must exit 0.
+2. Full `npm test`, `tsc -p tsconfig.app.json`, oxlint on the changed files, browser console check.
+3. Add an `entrance` scenario to `scripts/stepped-capture.mjs` (first visit, no `?stage`, clock paused early, about 4 s), record at 1280x720, build a frame sheet and a side-by-side with panel 1, copy to `docs/superpowers/reviews/assets/` (`entrance-v1*.png`, motion webm under 5 MB).
+4. Add an "Entrance v1" entry to `docs/superpowers/reviews/nox-character.md`. Known gaps to state: the gate plate is Task 24 (backdrop is still the intro's); the bundle is shorter and has fewer arms than the painting (exactly eight); the lower four arms curl up, unlike the painting; the head is a little taller and narrower than painted; the skip button shows in captures; a bubble sits over the cheek in the frozen frame.
+5. Present to the owner. On approval commit `feat(nox3d): swim-in entrance` and run `task-done PLAN 23 d5ea0f3 -- npm test`.
+
+Open owner decision, still unanswered: should each arm's cup side be fixed from the intro pose?

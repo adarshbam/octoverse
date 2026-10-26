@@ -4,10 +4,11 @@ import { ArmChain, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS } from '../config/types';
-import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED } from './nox.poses';
+import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED, SWIM_STRETCH } from './nox.poses';
 import { projectToScreen } from '../stage/anchors';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
 import { DETAIL_PANEL_BOX } from '../ui/detailContent';
+import { ENTRANCE_PANEL_MS, entrancePath } from '../behavior/entrance';
 
 /** Distance from a point to a polyline, projecting onto its segments. */
 function distance(points: number[][], x: number, y: number) {
@@ -63,6 +64,55 @@ test('overview: seen from the stage camera, every arm lies on its panel 3 trace'
       expect(distance(seen, tx, ty), `${id} (${tx}, ${ty})`).toBeLessThan(0.03);
     }
   });
+});
+
+test('entering (panel 1): the arms trail behind the head in a bundle, T1 on top down to T8', () => {
+  const still = { time: 0, sway: 0, curl: 0, droop: 0 };
+  // Where each arm leaves the back of the head: Nox faces right as it swims in.
+  const leaving = ARM_IDS.map((id, i) => {
+    const chain = new ArmChain(restFromCurve(NOX_POSES.entering.arms[id]), NOX.arms[i], i);
+    chain.solve(still);
+    expect(chain.tipX, id).toBeLessThan(NOX.head.centerX - NOX.head.halfWidth);
+    const k = chain.px.findIndex(x => x < -0.7);
+    return chain.py[k];
+  });
+  for (let i = 1; i < leaving.length; i++) expect(leaving[i], ARM_IDS[i]).toBeLessThan(leaving[i - 1]);
+});
+
+test('entering: the arms stretch out a fifth for the swim, each from its intro root and curling the same way, toward its cups', () => {
+  expect(SWIM_STRETCH).toBeCloseTo(1.2, 9);
+  ARM_IDS.forEach((id, i) => {
+    const entering = restFromCurve(NOX_POSES.entering.arms[id]);
+    const intro = restFromCurve(NOX_POSES.intro.arms[id]);
+    expect(entering.segmentLength / intro.segmentLength, id).toBeCloseTo(SWIM_STRETCH, 4);
+    expect(entering.rootX, id).toBeCloseTo(intro.rootX, 6);
+    expect(entering.rootY, id).toBeCloseTo(intro.rootY, 6);
+    expect(new ArmChain(entering, NOX.arms[i], i).side, id).toBe(new ArmChain(intro, NOX.arms[i], i).side);
+  });
+});
+
+test('entering (panel 1): mid-swim, the eye and the head top land where the high-quality panel paints them', () => {
+  // HQ panel 1 (docs/design/references/Nox/Nox Enters the Security Realm.png), registered as
+  // panel 2 is: world (x, y) -> px (783.6 + 204.5 x, 495.4 - 204.5 y). It paints the near eye at
+  // (749, 552) and the top of the head at y 401.
+  const toWorld = (px: number, py: number) => [(px - 783.6) / 204.5, (495.4 - py) / 204.5];
+  const { x, y, scale, yaw } = entrancePath(ENTRANCE_PANEL_MS);
+  const { centerX, depth, faceOrigin, halfWidth, top } = NOX.head;
+  // The near eye, the one turned toward the camera: it turns with the head about its upright axis.
+  const [eyeX, eyeY] = NOX.face.eye.centers[0];
+  const ez = depth * halfWidth * Math.sqrt(1 - (eyeX / halfWidth) ** 2);
+  const eye = new THREE.Vector3(faceOrigin[0] + eyeX - centerX, faceOrigin[1] + eyeY, ez)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
+    .add(new THREE.Vector3(centerX, 0, 0))
+    .multiplyScalar(scale)
+    .add(new THREE.Vector3(x, y, 0));
+  // Seen from the stage camera, on the z = 0 plane.
+  const f = CAMERA_Z / (CAMERA_Z - eye.z);
+  const [wx, wy] = toWorld(749, 552);
+  expect(Math.abs(eye.x * f - wx)).toBeLessThan(0.05);
+  expect(Math.abs(eye.y * f - wy)).toBeLessThan(0.05);
+  // Nox's head is a little taller than panel 1 paints it, so its top sits a touch higher.
+  expect(Math.abs(y + top * scale - toWorld(0, 401)[1])).toBeLessThan(0.08);
 });
 
 test('overview: the head opens into the dome and Nox smiles', () => {

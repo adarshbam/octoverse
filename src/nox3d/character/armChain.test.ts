@@ -31,6 +31,19 @@ test('sucker side follows the tip curl: T1 curls counter-clockwise, T8 clockwise
   expect(new ArmChain(restFromCurve(T8), spec('T8'), 7).side).toBe(-1);
 });
 
+test('a flare swings the arm out about its base: the tip turns by the flare, most of it near the body', () => {
+  const chain = new ArmChain(restFromCurve([[0, 0], [-1, 0], [-2, 0]]), spec('T2'), 1);
+  chain.solve({ ...still, flare: 0.3 });
+  const n = chain.segments;
+  // Turn of segment k from the rest's leftward heading; positive is counter-clockwise.
+  const turn = (k: number) => Math.atan2(-(chain.py[k + 1] - chain.py[k]), -(chain.px[k + 1] - chain.px[k]));
+  expect(turn(n - 1)).toBeCloseTo(0.3, 2);
+  expect(turn(Math.floor(n / 2))).toBeGreaterThan(0.6 * 0.3);
+  // Counter-clockwise from heading left is downward.
+  expect(chain.tipY).toBeLessThan(-0.2);
+  for (let k = 0; k < n; k++) expect(Math.hypot(chain.px[k + 1] - chain.px[k], chain.py[k + 1] - chain.py[k])).toBeCloseTo(2 / n, 5);
+});
+
 test('the centre arms carry their suckers on the edges that face each other', () => {
   const [t4, t5] = (['T4', 'T5'] as const).map((id, i) => new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), spec(id), 3 + i));
   const k = 16;

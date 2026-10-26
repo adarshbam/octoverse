@@ -89,10 +89,16 @@ export class PoseBlender {
   private staggerMs = 0;
 
   private readonly segments: number;
+  /**
+   * The arm rests the rig is laid out in (each arm's cup side and spacing): `layout`'s, by default
+   * the pose the blender starts in.
+   */
+  readonly layout: Record<ArmId, ArmRest>;
 
   /** `segments` per arm follows the quality tier. */
-  constructor(initial: StagePose, segments = ArmChain.SEGMENTS) {
+  constructor(initial: StagePose, segments = ArmChain.SEGMENTS, layout: StagePose = initial) {
     this.segments = segments;
+    this.layout = settledArms(layout, segments);
     this.to = settle(initial, segments);
     this.from = copyPose(this.to);
     this.current = copyPose(this.to);

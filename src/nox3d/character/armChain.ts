@@ -31,6 +31,12 @@ export interface ArmDrive {
    * the arm is still, so it reads as flexible along its whole length rather than straight then curled.
    */
   bend?: number;
+  /**
+   * A swing of the whole arm about its base (radians at the tip, positive counter-clockwise), as
+   * the arms fan out on a jet pulse: most of the turn is near the body, so the arm swings out
+   * rather than bending.
+   */
+  flare?: number;
 }
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -136,7 +142,7 @@ export class ArmChain {
     this.rest = rest;
   }
 
-  solve({ time: t, sway, curl, droop, reach, bend = 0 }: ArmDrive) {
+  solve({ time: t, sway, curl, droop, reach, bend = 0, flare = 0 }: ArmDrive) {
     const n = this.segments;
     const ph = this.phase;
     let acc = 0;
@@ -150,7 +156,8 @@ export class ArmChain {
       const wave = sway * this.driftGain * (0.55 * swing + 1.7 * ripple) * smoothstep(0.02, 0.15, s);
       const tipCurl = curl * this.side * smoothstep(0.5, 1, s) * 0.5 * Math.sin(tt * 0.53 + ph * 0.7);
       const trail = -droop * Math.cos(this.rest.angles[k]) * (1 - 0.5 * s);
-      acc += (wave + tipCurl + trail) / n;
+      const fan = flare * 2 * (1 - s);
+      acc += (wave + tipCurl + trail + fan) / n;
       this.angle[k] = this.rest.angles[k] + acc + bend * this.undulation[k];
     }
     this.integrate();

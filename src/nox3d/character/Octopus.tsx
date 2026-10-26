@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
+import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, entrancePath, entranceStartX, mantleSqueeze } from '../behavior/entrance';
 import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
@@ -34,7 +35,7 @@ export interface OctopusProps {
   config: CharacterConfig;
   /** Moves Nox between stage poses; sampled every frame. */
   blender: PoseBlender;
-  /** The current stage, for resting and reaching for the pointer in the intro. */
+  /** The current stage: the entrance's swim, resting and reaching for the pointer in the intro. */
   stage: StageId;
   /** A face shown instead of the stage's own, for expression captures. */
   expression?: ExpressionId;
@@ -54,6 +55,10 @@ export interface OctopusProps {
   orbs?: readonly PlacedOrb[];
   /** The technology in focus: its arm presents its orb and Nox looks at it. */
   focusTechId?: string | null;
+  /** The entrance's first frame, when its swim starts (performance.now() ms). */
+  onEntranceStart?: (startMs: number) => void;
+  /** The entrance has run its course: Nox faces the visitor in the intro pose. */
+  onEntranceDone?: () => void;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -61,7 +66,7 @@ const REST_IN = 2;
 const WAKE = 0.5;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -89,9 +94,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const uniforms = createSkinUniforms(config);
     const face = new FaceCanvas(config.face, config.facePalette);
     const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist, flatten: config.armFlatten };
-    const start = blender.sample(performance.now());
     const arms = config.arms.map((spec, i) => {
-      const chain = new ArmChain(start.arms[spec.id], spec, i);
+      const chain = new ArmChain(blender.layout[spec.id], spec, i);
       const tube = new ArmTube(chain, spec, profile, quality.radial);
       return { chain, tube, row: new SuckerRow(chain, tube, config.suckers, i) };
     });
@@ -186,6 +190,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     lastInput: performance.now(),
     rest: 0,
     breathPhase: 0,
+    entrance: { startMs: null as number | null, fromX: 0, done: false },
   });
 
   useEffect(() => {
@@ -217,13 +222,36 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const pose = blender.sample(now);
     const moving = reducedMotion ? 0 : live;
 
+    // The entrance: the swim carries the body in and turns the head, timed from its own first
+    // frame so a slow start never cuts it short. A still capture shows the moment panel 1 paints.
+    let swim: EntranceFrame | null = null;
+    if (stage === 'entering') {
+      const e = m.entrance;
+      if (freeze) swim = entrancePath(ENTRANCE_PANEL_MS);
+      else {
+        if (e.startMs === null) {
+          // It starts just out of sight, however wide the window: half its width on the z = 0 plane.
+          const camera = state.camera as THREE.PerspectiveCamera;
+          e.startMs = now;
+          e.fromX = entranceStartX(camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect);
+          onEntranceStart?.(now);
+        }
+        swim = entrancePath(now - e.startMs, e.fromX);
+        if (!e.done && now - e.startMs >= ENTRANCE_MS) {
+          e.done = true;
+          onEntranceDone?.();
+        }
+      }
+    }
+    const place = swim ?? pose.body;
+
     // After a long idle in the intro Nox rests; any input wakes it within half a second.
     const resting = !freeze && isRestful(stage, now - m.lastInput, panelOpen);
     m.rest = THREE.MathUtils.clamp(m.rest + (resting ? dt / REST_IN : -dt / WAKE), 0, 1);
 
     const drift = floatOffset(t, personality);
-    float.current!.position.set(pose.body.x + moving * drift.x, pose.body.y + moving * drift.y, 0);
-    float.current!.scale.setScalar(pose.body.scale);
+    float.current!.position.set(place.x + moving * drift.x, place.y + moving * drift.y, 0);
+    float.current!.scale.setScalar(place.scale);
 
     // The technology in focus. One timeline (FocusChoreography) runs it: the eyes turn at once,
     // the face reacts a beat later, then the orb's arm reaches its tip under the orb and lifts it
@@ -244,14 +272,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
-    faceAt.set(config.head.faceOrigin[0] + pose.body.x, config.head.faceOrigin[1] + pose.body.y, 0).project(state.camera);
+    faceAt.set(config.head.faceOrigin[0] + place.x, config.head.faceOrigin[1] + place.y, 0).project(state.camera);
 
     // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
     const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
 
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
-    const gaze = freeze && !fixed && !rest
+    // Swimming in, Nox looks where it is going.
+    const gaze = (freeze && !fixed && !rest) || swim
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
@@ -277,7 +306,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
     turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
-    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, (swim ? swim.yaw : 0) + gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
@@ -293,7 +322,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // by 1.4x; the phase is carried forward so a change of pace never jumps.
     m.breathPhase += (live * dt) / (personality.breathPeriod * (1 + 0.4 * m.rest));
     const b = live * Math.sin(m.breathPhase * Math.PI * 2);
-    head.current!.scale.set(1 + b * 0.016, 1 + b * 0.011, 1 + b * 0.016);
+    // Swimming in, each jet pulse squeezes the mantle as the arms flare.
+    const pulse = swim ? swim.pulse * live : 0;
+    const squeeze = mantleSqueeze(pulse);
+    head.current!.scale.set((1 + b * 0.016) * squeeze, (1 + b * 0.011) * squeeze, (1 + b * 0.016) * squeeze);
 
     // Pointer on the z = 0 plane, in the space the arms are authored in.
     content.current!.updateWorldMatrix(true, false);
@@ -337,6 +369,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
         droop: drift.vy * live * 2.2,
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
+        flare: armFlare(ARM_IDS[i]) * pulse,
       });
       orbState.tips[i].set(chain.tipX, chain.tipY);
       tube.update();

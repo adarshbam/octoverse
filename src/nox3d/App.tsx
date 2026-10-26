@@ -1,8 +1,9 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ENTRANCE_TURN } from './behavior/entrance';
 import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
@@ -20,6 +21,7 @@ import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { ProjectDetail } from './ui/ProjectDetail';
+import { SkipEntrance } from './ui/SkipEntrance';
 import { OrbButtons, faceSpot, orbSpots } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
 import { tooltipContent } from './ui/tooltipContent';
@@ -52,6 +54,8 @@ const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.inne
 const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
+/** Keys that skip the entrance: any but a bare modifier. */
+const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
 const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
 
@@ -118,26 +122,64 @@ export function App() {
   const quality = useQuality(url);
   const visible = usePageVisible();
   const segments = quality.settings.segments;
-  // A lower tier rebuilds the arms at its segment count, from the stage Nox is in.
-  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments), [segments]);
+  // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
+  // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
+  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   const prevStage = useRef(state.stage);
+  // The entrance's clock: when its first frame drew (Octopus), and whether it ran its course.
+  const entrance = useRef({ startMs: null as number | null, finished: false });
+  // As Nox slows, its arms gather into the intro pose, on the entrance's clock.
+  const turnIntoIntro = useCallback(() => {
+    const { startMs } = entrance.current;
+    if (startMs === null) return;
+    const now = performance.now();
+    blender.start(NOX_POSES.intro, now, ENTRANCE_TURN.durationMs, ENTRANCE_TURN.staggerMs, startMs + ENTRANCE_TURN.delayMs - now);
+  }, [blender]);
   // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
   // once and the view crossfades instead. Into and out of a technology focus, only the dome
   // moves (the arms keep their places), on the focus choreography's beats: it folds away as the
   // eyes settle, and reopens once the arm has let go.
   useEffect(() => {
-    const fromTech = prevStage.current === 'techFocus';
+    const from = prevStage.current;
+    prevStage.current = state.stage;
+    const opening = first.current;
+    first.current = false;
+    if (state.stage === 'entering') {
+      // Reduced motion has no swim (the preference can change while it plays). Otherwise a
+      // blender rebuilt part-way (a lower tier) picks up the turn where it was.
+      if (reducedMotion) dispatch({ type: 'SKIP' });
+      else turnIntoIntro();
+      return;
+    }
+    // An entrance that ran its course has already turned Nox into the intro pose.
+    if (from === 'entering' && entrance.current.finished) return;
+    // A skipped one lands in the intro at once, under the crossfade.
+    const skipped = from === 'entering';
+    const fromTech = from === 'techFocus';
     const toTech = state.stage === 'techFocus';
     const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
-    const duration = reducedMotion ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
+    const duration = reducedMotion || skipped ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger, reducedMotion || !beat ? 0 : beat.delay);
-    prevStage.current = state.stage;
-    if (first.current) first.current = false;
-    else if (reducedMotion) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-  }, [blender, state.stage, reducedMotion]);
+    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
+    if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+  }, [blender, state.stage, reducedMotion, dispatch, turnIntoIntro]);
+  // Any click or key skips the entrance.
+  const entering = state.stage === 'entering';
+  useEffect(() => {
+    if (!entering) return;
+    const skip = (event: Event) => {
+      if (event instanceof KeyboardEvent && MODIFIER_KEYS.has(event.key)) return;
+      dispatch({ type: 'SKIP' });
+    };
+    window.addEventListener('pointerdown', skip);
+    window.addEventListener('keydown', skip);
+    return () => {
+      window.removeEventListener('pointerdown', skip);
+      window.removeEventListener('keydown', skip);
+    };
+  }, [entering, dispatch]);
   // Escape steps back: a focused technology lets go, detail goes to the overview, the overview to
   // the intro. With a technology in focus, a press anywhere but an orb or its tooltip lets go too.
   const focusing = state.stage === 'techFocus';
@@ -173,10 +215,6 @@ export function App() {
     const timer = window.setTimeout(() => setTips(list => list.filter(tip => !tip.leaving)), 240);
     return () => window.clearTimeout(timer);
   }, [focusedTech, presented]);
-  // The entrance is authored in Task 23; until then it ends at once.
-  useEffect(() => {
-    if (state.stage === 'entering') dispatch({ type: 'ENTRANCE_DONE' });
-  }, [state.stage, dispatch]);
   const octopus = (
     <Octopus
       config={config}
@@ -190,6 +228,14 @@ export function App() {
       onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
       orbs={ORBS}
       focusTechId={focusedTech}
+      onEntranceStart={startMs => {
+        entrance.current.startMs = startMs;
+        turnIntoIntro();
+      }}
+      onEntranceDone={() => {
+        entrance.current.finished = true;
+        dispatch({ type: 'ENTRANCE_DONE' });
+      }}
     />
   );
   return (
@@ -229,7 +275,9 @@ export function App() {
       </Canvas>
       {!MASK && !url.view && (
         <>
-          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && state.stage !== 'entering'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
+          {/* The intro's words come in as Nox arrives: panel 1 has none. */}
+          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
+          <SkipEntrance hidden={!entering} onSkip={() => dispatch({ type: 'SKIP' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
           <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />
           <OrbButtons

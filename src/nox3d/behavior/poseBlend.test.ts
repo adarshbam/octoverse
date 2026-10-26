@@ -128,3 +128,12 @@ test('starting the same pose again reuses its arms, worked out once', () => {
   expect(Array.from(blender.sample(600).arms.T1.angles)).toEqual(Array.from(first));
   expect(settledArms(NOX_POSES.overview, 128)).toBe(settledArms(NOX_POSES.overview, 128));
 });
+
+test('the arms can be laid out in another pose than the one the blender starts in', () => {
+  // The entrance lays the arms out (cup sides and spacing) in the intro pose Nox swims into.
+  const blender = new PoseBlender(NOX_POSES.entering, 32, NOX_POSES.intro);
+  expect(blender.layout).toBe(settledArms(NOX_POSES.intro, 32));
+  expect(blender.sample(0).arms.T2.segmentLength).toBeCloseTo(settledArms(NOX_POSES.entering, 32).T2.segmentLength, 9);
+  // By default they are laid out in the pose it starts in.
+  expect(new PoseBlender(NOX_POSES.overview, 32).layout).toBe(settledArms(NOX_POSES.overview, 32));
+});
