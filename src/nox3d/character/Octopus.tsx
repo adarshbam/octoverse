@@ -25,6 +25,7 @@ import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createDomeMaterial, domeState } from './domeMaterial';
 import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
+import type { AccentLink } from './worldAccent';
 
 /** Rotation pivot for whole-body turns: the middle of the body. */
 const PIVOT_Y = -0.6;
@@ -59,6 +60,8 @@ export interface OctopusProps {
   onEntranceStart?: (startMs: number) => void;
   /** The entrance has run its course: Nox faces the visitor in the intro pose. */
   onEntranceDone?: () => void;
+  /** In a world: the accents it feeds the skin; Octopus writes where the face glow is each frame. Nox then casts the surface light's shadow. */
+  accents?: AccentLink;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -68,7 +71,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -93,7 +96,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const restAt = useMemo(() => new THREE.Vector3(), []);
 
   const rig = useMemo(() => {
-    const uniforms = createSkinUniforms(config);
+    // In a world, the world's accents replace the skin's own all-zero ones.
+    const uniforms = { ...createSkinUniforms(config), ...accents?.uniforms };
     const face = new FaceCanvas(config.face, config.facePalette);
     const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist, flatten: config.armFlatten };
     const arms = config.arms.map((spec, i) => {
@@ -144,7 +148,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       glowLocal: new THREE.Vector3(...config.glow.center),
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
-  }, [config, blender, quality]);
+  }, [config, blender, quality, accents]);
 
   const chains = useMemo(() => rig.arms.map(arm => arm.chain), [rig]);
   const readOrbs = useMemo(() => () => orbState, [orbState]);
@@ -388,6 +392,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     headSpace.current!.updateWorldMatrix(true, false);
     m.glow.copy(rig.glowLocal).applyMatrix4(headSpace.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
+    accents?.at.copy(m.glow);
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 
     // The head opens into the glass dome: the dome stays whole and in place while its glass is
@@ -407,18 +412,20 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   });
 
   const [faceX, faceY] = config.head.faceOrigin;
+  // The skin casts the surface light's shadow on the seabed and stone below, in a world.
+  const castShadow = accents !== undefined;
   return (
     <group ref={float}>
       <group ref={turn} position={[BODY_X, PIVOT_Y, 0]}>
         <group ref={content} position={[-BODY_X, -PIVOT_Y, 0]}>
           {rig.arms.map(({ tube }, i) => (
-            <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} />
+            <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
           {!silhouette && rig.arms.map(({ tube }, i) => (
             <mesh key={`halo-${i}`} geometry={tube.geometry} material={rig.armHalo} frustumCulled={false} />
           ))}
           {rig.webs.map((web, i) => (
-            <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} />
+            <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
           {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
@@ -430,6 +437,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
                 geometry={rig.headGeometry}
                 material={rig.headMaterial}
                 position={[faceX, faceY, 0]}
+                castShadow={castShadow}
                 onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
                 onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
                 onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}

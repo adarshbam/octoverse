@@ -3,6 +3,7 @@ import { headMorphVertex } from './headMorph';
 import { INTRO_LIGHTING, type StageLighting } from '../config/lighting';
 import type { CharacterConfig } from '../config/types';
 import { cheekCentres } from './headGeometry';
+import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
 
 /**
  * Mantle colour ramp texture: raw sRGB bytes, tagged sRGB so the GPU decodes
@@ -80,6 +81,8 @@ export function createSkinUniforms(config: CharacterConfig, lighting: StageLight
     uGroundLight: { value: new THREE.Color(lighting.ambient.ground).multiplyScalar(lighting.ambient.intensity) },
     uHaze: { value: new THREE.Vector3(lighting.haze.near, lighting.haze.far, lighting.haze.strength) },
     uHazeColor: { value: new THREE.Color(lighting.haze.color) },
+    /** The world's accents on the skin: none until a world feeds them. */
+    ...createAccentUniforms(),
   };
 }
 
@@ -225,6 +228,8 @@ const skinFragment = /* glsl */ `
     vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
     return normalize(abs(det) * N - grad);
   }
+
+  ${ACCENT_GLSL}
 
   void main() {
     // Webs and the cups' insides render double-sided; light the side the camera sees.
@@ -455,6 +460,9 @@ const skinFragment = /* glsl */ `
       float edgeLine = pow(1.0 - ndv, 9.0);
     #endif
     col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
+
+    // The world's light: small capped accents on the skin's own lighting, none outside a world.
+    col = worldAccent(col, N, ndv);
 
     // Atmospheric depth: parts behind the body blend into the water's haze.
     col = mix(col, uHazeColor, smoothstep(uHaze.x, uHaze.y, -vWorld.z) * uHaze.z);

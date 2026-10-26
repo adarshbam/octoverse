@@ -9,6 +9,7 @@ import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
 import { useStage } from './behavior/useStage';
 import { Octopus } from './character/Octopus';
+import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import type { StageId } from './config/types';
@@ -127,6 +128,8 @@ export function App() {
   // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
   // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
   const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
+  // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
+  const accents = useMemo<AccentLink | undefined>(() => (url.world ? { uniforms: createAccentUniforms(), at: new THREE.Vector3() } : undefined), []);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   const prevStage = useRef(state.stage);
@@ -230,6 +233,7 @@ export function App() {
       onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
       orbs={ORBS}
       focusTechId={focusedTech}
+      accents={accents}
       onEntranceStart={startMs => {
         entrance.current.startMs = startMs;
         turnIntoIntro();
@@ -264,7 +268,7 @@ export function App() {
             {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
                 plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
             <Suspense fallback={null}>
-              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} /> : <Backdrop />}
+              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} accents={accents} /> : <Backdrop />}
               {octopus}
             </Suspense>
             {!url.world && (

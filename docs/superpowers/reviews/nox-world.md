@@ -46,3 +46,21 @@ Region points (world x, y; HQ px = 783.6 + 204.5 x, 495.4 - 204.5 y). Each lies 
 | aura outside | 0.00, 0.295 | 784, 435 | #381750 | #473365 | 12.4 |
 
 The approved stage misses six of the eight regions, which is the starting point for milestone 1.
+
+### Nox's accents in the world (Task 3, 2026-10-27)
+
+The skin shader now carries the world's accents as compiled code (`character/worldAccent.ts`): warmth from the eight world lights nearest Nox on the sides and underside, the surface light's caustics on up-facing skin, and a far haze that is exactly 0 within 18 units of the camera (density 0 for now). Warmth is capped at 10% of the skin's own luminance, caustics at 5%, and both together at 10%. The face, the crown and the neon rim take no warmth; the rim takes no caustics. Every strength defaults to 0. In a world, Nox casts the surface light's shadow (a soft band on the seabed in front of him, just below panel 2's frame).
+
+**No change without a world.** `stage-capture intro` then `check_stage --panel 2`, before (HEAD 13aa17f) and after: PASS both, the same ten colour deltas (12, 14, 6, 16, 12, 1, 15, 5, 10 or 9, 4) and the same four widths. The one moving value, `bg upper-left` (10 or 9), reads both ways on two HEAD captures: bubbles and embers run on the real clock. Inside Nox's silhouette the mean colour matches HEAD within 0.01 per channel; the few pixels that differ by more than 8 are a bubble passing the arm junction.
+
+**In the world** (`world-capture intro`, `check_stage --world --stage intro`). The starting strengths are the test scene's warmth balance at 0.05 of its strength and caustics at 0.005 of the surface light. At the test scene's full strength the warmth sat on its cap over most of each arm (a flat 10% lift, no falloff from the lights); at 0.05 the cap binds on 0.2% of Nox's pixels and the warmth falls off from the lava corners.
+
+| Capture | Mean RGB | Saturation | Brightness |
+|---|---|---|---|
+| Spec row: test scene, Nox unlit by the world | 138, 42, 97 | 0.75 | 0.58 |
+| HEAD 13aa17f (no accents, no shadow) | 137, 41, 94 | 0.753 | 0.576 |
+| Accent strengths 0, shadow on (control) | 137, 41, 94 | 0.753 | 0.576 |
+| Starting accents, run 1 | 137, 41, 95 (137.43, 41.49, 94.55) | 0.752 | 0.578 |
+| Starting accents, run 2 | 137, 41, 95 (137.43, 41.49, 94.53) | 0.752 | 0.578 |
+
+Both runs are no worse than the unlit row on every measure. Regions (run 2; HEAD in brackets): head crown 7.3 (7.3), head middle 8.4 (8.3), cheek glow 10.0 (10.0), upper arm top 9.3 (8.7), arm underside band 27.4 (28.0), arm rim 22.9 (23.1), suckers 4.4 (4.4), aura outside 22.7 (22.7). Task 5 tunes the strengths within the caps.
