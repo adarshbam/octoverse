@@ -32,6 +32,10 @@ export const NOX: CharacterConfig = {
     // fades about 0.2 out from the outline, red below the cup bands.
     cheekWarmth: 0.75,
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#e83cf0', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
+    // In a world (panel 2): a magenta-violet glow in the water round him, deep red below, and
+    // the water near him darker and warmer than the far blue. Starting values, tuned in Task 5.
+    aura: { inner: '#c83ce8', low: '#a0102c', radius: 1.6, strength: 0.5 },
+    grade: { color: '#1c0618', radius: 3, strength: 0.55 },
   },
   palette: {
     cheek: '#7a1078',

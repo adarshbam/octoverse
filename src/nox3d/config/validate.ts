@@ -16,8 +16,14 @@ export function clampCharacterConfig(config: CharacterConfig): CharacterConfig {
   const low = clamp(blinkMin, 2, 10);
   const k = config.skin;
   const [speckMin, speckMax] = [...k.speckSize].sort((a, b) => a - b).map(v => clamp(v, 0.02, 0.45));
+  const { aura, grade } = config.glow;
   return {
     ...config,
+    glow: {
+      ...config.glow,
+      aura: { ...aura, radius: clamp(aura.radius, 0.2, 4), strength: clamp(aura.strength, 0, 1) },
+      grade: { ...grade, radius: clamp(grade.radius, 0.5, 8), strength: clamp(grade.strength, 0, 1) },
+    },
     armBend: clamp(config.armBend, 0, 0.3),
     armFlatten: clamp(config.armFlatten, 0.7, 1),
     skin: {

@@ -51,6 +51,32 @@ export interface GlowShape {
   /** How strongly the face glow warms the cheek lobes, 0 to 1. */
   cheekWarmth: number;
   halo: HaloSettings;
+  /** In a world: the soft glow in the water round him. */
+  aura: AuraSettings;
+  /** In a world: the water near him, darker and warmer than the far water. */
+  grade: GradeSettings;
+}
+
+/**
+ * The aura: a soft glow in the water round Nox, drawn behind him and added to what is there.
+ * `inner` at and above the body's middle, turning to `low` below it (sRGB hex); `radius` is how
+ * far it reaches from the body's middle (world units), `strength` its brightness, 0 to 1.
+ */
+export interface AuraSettings {
+  inner: string;
+  low: string;
+  radius: number;
+  strength: number;
+}
+
+/**
+ * The local grade: the water behind Nox, within `radius` world units of him, mixed toward
+ * `color` (sRGB hex) by up to `strength` (0 to 1) at his middle, fading out by the radius.
+ */
+export interface GradeSettings {
+  color: string;
+  radius: number;
+  strength: number;
 }
 
 /**

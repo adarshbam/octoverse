@@ -39,3 +39,21 @@ test('keeps the flattened sucker side between a gentle oval and a round arm', ()
   expect(clampCharacterConfig({ ...NOX, armFlatten: 1.4 }).armFlatten).toBe(1);
   expect(clampCharacterConfig(NOX).armFlatten).toBe(NOX.armFlatten);
 });
+
+test('the config validator clamps aura and grade strengths to 0..1', () => {
+  const glow = (aura: number, grade: number) => ({ ...NOX.glow, aura: { ...NOX.glow.aura, strength: aura }, grade: { ...NOX.glow.grade, strength: grade } });
+  const high = clampCharacterConfig({ ...NOX, glow: glow(3, 2) }).glow;
+  expect(high.aura.strength).toBe(1);
+  expect(high.grade.strength).toBe(1);
+  const low = clampCharacterConfig({ ...NOX, glow: glow(-1, -0.5) }).glow;
+  expect(low.aura.strength).toBe(0);
+  expect(low.grade.strength).toBe(0);
+  expect(clampCharacterConfig(NOX).glow).toEqual(NOX.glow);
+});
+
+test('keeps the aura and grade radii positive and within the stage', () => {
+  const wild = { ...NOX, glow: { ...NOX.glow, aura: { ...NOX.glow.aura, radius: -2 }, grade: { ...NOX.glow.grade, radius: 50 } } };
+  const g = clampCharacterConfig(wild).glow;
+  expect(g.aura.radius).toBeGreaterThan(0);
+  expect(g.grade.radius).toBeLessThanOrEqual(8);
+});
