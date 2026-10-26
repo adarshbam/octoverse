@@ -9,6 +9,7 @@ import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
 import { useStage } from './behavior/useStage';
 import { Octopus } from './character/Octopus';
+import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
@@ -129,7 +130,7 @@ export function App() {
   // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
   const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
-  const accents = useMemo<AccentLink | undefined>(() => (url.world ? { uniforms: createAccentUniforms(), at: new THREE.Vector3() } : undefined), []);
+  const accents = useMemo<AccentLink | undefined>(() => (url.world ? { uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() } : undefined), []);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   const prevStage = useRef(state.stage);

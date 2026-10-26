@@ -16,7 +16,7 @@ import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
  * shafts, snow, fish), the surface light with its caustics, and the lights of the glyphs and lava.
  * `time` says whether the world's clock runs or holds one moment. `density` thins the bubbles and
  * embers on lower quality tiers. `accents` links Nox's skin: the world lights him only through
- * these capped accents. The scene around it needs shadows on and a far plane past the sky sphere (100 units).
+ * these capped accents, and its particles take his face glow's light through it. The scene around it needs shadows on and a far plane past the sky sphere (100 units).
  */
 export function WorldScene({ world, time, density = 1, accents }: { world: WorldConfig; time: WorldTimeFlags; density?: number; accents?: AccentLink }) {
   const surface = useSurfaceLight(world);
@@ -32,11 +32,11 @@ export function WorldScene({ world, time, density = 1, accents }: { world: World
       <Floor world={world} />
       <Kit world={world} />
       <GodRays amount={live.rays} />
-      <MarineSnow amount={live.snow} />
+      <MarineSnow amount={live.snow} glow={accents?.light} />
       <FarFish amount={live.fish} />
-      <Motes amount={live.motes} />
-      <Bubbles density={live.bubbles * density} />
-      <Embers density={live.embers * density} />
+      <Motes amount={live.motes} glow={accents?.light} />
+      <Bubbles density={live.bubbles * density} glow={accents?.light} />
+      <Embers density={live.embers * density} glow={accents?.light} />
     </WorldTimeProvider>
   );
 }

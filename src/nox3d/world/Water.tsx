@@ -1,7 +1,9 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import type { GlowLightUniforms } from '../character/glowLight';
 import { seeded } from './noise';
+import { createSnowMaterial } from './particleMaterials';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
@@ -165,8 +167,8 @@ export function GodRays({ amount = 1 }: { amount?: number }) {
 
 const SNOW = 2600;
 
-/** Marine snow: fine flecks drifting down, catching the light from above, fading with distance. `amount` is the share of the flecks drawn. */
-export function MarineSnow({ amount = 1 }: { amount?: number }) {
+/** Marine snow: fine flecks drifting down, catching the light from above, fading with distance. `amount` is the share of the flecks drawn. In a world, `glow` tints them with Nox's face glow. */
+export function MarineSnow({ amount = 1, glow }: { amount?: number; glow?: GlowLightUniforms }) {
   const now = useWorldTime();
   const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(5);
@@ -179,44 +181,9 @@ export function MarineSnow({ amount = 1 }: { amount?: number }) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 2));
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#a8c0ff') } },
-      vertexShader: /* glsl */ `
-        attribute vec2 aSeed;
-        uniform float uTime;
-        uniform float uScale;
-        varying float vA;
-        void main() {
-          vec3 p = position;
-          float ph = aSeed.x * 6.2831;
-          p.y = -2.4 + mod(p.y + 2.4 - uTime * (0.03 + aSeed.x * 0.04), 10.0);
-          p.x += sin(uTime * 0.21 + ph) * 0.25 + sin(uTime * 0.5 + ph * 3.0) * 0.05;
-          p.z += cos(uTime * 0.17 + ph) * 0.2;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_Position = projectionMatrix * mv;
-          float depth = -mv.z;
-          gl_PointSize = clamp(aSeed.y * uScale / depth, 1.0, 9.0);
-          float lit = 0.25 + 0.75 * smoothstep(-2.0, 6.0, p.y);
-          float far = exp(-depth * depth * 0.0011);
-          float twinkle = 0.6 + 0.4 * sin(uTime * (0.8 + aSeed.x) + ph * 5.0);
-          vA = lit * far * twinkle * smoothstep(1.5, 4.0, depth);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uColor;
-        varying float vA;
-        void main() {
-          float d = length(gl_PointCoord - 0.5);
-          float a = smoothstep(0.5, 0.05, d);
-          gl_FragColor = vec4(uColor * a * vA * 0.55, 1.0);
-        }
-      `,
-    });
+    const material = createSnowMaterial(glow);
     return { geometry, material, disposables: [geometry, material] };
-  }, []);
+  }, [glow]);
   useDisposables(disposables);
   // A lower amount draws only the first part of the flecks, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(SNOW * amount)), [geometry, amount]);

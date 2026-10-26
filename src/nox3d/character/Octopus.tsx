@@ -19,6 +19,7 @@ import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { Aura } from './Aura';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
+import { GLOW_LIGHT, GLOW_LIGHT_OFFSET, lightParticles } from './glowLight';
 import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
@@ -63,7 +64,7 @@ export interface OctopusProps {
   /** The entrance has run its course: Nox faces the visitor in the intro pose. */
   onEntranceDone?: () => void;
   /**
-   * In a world: the accents it feeds the skin; Octopus writes where the face glow is each frame. Nox
+   * In a world: the accents it feeds the skin; Octopus writes where the face glow and its light are each frame. Nox
    * then casts the surface light's shadow, and brings his aura, his glow's light and the local grade.
    */
   accents?: AccentLink;
@@ -74,10 +75,6 @@ const REST_IN = 2;
 const WAKE = 0.5;
 /** The warm glow card before the chin, facing the visitor. */
 const CORE_GLOW = 0.22;
-/** In a world, the face glow's light on what is round Nox: colour, intensity, reach and decay. */
-const GLOW_LIGHT = ['#ff4a30', 5, 6, 2] as const;
-/** Where that light sits from the face glow (world units): below and in front, so it reaches the seabed. */
-const GLOW_LIGHT_OFFSET = new THREE.Vector3(0, -0.42, 0.5);
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
 export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents }: OctopusProps) {
@@ -107,8 +104,14 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   // the seabed, stone and the world's lit pieces round him (his own skin lights itself and takes
   // none of it). A silhouette capture has none of them: they would draw as shape.
   const world = silhouette ? undefined : accents;
-  const glowLight = useMemo(() => (world ? new THREE.PointLight(...GLOW_LIGHT) : null), [world]);
+  const glowLight = useMemo(() => (world ? new THREE.PointLight(GLOW_LIGHT.color, GLOW_LIGHT.intensity, GLOW_LIGHT.distance, GLOW_LIGHT.decay) : null), [world]);
   useEffect(() => () => glowLight?.dispose(), [glowLight]);
+  // The world's particles take no scene lights: they take the same light as a tint, black again when he leaves.
+  useEffect(() => {
+    if (!world) return;
+    lightParticles(world.light);
+    return () => void world.light.uNoxLight.value.setScalar(0);
+  }, [world]);
 
   const rig = useMemo(() => {
     // In a world, the world's accents replace the skin's own all-zero ones.
@@ -408,10 +411,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     m.glow.copy(rig.glowLocal).applyMatrix4(headSpace.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
     accents?.at.copy(m.glow);
-    if (glowLight) {
-      // Placed in world space, then into the float group's (its matrix was just brought up to date).
-      glowLight.position.copy(m.glow).add(GLOW_LIGHT_OFFSET);
-      glowLight.parent?.worldToLocal(glowLight.position);
+    if (world && glowLight) {
+      // Placed in world space, where the particles read it, then into the float group's (its matrix was just brought up to date).
+      const at = world.light.uNoxLightPos.value.copy(m.glow).add(GLOW_LIGHT_OFFSET);
+      glowLight.parent?.worldToLocal(glowLight.position.copy(at));
     }
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 

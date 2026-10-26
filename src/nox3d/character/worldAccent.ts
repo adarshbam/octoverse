@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3, WorldLight } from '../world/types';
+import type { GlowLightUniforms } from './glowLight';
 import type { SkinKind } from './skinMaterial';
 
 // The world's light on Nox, as small accents on his own lighting, never in its place. Warmth from
@@ -112,10 +113,14 @@ export function writeAccentLights(uniforms: AccentUniforms, lights: readonly Wor
   }
 }
 
-/** What a world shares with Nox: the accents it feeds his skin each frame, and where his face glow is (Octopus keeps it up to date). */
+/**
+ * What a world shares with Nox: the accents it feeds his skin each frame, where his face glow is,
+ * and the glow's light as the world's particles take it (Octopus keeps both up to date).
+ */
 export interface AccentLink {
   uniforms: AccentUniforms;
   at: THREE.Vector3;
+  light: GlowLightUniforms;
 }
 
 /**

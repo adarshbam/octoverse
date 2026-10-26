@@ -1,6 +1,8 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import type { GlowLightUniforms } from '../character/glowLight';
+import { createBubbleMaterial, createEmberMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';
 
 function seeded(seed: number) {
@@ -15,8 +17,8 @@ const BUBBLE_COUNT = 22;
 const TOP = 2.9;
 const BOTTOM = -2.9;
 
-/** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. */
-export function Bubbles({ density = 1 }: { density?: number }) {
+/** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. In a world, `glow` tints them with Nox's face glow. */
+export function Bubbles({ density = 1, glow }: { density?: number; glow?: GlowLightUniforms }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const { bubbles, material, geometry, disposables } = useMemo(() => {
     const rand = seeded(11);
@@ -28,38 +30,10 @@ export function Bubbles({ density = 1 }: { density?: number }) {
       if (Math.abs(x) < 0.3) x += x < 0 ? -0.4 : 0.4;
       return { x, y: BOTTOM + rand() * (TOP - BOTTOM), z, r: 0.022 + Math.pow(rand(), 2.2) * 0.075, speed: 0.06 + rand() * 0.1, phase: rand() * 10 };
     });
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      uniforms: { uRim: { value: new THREE.Color('#ff6a9a') }, uTint: { value: new THREE.Color('#7a4aa8') } },
-      vertexShader: /* glsl */ `
-        varying vec3 vN;
-        varying vec3 vV;
-        void main() {
-          mat4 m = modelMatrix * instanceMatrix;
-          vec4 world = m * vec4(position, 1.0);
-          vN = normalize(mat3(m) * normal);
-          vV = normalize(cameraPosition - world.xyz);
-          gl_Position = projectionMatrix * viewMatrix * world;
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uRim;
-        uniform vec3 uTint;
-        varying vec3 vN;
-        varying vec3 vV;
-        void main() {
-          vec3 N = normalize(vN);
-          float f = pow(1.0 - abs(dot(N, normalize(vV))), 2.2);
-          float spec = pow(max(dot(N, normalize(vec3(-0.45, 0.6, 0.7))), 0.0), 70.0);
-          vec3 c = mix(uTint, uRim, f) * (0.4 + f * 1.4) + spec * 2.2;
-          gl_FragColor = vec4(c, 0.05 + f * 0.7 + spec);
-        }
-      `,
-    });
+    const material = createBubbleMaterial(glow);
     const geometry = new THREE.SphereGeometry(1, 20, 14);
     return { bubbles, material, geometry, disposables: [material, geometry] };
-  }, []);
+  }, [glow]);
   useDisposables(disposables);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -81,8 +55,8 @@ export function Bubbles({ density = 1 }: { density?: number }) {
 
 const EMBER_COUNT = 460;
 
-/** Drifting crimson motes, denser along the seabed like the reference. */
-export function Embers({ density = 1 }: { density?: number }) {
+/** Drifting crimson motes, denser along the seabed like the reference. In a world, `glow` tints them with Nox's face glow. */
+export function Embers({ density = 1, glow }: { density?: number; glow?: GlowLightUniforms }) {
   const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(23);
     const positions = new Float32Array(EMBER_COUNT * 3);
@@ -101,42 +75,9 @@ export function Embers({ density = 1 }: { density?: number }) {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aPhase', new THREE.BufferAttribute(phase, 1));
     geometry.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#ff2c3c') }, uHot: { value: new THREE.Color('#ff8a5a') } },
-      vertexShader: /* glsl */ `
-        attribute float aPhase;
-        attribute float aSize;
-        uniform float uTime;
-        uniform float uScale;
-        varying float vA;
-        varying float vHot;
-        void main() {
-          vec3 p = position;
-          p.y += fract(uTime * 0.012 + aPhase) * 0.5 - 0.25;
-          p.x += sin(uTime * 0.4 + aPhase * 6.28) * 0.05;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_Position = projectionMatrix * mv;
-          gl_PointSize = max(1.5, aSize * uScale / -mv.z);
-          vA = 0.45 + 0.55 * sin(uTime * 1.7 + aPhase * 40.0);
-          vHot = step(0.85, fract(aPhase * 7.0));
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uColor;
-        uniform vec3 uHot;
-        varying float vA;
-        varying float vHot;
-        void main() {
-          float a = smoothstep(0.5, 0.0, length(gl_PointCoord - 0.5));
-          gl_FragColor = vec4(mix(uColor, uHot, vHot) * 2.6 * vA, a);
-        }
-      `,
-    });
+    const material = createEmberMaterial(glow);
     return { geometry, material, disposables: [geometry, material] };
-  }, []);
+  }, [glow]);
   useDisposables(disposables);
   // Lower tiers draw only the first part of the motes, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(EMBER_COUNT * density)), [geometry, density]);
