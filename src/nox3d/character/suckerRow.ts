@@ -94,11 +94,18 @@ export class SuckerRow {
    * between them in proportion to their sizes, so each has room for its own half-length.
    */
   private readonly territory: Float32Array;
+  /**
+   * The arm's ring spacing when the cups were laid out. Each cup keeps its place as a fraction of
+   * the arm, so a stage that lengthens or shortens the arm spreads or packs its cups, and none runs
+   * on past its tip.
+   */
+  private readonly ringSpacing: number;
 
   constructor(chain: ArmChain, tube: ArmTube, settings: SuckerSettings, index: number) {
     this.chain = chain;
     this.tube = tube;
     this.elongation = settings.elongation;
+    this.ringSpacing = chain.segmentLength;
     // Where the arm is thick, the two rows run either side of the oral midline.
     const half = THREE.MathUtils.degToRad(settings.rowAngle) / 2;
     const length = chain.segmentLength * chain.segments;
@@ -144,9 +151,11 @@ export class SuckerRow {
    */
   write(mesh: THREE.InstancedMesh, start: number, bend?: THREE.InstancedBufferAttribute) {
     const n = this.chain.segments;
+    // How much the stage has stretched the arm since the cups were laid out.
+    const stretch = this.chain.segmentLength / this.ringSpacing;
     for (let i = 0; i < this.suckers.length; i++) {
       const { arc, angle } = this.suckers[i];
-      const f = arc / this.chain.segmentLength;
+      const f = arc / this.ringSpacing;
       const k = Math.min(n - 1, Math.floor(f));
       const w = f - k;
       // The skin under the cup, from the skin lines along and round the arm.
@@ -159,7 +168,7 @@ export class SuckerRow {
       // neighbours never overlap, and shrinks a little across. Both rows alike, so sizes still run
       // evenly down the arm.
       const full = this.suckers[i].size;
-      const room = Math.min(arc - this.territory[i * 2], this.territory[i * 2 + 1] - arc);
+      const room = Math.min(arc - this.territory[i * 2], this.territory[i * 2 + 1] - arc) * stretch;
       const reach = Math.min(full * this.elongation, room * Math.min(this.squeeze(i, angle), this.squeeze(i, -angle)));
       const size = full * Math.sqrt(reach / (full * this.elongation));
       const kk = w < 0.5 ? k : k + 1;
@@ -186,8 +195,8 @@ export class SuckerRow {
   /** How far the skin is squeezed shorter than the centre line, at its tightest in cup i's territory (at most 1). */
   private squeeze(i: number, angle: number) {
     const { segmentLength, segments: n } = this.chain;
-    const from = Math.max(0, Math.floor(this.territory[i * 2] / segmentLength));
-    const to = Math.min(n, Math.ceil(this.territory[i * 2 + 1] / segmentLength));
+    const from = Math.max(0, Math.floor(this.territory[i * 2] / this.ringSpacing));
+    const to = Math.min(n, Math.ceil(this.territory[i * 2 + 1] / this.ringSpacing));
     let tightest = 1;
     this.skinPoint(from, angle, tmpB);
     for (let j = from; j < to; j++) {

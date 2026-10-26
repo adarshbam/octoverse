@@ -11,4 +11,8 @@ export interface StagePose {
   headMorph: number;
   /** 0 = no technology orbs, 1 = the orbs out round the arms. */
   orbs: number;
+  /** The head's tilt about the neck, in radians: positive leans its top toward screen left. */
+  tilt?: number;
+  /** A world point (z = 0) the eyes rest on when nothing else holds them; without one they glance about. */
+  look?: Point2;
 }

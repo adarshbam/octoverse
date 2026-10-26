@@ -86,11 +86,19 @@ const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expressi
 // technology come from the focus choreography, in Octopus.
 const TECH_FOCUS: StagePose = { ...OVERVIEW, headMorph: 0 };
 
-// The entrance and detail are authored against their panels in Tasks 22 and 23; until then they reuse the intro.
+// Panel 5, the full project view, registered on the face against the high-quality panel
+// (docs/design/references/Nox/Nox Project Preview.png): world (x, y) -> HQ px (836 + 200 x,
+// 470.5 - 200 y), the stage framing the whole panel. Nox moves to the left edge and turns toward
+// the project panel with its head tilted, both as painted (the eyes at (412, 505) and (545, 472)),
+// and its eyes rest on the panel by the section list. The arms keep the intro's spread: the
+// painting's own arms are not traced.
+const DETAIL: StagePose = { ...INTRO, body: { x: -1.909, y: 0.536, scale: 1, yaw: 0.48 }, tilt: 0.22, look: [0.22, 0.26], expression: 'attentive' };
+
+// The entrance is authored against panel 1 in Task 23; until then it reuses the intro.
 export const NOX_POSES: Record<StageId, StagePose> = {
   entering: INTRO,
   intro: INTRO,
   overview: OVERVIEW,
   techFocus: TECH_FOCUS,
-  detail: INTRO,
+  detail: DETAIL,
 };

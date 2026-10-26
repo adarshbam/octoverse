@@ -132,5 +132,53 @@
         310
       ]
     }
+  },
+  "5": {
+    "colorTolerance": 40,
+    "widthTolerance": 0.03,
+    "hq": {
+      "image": "docs/design/references/Nox/Nox Project Preview.png",
+      "origin": [
+        836.0,
+        470.5
+      ],
+      "pxPerUnit": 200.0,
+      "frame": [
+        8.36,
+        4.705
+      ]
+    },
+    "points": {
+      "face glow under the eyes": [
+        -1.83,
+        -0.2975,
+        470,
+        530
+      ],
+      "glow centre": [
+        -1.78,
+        -0.4475,
+        480,
+        560
+      ],
+      "left cheek blush": [
+        -2.32,
+        -0.4075,
+        380,
+        552
+      ],
+      "head dome": [
+        -2.03,
+        0.5525,
+        420,
+        360
+      ],
+      "panel background": [
+        -0.495,
+        -1.5975,
+        737,
+        790
+      ]
+    }
   }
 }

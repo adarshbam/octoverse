@@ -6,7 +6,7 @@ import { useStageBox } from './useStageBox';
 /** The dome's inner rectangle, traced in world units from the high-quality panel 3. */
 export const DOME_PANEL_BOX = [-1.22, 1.14, 1.33, 0.06] as const;
 
-function GitHubMark() {
+export function GitHubMark() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
       <path
@@ -17,7 +17,7 @@ function GitHubMark() {
   );
 }
 
-function OpenMark() {
+export function OpenMark() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
       <path fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3.2a.8.8 0 0 1-.8.8H3.3a.8.8 0 0 1-.8-.8V4.8a.8.8 0 0 1 .8-.8h3.2" />

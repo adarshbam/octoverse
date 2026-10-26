@@ -19,6 +19,7 @@ import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
+import { ProjectDetail } from './ui/ProjectDetail';
 import { OrbButtons, faceSpot, orbSpots } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
 import { tooltipContent } from './ui/tooltipContent';
@@ -51,6 +52,8 @@ const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.inne
 const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
+// A project with no sections, for testing the full project view; honoured only while developing.
+const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
 
 /**
  * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
@@ -228,6 +231,7 @@ export function App() {
         <>
           <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && state.stage !== 'entering'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
+          <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />
           <OrbButtons
             orbs={ORBS}
             open={state.stage === 'overview' || focusing}

@@ -334,3 +334,54 @@ test('cup spacing and size vary a little, like living suckers, never regular', (
     expect(spread, id).toBeLessThan(0.2);
   }
 });
+
+/**
+ * An arm whose cups are laid out in one stage's pose, then shown in another's, as when the page
+ * opens on one stage and moves to the next. For each cup: the fraction of the arm at its nearest
+ * ring, and how far it sits from that ring.
+ */
+function armMoved(id: ArmId, built: 'intro' | 'overview', shown: 'intro' | 'overview') {
+  const index = NOX.arms.findIndex(spec => spec.id === id);
+  const chain = new ArmChain(restFromCurve(NOX_POSES[built].arms[id]), NOX.arms[index], index);
+  chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+  const tube = new ArmTube(chain, NOX.arms[index], profile);
+  const row = new SuckerRow(chain, tube, NOX.suckers, index);
+  chain.setRest(restFromCurve(NOX_POSES[shown].arms[id]));
+  chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+  tube.update();
+  const mesh = new THREE.InstancedMesh(new THREE.BufferGeometry(), undefined, row.count);
+  row.write(mesh, 0);
+  const n = chain.segments;
+  const m = new THREE.Matrix4();
+  const p = new THREE.Vector3();
+  const q = new THREE.Vector3();
+  const cups = row.suckers.map((_, i) => {
+    mesh.getMatrixAt(i, m);
+    p.setFromMatrixPosition(m);
+    let nearest = { u: 0, gap: Infinity };
+    for (let k = 0; k <= n; k++) {
+      const gap = q.set(chain.px[k], chain.py[k], chain.pz[k]).distanceTo(p);
+      if (gap < nearest.gap) nearest = { u: k / n, gap };
+    }
+    return nearest;
+  });
+  return { chain, tube, cups };
+}
+
+test('the cups stay on an arm a stage shortens: none run on past its tip', () => {
+  // T1 and T8 hold the top orbs in the overview at 1.5 and 1.7 times their intro length; T7 is a
+  // little shorter there than in the intro.
+  const cases = [['T1', 'overview', 'intro'], ['T8', 'overview', 'intro'], ['T7', 'intro', 'overview']] as const;
+  for (const [id, built, shown] of cases) {
+    const { chain, tube, cups } = armMoved(id, built, shown);
+    // A cup sits on the skin, so within the arm's radius of its centre line, give or take half a ring.
+    cups.forEach((cup, i) => expect(cup.gap, `${id} cup ${i}`).toBeLessThan(tube.radiusAt(cup.u) + chain.segmentLength / 2));
+  }
+});
+
+test('the cups run to the tip of an arm a stage lengthens', () => {
+  for (const id of ['T1', 'T8'] as const) {
+    const { cups } = armMoved(id, 'intro', 'overview');
+    expect(Math.max(...cups.map(cup => cup.u)), id).toBeGreaterThan(0.9);
+  }
+});

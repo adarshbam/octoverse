@@ -1,5 +1,5 @@
 import { type ArmRest, ArmChain, restFromCurve } from '../character/armChain';
-import { ARM_IDS, type ArmId } from '../config/types';
+import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
 import type { StagePose } from '../poses/types';
 import { EXPRESSIONS, type ExpressionParams, blendExpression } from './expressions';
 
@@ -10,6 +10,9 @@ export interface BlendedPose {
   expression: ExpressionParams;
   headMorph: number;
   orbs: number;
+  tilt: number;
+  /** Where the eyes rest: the new pose's from the start of a change. */
+  look?: Point2;
 }
 
 /**
@@ -56,6 +59,8 @@ function settle(pose: StagePose, segments: number): BlendedPose {
     expression: { ...EXPRESSIONS[pose.expression] },
     headMorph: pose.headMorph,
     orbs: pose.orbs,
+    tilt: pose.tilt ?? 0,
+    look: pose.look,
   };
 }
 
@@ -66,6 +71,8 @@ function copyPose(pose: BlendedPose): BlendedPose {
     expression: { ...pose.expression },
     headMorph: pose.headMorph,
     orbs: pose.orbs,
+    tilt: pose.tilt,
+    look: pose.look,
   };
 }
 
@@ -124,6 +131,8 @@ export class PoseBlender {
     current.expression = blendExpression(from.expression, to.expression, t);
     current.headMorph = mix(from.headMorph, to.headMorph, t);
     current.orbs = mix(from.orbs, to.orbs, t);
+    current.tilt = mix(from.tilt, to.tilt, t);
+    current.look = to.look;
     return current;
   }
 }

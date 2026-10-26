@@ -13,20 +13,22 @@ export interface ScreenBox {
   height: number;
 }
 
+/** Where a world box [x0, y0, x1, y1] on the z = 0 plane lands in a viewport of `size` once the stage camera has framed `stage`. */
+export function stageBoxFor(stage: StageId, [x0, y0, x1, y1]: readonly [number, number, number, number], size: { width: number; height: number }): ScreenBox {
+  const camera = new THREE.PerspectiveCamera(fovFor(STAGE_FRAMES[stage], size), size.width / size.height, 0.1, 60);
+  camera.position.set(0, 0, CAMERA_Z);
+  camera.updateMatrixWorld();
+  const a = projectToScreen(new THREE.Vector3(x0, y0, 0), camera, size);
+  const b = projectToScreen(new THREE.Vector3(x1, y1, 0), camera, size);
+  return { left: a.x, top: a.y, width: b.x - a.x, height: b.y - a.y };
+}
+
 /**
  * Where a world box [x0, y0, x1, y1] on the z = 0 plane lands on the page once the stage camera
  * has framed `stage`, kept up to date as the window resizes.
  */
 export function useStageBox(stage: StageId, [x0, y0, x1, y1]: readonly [number, number, number, number]): ScreenBox {
-  const measure = () => {
-    const size = { width: window.innerWidth, height: window.innerHeight };
-    const camera = new THREE.PerspectiveCamera(fovFor(STAGE_FRAMES[stage], size), size.width / size.height, 0.1, 60);
-    camera.position.set(0, 0, CAMERA_Z);
-    camera.updateMatrixWorld();
-    const a = projectToScreen(new THREE.Vector3(x0, y0, 0), camera, size);
-    const b = projectToScreen(new THREE.Vector3(x1, y1, 0), camera, size);
-    return { left: a.x, top: a.y, width: b.x - a.x, height: b.y - a.y };
-  };
+  const measure = () => stageBoxFor(stage, [x0, y0, x1, y1], { width: window.innerWidth, height: window.innerHeight });
   const [box, setBox] = useState(measure);
   useEffect(() => {
     const update = () => setBox(measure());

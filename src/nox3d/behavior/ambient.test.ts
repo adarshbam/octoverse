@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { BlinkScheduler, floatOffset, spring } from './ambient';
-import { Attention } from './attention';
+import { Attention, nearFace } from './attention';
 
 /** Deterministic generator for repeatable blink timing. */
 const seeded = (seed: number) => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -89,4 +89,37 @@ test('between glances the eyes make tiny movements, so they never look frozen', 
     if (span > 0.004) moving++;
   }
   expect(moving).toBeGreaterThan(xs.length / 30 / 2);
+});
+
+test('with nothing to follow, attention rests on a given point (the detail panel)', () => {
+  const attention = new Attention(NOX.personality, () => 0.5);
+  const rest = { x: 0.5, y: -0.17 };
+  const xs: number[] = [];
+  for (let t = 0; t < 12; t += 1 / 60) xs.push(attention.update(null, t, 1 / 60, undefined, undefined, rest).gazeX);
+  const settled = xs.slice(120);
+  expect(settled.filter(x => Math.abs(x - 0.5 * 1.6) < 0.1).length / settled.length).toBeGreaterThan(0.8);
+});
+
+test('a moving pointer still takes the eyes from the resting point', () => {
+  const attention = new Attention(NOX.personality, () => 0.5);
+  const rest = { x: 0.5, y: -0.17 };
+  let gaze = attention.update({ x: -0.8, y: -0.17 }, 0, 1 / 60, undefined, undefined, rest);
+  for (let t = 1 / 60; t < 1; t += 1 / 60) gaze = attention.update({ x: -0.8, y: -0.17 }, t, 1 / 60, undefined, undefined, rest);
+  expect(gaze.gazeX).toBeLessThan(-0.9);
+});
+
+test("resting on a point is the eyes' alone: the head holds its pose, and nothing counts as followed", () => {
+  const attention = new Attention(NOX.personality, () => 0.5);
+  const rest = { x: 0.5, y: -0.17 };
+  let gaze = attention.update(null, 0, 1 / 60, undefined, undefined, rest);
+  for (let t = 1 / 60; t < 6; t += 1 / 60) gaze = attention.update(null, t, 1 / 60, undefined, undefined, rest);
+  expect(Math.abs(gaze.headX)).toBeLessThan(0.05);
+  expect(gaze.tracking).toBe(false);
+});
+
+test('the pointer is near Nox when it is close to the face, wherever the stage frames the face', () => {
+  const face = { x: -0.44, y: 0.05 };
+  expect(nearFace(face, face)).toBe(1);
+  expect(nearFace({ x: 0, y: -0.17 }, face)).toBeLessThan(0.35);
+  expect(nearFace({ x: 0.5, y: 0 }, face)).toBe(0);
 });

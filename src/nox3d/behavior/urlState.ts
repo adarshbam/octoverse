@@ -18,6 +18,8 @@ export interface UrlState {
   view?: [number, number, number, number];
   /** A quality tier forced for the session, instead of the one picked for the device. */
   tier?: QualityTier;
+  /** Test content in place of the project's own (honoured in development builds only). */
+  fixture?: 'nosections';
 }
 
 /** Review and debugging switches read from the page URL. Unknown values are ignored. */
@@ -34,5 +36,6 @@ export function parseUrlState(search: string): UrlState {
   if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
+  if (params.get('fixture') === 'nosections') state.fixture = 'nosections';
   return state;
 }

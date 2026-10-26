@@ -5,7 +5,10 @@
 // frame is screenshot. Writes <out>.webm (30 fps) and <out>-sheet.png (12 frames).
 // Scenarios: focus (Kali, then TypeScript, then Escape), rapid (quick switching), open (intro to
 // overview and back), idle (the overview with no input), keys (Tab to Kali, Shift+Tab, Escape),
-// phone (taps on a touch phone: Kali from the tray, let go, TypeScript, Escape; give 390 844).
+// phone (taps on a touch phone: Kali from the tray, let go, TypeScript, Escape; give 390 844),
+// detail (View Project, the pointer over the panel and still, then Escape; give 1280 720),
+// journey (the visitor's way in: the intro, Explore, View Project, a look over the panel, Escape;
+// give 1280 720).
 import { chromium } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -25,7 +28,7 @@ const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1,
 const page = await context.newPage();
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 if (process.env.DEBUG) page.on('console', m => /focusin|pointerover|FOCUS/.test(m.text()) && console.log('[page]', m.text()));
-const start = scenario === 'open' ? 'intro' : 'overview';
+const start = scenario === 'open' || scenario === 'journey' ? 'intro' : 'overview';
 // The page runs on our clock from the start, so its time never jumps.
 await page.clock.install();
 await page.goto(`${base}/?stage=${start}&tier=high${extra}`, { waitUntil: 'load' });
@@ -34,8 +37,9 @@ await page.goto(`${base}/?stage=${start}&tier=high${extra}`, { waitUntil: 'load'
 await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
 // Warm up: let the stage settle for 4 s of its own time.
 for (let i = 0; i < 40; i++) await page.clock.runFor(100);
-const centre = async name => {
-  const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+// With `hidden`, also a button whose panel is still closed.
+const centre = async (name, hidden = false) => {
+  const box = await page.getByRole('button', { name, exact: true, includeHidden: hidden }).boundingBox();
   return [box.x + box.width / 2, box.y + box.height / 2];
 };
 const spots = scenario === 'focus' || scenario === 'rapid' || scenario === 'probe'
@@ -120,6 +124,21 @@ if (scenario === 'focus') {
   actions.push([4.5, () => page.touchscreen.tap(size.width / 2, 40)]);
   actions.push([6.0, () => page.touchscreen.tap(...ts)]);
   actions.push([9.0, () => page.touchscreen.tap(size.width / 2, 40)]);
+} else if (scenario === 'detail') {
+  seconds = 14;
+  const view = await centre('View Project');
+  actions.push([1.0, () => page.mouse.click(...view)]);
+  pointer = view;
+  glide([size.width * 0.62, size.height * 0.45], 4.5, 5.3);
+  actions.push([11.0, () => page.keyboard.press('Escape')]);
+} else if (scenario === 'journey') {
+  seconds = 17;
+  const view = await centre('View Project', true);
+  actions.push([1.0, () => page.getByRole('button', { name: /Explore/ }).click()]);
+  actions.push([4.0, () => page.mouse.click(...view)]);
+  pointer = view;
+  glide([size.width * 0.62, size.height * 0.45], 7.5, 8.3);
+  actions.push([14.0, () => page.keyboard.press('Escape')]);
 } else if (scenario === 'probe') {
   seconds = 1;
   actions.push([0.05, () => page.mouse.move(...startPoint)]);

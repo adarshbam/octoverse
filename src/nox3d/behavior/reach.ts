@@ -1,4 +1,4 @@
-import type { HeadShape } from '../config/types';
+import type { HeadShape, StageId } from '../config/types';
 
 /** How near an arm's tip the pointer must come for that arm to reach for it. */
 export const REACH_RANGE = 0.8;
@@ -25,4 +25,13 @@ export function reachingArm(tips: readonly { x: number; y: number }[], target: {
     }
   });
   return active;
+}
+
+/**
+ * Whether an arm may reach for the pointer: only in the intro, while the orbs are still mostly
+ * in and the eyes follow the pointer. Out of the intro the arms keep to the stage's own motion;
+ * beside the detail panel Nox only idles and glances.
+ */
+export function reachesForPointer(stage: StageId, orbsOut: number, tracking: boolean) {
+  return stage === 'intro' && orbsOut < 0.5 && tracking;
 }

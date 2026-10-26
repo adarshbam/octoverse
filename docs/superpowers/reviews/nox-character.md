@@ -234,3 +234,37 @@ Known gaps:
 - **Phone:** while open, the sheet covers the lower rows of the tray; tap elsewhere to let go before choosing another.
 - **Panel 4:** its composition still differs (a pulled-back camera, bigger orbs in another arrangement, larger eyes and a bolder glow in the painted face); we keep the overview's framing so the orbs never move under the pointer.
 - **Content:** placeholder text for every technology but Kali; the CSS logo is the modern purple one, not the painting's blue shield.
+
+### Detail v1 (2026-10-26)
+
+Capture: `assets/detail-v1-compare-panel5.png` (the high-quality panel 5 above ours, same frame), `assets/detail-v1-compare-nox.png` (Nox close up beside the painting), `assets/detail-v1.png` (the still, 1672x941), `assets/detail-v1-journey.webm` (the visitor's way in, recorded on the page's own clock at 1280x720: the intro, Explore, View Project, the pointer glides over the panel and rests, then Escape back to the overview; sheet `assets/detail-v1-journey-sheet.png`), `assets/detail-v1-side.png` (a 1100x700 window) and `assets/detail-v1-phone.png` (an upright 390x844 phone). Verdict: pending.
+
+- **Opening:** View Project in the overview opens it. The orbs go back in and the dome closes while Nox moves to the left edge, partly cropped, turned toward the panel with its head tilted. The panel fades and slides in 0.8 s after the click, as Nox arrives.
+- **Nox:** still idles (breathing, sway, blinks). Its eyes rest on the panel's top left, where the section list starts, and follow the pointer while it moves. Its face is attentive: lids a little lowered, brows raised, a soft smile and blush. No arm reaches for the pointer here; only the intro does that.
+- **Panel:** placed on panel 5's own panel. It holds the project's mark, name and tagline; the screenshot count with previous and next; a close button; the section list (only sections with something in them, Overview first); the screenshot; the section's text, which fades at the bottom when there is more to scroll; Live Demo and GitHub, each opening in a new tab; the Tech Stack chips with their logos; and the Key Features cards.
+- **Closing:** the close button or Escape returns to the overview, and focus goes back to View Project.
+- **Smaller windows:** where panel 5's place would be narrower than 640 px, the panel becomes a sheet: down the right side, or along the bottom on an upright phone.
+- **Placeholders:** storyboard text shows with a "Placeholder" badge while developing. The live site shows no placeholder sections or feature cards, and its overview text is the project's introduction.
+
+Fixed on the way (both visible only in motion):
+
+- **Cups past the arm tips:** each arm's cups were laid out once, for the arm's length in the stage the page opened on. Opening on the overview (a `?stage=overview` link) and then going to the detail or the intro ran T1's and T8's last cups about one unit straight past their tips, like antennae. On the usual way in, the overview's T1 and T8 had no cups on their outer third, and T7's last cups hung just past its tip. Cups now keep their place as a fraction of the arm, so they spread or pack with it. Stills are unchanged, because in the stage a page opens on each arm is as long as when its cups were laid out.
+- **Reaching beside the panel:** the arm nearest the pointer reached for it whenever the orbs were in, so it also reached in the detail. Only the intro does this now.
+
+Verification:
+
+- `check_stage` panel 5 PASS (face glow under the eyes 22, glow centre 14, cheek blush 21, head dome 26, panel background 14); panels 2, 3 and 4 PASS as before.
+- 217 tests pass, typecheck clean, no new lint warnings, end-to-end 4 of 4 (the detail's links, Escape back to the overview without replaying the entrance, empty sections left out of the list, and the keyboard run).
+- The journey reviewed frame by frame: the largest frame-to-frame change is 8.9 (of 255), during the move from the overview; no jumps and no blank frames.
+
+Known gaps:
+
+- **Arms:** panel 5 curls the arms up beside the head and down onto the rocks; ours keep the intro's spread.
+- **Size:** our head is about 296 px across in the 1672 px frame; the painting's is about 322. The spec asks for a smaller Nox here, but panel 5 paints Nox about 7% larger than our intro framing, and we follow panel 5.
+- **Backdrop:** still the intro's plate. The glowing glyph pillar shows above Nox's head, and there are no rocks, coral or blue water (Task 24).
+- **Tech Stack:** the project's fifteen technologies sit in two compact rows; panel 5 paints six chips in one.
+- **Close button:** added; panel 5 has none.
+- **Section list:** each item is about 35 px tall at desktop sizes, under the 44 px touch target (Task 25).
+- **Phone:** on an upright phone the sheet covers Nox entirely; Task 25 lays out the phone.
+- **Cup sides:** each arm takes the side its cups face from the pose the page opens on. Opening on the overview (`?stage=overview`) puts the cups of T1, T2, T3, T7 and T8 on the other side from the usual way in. Recommendation: take each arm's side from the intro pose. That changes the overview and tech-focus stills approved from `?stage=overview`, so it waits for your decision.
+- **Content:** every section and feature card is placeholder text, and there is one screenshot.

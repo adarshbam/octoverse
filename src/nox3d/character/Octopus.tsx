@@ -2,11 +2,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
-import { Attention } from '../behavior/attention';
+import { Attention, nearFace } from '../behavior/attention';
 import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
-import { reachingArm } from '../behavior/reach';
+import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { BODY_X } from '../poses/nox.poses';
@@ -34,7 +34,7 @@ export interface OctopusProps {
   config: CharacterConfig;
   /** Moves Nox between stage poses; sampled every frame. */
   blender: PoseBlender;
-  /** The current stage, for resting in the intro. */
+  /** The current stage, for resting and reaching for the pointer in the intro. */
   stage: StageId;
   /** A face shown instead of the stage's own, for expression captures. */
   expression?: ExpressionId;
@@ -83,6 +83,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
+  const restAt = useMemo(() => new THREE.Vector3(), []);
 
   const rig = useMemo(() => {
     const uniforms = createSkinUniforms(config);
@@ -245,12 +246,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
 
     faceAt.set(config.head.faceOrigin[0] + pose.body.x, config.head.faceOrigin[1] + pose.body.y, 0).project(state.camera);
 
+    // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
+    const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
+
     const p = state.pointer;
-    // Frozen, the eyes rest ahead, or settle on the orb in focus.
-    const gaze = freeze && !fixed
+    // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
+    const gaze = freeze && !fixed && !rest
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y });
-    const near = gaze.tracking ? Math.max(0, 1 - Math.hypot(p.x, p.y + 0.17) * 1.4) : 0;
+      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
+    const near = gaze.tracking ? nearFace(p, faceAt) : 0;
     spring(m.smile, near, 5, dt);
 
     // The face reacts to each technology in its own way (Kali: the focused face of panel 4;
@@ -273,7 +277,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
     turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
-    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, -m.tilt.x);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
@@ -314,7 +318,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     if (reducedMotion) orbState.armReach.fill(0);
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face. While the orbs are out, only arms presenting a technology move.
-    const pointerArm = out < 0.5 && gaze.tracking ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    const pointerArm = reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];

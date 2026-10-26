@@ -22,3 +22,9 @@ test('parses a forced quality tier and ignores unknown ones', () => {
   expect(parseUrlState('?tier=low').tier).toBe('low');
   expect(parseUrlState('?tier=ultra').tier).toBeUndefined();
 });
+
+test('parses fixture', () => {
+  expect(parseUrlState('?fixture=nosections').fixture).toBe('nosections');
+  expect(parseUrlState('?fixture=anything').fixture).toBeUndefined();
+  expect(parseUrlState('').fixture).toBeUndefined();
+});

@@ -10,14 +10,15 @@ export interface StageFrame {
 
 /**
  * What each stage frames, from its storyboard panel. Focusing a technology keeps the overview's
- * framing: re-framing would move every orb under the visitor's pointer as focus begins.
+ * framing: re-framing would move every orb under the visitor's pointer as focus begins. The detail
+ * frames the whole high-quality panel 5 (1672 x 941 px), registered on Nox's face at 200 px a unit.
  */
 export const STAGE_FRAMES: Record<StageId, StageFrame> = {
   entering: { width: 5.1, height: 5.04 },
   intro: { width: 5.06, height: 5.04 },
   overview: { width: 5.15, height: 5.04 },
   techFocus: { width: 5.15, height: 5.04 },
-  detail: { width: 8.51, height: 5.18 },
+  detail: { width: 8.36, height: 4.705 },
 };
 
 export type Layout = 'desktop' | 'tablet' | 'phone';

@@ -91,6 +91,23 @@ test('whether the orbs are out blends with the pose', () => {
   expect(blender.sample(1000).orbs).toBe(1);
 });
 
+test('the head tilt blends with the pose', () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  expect(blender.sample(0).tilt).toBe(0);
+  blender.start({ ...NOX_POSES.intro, tilt: 0.2 }, 0, 1000, 0);
+  expect(blender.sample(500).tilt).toBeCloseTo(0.1, 6);
+  expect(blender.sample(1000).tilt).toBe(0.2);
+});
+
+test("where the eyes rest is the new pose's from the start of a change", () => {
+  const blender = new PoseBlender(NOX_POSES.intro);
+  expect(blender.sample(0).look).toBeUndefined();
+  blender.start({ ...NOX_POSES.intro, look: [1, 0.5] }, 0, 1000, 0);
+  expect(blender.sample(1).look).toEqual([1, 0.5]);
+  blender.start(NOX_POSES.intro, 1000, 1000, 0);
+  expect(blender.sample(1001).look).toBeUndefined();
+});
+
 test('a delayed start holds the current pose until its beat, then blends', () => {
   const blender = new PoseBlender(NOX_POSES.intro);
   const target = shifted(0.5, 0.2);

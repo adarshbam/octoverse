@@ -2,7 +2,8 @@
 Usage: python scripts/check_stage.py render.png --panel N
 Colour: mean of a small patch at each sample point, max channel delta. A panel whose samples
 name an "hq" reference is read from that high-quality image instead, through its registration
-(world (x, y) -> px (origin + pxPerUnit * (x, -y))), and from a capture framing `frame` world units.
+(world (x, y) -> px (origin + pxPerUnit * (x, -y))), and from a capture of any size framing `frame`
+world units (the stage camera fits the frame, centred). Patches cover the same world area in both.
 A point given as [x, y, px, py] names its feature in both images: world (x, y) in the render and
 pixel (px, py) in the high-quality image, for panels painted with different proportions.
 Silhouette: head half-width per row; reference from its bright rim line,
@@ -46,8 +47,9 @@ def main():
     if hq:
         hq_img = Image.open(hq['image']).convert('RGB')
         fw, fh = hq['frame']
+        # CSS px a unit in the standard 506 x 504 capture: it sets the patch size, in world units.
         unit = min(506 / fw, 504 / fh)
-        cs = ren.width / 506
+        ren_unit = min(ren.width / fw, ren.height / fh)
         def ref_patch(wx, wy, r=3, at=None):
             ox, oy = hq['origin']
             k = hq['pxPerUnit'] / unit
@@ -55,8 +57,9 @@ def main():
             arr = np.asarray(hq_img.crop((int(cx - r * k), int(cy - r * k), int(cx + r * k), int(cy + r * k))), dtype=float)
             return arr.reshape(-1, 3).mean(0)
         def ren_patch(wx, wy, r=3):
-            cx, cy = (253 + unit * wx) * cs, (252 - unit * wy) * cs
-            arr = np.asarray(ren.crop((int(cx - r * cs), int(cy - r * cs), int(cx + r * cs), int(cy + r * cs))), dtype=float)
+            cx, cy = ren.width / 2 + ren_unit * wx, ren.height / 2 - ren_unit * wy
+            k = ren_unit / unit
+            arr = np.asarray(ren.crop((int(cx - r * k), int(cy - r * k), int(cx + r * k), int(cy + r * k))), dtype=float)
             return arr.reshape(-1, 3).mean(0)
     else:
         ref_patch = lambda wx, wy, at=None: patch(ref, 1, wx, wy, w, h)
