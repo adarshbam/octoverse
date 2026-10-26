@@ -2,6 +2,21 @@
 
 Updated 2026-10-26. Read this first in a new session, then the files it points to.
 
+## Current direction (2026-10-26, governs over everything below)
+
+- **Spec:** `docs/superpowers/specs/2026-10-26-nox-world-and-motion-design.md`. It sets the approach and detail for the next phase:
+  - Nox's look in a real 3D world (first priority);
+  - the Option 2 world (Blender kit near Nox, painted distance);
+  - water physics on the arms, the swim stroke and the new entrance;
+  - technology bubbles, the head swell, variants;
+  - the process rules.
+- **Older docs:** the 2026-10-23 spec and plan below only list what to build; where they disagree with the new spec, the new spec wins.
+- **Test scene (throwaway reference):** `spike-env.html`, `src/spikeEnv/`, `spike-env/` (Blender kit script, capture and perf scripts, results in `spike-env/out/`). Open `http://localhost:5191/spike-env.html?compare`.
+- **No videos:** do not record review clips or frame sequences (`scripts/stepped-capture.mjs`, `spike-env/clip.mjs`). Check with stills, screenshots and measurements. The owner watches motion live.
+- **Superseded:** Entrance v1 (Task 23) is replaced by the spec's entrance; the gate plate (Task 24) is replaced by the 3D world.
+- **Plan:** `docs/superpowers/plans/2026-10-26-nox-world-and-motion.md`: 28 tasks in the spec's nine milestones, each milestone ending in the owner's live review. The owner approved the spec on 2026-10-26.
+- **Next step:** the owner reviews the plan and picks how it runs (subagent-driven or native). Then start Task 1. Its Step 0 commits the spec, plan and dependency additions, with the owner's OK.
+
 ## Where the work lives
 
 - **Worktree:** `C:/Users/Dell/Desktop/Vibe-coding/OctoVerse/worktrees.local/nox-3d-spike`
