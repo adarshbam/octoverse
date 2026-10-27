@@ -1,20 +1,72 @@
-import { useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { floorHeight } from './Floor';
 import { fbm2, seeded } from './noise';
-import { RUNE_SETS, makeGlyphTexture, makeStoneMaps } from './textures';
+import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
+
+/** Beyond this distance from the camera a piece draws its `_lod1`, about a quarter of the triangles. */
+const KIT_LOD_DISTANCE = 14;
+/** Back to full detail only inside 3% less, so a piece on the line does not flicker as the camera hovers. */
+const LOD_HYSTERESIS = 0.03;
+
+/** One KTX2 loader per renderer: it transcodes in workers, to the formats this GPU supports. */
+const ktx2Loaders = new WeakMap<THREE.WebGLRenderer, KTX2Loader>();
+
+/** The kit is compressed: meshopt geometry, KTX2 (Basis) textures with the transcoder in public/nox/basis. */
+function compressedKit(gl: THREE.WebGLRenderer) {
+  return (loader: GLTFLoader) => {
+    let ktx2 = ktx2Loaders.get(gl);
+    if (!ktx2) {
+      ktx2 = new KTX2Loader().setTranscoderPath(`${import.meta.env.BASE_URL}nox/basis/`).detectSupport(gl);
+      ktx2Loaders.set(gl, ktx2);
+    }
+    loader.setKTX2Loader(ktx2);
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  };
+}
 
 function applyPlacement(object: THREE.Object3D, p: Placement) {
   object.position.set(...p.position);
   object.rotation.set(0, p.rotY ?? 0, p.tilt ?? 0);
   if (typeof p.scale === 'object') object.scale.set(...p.scale);
   else object.scale.setScalar(p.scale ?? 1);
+}
+
+/** A piece at full detail near the camera and its `_lod1` beyond `KIT_LOD_DISTANCE`. */
+function withLod(full: THREE.Object3D, far: THREE.Object3D) {
+  const lod = new THREE.LOD();
+  lod.addLevel(full, 0);
+  lod.addLevel(far, KIT_LOD_DISTANCE, LOD_HYSTERESIS);
+  return lod;
+}
+
+/**
+ * A kit mesh as plain float geometry in its piece's own space. The compressed file stores
+ * positions quantized into a [-1, 1] box and puts the scale and offset back in the node; code
+ * that reads positions as stage units (the coral's sway, the chain's bending) needs them undone.
+ */
+function bakedGeometry(mesh: THREE.Mesh) {
+  const geometry = new THREE.BufferGeometry();
+  for (const [name, source] of Object.entries(mesh.geometry.attributes)) {
+    const size = source.itemSize;
+    const values = new Float32Array(source.count * size);
+    // getX..getW undo the normalisation of quantized attributes.
+    const read = (i: number, c: number) => (c === 0 ? source.getX(i) : c === 1 ? source.getY(i) : c === 2 ? source.getZ(i) : source.getW(i));
+    for (let i = 0; i < source.count; i++) for (let c = 0; c < size; c++) values[i * size + c] = read(i, c);
+    geometry.setAttribute(name, new THREE.BufferAttribute(values, size));
+  }
+  // Its own copy: disposing this geometry must not free the cached piece's index on the GPU.
+  if (mesh.geometry.index) geometry.setIndex(mesh.geometry.index.clone());
+  mesh.updateWorldMatrix(true, false);
+  return geometry.applyMatrix4(mesh.matrixWorld);
 }
 
 /** Bends a straight chain (links up its local y) along a sagging curve, repeating it to length. */
@@ -99,7 +151,8 @@ function pebbleField(material: THREE.Material, floorY: number) {
 
 /** The ruin: pillars with glowing glyphs, boulders, coral, hanging chains and strewn stones. */
 export function Kit({ world }: { world: WorldConfig }) {
-  const gltf = useGLTF(world.kit.url);
+  const gl = useThree(state => state.gl);
+  const gltf = useLoader(GLTFLoader, world.kit.url, compressedKit(gl));
   const now = useWorldTime();
   const coralTime = useRef({ value: 0 });
   const group = useRef<THREE.Group>(null);
@@ -178,79 +231,117 @@ export function Kit({ world }: { world: WorldConfig }) {
       );
     };
 
-    // Each glyph panel shape gets its own texture per rune set.
-    const glyphCache = new Map<string, THREE.MeshBasicMaterial>();
-    const glyphMaterial = (mesh: THREE.Mesh, runes: number) => {
+    // Glyph textures are shared by panel shape, rune and wear; materials add each panel's brightness.
+    const glyphTextures = new Map<string, THREE.CanvasTexture>();
+    const glyphMaterials = new Map<string, THREE.MeshBasicMaterial>();
+    const glyphMaterial = (mesh: THREE.Mesh, runes: number, pillar: number) => {
       mesh.geometry.computeBoundingBox();
       const box = mesh.geometry.boundingBox!;
+      // The quantized box is the panel scaled evenly, so its shape is the panel's.
       const aspect = (box.max.y - box.min.y) / (box.max.x - box.min.x);
       const set = RUNE_SETS[runes % RUNE_SETS.length];
       const cell = Number(mesh.name.match(/glyph(\d+)/)?.[1] ?? 0);
       const rune = set[(cell + runes) % set.length];
-      const key = `${aspect.toFixed(2)}-${rune}`;
-      let material = glyphCache.get(key);
+      const { wear, brightness } = glyphPanelLook(pillar, cell);
+      const textureKey = `${aspect.toFixed(2)}-${rune}-${wear}`;
+      let map = glyphTextures.get(textureKey);
+      if (!map) {
+        map = makeGlyphTexture([rune], aspect, wear);
+        glyphTextures.set(textureKey, map);
+      }
+      const key = `${textureKey}-${brightness}`;
+      let material = glyphMaterials.get(key);
       if (!material) {
-        material = new THREE.MeshBasicMaterial({ map: makeGlyphTexture([rune], aspect), color: new THREE.Color('#ffffff').multiplyScalar(2.4) });
-        glyphCache.set(key, material);
+        material = new THREE.MeshBasicMaterial({ map, color: new THREE.Color('#ffffff').multiplyScalar(2.4 * brightness) });
+        glyphMaterials.set(key, material);
       }
       return material;
     };
 
+    source.updateMatrixWorld(true);
     const piece = (name: string) => {
       const found = source.getObjectByName(name);
       if (!found) throw new Error(`kit piece missing: ${name}`);
       return found;
     };
+    // Each placed piece is a LOD holding copies of the piece and its lod1. The copies keep the
+    // node transforms the compressed file gives them; the placement goes on the LOD.
+    const placedLod = (p: Placement, dress: (level: THREE.Object3D) => void) => {
+      const lod = withLod(piece(p.piece).clone(true), piece(`${p.piece}_lod1`).clone(true));
+      for (const { object } of lod.levels) dress(object);
+      applyPlacement(lod, p);
+      lod.updateMatrixWorld(true);
+      return lod;
+    };
 
-    const pillars = layout.pillars.map((p, index) => {
-      const object = piece(p.piece).clone(true);
-      applyPlacement(object, p);
-      object.traverse(child => {
-        if (!(child instanceof THREE.Mesh)) return;
-        if (child.name.includes('glyph')) {
-          child.material = glyphMaterial(child, p.runes ?? index);
-        } else {
-          child.material = stone;
-          // Far down the ruin the fog hides any shadow they would throw.
-          child.castShadow = p.position[2] > -12;
-          child.receiveShadow = true;
-        }
-      });
-      return object;
-    });
+    const pillars = layout.pillars.map((p, index) =>
+      placedLod(p, level =>
+        level.traverse(child => {
+          if (!(child instanceof THREE.Mesh)) return;
+          if (child.name.includes('glyph')) {
+            child.material = glyphMaterial(child, p.runes ?? index, index);
+          } else {
+            child.material = stone;
+            // Far down the ruin the fog hides any shadow they would throw.
+            child.castShadow = p.position[2] > -12;
+            child.receiveShadow = true;
+          }
+        }),
+      ),
+    );
 
-    const rocks = layout.rocks.map(p => {
-      const object = (piece(p.piece) as THREE.Mesh).clone();
-      object.material = rock;
-      object.castShadow = true;
-      object.receiveShadow = true;
-      applyPlacement(object, p);
-      object.updateMatrixWorld(true);
-      return object;
-    });
+    const rocks = layout.rocks.map(p =>
+      placedLod(p, level => {
+        const mesh = level as THREE.Mesh;
+        mesh.material = rock;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }),
+    );
 
-    // Coral sits on whatever is under it: a boulder or the seabed.
+    // Coral sits on whatever is under it: a boulder (at full detail) or the seabed. Its sway reads
+    // positions in stage units, so it draws from baked float copies of the kit's coral.
+    const coralGeometry = new Map<string, THREE.BufferGeometry>();
+    const coralLevel = (name: string) => {
+      let geometry = coralGeometry.get(name);
+      if (!geometry) {
+        geometry = bakedGeometry(piece(name) as THREE.Mesh);
+        coralGeometry.set(name, geometry);
+      }
+      const mesh = new THREE.Mesh(geometry);
+      mesh.material = coral;
+      return mesh;
+    };
+    const rockSurfaces = rocks.map(lod => lod.levels[0].object);
     const ray = new THREE.Raycaster();
     const corals = layout.corals.map(p => {
-      const object = (piece(p.piece) as THREE.Mesh).clone();
-      object.material = coral;
+      const object = withLod(coralLevel(p.piece), coralLevel(`${p.piece}_lod1`));
       const [x, , z] = p.position;
       ray.set(new THREE.Vector3(x, 8, z), new THREE.Vector3(0, -1, 0));
-      const hit = ray.intersectObjects(rocks, false)[0];
+      const hit = ray.intersectObjects(rockSurfaces, false)[0];
       const y = Math.max(hit ? hit.point.y : -Infinity, floorHeight(x, z, layout.floorY)) - 0.04;
       applyPlacement(object, { ...p, position: [x, y, z] });
       return object;
     });
 
-    // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation.
+    // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation. Each
+    // chain's LOD stands at its middle, so its distance is measured from there.
     const CHAIN_SCALE = 1.45;
-    const link = (piece('chain') as THREE.Mesh).geometry.clone().scale(CHAIN_SCALE, CHAIN_SCALE, CHAIN_SCALE);
+    const links = ['chain', 'chain_lod1'].map(name => bakedGeometry(piece(name) as THREE.Mesh).scale(CHAIN_SCALE, CHAIN_SCALE, CHAIN_SCALE));
     const chains = layout.chains.map(({ from, to, sag }) => {
-      const mesh = new THREE.Mesh(hangChain(link, 30 * 0.175 * CHAIN_SCALE, from, to, sag), iron);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      return mesh;
+      const [full, far] = links.map(link => {
+        const mesh = new THREE.Mesh(hangChain(link, 30 * 0.175 * CHAIN_SCALE, from, to, sag), iron);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        return mesh;
+      });
+      const middle = full.geometry.boundingSphere!.center.clone();
+      for (const mesh of [full, far]) mesh.geometry.translate(-middle.x, -middle.y, -middle.z);
+      const lod = withLod(full, far);
+      lod.position.copy(middle);
+      return lod;
     });
+    const chainGeometry = chains.flatMap(lod => lod.levels.map(level => (level.object as THREE.Mesh).geometry));
 
     // The near glyphs are real lights: red light falls on the stone, the seabed and Nox. The lava
     // pools low round the coral and the pillars' feet.
@@ -262,14 +353,16 @@ export function Kit({ world }: { world: WorldConfig }) {
 
     const pebbles = pebbleField(pebble, layout.floorY);
 
-    // What this memo made and owns. The pieces' own geometry and materials belong to the useGLTF
-    // cache (the clones above share them), so they are left out.
-    const glyphs = [...glyphCache.values()];
+    // What this memo made and owns. The pieces' own geometry and materials belong to the
+    // useLoader cache (the clones above share them), so they are left out; the LOD objects hold
+    // nothing on the GPU. The baked coral and chain geometry is this memo's own.
     const disposables = [
       stoneMaps.tone, stoneMaps.normal, rockMaps.tone, rockMaps.normal,
       stone, rock, pebble, iron, coral,
-      ...glyphs.flatMap(material => [material, material.map!]),
-      ...chains.map(chain => chain.geometry),
+      ...glyphTextures.values(),
+      ...glyphMaterials.values(),
+      ...coralGeometry.values(),
+      ...chainGeometry,
       pebbles.geometry,
       pebbles,
     ];

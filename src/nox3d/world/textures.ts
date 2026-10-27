@@ -179,11 +179,28 @@ export const RUNE_SETS = [
   ['hook', 'arrow', 'eye'],
 ] as const;
 
+/** Wear comes in this many steps, so panels share their textures. */
+const WEAR_STEPS = 4;
+
+/**
+ * How one glyph panel of the world looks, from a hash of where it stands (its pillar's index in
+ * the layout and its cell on that pillar), so the corridor's panels never repeat evenly:
+ * `wear`, 0 (crisp) to 1 (strokes worn through in places), in four steps; `brightness`, a
+ * multiplier on the panel's glow, 0.7 to 1.3 in steps of 0.05, about 1 on average. (Each panel's
+ * size comes from the kit: the Blender script varies it by its own hash.)
+ */
+export function glyphPanelLook(pillar: number, cell: number) {
+  const wear = Math.min(WEAR_STEPS - 1, Math.floor(hash2(pillar, cell, 41) * WEAR_STEPS)) / (WEAR_STEPS - 1);
+  const brightness = Math.round((0.7 + 0.6 * hash2(pillar, cell, 73)) * 20) / 20;
+  return { wear, brightness };
+}
+
 /**
  * A glyph panel: runes stacked down a dark recess, red strokes with a hot core and a soft glow.
  * Black is empty (the panel draws additively). Rows match the panel's height-to-width ratio.
+ * `wear` (0 to 1) breaks the strokes and the seam with patches of the recess's own dark.
  */
-export function makeGlyphTexture(runes: readonly string[], aspect: number) {
+export function makeGlyphTexture(runes: readonly string[], aspect: number, wear = 0) {
   const w = 128;
   const h = Math.round(w * aspect);
   const canvas = document.createElement('canvas');
@@ -256,6 +273,18 @@ export function makeGlyphTexture(runes: readonly string[], aspect: number) {
     draw(name, w / 2, cy, 8, '#ff2c3c', 10);
     draw(name, w / 2, cy, 3, '#ffb49c', 3);
   });
+  // Wear: soft patches of the recess's dark over the strokes and the seam, more and larger as it grows.
+  ctx.shadowBlur = 0;
+  for (let k = Math.round(wear * 9); k > 0; k--) {
+    const x = w * (0.12 + rand() * 0.76);
+    const y = h * (0.08 + rand() * 0.84);
+    const radius = w * (0.05 + rand() * 0.1) * (0.6 + wear * 0.6);
+    const patch = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    patch.addColorStop(0, `rgba(10,1,3,${0.55 + 0.4 * wear})`);
+    patch.addColorStop(1, 'rgba(10,1,3,0)');
+    ctx.fillStyle = patch;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
   const t = new THREE.CanvasTexture(canvas);
   t.colorSpace = THREE.SRGBColorSpace;
   // glTF texture coordinates run top-down.

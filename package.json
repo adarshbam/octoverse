@@ -29,6 +29,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "4.4.2",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@theatre/studio": "^0.7.2",

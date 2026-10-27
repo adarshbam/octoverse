@@ -1,8 +1,67 @@
-import type { Placement, Vec3, WorldConfig } from './types';
+import type { Placement, Vec3, WorldConfig, WorldLayout } from './types';
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const vec3 = (v: unknown): v is Vec3 => Array.isArray(v) && v.length === 3 && v.every(finite);
 const colour = (c: unknown) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Optional placement fields and what each must hold when present. */
+const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
+  rotY: finite,
+  tilt: finite,
+  scale: v => (finite(v) && v > 0) || (vec3(v) && v.every(n => n > 0)),
+  runes: v => Number.isInteger(v) && (v as number) >= 0,
+  light: v => typeof v === 'boolean',
+};
+
+/**
+ * What is wrong with raw layout data (layout.json) against `WorldLayout`, in words; an empty list
+ * means it is one. Unknown keys are reported too: the Blender kit script reads the same file and
+ * would pass over a misspelt key without a word.
+ */
+export function layoutProblems(data: unknown): string[] {
+  if (!record(data)) return ['the layout is not an object'];
+  const problems: string[] = [];
+  const known = ['floorY', 'pillars', 'rocks', 'corals', 'chains', 'coralLights'];
+  for (const key of Object.keys(data)) if (!known.includes(key)) problems.push(`the layout has an unknown key "${key}"`);
+  if (!finite(data.floorY)) problems.push('floorY is not a number');
+
+  const list = (name: string, check: (item: unknown, at: string) => void) => {
+    const items = data[name];
+    if (!Array.isArray(items)) problems.push(`${name} is not a list`);
+    else items.forEach((item, i) => check(item, `${name}[${i}]`));
+  };
+  const placement = (item: unknown, at: string) => {
+    if (!record(item)) {
+      problems.push(`${at} is not an object`);
+      return;
+    }
+    if (typeof item.piece !== 'string' || item.piece === '') problems.push(`${at} has no piece name`);
+    if (!vec3(item.position)) problems.push(`${at} has no x, y, z position`);
+    for (const [key, value] of Object.entries(item)) {
+      if (key === 'piece' || key === 'position') continue;
+      const check = PLACEMENT_FIELDS[key];
+      if (!check) problems.push(`${at} has an unknown key "${key}"`);
+      else if (!check(value)) problems.push(`${at}.${key} is not valid`);
+    }
+  };
+  list('pillars', placement);
+  list('rocks', placement);
+  list('corals', placement);
+  list('chains', (item, at) => {
+    if (!record(item) || !vec3(item.from) || !vec3(item.to) || !finite(item.sag) || item.sag < 0) problems.push(`${at} needs from, to and a sag of 0 or more`);
+    else for (const key of Object.keys(item)) if (!['from', 'to', 'sag'].includes(key)) problems.push(`${at} has an unknown key "${key}"`);
+  });
+  list('coralLights', (item, at) => vec3(item) || problems.push(`${at} is not an x, y, z position`));
+  return problems;
+}
+
+/** Raw layout data as a `WorldLayout`, once it is checked to be one; throws the problems otherwise. */
+export function asWorldLayout(data: unknown): WorldLayout {
+  const problems = layoutProblems(data);
+  if (problems.length > 0) throw new Error(`invalid world layout:\n${problems.join('\n')}`);
+  return data as WorldLayout;
+}
 
 /** What is wrong with a world, in words; an empty list means it is valid. */
 export function validateWorld(world: WorldConfig): string[] {

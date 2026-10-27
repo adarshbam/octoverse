@@ -48,7 +48,7 @@ export function reclaim(items: readonly Disposable[]) {
  * Three Fiber does not dispose objects passed as props or `<primitive>`s, so a component that
  * makes its own geometries, materials and textures hands them over here. Pass the array from the
  * memo itself (the same array every render). List only what the component owns: never geometry
- * or materials from the `useGLTF` cache, which the cache shares.
+ * or materials from the glTF loader's cache (`useLoader`), which the cache shares.
  *
  * Disposal waits for the next tick, so the unmount-and-remount StrictMode simulates in
  * development, which re-runs this effect on the same value at once, disposes nothing.

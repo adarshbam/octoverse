@@ -568,3 +568,74 @@ The check reads FAIL (1 miss, cheek outer) on both runs. This miss is expected. 
 - tsc (app, nox3d, node): exit 0.
 - oxlint on the changed files: clean.
 - nox3d e2e: 3 runs, 8 of 8 each.
+
+### The world's kit: shared layout, carved stone, LODs and compression (Task 6, 2026-10-27)
+
+**One layout.** `src/nox3d/world/security/layout.json` is the only place the corridor is laid out. The page imports it through `asWorldLayout`, which checks it against the `WorldLayout` schema as it loads (unknown keys included) and fails by name. The Blender script `blender/security/build_kit.py` reads the same file: it stops if the layout names a piece it does not build, and it lays the corridor out in its own "NoxKit security" scene, with panel 2's camera, for looking at the world in Blender. The layout's counts are unchanged (14 pillars, 16 rocks, 11 corals, 4 chains, 4 coral lights).
+
+**The kit.** The script rebuilds every piece from its seeds and exports them; nothing is hand-modelled.
+- **Pillars** are now stacks of large carved blocks, not brickwork. Each glyph panel is recessed 0.05 into the front of its own block. The pillars also have plain courses 0.4 to 0.78 tall, a broad two-course plinth, chipped corners, rounded edges, and a ruined top with a leaning stone.
+- **Glyph panels** vary in three ways, each from a seeded hash per panel:
+  - size, in Blender: width 0.42 to 0.64 and height 0.5 to 0.78;
+  - wear, on the page: four steps, which break the strokes with patches of dark;
+  - brightness, on the page: 0.7 to 1.3 in steps of 0.05, averaging 1.
+  The page hashes each placed panel by its pillar's place in the layout, so repeated pillar pieces do not repeat their panels.
+- **Glyph column centres** are unchanged: 3.59, 3.82, 1.78 and 2.36 above the base. The glyph lights therefore stand where they did.
+- **Rocks, coral and the chain** keep their shapes.
+
+**Glyph lights are derived, not copied.** Each lit pillar's glyph light is placed from the pillar's own position and turn in layout.json, plus its piece's glyph column height (`GLYPH_CENTRE` in config.ts), 0.985 in front of the pillar's axis. The kit file carries each pillar's `glyph_centre` (node extras). A test checks that the config's heights match it and that each light stands in front of its pillar, within 1.5. The derived positions equal the old hand-copied ones to four decimals.
+
+**Levels of detail.** Every piece has a `<piece>_lod1` with about a quarter of its triangles. The page shows `_lod1` beyond 14 units from the camera. It switches back to full detail inside 13.58 units (3% hysteresis), so a piece on the line does not flicker as the camera hovers.
+
+| Piece | Full | lod1 | Share |
+|---|---|---|---|
+| pillar_a / b / c / d | 5628 / 6026 / 2760 / 3714 | 1368 / 1470 / 668 / 914 | 24-25% |
+| rock_0 to rock_4 | 5120 each | 1280 each | 25% |
+| coral_0 / 1 / 2 | 11024 / 10944 / 14076 | 2718 / 2702 / 3470 | 25% |
+| chain | 6720 | 1680 | 25% |
+
+The two near lit pillars stand 14.02 and 14.32 units from panel 2's camera, so the intro shows their lod1. A lod1 keeps the full piece's blocks, chips and panels and loses only the rounding of its edges. An intro capture with every piece forced to full detail differs from the normal one by 0.53 and 0.37 levels (mean) over the two near pillars, and by 0.64 over the whole frame. Most of that difference is bubbles, which move on the real clock.
+
+**Compression.** The owner installed KTX-Software: `ktx` v4.4.2 and `toktx` v4.4.2. `@gltf-transform/cli` 4.4.2 (pinned devDependency) calls `ktx create`, and needs `ktx` on the PATH even when the file has no textures. The script adds `C:\Program Files\KTX-Software\bin` to its own PATH, or `KTX_SOFTWARE_BIN` if that is set. The script runs:
+
+`npx gltf-transform optimize <raw>.glb public/nox/world/security/kit.glb --compress meshopt --texture-compress ktx2 --flatten false --join false --instance false --palette false --simplify false --prune-attributes false`
+
+This is the plan's command plus six flags. Without them `optimize` would break what the page reads:
+- flatten and join merge the pieces and their glyph panels into a few anonymous meshes, and the page finds pieces and panels by node name;
+- palette rewrites the UVs;
+- prune-attributes drops the stone's box UVs, because no texture in the file uses them;
+- simplify changes the authored LODs.
+
+Meshopt also quantizes positions into a [-1, 1] box and puts the scale back in each node. The page therefore places a LOD round the pieces and keeps their node transforms. Coral and chain geometry is unpacked to plain floats on the page, because the coral's sway and the chain's bending read positions in stage units.
+
+**KTX2 changes nothing in the file today.** The kit has no textures, because the page makes its stone and glyph maps. The KTX2 file is the same size as a WebP trial of the same export: 1,256,120 bytes each, before the leaning-stone fix. The loader is wired anyway:
+- three's `GLTFLoader` with `MeshoptDecoder`;
+- `KTX2Loader`, with the Basis transcoder (`basis_transcoder.js` and `.wasm` from three r186) under `public/nox/basis/`.
+
+A test texture made with `ktx create --encode basis-lz` was checked in the browser through that loader and those transcoder files. It decoded to BC7 on the owner's GPU, with 7 mip levels. Its two halves read back at (220, 39, 64) and (32, 90, 197), against source colours of (220, 40, 60) and (30, 90, 200). The world page shows no new console errors or warnings. The same three messages appear without the world: a 404, the `THREE.Clock` deprecation and the D3D X3595 shader warning.
+
+**Sizes.**
+
+| Asset | Bytes |
+|---|---|
+| kit.glb before (Task 2, uncompressed) | 6,371,556 |
+| kit.glb raw export (new kit with LODs) | 3,673,292 |
+| kit.glb now (meshopt + KTX2) | 1,256,212 |
+| Basis transcoder (js + wasm), loaded only for KTX2 textures; not fetched today | 584,862 |
+| **World assets, worst case** | **1,841,074** (6 MB budget) |
+
+**Nox is unchanged.** The intro was captured with `world-capture intro` and checked with `check_stage --world`, at HEAD e045bc1 and after. Both read (127, 28, 79), saturation 0.838 and brightness 0.570. The unrounded means are (126.73, 28.32, 79.24) at HEAD and (126.77, 28.39, 79.29) after, a largest move of 0.07 levels. The masks are identical. The saturation miss is the one the owner accepted (R26).
+
+**Stills:**
+- `assets/nox-world-t6-kit-strip.jpg`: panel 2, HEAD and after;
+- `assets/nox-world-t6-kit-crop.jpg`: the right-hand pillars at full size.
+
+The world reads as the same place. The stone is now large carved blocks with panels set into them.
+
+**Left as found.** The floor level -2.4 is still hard-coded in `Water.tsx`, `Motes.tsx` and the rock shader in `Kit.tsx`, while `layout.floorY` is -2.45 (R13). Those lines were not otherwise touched.
+
+**Tests:**
+- `npm test`: 48 files, 301 tests.
+- tsc (app, nox3d, node): exit 0.
+- oxlint on the changed files: clean. `Kit.tsx` keeps its 5 earlier `refs` warnings on the JSX lines. The vendored transcoder is now in the lint ignore list.
+- nox3d e2e: 8 of 8.
