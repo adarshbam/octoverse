@@ -24,12 +24,12 @@ export const NOX: CharacterConfig = {
     spreadX: 0.58,
     reachUp: 0.45,
     reachDown: 0.2,
-    // Middle stops from the Task 5 palette (R23, approved by the owner 2026-10-27, R25): the dim
-    // stops toward navy, as the head's middle is in panel 2, and toward the core a little redder
-    // and dimmer. The ends (the dark dome and the face glow's coral heart) are the earlier ones.
+    // The face glow. The approved ramp from before the Task 5 palette: the owner restored every
+    // stop (ruling R26, 2026-10-27) after the R23 middle stops turned the glow between the eyes
+    // crimson. The R23 body colours below stay.
     ramp: [
-      [0, '#0a0d2c'], [0.07, '#040a30'], [0.17, '#3a0a40'], [0.27, '#640842'], [0.37, '#890c45'],
-      [0.49, '#b00c46'], [0.61, '#d8143a'], [0.74, '#ec2442'], [0.94, '#ec4a46'], [1, '#ff8765'],
+      [0, '#0a0d2c'], [0.07, '#1e0c30'], [0.17, '#45133e'], [0.27, '#641542'], [0.37, '#891d45'],
+      [0.49, '#b9254b'], [0.61, '#e8364d'], [0.74, '#fb5254'], [0.94, '#fd7c5b'], [1, '#ff8765'],
     ],
     // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
     // fades about 0.2 out from the outline, red below the cup bands.

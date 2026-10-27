@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest';
 import { NOX } from './nox.character';
 
-// Guard (ruling R25). The owner approved the R23 palette as Nox's own and kept these exactly as
-// they were before it: the face (its palette and canvas, the blush, the eyes), the glow ramp's
-// end stops and stop positions (the face glow), the sucker colours and the halo's widths and
+// Guard (rulings R25 and R26). The owner approved the R23 palette as Nox's own and kept these
+// exactly as they were before it: the face (its palette and canvas, the blush, the eyes), the
+// whole glow ramp (the face glow, restored in R26), the sucker colours and the halo's widths and
 // strengths. They are written out here as literals, so an edit to nox.character.ts cannot change
 // them without this test failing.
 
@@ -65,12 +65,12 @@ test('the face canvas and the eyes are the ones the owner kept', () => {
   });
 });
 
-test('the glow ramp keeps its end stops and its stop positions', () => {
-  const ramp = NOX.glow.ramp;
-  expect(ramp.map(([at]) => at)).toEqual([0, 0.07, 0.17, 0.27, 0.37, 0.49, 0.61, 0.74, 0.94, 1]);
-  // The dark dome and the face glow's coral heart.
-  expect(ramp[0]).toEqual([0, '#0a0d2c']);
-  expect(ramp[ramp.length - 1]).toEqual([1, '#ff8765']);
+test('the glow ramp is the approved one, every stop', () => {
+  // From the dark dome to the face glow's coral heart (ruling R26).
+  expect(NOX.glow.ramp).toEqual([
+    [0, '#0a0d2c'], [0.07, '#1e0c30'], [0.17, '#45133e'], [0.27, '#641542'], [0.37, '#891d45'],
+    [0.49, '#b9254b'], [0.61, '#e8364d'], [0.74, '#fb5254'], [0.94, '#fd7c5b'], [1, '#ff8765'],
+  ]);
 });
 
 test('the sucker colours are the ones the owner kept', () => {

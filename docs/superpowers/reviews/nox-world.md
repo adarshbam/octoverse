@@ -449,8 +449,10 @@ The violet tops now match panel 2's share, and are darker and more saturated tha
 - the arm tops are darker than panel 2's;
 - the magenta between the violet tops and the red band covers 14% of the arms, against panel 2's 32.5%;
 - the raised-arm stages (overview, techFocus) read redder than before;
-- the face glow is slightly redder;
-- cheek glow (9.5) and arm rim (40.8) still miss.
+- cheek glow (9.5) and arm rim (40.9) still miss;
+- world intro saturation 0.837, a miss the owner accepted (R26).
+
+(Updated by R26: "the face glow is slightly redder" is removed, because the face glow is back on the approved ramp.)
 
 **What changed:**
 - **Promoted values.** The R23 values are now NOX's own in `nox.character.ts`: the palette colours, the halo colours, the ramp's middle stops and `glow.underside` 1.6. A one-off check confirmed that the promoted config equals the R23 candidate applied to the earlier config, field for field.
@@ -506,3 +508,63 @@ Nothing was changed: the owner's approval stands, and R25 asks only for the reco
 - tsc (app, nox3d, node): exit 0.
 - oxlint on the changed files: no new warnings. App.tsx keeps its 7 warnings from HEAD; the other changed files have none.
 - nox3d e2e: 5 runs, 8 of 8 each.
+
+#### Task 5: face glow restored (ruling R26, 2026-10-27)
+
+**Owner's verdict:** "Face glow restored to the approved ramp; R23 body colours kept (2026-10-27)." In the owner's words: "Restore the whole face-glow ramp to the previously approved values (tile 5) and keep the new body colours. Accept saturation 0.837."
+
+**What changed:**
+- **The ramp.** Every glow ramp stop in `nox.character.ts` is back to b73ba76's approved ramp, positions and colours. Every other R23 value stays as promoted, including `glow.underside` 1.6.
+- **Guard test.** `nox.character.test.ts` now pins the whole ramp, every stop, as literals, beside what it already pinned.
+
+**Evidence the owner chose from** (4 or 5 tiles, the same face crop, 610,515,960,740 in HQ panel 2 pixels). The tiles are panel 2, the previous approved palette, the promoted palette (8b9e34a), HEAD with ramp 0.61 and 0.74 restored, and HEAD with the whole ramp restored (tile 5, now Nox's):
+
+![Face strip, no world](assets/nox-world-t5-face-strip-noworld.jpg)
+
+![Face strip, world](assets/nox-world-t5-face-strip-world.jpg)
+
+- `nox-world-t5-face-strip-noworld.jpg`: `stage-capture intro`, registered into the HQ frame.
+- `nox-world-t5-face-strip-world.jpg`: `world-capture intro`.
+- `nox-world-t5-intro-ramp-restored.png`: tile 5's full-frame world intro.
+
+**Accepted weaknesses, now:**
+- the arm tops are darker than panel 2's;
+- the magenta between the violet tops and the red band covers less of the arms than panel 2's;
+- the raised-arm stages (overview, techFocus) read redder than before;
+- cheek glow (9.5) and arm rim (40.9) still miss;
+- world intro saturation 0.837 misses the target of 0.85 to 0.91. The owner accepted it; it is a miss, not a pass.
+
+**The world, measured again** (`world-capture`, then `check_stage --world`). The intro and overview masks are byte-identical to R25's.
+
+| Stage and query | Face glow restored (R26) | Promoted (R25) |
+|---|---|---|
+| intro, run 1 and run 2 | 127, 28, 79; 0.838 / 0.837 (MISS, accepted); 0.570. Head crown 6.4, head middle 7.8, cheek glow 9.5 (MISS), upper arm top 6.6, arm underside band 6.9, arm rim 40.9 (MISS), suckers 4.3, aura outside 7.7 / 7.6. FAIL (3 misses) | 125, 25, 78; 0.854; 0.565; FAIL (2 misses) |
+| overview `&solo` (R24 mask, 205,201 px) | 149, 33, 74; 0.840; 0.612 (3 misses: mean, saturation, brightness) | 148, 30, 73; 0.854; 0.607 (2 misses) |
+| techFocus `&tech=kali&solo` | 137, 32, 76; 0.829; 0.580 (3 misses) | 135, 29, 75; 0.844; 0.576 (3 misses) |
+| detail `&solo` | 119, 29, 69; 0.822; 0.528 (1 miss: saturation) | 117, 25, 68; 0.842; 0.523 (2 misses) |
+
+The intro's brightness 0.570 is at the top of the 0.49 to 0.57 range.
+
+**The no-world stage, the new baseline.** `stage-capture intro`, then `check_stage --panel 2`, two runs with the same deltas. The thresholds are unchanged (24 per channel).
+
+| Sample | Promoted (R25) | Restored (R26) | Result |
+|---|---|---|---|
+| head top | 14 | 14 | ok |
+| head upper-left | 21 | 20 | ok |
+| head side | 18 | 13 | ok |
+| forehead | 12 | 15 | ok |
+| between eyes low | 50 | 13 | ok again |
+| chin glow | 13 | 1 | ok |
+| cheek outer | 29 | **26** | **MISS, 2 over** (ref #7f2c77, render #651565) |
+| bg left | 1 | 1 | ok |
+| bg upper-left | 10 | 10 | ok |
+| bg low right | 4 | 4 | ok |
+| widths at y 0.15, 0.10, 0.05, 0.00 | ok | ok | ok |
+
+The check reads FAIL (1 miss, cheek outer) on both runs. This miss is expected. The ramp does not cause it: it comes from R23 body values, mainly `rimLow` and, less, `wet`, `tintCool` and `tintWarm`. Its deltas with each of those reverted alone are 23, 25, 26 and 27.
+
+**Tests:**
+- `npm test`: 47 files, 295 tests.
+- tsc (app, nox3d, node): exit 0.
+- oxlint on the changed files: clean.
+- nox3d e2e: 3 runs, 8 of 8 each.
