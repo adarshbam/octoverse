@@ -40,11 +40,11 @@ test('world accents stay off the face glow and the arm roots, as the neon rim do
   expect(source).toContain(`col = worldAccent(col, N, ndv, ${ownGlow});`);
 });
 
-test('the arms’ red underside band glows at the strength the config gives, 0.95 as approved', () => {
-  expect(NOX.glow.underside).toBe(0.95);
+test('the arms’ red underside band glows at the strength the config gives, 1.6 as approved (R25)', () => {
+  expect(NOX.glow.underside).toBe(1.6);
   const uniforms = createSkinUniforms({ ...NOX, glow: { ...NOX.glow, underside: 1.3 } });
   expect(uniforms.uUnderside.value).toBe(1.3);
-  expect(createSkinUniforms(NOX).uUnderside.value).toBe(0.95);
+  expect(createSkinUniforms(NOX).uUnderside.value).toBe(1.6);
   const material = createSkinMaterial('ARM', uniforms);
   expect(material.fragmentShader).toMatch(/pow\(band, 1\.6\) \* uUnderside;/);
   material.dispose();

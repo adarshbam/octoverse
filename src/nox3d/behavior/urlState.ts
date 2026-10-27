@@ -24,10 +24,11 @@ export interface UrlState {
   tier?: QualityTier;
   /** Test content in place of the project's own (honoured in development builds only). */
   fixture?: 'nosections';
-  /** No bubbles (technology or ambient) and no dome glass, so a capture shows Nox alone: for measurement only. */
+  /**
+   * For measurement captures only: hides the technology orbs, the dome glass and, in the world,
+   * the ambient bubbles. The world's embers, and the bubbles and embers without a world, stay.
+   */
   solo: boolean;
-  /** The proposed palette in place of the approved one, for the owner's A/B review (honoured in development builds only). */
-  palette?: 'candidate';
 }
 
 /** Review and debugging switches read from the page URL. Unknown values are ignored. */
@@ -47,6 +48,5 @@ export function parseUrlState(search: string): UrlState {
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';
-  if (params.get('palette') === 'candidate') state.palette = 'candidate';
   return state;
 }

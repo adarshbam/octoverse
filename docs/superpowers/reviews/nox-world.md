@@ -150,6 +150,8 @@ Five full runs with the config (3 workers) pass, 8 of 8 each time. Four more run
 
 ### Nox's colours in the world (Task 5, 2026-10-27)
 
+> Superseded by the R23 section below ("Task 5: the wider palette candidate"). The owner approved that candidate as Nox's palette in every stage (ruling R25, 2026-10-27); the R22 candidate described here was never applied.
+
 **Result.** The colour targets are not met, with the approved palette or with the palette candidate. Tuning the water round Nox (aura and grade) took "aura outside" from 22.7 to 15.4 and brought the water 10 to 60 px round him close to panel 2's. It cannot move Nox's own colours. The candidate, kept to the colours ruling R22 allows, meets brightness and "upper arm top" in the intro, and nothing else new. Its limit is measured below: within those colours, saturation cannot pass 0.79 (target 0.85). Three region misses depend on things that may not change: the face's blush (cheek glow), the neon rim (arm rim) and the halo (aura outside).
 
 All numbers are from `node scripts/world-capture.mjs <stage> <out>` then `python scripts/check_stage.py <out> --world [--stage <id>]`. The results ("After Step 1" and Step 3) come from two captures each; the two runs agree within 0.002 in saturation and 0.003 in brightness, and 1 per channel in the mean. The tuning tries are single captures.
@@ -206,6 +208,8 @@ All numbers are from `node scripts/world-capture.mjs <stage> <out>` then `python
 | Arms (54%) | 125, 22, 93; 0.887; 0.558 | 152, 38, 98; 0.816; 0.627 |
 
 The green that lowers the saturation does not come from the palette colours R22 names: the arm body's green is already 10 of 255. It comes from the wet highlights and droplets (`wet`), the cool skin drift (`tintCool`), the sky colour on the dome, the neon rims and their bloom. The outer 3 px alone hold the saturation near 0.66 on a tenth of the pixels.
+
+> Superseded by the R23 section below: this R22 candidate and its rows in Step 3 are history only.
 
 **Step 2: the palette candidate** (not applied; `?palette=candidate`, development builds only). Without the switch the palette is exactly the approved one. Every try below has the Step 1 aura and grade and Task 3's starting warmth, except the last row (the candidate as proposed), which has the kept warmth:
 
@@ -269,7 +273,7 @@ The darker arm body goes past "less green": brightness can only come down by dar
 | Cheek glow | 10.0 | 10.0 | The face's blush; no palette try moves it. The face may not change. |
 | Upper arm top | 10.0 | 7.0, passes | |
 | Arm underside band | 26.0 | 25.4 | Panel 2's band is a brighter red (210, 5, 58 against 160, 6, 66). The band's strength is a shader constant; warmth at its cap gives about 3. |
-| Arm rim | 23.1 | 27.2 | The neon rim. At this column our arm's top edge is 4 px above panel 2's; shifted 4 px to line the edges up, the rim still reads 10.8 (bluer and lighter in panel 2). The rim may not change. |
+| Arm rim | 23.1 | 27.2 | The neon rim. At this column our arm's top edge is 3 px above panel 2's (2 to 3 px across the patch's columns, measured again in R23); shifted 4 px to line the edges up, the rim still reads 10.8 (bluer and lighter in panel 2). The rim may not change. |
 | Aura outside | 15.4 | 15.4 | The halo's width and crown colour, and the light shaft drawn after the grade. The floor is 12.9 even with the water blacked out. |
 
 No sample was moved: none is shown to be misregistered (the arm rim fails even when lined up).
@@ -302,7 +306,7 @@ A silhouette capture (`&mask`) drew the head with the scene's plain white overri
 
 **Result.** With the wider candidate, the intro meets the mean, the saturation and the brightness, and 6 of the 8 region samples. Two regions still miss:
 - **Cheek glow:** 9.5 against 8 (1.5 over). It is the face's blush, which may not change.
-- **Arm rim:** 40.8 against 8 (32.8 over). Our arm's top edge sits 3 px above panel 2's at that point, which is a matter of shape.
+- **Arm rim:** 40.8 against 8 (32.8 over). Our arm's top edge sits 2 to 3 px above panel 2's across the patch (3 px at its centre column), which is a matter of shape.
 
 The other stages still miss, by less than with the approved palette (table below). The candidate shows only with `?world&palette=candidate`; without the switch the palette and the output are the approved ones.
 
@@ -435,4 +439,70 @@ The violet tops now match panel 2's share, and are darker and more saturated tha
 - `nox-world-t5-stages-v2.jpg`: overview, overview `solo`, techFocus and detail; panel 2, approved and candidate in each row.
 - `nox-world-t5-intro-candidate-v2.png`: the measured candidate intro. Its mask is `nox-world-t5-intro-mask.png` (byte-identical), and the approved intro is `nox-world-t5-intro-approved.png`.
 
-**Tests:** `npm test` 47 files, 293 tests; tsc (app, nox3d, node) exit 0; oxlint on the changed files clean; nox3d e2e 8 of 8.
+**Tests:** `npm test` 47 files, 293 tests; tsc (app, nox3d, node) exit 0; oxlint on the changed files: no new warnings; nox3d e2e 8 of 8.
+
+#### Task 5: the palette promoted (ruling R25, 2026-10-27)
+
+**Owner's verdict:** "Approved the R23 candidate palette as Nox's palette in every stage (2026-10-27)." In the owner's words: "Approve the candidate palette. Make it Nox's palette in every stage and remove the switch."
+
+**Known weaknesses the owner accepted:**
+- the arm tops are darker than panel 2's;
+- the magenta between the violet tops and the red band covers 14% of the arms, against panel 2's 32.5%;
+- the raised-arm stages (overview, techFocus) read redder than before;
+- the face glow is slightly redder;
+- cheek glow (9.5) and arm rim (40.8) still miss.
+
+**What changed:**
+- **Promoted values.** The R23 values are now NOX's own in `nox.character.ts`: the palette colours, the halo colours, the ramp's middle stops and `glow.underside` 1.6. A one-off check confirmed that the promoted config equals the R23 candidate applied to the earlier config, field for field.
+- **Switch removed.** `?palette=candidate` is gone: urlState's `palette` field and its test, the development-only branch in `App.tsx`, `withPaletteCandidate`, and `nox.palette-candidate.ts` with its test.
+- **Guard test.** `nox.character.test.ts` writes out, as literals, everything the owner kept: the face palette and canvas (eyes, brows, mouth, blush), the cheek colour, the ramp's end stops and stop positions, the sucker colours, and the halo's widths and strengths. It also checks the eight arms, T1 to T8. It passes on the values from before the promotion and after it.
+- **`solo` stays.** Its comment now says what it hides: the technology orbs, the dome glass and, in the world, the ambient bubbles. The world's embers, and the bubbles and embers without a world, stay visible.
+
+**A correction to the R23 record.** The intro's saturation margin was 0.004 in run 1 and 0.003 in run 2 (0.854 and 0.853 against 0.85). The brightness margin was 0.005 (0.565 against 0.57).
+
+**The world, measured again** (`world-capture`, then `check_stage --world`). The numbers match the R23 candidate runs, and the intro and overview masks are byte-identical to the R23 ones.
+
+| Stage and query | Promoted palette | R23 candidate |
+|---|---|---|
+| intro, run 1 and run 2 | 125, 25, 78; 0.854; 0.565 (both runs). Head crown 6.4, head middle 6.9, cheek glow 9.5 (MISS), upper arm top 6.5, arm underside band 6.9, arm rim 40.9 (MISS), suckers 4.3, aura outside 7.7. FAIL (2 misses) | 125, 25, 78; 0.854 / 0.853; 0.565; the same regions within 0.3 |
+| overview `&solo` (R24 mask, 205,201 px) | 148, 30, 73; 0.854; 0.607 (2 misses) | the same |
+| techFocus `&tech=kali&solo` | 135, 29, 75; 0.844; 0.576 (3 misses) | the same |
+| detail `&solo` | 117, 25, 68; 0.842; 0.523 (2 misses) | the same |
+
+**The no-world stage, re-baselined.** It changes with the palette, by the owner's approval. `stage-capture intro`, then `check_stage --panel 2`, two runs. Both runs give the same deltas, and the thresholds are unchanged (24 per channel):
+
+| Sample | Before (HEAD) | Promoted | Result |
+|---|---|---|---|
+| head top | 12 | 14 | ok |
+| head upper-left | 14 | 21 | ok |
+| head side | 6 | 18 | ok |
+| forehead | 16 | 12 | ok |
+| between eyes low | 12 | **50** | **newly fails, 26 over** (ref #fb5054, render #e11e41) |
+| chin glow | 1 | 13 | ok |
+| cheek outer | 15 | **29** | **newly fails, 5 over** (ref #7f2c77, render #621164) |
+| bg left | 5 | 1 | ok |
+| bg upper-left | 9 / 10 | 10 | ok |
+| bg low right | 4 | 4 | ok |
+| widths at y 0.15, 0.10, 0.05, 0.00 | ok | unchanged | ok |
+
+The check now reads FAIL (2 misses) on both runs; before, it was PASS.
+
+**Between eyes low, in the world too.** That point is not one of the world's region samples, so R23 did not measure it there. Its 7 x 7 patch in the world intro:
+- panel 2: (254, 84, 77);
+- the earlier palette: (243, 70, 83), max channel delta 14;
+- the promoted palette: (228, 31, 64), max channel delta 53.
+
+The glow between the eyes has turned crimson. The cause is the ramp's 0.61 and 0.74 stops (`#d8143a` and `#ec2442`, earlier `#e8364d` and `#fb5254`), which lost most of their green.
+
+A diagnostic restored those two stops and was then reverted:
+- between eyes low passes again: 13 without a world, 14 in the world;
+- but the world intro's saturation falls to 0.846, and misses by 0.004;
+- cheek outer stays at 29.
+
+Nothing was changed: the owner's approval stands, and R25 asks only for the record.
+
+**Tests:**
+- `npm test`: 47 files, 295 tests. 4 candidate and palette-switch tests were removed, and 6 guard tests added.
+- tsc (app, nox3d, node): exit 0.
+- oxlint on the changed files: no new warnings. App.tsx keeps its 7 warnings from HEAD; the other changed files have none.
+- nox3d e2e: 5 runs, 8 of 8 each.

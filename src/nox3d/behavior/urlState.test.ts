@@ -44,8 +44,3 @@ test('parses solo, for measurement captures', () => {
   expect(parseUrlState('?world&stage=techFocus&tech=kali&solo')).toMatchObject({ world: true, stage: 'techFocus', tech: 'kali', solo: true });
   expect(parseUrlState('?world').solo).toBe(false);
 });
-
-test('parses the palette candidate and ignores other palettes', () => {
-  expect(parseUrlState('?world&palette=candidate').palette).toBe('candidate');
-  for (const other of ['', '?palette', '?palette=approved', '?palette=Candidate']) expect(parseUrlState(other).palette, other).toBeUndefined();
-});

@@ -12,7 +12,6 @@ import { Octopus } from './character/Octopus';
 import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
-import { withPaletteCandidate } from './config/nox.palette-candidate';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import type { StageId } from './config/types';
 import { clampCharacterConfig } from './config/validate';
@@ -63,8 +62,6 @@ const MASK = new URLSearchParams(location.search).has('mask');
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
 const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
-// The proposed palette in place of the approved one, for the owner's A/B review; honoured only while developing.
-const CHARACTER = import.meta.env.DEV && url.palette === 'candidate' ? withPaletteCandidate(NOX) : NOX;
 
 /**
  * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
@@ -124,7 +121,7 @@ function SilhouetteOnly() {
 }
 
 export function App() {
-  const config = useMemo(() => clampCharacterConfig(CHARACTER), []);
+  const config = useMemo(() => clampCharacterConfig(NOX), []);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
   const quality = useQuality(url);
   const visible = usePageVisible();

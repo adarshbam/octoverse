@@ -24,37 +24,46 @@ export const NOX: CharacterConfig = {
     spreadX: 0.58,
     reachUp: 0.45,
     reachDown: 0.2,
+    // Middle stops from the Task 5 palette (R23, approved by the owner 2026-10-27, R25): the dim
+    // stops toward navy, as the head's middle is in panel 2, and toward the core a little redder
+    // and dimmer. The ends (the dark dome and the face glow's coral heart) are the earlier ones.
     ramp: [
-      [0, '#0a0d2c'], [0.07, '#1e0c30'], [0.17, '#45133e'], [0.27, '#641542'], [0.37, '#891d45'],
-      [0.49, '#b9254b'], [0.61, '#e8364d'], [0.74, '#fb5254'], [0.94, '#fd7c5b'], [1, '#ff8765'],
+      [0, '#0a0d2c'], [0.07, '#040a30'], [0.17, '#3a0a40'], [0.27, '#640842'], [0.37, '#890c45'],
+      [0.49, '#b00c46'], [0.61, '#d8143a'], [0.74, '#ec2442'], [0.94, '#ec4a46'], [1, '#ff8765'],
     ],
     // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
     // fades about 0.2 out from the outline, red below the cup bands.
     cheekWarmth: 0.75,
-    // The arms' red oral band. It was a constant in the skin shader; moved here (ruling R23) so
-    // a palette candidate can change it. 0.95 is the approved value.
-    underside: 0.95,
-    halo: { headWidth: 0.05, armWidth: 0.035, color: '#e83cf0', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
+    // The arms' red oral band. It was a constant 0.95 in the skin shader; moved here (ruling R23)
+    // and raised to 1.6 with the Task 5 palette, so the undersides glow red as in panel 2.
+    underside: 1.6,
+    // Halo colours from the Task 5 palette: a magenta-pink outline round the head and along the
+    // arm tops, a deep violet over the crown, deep red below. Widths and strengths unchanged.
+    halo: { headWidth: 0.05, armWidth: 0.035, color: '#d82090', crown: '#7a28c0', band: '#e80a24', strength: 0.75, bandStrength: 0.9 },
     // In a world (panel 2): a magenta-violet glow in the water round him, deep red below, and
     // the water near him darker and warmer than the far blue. Tuned in Task 5 against the water
     // 10 to 60 px round him in panel 2: dark violet above, red below.
     aura: { inner: '#1c0628', low: '#ff0a18', radius: 3.6, strength: 1 },
     grade: { color: '#1c0612', radius: 4, strength: 1 },
   },
+  // The Task 5 palette (R23), measured against panel 2 in the world and approved by the owner as
+  // Nox's palette in every stage (2026-10-27, R25): deep blue-violet arm tops, a thin blue-violet
+  // top rim over a blue-violet wet sheen, and red undersides. The cheek, the blotches, the sucker
+  // colours and the dome are the earlier ones (see nox.character.test.ts).
   palette: {
     cheek: '#7a1078',
-    headEdge: '#5c2a8c',
-    rimTop: '#9480ff',
-    rimLow: '#ff4cc0',
+    headEdge: '#5c148c',
+    rimTop: '#6a38ff',
+    rimLow: '#a00838',
     sky: '#3a48c8',
     blotch: '#0c0a3a',
-    tintCool: '#5a6ad8',
-    tintWarm: '#c84a8a',
-    wet: '#f6d0ff',
-    armBody: '#640a90',
-    terminator: '#a8085a',
+    tintCool: '#3040ff',
+    tintWarm: '#8c3090',
+    wet: '#5030e0',
+    armBody: '#3a0864',
+    terminator: '#d80848',
     armGlow: '#ff4a5a',
-    belly: '#ff1745',
+    belly: '#ff0428',
     suckerEdge: '#c8102c',
     suckerBody: '#fb7350',
     suckerHot: '#fd8a60',
