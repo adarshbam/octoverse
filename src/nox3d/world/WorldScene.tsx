@@ -2,8 +2,10 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
+import { stoneLights } from './bakedLight';
 import { Floor } from './Floor';
 import { Kit } from './Kit';
+import { useWorldKit } from './kitLoader';
 import { Motes } from './Motes';
 import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
@@ -13,7 +15,8 @@ import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
 
 /**
  * A world mounted from its config: the kit's pieces, the seabed, the water (fog, sky, light
- * shafts, snow, fish), the surface light with its caustics, and the lights of the glyphs and lava.
+ * shafts, snow, fish), the surface light with its caustics, and the light of the glyphs and lava:
+ * baked into the near world's lightmaps when it has near.glb, else real lights with a fill.
  * `time` says whether the world's clock runs or holds one moment. `density` thins the bubbles and
  * embers on lower quality tiers. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
@@ -22,17 +25,19 @@ import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
  */
 export function WorldScene({ world, time, density = 1, accents, solo = false }: { world: WorldConfig; time: WorldTimeFlags; density?: number; accents?: AccentLink; solo?: boolean }) {
   const surface = useSurfaceLight(world);
+  const kit = useWorldKit(world);
   useNoxAccents(world, surface, accents);
-  const { live, palette, water, lights } = world;
+  const { live, palette, water } = world;
+  const { fill } = stoneLights(world);
   return (
     <WorldTimeProvider value={time}>
       <fogExp2 attach="fog" args={[palette.waterFar, water.fogDensity]} />
       <WaterEnvironment world={world} />
       <SurfaceLight {...surface} />
-      <directionalLight color={lights.fill.color} intensity={lights.fill.intensity} position={[...lights.fill.position]} />
+      {fill && <directionalLight color={fill.color} intensity={fill.intensity} position={[...fill.position]} />}
       <WaterSky world={world} caustics={surface.caustics.texture} />
-      <Floor world={world} />
-      <Kit world={world} />
+      <Floor world={world} baked={kit.baked} />
+      <Kit world={world} kit={kit} />
       <GodRays amount={live.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
       <FarFish amount={live.fish} />

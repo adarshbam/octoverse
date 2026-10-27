@@ -641,3 +641,153 @@ The world reads as the same place. The stone is now large carved blocks with pan
 - tsc (app, nox3d, node): exit 0.
 - oxlint on the changed files: clean. `Kit.tsx` keeps its 5 earlier `refs` warnings on the JSX lines. The vendored transcoder is now in the lint ignore list.
 - nox3d e2e: 8 of 8.
+
+### Baked light and brighter relics (Task 7, 2026-10-27)
+
+**What is baked.** `blender/security/bake_world.py` builds the kit's pieces with build_kit.py's own builders. It lays layout.json out in its own "NoxWorld security bake" scene, once at full detail with the seabed and once at lod1. Cycles then bakes the light that does not move into lightmaps on a second UV set (`LightUV`, TEXCOORD_1 in the file):
+- the four glyph lights, at the WorldLight positions and 1.2 times their 1.7 (the relics' spill, R29), with three's distance window (2.1) rebuilt as a light node on the ray length;
+- the four lava lights (3.4, window 5);
+- the fill (2.2, a sun, unshadowed as on the page);
+- the bounce of all of these and of the surface spot, whose own direct light stays real-time (R30);
+- ambient occlusion.
+
+Each placed stone, rock and coral has its own square in an atlas: full detail in one atlas, lod1 in another, both baked. The page shares each piece's geometry between its placements. Each placement and level gets a copy of its material, with the atlas framed on its square through the lightmap's texture transform. The seabed has its own lightmap, read through a planar uv1. The pebbles read it at the point where each one lies (one uv1 per instance). The chain is not lightmapped.
+
+near.glb carries:
+- the pieces, as kit.glb has them, plus LightUV;
+- the three lightmaps, KTX2 UASTC, as the emissive maps of the quads `lightmap_lod0`, `lightmap_lod1` and `lightmap_seabed`;
+- a record of the bake, in its scene's extras.
+
+When the config names `near`, the page loads near.glb in place of kit.glb. Without `near` the world loads kit.glb with real lights, as before.
+
+**Calibration.**
+- three's point light is in candela, so a Cycles point light of 4π times that power gives the same irradiance.
+- The diffuse bake gives irradiance / π.
+- A lightmap texel holds π (direct + indirect) times (1 - 0.5 (1 - AO)), divided by 48 and sRGB-encoded (`lightMapIntensity` 48).
+
+As a check, 20 seabed points round the four lava lights were compared with the analytic, unshadowed sum of the point lights and the fill. Baked over analytic:
+- red: median 0.990, range 0.853 to 1.075 (the spread is the glyph lights' shadows);
+- green: 1.000;
+- blue: 1.003.
+
+**Shadows.** The glyph lights cast shadows in the bake (radius 0.05). The lava light does not. It stands for lava glowing under the rubble, among the rocks and coral it lights. Shadowed, the front rocks hid most of its red pools on the seabed: the front corners got 0.3 to 0.8 of the analytic red. Panel 2's lower third wants that red brighter, not darker. The fill casts no shadow, as on the page.
+
+**Sheen.** A lightmap carries diffuse light only. On the dark stone, and most of all on the very dark rock (albedo about 0.02), most of what the real lights showed was their specular sheen.
+
+With diffuse alone, the dim pixels read these shares of the real-time lights at the same relic strength:
+- stone 0.91 and 0.92;
+- seabed 0.89;
+- rock heaps 0.76 and 0.79.
+
+Each lit material now gives its specular the baked light back as radiance (irradiance / π), weighted by N.V. The light arrives from in front of a surface. A reflection that grazes the surface, as the low camera sees the seabed, looks away from that light.
+
+With the sheen:
+- stone 1.00 and 0.99;
+- seabed 1.00;
+- rock heaps 0.89 and 0.90. The gap is the AO and the highlights, which an average cannot give.
+
+The sheen is one shader line (`withBakedSheen` in bakedLight.ts). It does nothing without a lightmap.
+
+**Bake settings.**
+- Blender 5.2.2 LTS, Cycles on the GPU (Quadro T1000).
+- Samples: direct 192, indirect 96, AO 160.
+- 3 diffuse bounces, no glossy bounces.
+- No denoiser: Cycles 5.2 has none for bakes. The brief asked for one; the noise was kept down with samples only (see "Left as found").
+- Margin 4 px (adjacent faces), 2 px between squares.
+- AO distance 0.6.
+- UVs: Smart UV Project at 89 degrees, island margin 0.004.
+
+Times in the MCP run:
+
+| Step | lod0 | lod1 |
+|---|---|---|
+| direct | 66.2 s | 42.4 s |
+| indirect | 73.1 s | 35.0 s |
+| ao | 73.9 s | 39.6 s |
+
+Setup took 15.4 s and the export 30.3 s, about 6 minutes in all. Each step runs in its own call.
+
+**Resolution.**
+
+| Lightmap | Pixels | Texels per unit | Squares |
+|---|---|---|---|
+| lod0 (14 pillars, 16 rocks, 11 corals) | 1024 x 1024 | 21.2 | 26 to 214 px |
+| lod1 | 512 x 512 | 11.2 | 14 to 111 px |
+| seabed (26 x 69 units) | 512 x 1024 | 19.7 across, 14.8 along | - |
+
+**Relics.**
+- Emission: glyph panels 2.88 (the test scene's 2.4 times 1.2), coral 2.04 (1.7 times 1.2).
+- Glyph light on the stone: 2.04 (1.7 times 1.2).
+- Unchanged: bloom, and Nox's accent data (glyph 1.7, 2.1, skin range 4.4; lava 3.4, 5, 6).
+
+Outside Nox's silhouette, the bright red pixels rose:
+- red over 0.7: 28,127 to 36,420 (+29%);
+- red over 0.9: 8,504 to 11,698 (+38%).
+
+The relics read a little brighter, and their red reaches a little further onto the stone. They stay well under Nox.
+
+**Real-time lights.** The count comes from the light uniforms the world's materials compile with:
+- before, 11: the surface spot, the fill, 8 point lights for glyph and lava, and Nox's glow light;
+- after, 2: the surface spot and Nox's glow light.
+
+**Levels of detail.** The intro was captured with every piece forced to its lod1, then compared with the normal capture. At lod1:
+
+| | Near stone | Whole frame |
+|---|---|---|
+| baked | 1.019 and 1.009 times as bright | 1.010 |
+| real-time lights | 1.010 and 1.003 | 1.010 |
+
+A swap adds under 1% to what the geometry change already gives. The forced capture is the worst case: the intro's near pillars stand 14 units away, inside the 16-unit line.
+
+**Fallback.** `near` was taken out of the config, with the relic rise at 1. The intro capture then matches the Task 6 capture except where bubbles and embers move: 1.25% of the pixels, none on the stone or seabed. The config was restored after the check.
+
+**Nox is unchanged.** The check: `world-capture intro`, then `check_stage --world --stage intro`. It ran once before (HEAD 7de3e24) and twice after.
+
+| | Mean | Unrounded mean | Saturation | Brightness |
+|---|---|---|---|---|
+| before | (127, 28, 79) | (126.90, 28.49, 79.35) | 0.837 | 0.570 |
+| after, run 1 | (127, 29, 79) | (126.89, 28.50, 79.24) | 0.836 | 0.570 |
+| after, run 2 | (127, 29, 79) | (126.91, 28.54, 79.24) | 0.836 | 0.570 |
+
+The masks are identical. The region delta E values move by at most 0.6:
+- head crown 6.5 to 6.4;
+- head middle 7.8 to 7.9;
+- upper arm top 7.1 to 6.5;
+- underside band 7.0 to 6.9;
+- unchanged: cheek 9.5, rim 40.8, suckers 4.3, aura 7.6.
+
+The three misses are the accepted ones (saturation, cheek glow, arm rim).
+
+**Sizes.**
+
+| Asset | Bytes |
+|---|---|
+| near.glb raw export | 7,303,248 |
+| near.glb (UASTC level 2 with RDO and zstd 18, then meshopt) | 2,861,180 |
+| kit.glb (the fallback; not fetched when near.glb is used) | 1,256,212 |
+| Basis transcoder (js + wasm), now fetched for the lightmaps | 584,862 |
+| **World assets, worst case** | **4,702,254** (6 MB budget) |
+
+**Stills:**
+- `assets/nox-world-t7-light-strip.jpg`: panel 2, before (real-time lights) and after (baked, relics x1.2);
+- `assets/nox-world-t7-light-crop.jpg`: the right-hand pillars and rock heap at full size;
+- `assets/nox-world-t7-light-detail.jpg`: one right-hand block at twice panel 2's size, before and after.
+
+At panel 2's size the world reads as the same place. The red round the glyph panels is a little stronger. It sits a little tighter in the carved recesses, where the AO falls.
+
+At twice the size the stone is visibly flatter. A lightmap holds the light for the surface, not for its normal map. The glyph light used to rake across the stone's pits from 0.5 in front of it, and that detail is gone. Soft mottling shows in its place. Fine detail (high-pass RMS over mean, dim stone pixels) is 0.159 and 0.163 with real-time lights and 0.144 and 0.151 baked, about 8% less.
+
+**Left as found.**
+- Lightmaps cannot give the sharp highlights the point lights left on the wet seabed and the rocks. The sheen keeps only their average.
+- The chain has no lightmap. Only the surface spot and the water's environment light it.
+- The stone's normal-map detail no longer takes the baked light (see the detail still). A directional lightmap would bring it back: a second atlas holding each texel's main light direction, which the shader uses to shade the normal map. That is a follow-up for the owner to weigh.
+- No denoiser was run on the bakes. A compositor denoise pass on the baked images could add one. The mottling in the detail still may be bake noise.
+- The bake must run again after any change to layout.json, the kit's pieces or the baked lights. Until it does, a test fails by name.
+
+**Reproducible.** `blender --background --python blender/security/bake_world.py` in a fresh Blender rebuilt near.glb from layout.json alone, in about 7 minutes. Its JSON and bake record equal the committed file's, and its lod1 lightmap is byte-identical. The lod0 lightmap differs in 20 of its 1,048,576 texels and the seabed's in 0.2% of its texels, by at most 16 levels in 255: the GPU bake is not bit-exact. The committed near.glb is the one measured above. `build_kit.py` run headless after its refactor gives a kit.glb byte-identical to HEAD's.
+
+**Tests:**
+- `npm test`: 49 files, 309 tests.
+- tsc (nox3d, app): exit 0.
+- oxlint on the changed files: no new warnings. `Kit.tsx` keeps its 5 earlier `refs` warnings, and `Floor.tsx` and `WorldScene.tsx` keep one `immutability` warning each, as at HEAD. Floor's `only-export-components` warning is gone with floorHeight's move to `seabed.ts`.
+- nox3d e2e: 8 of 8.

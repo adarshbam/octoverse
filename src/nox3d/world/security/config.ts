@@ -44,13 +44,22 @@ const glyphLights: WorldLight[] = layout.pillars
 // Lava light: pools low round the coral at each lower corner, and at the near pillars' feet.
 const lavaLights: WorldLight[] = layout.coralLights.map(position => ({ kind: 'lava', position, color: palette.lava, intensity: 3.4, distance: 5, skinRange: 6 }));
 
+/**
+ * The relics glow a little more than in the test scene (the owner: "just a little more", still
+ * subtle): 1.2 times its glyph panels (2.4), coral (1.7) and glyph light on the stone (1.7). The
+ * glyph light's spill is baked by blender/security/bake_world.py, which records it in near.glb.
+ */
+const RELIC_RISE = 1.2;
+
 export const SECURITY_WORLD: WorldConfig = {
   id: 'security',
   kit: {
     url: '/nox/world/security/kit.glb',
     pieces: ['pillar_a', 'pillar_b', 'pillar_c', 'pillar_d', 'rock_0', 'rock_1', 'rock_2', 'rock_3', 'rock_4', 'coral_0', 'coral_1', 'coral_2', 'chain'],
   },
+  near: { url: '/nox/world/security/near.glb' },
   layout,
+  relics: { glyph: 2.4 * RELIC_RISE, coral: 1.7 * RELIC_RISE, spill: RELIC_RISE },
   palette,
   lights: {
     surface: { color: '#6f9cff', intensity: 2.2, position: [0.6, 24, -10], target: [0, layout.floorY, -8] },

@@ -47,7 +47,20 @@ export interface WorldConfig {
   id: string;
   /** The glTF file, and the pieces in it the layout may name. */
   kit: { url: string; pieces: readonly string[] };
+  /**
+   * The baked near world (blender/security/bake_world.py): the kit's pieces with a lightmap UV set,
+   * their lightmaps and a record of the bake. When it is there the page loads it in place of the
+   * kit, and the glyph, lava and fill light on the stone and seabed come from its lightmaps instead
+   * of real-time lights.
+   */
+  near?: { url: string };
   layout: WorldLayout;
+  /**
+   * How the relics (glyph panels and glowing coral) glow: `glyph` multiplies a panel's white before
+   * its own brightness, `coral` the coral's red, and `spill` the glyph light that the bake lays on
+   * the stone round them. The WorldLight data for Nox's accents does not rise with them.
+   */
+  relics: { glyph: number; coral: number; spill: number };
   palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string };
   lights: {
     /** From the surface, high above and beyond the stage: shadows, and caustics in its cookie. */

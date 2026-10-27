@@ -547,15 +547,12 @@ def lay_out(layout, coll, pieces):
 
 # --- Export ------------------------------------------------------------------------------------
 
-def strip_prefix(path):
-    """Drops PREFIX from the glb's node and mesh names: the page asks for `pillar_a`, not `nox.pillar_a`."""
+def edit_glb_json(path, edit):
+    """Rewrites a glb's JSON chunk through `edit(doc)`, keeping its binary chunk."""
     data = bytearray(path.read_bytes())
     json_len = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + json_len])
-    for group in ("nodes", "meshes", "materials"):
-        for item in doc.get(group, []):
-            if item.get("name", "").startswith(PREFIX):
-                item["name"] = item["name"][len(PREFIX):]
+    edit(doc)
     text = json.dumps(doc, separators=(",", ":")).encode("utf-8")
     text += b" " * (-len(text) % 4)
     rest = data[20 + json_len:]
@@ -563,10 +560,20 @@ def strip_prefix(path):
     path.write_bytes(out)
 
 
-def export(coll):
-    RAW.parent.mkdir(parents=True, exist_ok=True)
+def strip_prefix(path):
+    """Drops PREFIX from the glb's node and mesh names: the page asks for `pillar_a`, not `nox.pillar_a`."""
+    def drop(doc):
+        for group in ("nodes", "meshes", "materials"):
+            for item in doc.get(group, []):
+                if item.get("name", "").startswith(PREFIX):
+                    item["name"] = item["name"][len(PREFIX):]
+    edit_glb_json(path, drop)
+
+
+def export(coll, raw=RAW):
+    raw.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(
-        filepath=str(RAW),
+        filepath=str(raw),
         collection=coll.name,
         export_format="GLB",
         export_apply=True,
@@ -576,12 +583,14 @@ def export(coll):
         export_materials="EXPORT",
         export_normals=True,
     )
-    strip_prefix(RAW)
+    strip_prefix(raw)
 
 
-def compress():
-    cmd = ["npx", "gltf-transform", "optimize", str(RAW), str(OUT), "--compress", "meshopt", "--texture-compress", TEXTURE_COMPRESS, *KEEP_STRUCTURE]
-    print("compressing:", " ".join(cmd))
+def gltf_transform(*args):
+    """Runs the repo's own gltf-transform (npx --no-install: never a download), with KTX-Software
+    on the PATH for its KTX2 commands."""
+    cmd = ["npx", "--no-install", "gltf-transform", *map(str, args)]
+    print("gltf-transform:", " ".join(cmd))
     env = dict(os.environ)
     if os.path.isdir(KTX_BIN):
         env["PATH"] = KTX_BIN + os.pathsep + env.get("PATH", "")
@@ -590,6 +599,11 @@ def compress():
     except (OSError, subprocess.CalledProcessError) as error:
         detail = getattr(error, "stderr", "") or error
         raise RuntimeError(f"gltf-transform failed; run the command above from {ROOT}.\n{detail}") from error
+
+
+def compress(raw=RAW, out=OUT):
+    """Meshopt geometry and KTX2 textures, keeping the structure the page reads (KEEP_STRUCTURE)."""
+    gltf_transform("optimize", raw, out, "--compress", "meshopt", "--texture-compress", TEXTURE_COMPRESS, *KEEP_STRUCTURE)
 
 
 # --- Build -------------------------------------------------------------------------------------
@@ -612,7 +626,9 @@ def build():
         build_in(scene, pieces_coll, world_coll)
 
 
-def build_in(scene, pieces_coll, world_coll):
+def build_pieces(pieces_coll):
+    """Every piece and its lod1 into `pieces_coll`: {name: (full, lod1)}. bake_world.py builds the
+    same pieces through this."""
     mats = {
         "stone": material("kit_stone", (0.16, 0.17, 0.24), 0.9),
         "glyph": material("kit_glyph", (0.05, 0.01, 0.02), 0.6),
@@ -634,7 +650,11 @@ def build_in(scene, pieces_coll, world_coll):
         size = 1.0 + 0.25 * i
         built[name] = (build_coral(name, pieces_coll, seed, mats, size, 1), build_coral(name + LOD1, pieces_coll, seed, mats, size, 0))
     built["chain"] = (build_chain("chain", pieces_coll, mats), build_chain("chain" + LOD1, pieces_coll, mats, nu=7, nv=4))
+    return built
 
+
+def build_in(scene, pieces_coll, world_coll):
+    built = build_pieces(pieces_coll)
     layout = read_layout()
     check_layout(layout, built)
     camera = lay_out(layout, world_coll, {name: full for name, (full, _) in built.items()})

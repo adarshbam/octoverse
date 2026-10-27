@@ -1,33 +1,16 @@
-import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { floorHeight } from './Floor';
+import { type BakeRecord, type BakedLight, lightMapOf, stoneLights, withBakedSheen } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
+import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
+import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
-
-/** One KTX2 loader per renderer: it transcodes in workers, to the formats this GPU supports. */
-const ktx2Loaders = new WeakMap<THREE.WebGLRenderer, KTX2Loader>();
-
-/** The kit is compressed: meshopt geometry, KTX2 (Basis) textures with the transcoder in public/nox/basis. */
-function compressedKit(gl: THREE.WebGLRenderer) {
-  return (loader: GLTFLoader) => {
-    let ktx2 = ktx2Loaders.get(gl);
-    if (!ktx2) {
-      ktx2 = new KTX2Loader().setTranscoderPath(`${import.meta.env.BASE_URL}nox/basis/`).detectSupport(gl);
-      ktx2Loaders.set(gl, ktx2);
-    }
-    loader.setKTX2Loader(ktx2);
-    loader.setMeshoptDecoder(MeshoptDecoder);
-  };
-}
 
 function applyPlacement(object: THREE.Object3D, p: Placement) {
   object.position.set(...p.position);
@@ -42,27 +25,6 @@ function withLod(full: THREE.Object3D, far: THREE.Object3D) {
   lod.addLevel(full, 0);
   lod.addLevel(far, KIT_LOD_DISTANCE, LOD_HYSTERESIS);
   return lod;
-}
-
-/**
- * A kit mesh as plain float geometry in its piece's own space. The compressed file stores
- * positions quantized into a [-1, 1] box and puts the scale and offset back in the node; code
- * that reads positions as stage units (the coral's sway, the chain's bending) needs them undone.
- */
-function bakedGeometry(mesh: THREE.Mesh) {
-  const geometry = new THREE.BufferGeometry();
-  for (const [name, source] of Object.entries(mesh.geometry.attributes)) {
-    const size = source.itemSize;
-    const values = new Float32Array(source.count * size);
-    // getX..getW undo the normalisation of quantized attributes.
-    const read = (i: number, c: number) => (c === 0 ? source.getX(i) : c === 1 ? source.getY(i) : c === 2 ? source.getZ(i) : source.getW(i));
-    for (let i = 0; i < source.count; i++) for (let c = 0; c < size; c++) values[i * size + c] = read(i, c);
-    geometry.setAttribute(name, new THREE.BufferAttribute(values, size));
-  }
-  // Its own copy: disposing this geometry must not free the cached piece's index on the GPU.
-  if (mesh.geometry.index) geometry.setIndex(mesh.geometry.index.clone());
-  mesh.updateWorldMatrix(true, false);
-  return geometry.applyMatrix4(mesh.matrixWorld);
 }
 
 /** Bends a straight chain (links up its local y) along a sagging curve, repeating it to length. */
@@ -106,8 +68,11 @@ function hangChain(link: THREE.BufferGeometry, unit: number, from: Vec3, to: Vec
   return merged;
 }
 
-/** Small stones strewn over the seabed, thicker toward the pillars. */
-function pebbleField(material: THREE.Material, floorY: number) {
+/**
+ * Small stones strewn over the seabed, thicker toward the pillars. With `lightUv`, each stone reads
+ * the seabed's lightmap where it lies (one uv1 per stone).
+ */
+function pebbleField(material: THREE.Material, floorY: number, lightUv: boolean) {
   const base = new THREE.IcosahedronGeometry(1, 2);
   const pos = base.attributes.position as THREE.BufferAttribute;
   const v = new THREE.Vector3();
@@ -126,6 +91,7 @@ function pebbleField(material: THREE.Material, floorY: number) {
   const q = new THREE.Quaternion();
   const s = new THREE.Vector3();
   const e = new THREE.Euler();
+  const uv1 = new Float32Array(COUNT * 2);
   let placed = 0;
   for (let tries = 0; tries < COUNT * 6 && placed < COUNT; tries++) {
     const x = (rand() - 0.5) * 16;
@@ -137,25 +103,25 @@ function pebbleField(material: THREE.Material, floorY: number) {
     q.setFromEuler(e);
     s.set(size * (0.8 + rand() * 0.5), size, size * (0.8 + rand() * 0.5));
     m.compose(new THREE.Vector3(x, floorHeight(x, z, floorY) + size * 0.1, z), q, s);
+    uv1.set(seabedLightUv(x, z), placed * 2);
     mesh.setMatrixAt(placed++, m);
   }
   mesh.count = placed;
+  if (lightUv) base.setAttribute('uv1', new THREE.InstancedBufferAttribute(uv1, 2));
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
 }
 
 /** The ruin: pillars with glowing glyphs, boulders, coral, hanging chains and strewn stones. */
-export function Kit({ world }: { world: WorldConfig }) {
-  const gl = useThree(state => state.gl);
-  const gltf = useLoader(GLTFLoader, world.kit.url, compressedKit(gl));
+export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
   const now = useWorldTime();
   const coralTime = useRef({ value: 0 });
   const group = useRef<THREE.Group>(null);
 
   const built = useMemo(() => {
-    const source = gltf.scene;
-    const { layout, palette } = world;
+    const { scene: source, baked } = kit;
+    const { layout, palette, relics } = world;
     const stoneMaps = makeStoneMaps(13, { period: 6, strength: 5, pits: 0.25 });
     const rockMaps = makeStoneMaps(29, { period: 5, strength: 9, pits: 1.1 });
     rockMaps.normal.repeat.set(0.7, 0.7);
@@ -168,6 +134,10 @@ export function Kit({ world }: { world: WorldConfig }) {
       normalMap: stoneMaps.normal,
       normalScale: new THREE.Vector2(1.1, 1.1),
     });
+    const sheen = (shader: THREE.WebGLProgramParametersWithUniforms) => {
+      shader.fragmentShader = withBakedSheen(shader.fragmentShader);
+    };
+    stone.onBeforeCompile = sheen;
     const rock = new THREE.MeshStandardMaterial({
       color: '#22202e',
       roughness: 0.5,
@@ -180,7 +150,7 @@ export function Kit({ world }: { world: WorldConfig }) {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vRockWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vRockWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      shader.fragmentShader = shader.fragmentShader
+      shader.fragmentShader = withBakedSheen(shader.fragmentShader)
         .replace(
           '#include <common>',
           `#include <common>
@@ -203,10 +173,11 @@ export function Kit({ world }: { world: WorldConfig }) {
         );
     };
     const pebble = new THREE.MeshStandardMaterial({ color: '#2a2a38', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
+    pebble.onBeforeCompile = sheen;
     const iron = new THREE.MeshStandardMaterial({ color: '#2a2e3c', roughness: 0.38, metalness: 0.8 });
     // Coral glows from within, brightest at the tips (the baked colour), and is still shaded by
     // the light round it, so its branches read as solid.
-    const coral = new THREE.MeshStandardMaterial({ vertexColors: true, color: '#7a0a18', roughness: 0.42, emissive: new THREE.Color(palette.coral).multiplyScalar(1.7) });
+    const coral = new THREE.MeshStandardMaterial({ vertexColors: true, color: '#7a0a18', roughness: 0.42, emissive: new THREE.Color(palette.coral).multiplyScalar(relics.coral) });
     coral.onBeforeCompile = shader => {
       shader.uniforms.uTime = coralTime.current;
       shader.vertexShader = shader.vertexShader
@@ -220,7 +191,7 @@ export function Kit({ world }: { world: WorldConfig }) {
           transformed.x += sin(uTime * 1.1 + phase + position.y * 2.5) * 0.05 * h * h;
           transformed.z += cos(uTime * 0.8 + phase * 1.3) * 0.03 * h * h;`,
         );
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = withBakedSheen(shader.fragmentShader).replace(
         '#include <emissivemap_fragment>',
         /* glsl */ `#include <emissivemap_fragment>
         totalEmissiveRadiance *= pow(vColor.r, 1.6);`,
@@ -248,9 +219,23 @@ export function Kit({ world }: { world: WorldConfig }) {
       const key = `${textureKey}-${brightness}`;
       let material = glyphMaterials.get(key);
       if (!material) {
-        material = new THREE.MeshBasicMaterial({ map, color: new THREE.Color('#ffffff').multiplyScalar(2.4 * brightness) });
+        material = new THREE.MeshBasicMaterial({ map, color: new THREE.Color('#ffffff').multiplyScalar(relics.glyph * brightness) });
         glyphMaterials.set(key, material);
       }
+      return material;
+    };
+
+    // With the near world baked, each placed stone, rock and coral reads its own rect of its level's
+    // lightmap atlas: a copy of its material per placement and level, sharing shader and textures.
+    const litMaterials: (THREE.Material | THREE.Texture)[] = [];
+    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: keyof BakeRecord['instances'], index: number, level: number) => {
+      if (!light) return base;
+      const material = base.clone() as M;
+      material.onBeforeCompile = base.onBeforeCompile;
+      const rects = light.record.instances[group][index];
+      material.lightMap = level === 0 ? lightMapOf(light.atlases.lod0, rects.lod0) : lightMapOf(light.atlases.lod1, rects.lod1);
+      material.lightMapIntensity = light.record.intensity;
+      litMaterials.push(material, material.lightMap);
       return material;
     };
 
@@ -262,34 +247,35 @@ export function Kit({ world }: { world: WorldConfig }) {
     };
     // Each placed piece is a LOD holding copies of the piece and its lod1. The copies keep the
     // node transforms the compressed file gives them; the placement goes on the LOD.
-    const placedLod = (p: Placement, dress: (level: THREE.Object3D) => void) => {
+    const placedLod = (p: Placement, dress: (level: THREE.Object3D, index: number) => void) => {
       const lod = withLod(piece(p.piece).clone(true), piece(`${p.piece}_lod1`).clone(true));
-      for (const { object } of lod.levels) dress(object);
+      lod.levels.forEach(({ object }, index) => dress(object, index));
       applyPlacement(lod, p);
       lod.updateMatrixWorld(true);
       return lod;
     };
 
     const pillars = layout.pillars.map((p, index) =>
-      placedLod(p, level =>
+      placedLod(p, (level, levelIndex) => {
+        const material = lit(stone, baked, 'pillars', index, levelIndex);
         level.traverse(child => {
           if (!(child instanceof THREE.Mesh)) return;
           if (child.name.includes('glyph')) {
             child.material = glyphMaterial(child, p.runes ?? index, index);
           } else {
-            child.material = stone;
+            child.material = material;
             // Far down the ruin the fog hides any shadow they would throw.
             child.castShadow = p.position[2] > -12;
             child.receiveShadow = true;
           }
-        }),
-      ),
+        });
+      }),
     );
 
-    const rocks = layout.rocks.map(p =>
-      placedLod(p, level => {
+    const rocks = layout.rocks.map((p, index) =>
+      placedLod(p, (level, levelIndex) => {
         const mesh = level as THREE.Mesh;
-        mesh.material = rock;
+        mesh.material = lit(rock, baked, 'rocks', index, levelIndex);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
       }),
@@ -298,20 +284,18 @@ export function Kit({ world }: { world: WorldConfig }) {
     // Coral sits on whatever is under it: a boulder (at full detail) or the seabed. Its sway reads
     // positions in stage units, so it draws from baked float copies of the kit's coral.
     const coralGeometry = new Map<string, THREE.BufferGeometry>();
-    const coralLevel = (name: string) => {
+    const coralLevel = (name: string, material: THREE.Material) => {
       let geometry = coralGeometry.get(name);
       if (!geometry) {
         geometry = bakedGeometry(piece(name) as THREE.Mesh);
         coralGeometry.set(name, geometry);
       }
-      const mesh = new THREE.Mesh(geometry);
-      mesh.material = coral;
-      return mesh;
+      return new THREE.Mesh(geometry, material);
     };
     const rockSurfaces = rocks.map(lod => lod.levels[0].object);
     const ray = new THREE.Raycaster();
-    const corals = layout.corals.map(p => {
-      const object = withLod(coralLevel(p.piece), coralLevel(`${p.piece}_lod1`));
+    const corals = layout.corals.map((p, index) => {
+      const object = withLod(coralLevel(p.piece, lit(coral, baked, 'corals', index, 0)), coralLevel(`${p.piece}_lod1`, lit(coral, baked, 'corals', index, 1)));
       const [x, , z] = p.position;
       ray.set(new THREE.Vector3(x, 8, z), new THREE.Vector3(0, -1, 0));
       const hit = ray.intersectObjects(rockSurfaces, false)[0];
@@ -339,15 +323,20 @@ export function Kit({ world }: { world: WorldConfig }) {
     });
     const chainGeometry = chains.flatMap(lod => lod.levels.map(level => (level.object as THREE.Mesh).geometry));
 
-    // The near glyphs are real lights: red light falls on the stone, the seabed and Nox. The lava
-    // pools low round the coral and the pillars' feet.
-    const lights = world.lights.points.map(({ position, color, intensity, distance }) => {
+    // Unbaked, the near glyphs are real lights: red light falls on the stone and the seabed, and
+    // the lava pools low round the coral and the pillars' feet. Baked, that light is in the lightmaps.
+    const lights = stoneLights(world).points.map(({ position, color, intensity, distance }) => {
       const light = new THREE.PointLight(color, intensity, distance, 2);
       light.position.set(...position);
       return light;
     });
 
-    const pebbles = pebbleField(pebble, layout.floorY);
+    if (baked) {
+      pebble.lightMap = lightMapOf(baked.atlases.seabed);
+      pebble.lightMapIntensity = baked.record.intensity;
+      litMaterials.push(pebble.lightMap);
+    }
+    const pebbles = pebbleField(pebble, layout.floorY, baked !== null);
 
     // What this memo made and owns. The pieces' own geometry and materials belong to the
     // useLoader cache (the clones above share them), so they are left out; the LOD objects hold
@@ -359,12 +348,13 @@ export function Kit({ world }: { world: WorldConfig }) {
       ...glyphMaterials.values(),
       ...coralGeometry.values(),
       ...chainGeometry,
+      ...litMaterials,
       pebbles.geometry,
       pebbles,
     ];
 
     return { pillars, rocks, corals, chains, pebbles, lights, disposables };
-  }, [gltf, world]);
+  }, [kit, world]);
   useDisposables(built.disposables);
 
   useFrame(state => {

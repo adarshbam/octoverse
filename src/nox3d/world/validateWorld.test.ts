@@ -1,8 +1,12 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
+import { asBakeRecord, stoneLights, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
+import { SEABED, floorHeight } from './seabed';
 import layoutData from './security/layout.json';
 import { SECURITY_WORLD } from './security/config';
 import type { Vec3, WorldConfig } from './types';
@@ -10,7 +14,9 @@ import { asWorldLayout, layoutProblems, validateWorld } from './validateWorld';
 
 const placements = (world: WorldConfig) => [...world.layout.pillars, ...world.layout.rocks, ...world.layout.corals];
 
-const KIT_FILE = new URL('../../../public/nox/world/security/kit.glb', import.meta.url);
+const PUBLIC = new URL('../../../public/', import.meta.url);
+const KIT_FILE = new URL('nox/world/security/kit.glb', PUBLIC);
+const NEAR_FILE = new URL('nox/world/security/near.glb', PUBLIC);
 
 interface GltfNode {
   name?: string;
@@ -20,14 +26,18 @@ interface GltfNode {
 }
 interface Gltf {
   nodes: GltfNode[];
-  meshes: { primitives: { indices?: number; attributes: Record<string, number> }[] }[];
+  meshes: { primitives: { indices?: number; attributes: Record<string, number>; material?: number }[] }[];
   accessors: { count: number }[];
+  materials: { name?: string; emissiveTexture?: { index: number } }[];
+  textures: { source?: number; extensions?: Record<string, { source: number }> }[];
+  images: { mimeType?: string }[];
+  scenes: { extras?: Record<string, unknown> }[];
   extensionsUsed?: string[];
 }
 
-/** The kit file's glTF JSON. A glb is a 12-byte header, then a JSON chunk (length, type, data); compression leaves it readable. */
-function readKit() {
-  const glb = readFileSync(KIT_FILE);
+/** A glb file's glTF JSON. A glb is a 12-byte header, then a JSON chunk (length, type, data); compression leaves it readable. */
+function readGlb(file: URL) {
+  const glb = readFileSync(file);
   const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString('utf8')) as Gltf;
   const byName = new Map(json.nodes.filter(n => n.name).map(n => [n.name!, n]));
   /** Triangles drawn by a node and everything under it. */
@@ -37,6 +47,22 @@ function readKit() {
   };
   return { json, size: glb.length, byName, triangles };
 }
+const readKit = () => readGlb(KIT_FILE);
+/** What bake_world.py recorded in near.glb: the layout, lights and seabed it baked, and where each piece's light lies. */
+const readBake = () => asBakeRecord(readGlb(NEAR_FILE).json.scenes[0].extras?.nox_bake);
+
+/** Bytes in every file under a folder of public/. */
+function folderBytes(folder: string) {
+  const path = fileURLToPath(new URL(folder, PUBLIC));
+  const files = readdirSync(path, { recursive: true, encoding: 'utf8' }).map(name => statSync(join(path, name))).filter(entry => entry.isFile());
+  return files.reduce((sum, entry) => sum + entry.size, 0);
+}
+
+// The test scene's relic glow (src/spikeEnv/World.tsx, the owner's material, read only). The
+// numbers are copied, not imported, because the spike goes in Task 12 (R4): the glyph panels draw
+// white x 2.4 (line 199), the coral glows its red x 1.7 (line 166), and each lit pillar's glyph
+// light, the red it spills on the stone, is 1.7 (line 233).
+const TEST_SCENE = { glyphEmission: 2.4, coralEmission: 1.7, glyphLight: 1.7 };
 
 test('SECURITY_WORLD is valid', () => {
   expect(validateWorld(SECURITY_WORLD)).toEqual([]);
@@ -66,10 +92,121 @@ test('every piece has a lod1', () => {
   }
 });
 
-test('the kit is meshopt-compressed and inside the 6 MB world budget', () => {
-  const { json, size } = readKit();
-  expect(json.extensionsUsed).toContain('EXT_meshopt_compression');
-  expect(size).toBeLessThan(6 * 1024 * 1024);
+test('the kit is meshopt-compressed, and all the world’s assets fit the 6 MB budget', () => {
+  expect(readKit().json.extensionsUsed).toContain('EXT_meshopt_compression');
+  // Everything a world page may fetch: the kit, the baked near world and the KTX2 transcoder.
+  const total = folderBytes('nox/world/') + folderBytes('nox/basis/');
+  expect(total).toBeGreaterThan(readKit().size + readGlb(NEAR_FILE).size);
+  expect(total).toBeLessThan(6 * 1024 * 1024);
+});
+
+test('world config with near.glb lists no stone point lights', () => {
+  expect(SECURITY_WORLD.near?.url).toBe('/nox/world/security/near.glb');
+  // The glyph, lava and fill light are baked into near.glb's lightmaps.
+  expect(stoneLights(SECURITY_WORLD)).toEqual({ points: [], fill: null });
+  // They stay as data for Nox's accents (Task 3), unchanged (R29).
+  const kinds = (kind: string) => SECURITY_WORLD.lights.points.filter(l => l.kind === kind).map(l => [l.intensity, l.distance, l.skinRange]);
+  expect(kinds('glyph')).toEqual(Array(4).fill([1.7, 2.1, 4.4]));
+  expect(kinds('lava')).toEqual(Array(4).fill([3.4, 5, 6]));
+  // Without near.glb the stone keeps its real-time lights, as before the bake.
+  const unbaked = stoneLights({ ...SECURITY_WORLD, near: undefined });
+  expect(unbaked.points).toBe(SECURITY_WORLD.lights.points);
+  expect(unbaked.fill).toBe(SECURITY_WORLD.lights.fill);
+});
+
+test('relic emission is 1.15 to 1.25 times the test scene’s', () => {
+  const { relics, lights } = SECURITY_WORLD;
+  const rises = { glyph: relics.glyph / TEST_SCENE.glyphEmission, coral: relics.coral / TEST_SCENE.coralEmission, spill: relics.spill };
+  for (const [name, rise] of Object.entries(rises)) {
+    expect(rise, name).toBeGreaterThanOrEqual(1.15);
+    expect(rise, name).toBeLessThanOrEqual(1.25);
+  }
+  // The red spill baked onto the stone is the test scene's glyph light, raised by the spill.
+  const baked = readBake();
+  expect(baked.spill).toBe(relics.spill);
+  expect(baked.lights.glyph.length).toBeGreaterThan(0);
+  for (const glyph of baked.lights.glyph) expect(glyph.intensity / TEST_SCENE.glyphLight).toBeCloseTo(relics.spill, 6);
+  // Nox's accents keep the test scene's glyph light (R29).
+  for (const glyph of lights.points.filter(l => l.kind === 'glyph')) expect(glyph.intensity).toBe(TEST_SCENE.glyphLight);
+});
+
+test('near.glb is baked from layout.json and the world’s lights', () => {
+  const baked = readBake();
+  const { layout, lights } = SECURITY_WORLD;
+  // Every placement as layout.json has it, so a layout edit without a new bake fails here.
+  for (const group of ['pillars', 'rocks', 'corals'] as const) {
+    expect(baked.instances[group].map(i => i.placement), group).toEqual(layout[group]);
+  }
+  const close = (a: Vec3, b: Vec3, digits: number) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], digits));
+  const glyphs = lights.points.filter(l => l.kind === 'glyph');
+  expect(baked.lights.glyph).toHaveLength(glyphs.length);
+  baked.lights.glyph.forEach((light, i) => {
+    // The bake places each glyph light from the kit's glyph_centre (4 decimals), the config from its 2-decimal copy.
+    close(light.position, glyphs[i].position, 2);
+    expect([light.color, light.distance]).toEqual([glyphs[i].color, glyphs[i].distance]);
+  });
+  const lava = lights.points.filter(l => l.kind === 'lava');
+  expect(baked.lights.lava).toHaveLength(lava.length);
+  baked.lights.lava.forEach((light, i) => {
+    close(light.position, lava[i].position, 9);
+    expect([light.color, light.intensity, light.distance]).toEqual([lava[i].color, lava[i].intensity, lava[i].distance]);
+  });
+  expect(baked.lights.fill).toEqual(lights.fill);
+  expect(baked.lights.surface).toEqual(lights.surface);
+});
+
+test('the baked seabed is the page’s: floorHeight agrees at every sampled point', () => {
+  const { seabed } = readBake();
+  expect({ width: seabed.width, nearZ: seabed.nearZ, farZ: seabed.farZ, segments: seabed.segments }).toEqual(SEABED);
+  expect(seabed.samples.length).toBeGreaterThanOrEqual(64);
+  for (const [x, z, y] of seabed.samples) expect(Math.abs(floorHeight(x, z, SECURITY_WORLD.layout.floorY) - y), `${x}, ${z}`).toBeLessThan(1e-9);
+});
+
+test('near.glb carries the kit’s pieces, with a lightmap UV set on stone, rock and coral, and KTX2 lightmaps', () => {
+  const near = readGlb(NEAR_FILE);
+  const kit = readKit();
+  expect(near.json.extensionsUsed).toEqual(expect.arrayContaining(['EXT_meshopt_compression', 'KHR_texture_basisu']));
+  for (const piece of SECURITY_WORLD.kit.pieces) {
+    for (const name of [piece, `${piece}_lod1`]) {
+      const node = near.byName.get(name);
+      expect(node, name).toBeDefined();
+      // The same piece as the kit's, at the same detail.
+      expect(near.triangles(node!), name).toBe(kit.triangles(kit.byName.get(name)!));
+      // The piece's own mesh is on its node, or on an unnamed child when compression keeps the
+      // dequantizing transform off the glyph panels (named children, which take no lightmap).
+      const own = [node!, ...(node!.children ?? []).map(i => near.json.nodes[i]).filter(n => !n.name)].filter(n => n.mesh !== undefined);
+      expect(own, name).toHaveLength(1);
+      const uvSets = near.json.meshes[own[0].mesh!].primitives.map(p => 'TEXCOORD_1' in p.attributes);
+      expect(uvSets, name).toEqual(uvSets.map(() => piece !== 'chain'));
+    }
+    if (piece.startsWith('pillar')) expect(near.byName.get(piece)?.extras?.glyph_centre).toBe(kit.byName.get(piece)?.extras?.glyph_centre);
+  }
+  const { atlases } = readBake();
+  for (const name of Object.values(atlases)) {
+    const node = near.byName.get(name);
+    expect(node, name).toBeDefined();
+    const material = near.json.materials[near.json.meshes[node!.mesh!].primitives[0].material!];
+    const texture = near.json.textures[material.emissiveTexture!.index];
+    expect(near.json.images[texture.extensions!.KHR_texture_basisu.source].mimeType, name).toBe('image/ktx2');
+  }
+});
+
+test('each placed piece has a lightmap rect of its own inside its atlas, at both levels', () => {
+  const { instances } = readBake();
+  const all = [...instances.pillars, ...instances.rocks, ...instances.corals];
+  for (const level of ['lod0', 'lod1'] as const) {
+    const rects: LightRect[] = all.map(i => i[level]);
+    for (const [u, v, w, h] of rects) {
+      expect(w).toBeGreaterThan(0);
+      expect(h).toBeGreaterThan(0);
+      expect(u).toBeGreaterThanOrEqual(0);
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(u + w).toBeLessThanOrEqual(1 + 1e-9);
+      expect(v + h).toBeLessThanOrEqual(1 + 1e-9);
+    }
+    const overlaps = rects.flatMap((a, i) => rects.slice(i + 1).filter(b => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3]));
+    expect(overlaps, level).toEqual([]);
+  }
 });
 
 test('layout.json matches the WorldLayout schema', () => {

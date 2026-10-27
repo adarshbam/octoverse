@@ -1,26 +1,18 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { fbm2 } from './noise';
+import { type BakedLight, lightMapOf, withBakedSheen } from './bakedLight';
+import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
-const WIDTH = 26;
-const NEAR_Z = 7;
-const FAR_Z = -62;
+const WIDTH = SEABED.width;
+const NEAR_Z = SEABED.nearZ;
+const FAR_Z = SEABED.farZ;
 /** World units covered by one tile of the crack map (12 cells). */
 const CRACK_TILE = 10.4;
-
-/** Seabed height at (x, z): gentle silt dunes, rising into rubble toward the pillars, about `floorY`. */
-export function floorHeight(x: number, z: number, floorY: number) {
-  const dunes = (fbm2(x * 0.22, z * 0.22, 4, 3) - 0.5) * 0.28;
-  const ripple = (fbm2(x * 1.1, z * 1.1, 3, 7) - 0.5) * 0.08;
-  const side = THREE.MathUtils.smoothstep(Math.abs(x), 2.2, 4.8);
-  const rubble = side * (fbm2(x * 0.7, z * 0.7, 4, 11) - 0.35) * 0.55;
-  return floorY + dunes + ripple + Math.max(rubble, 0);
-}
 
 const floorGlsl = /* glsl */ `
   varying vec3 vFloorWorld;
@@ -48,16 +40,24 @@ const floorGlsl = /* glsl */ `
   }
 `;
 
-/** The seabed: dark wet silt with glowing cracks, brightest in patches and toward the pillars. */
-export function Floor({ world }: { world: WorldConfig }) {
+/**
+ * The seabed: dark wet silt with glowing cracks, brightest in patches and toward the pillars. With
+ * the near world `baked`, the light of the glyphs, the lava and the fill comes from its lightmap.
+ */
+export function Floor({ world, baked = null }: { world: WorldConfig; baked?: BakedLight | null }) {
   const now = useWorldTime();
   const { geometry, material, time, disposables } = useMemo(() => {
-    const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, 110, 260);
+    const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, ...SEABED.segments);
     geometry.rotateX(-Math.PI / 2);
     geometry.translate(0, 0, (NEAR_Z + FAR_Z) / 2);
     const pos = geometry.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) pos.setY(i, floorHeight(pos.getX(i), pos.getZ(i), world.layout.floorY));
     geometry.computeVertexNormals();
+    if (baked) {
+      const uv1 = new Float32Array(pos.count * 2);
+      for (let i = 0; i < pos.count; i++) uv1.set(seabedLightUv(pos.getX(i), pos.getZ(i)), i * 2);
+      geometry.setAttribute('uv1', new THREE.BufferAttribute(uv1, 2));
+    }
     const maps = makeStoneMaps(41, { period: 8, strength: 3.5, pits: 0.25 });
     const tiles = new THREE.Vector2(WIDTH / 2.2, (NEAR_Z - FAR_Z) / 2.2);
     maps.normal.repeat.copy(tiles);
@@ -73,6 +73,8 @@ export function Floor({ world }: { world: WorldConfig }) {
       map: maps.tone,
       normalMap: maps.normal,
       normalScale: new THREE.Vector2(0.8, 0.8),
+      lightMap: baked && lightMapOf(baked.atlases.seabed),
+      lightMapIntensity: baked?.record.intensity ?? 1,
     });
     material.onBeforeCompile = shader => {
       shader.uniforms.uTime = time;
@@ -80,7 +82,7 @@ export function Floor({ world }: { world: WorldConfig }) {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vFloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      shader.fragmentShader = shader.fragmentShader
+      shader.fragmentShader = withBakedSheen(shader.fragmentShader)
         .replace('#include <common>', `#include <common>\n${floorGlsl}`)
         .replace(
           '#include <roughnessmap_fragment>',
@@ -110,8 +112,9 @@ export function Floor({ world }: { world: WorldConfig }) {
           }`,
         );
     };
-    return { geometry, material, time, disposables: [geometry, material, maps.normal, maps.tone, cracks] };
-  }, [world]);
+    const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : [])];
+    return { geometry, material, time, disposables: owned };
+  }, [world, baked]);
   useDisposables(disposables);
   useFrame(state => {
     time.value = now(state);

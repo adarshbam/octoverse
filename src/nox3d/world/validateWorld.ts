@@ -100,6 +100,7 @@ export function validateWorld(world: WorldConfig): string[] {
   const lavaLights = lights.points.filter(l => l.kind === 'lava').length;
   if (lavaLights !== layout.coralLights.length) problems.push(`${layout.coralLights.length} coral lights but ${lavaLights} lava lights`);
 
+  for (const [name, value] of Object.entries(world.relics)) if (!finite(value) || value <= 0) problems.push(`relics.${name} must be above 0`);
   for (const [name, value] of Object.entries(palette)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
   if (!colour(lights.surface.color) || !colour(lights.fill.color)) problems.push('the surface and fill lights need #rrggbb colours');
   if (!vec3(lights.surface.position) || !vec3(lights.surface.target) || !vec3(lights.fill.position)) problems.push('the surface and fill lights need positions');
