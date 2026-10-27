@@ -23,6 +23,7 @@ import { GLOW_LIGHT, GLOW_LIGHT_OFFSET, lightParticles } from './glowLight';
 import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
+import { createHeadSilhouetteMaterial } from './headMorph';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createDomeMaterial, domeState } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
@@ -169,6 +170,11 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
   }, [config, blender, quality, accents]);
+
+  // A silhouette capture draws the head white through its morph, so the overview's mask has the
+  // open head the overview shows, not the closed one.
+  const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
+  useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
 
   const chains = useMemo(() => rig.arms.map(arm => arm.chain), [rig]);
   const readOrbs = useMemo(() => () => orbState, [orbState]);
@@ -466,7 +472,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
               <mesh
                 ref={head}
                 geometry={rig.headGeometry}
-                material={rig.headMaterial}
+                material={headSilhouette ?? rig.headMaterial}
                 position={[faceX, faceY, 0]}
                 castShadow={castShadow}
                 onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}

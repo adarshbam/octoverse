@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 /**
  * The head's change into the overview dome, shared by every material drawn on the head mesh (the
  * skin and its glow shell), so nothing is left behind at the old outline. The mantle first lowers
@@ -24,3 +26,29 @@ export const headMorphVertex = /* glsl */ `
       : mix(aMorphMidNormal, aMorphNormal, (uMorph - ${HEAD_MORPH_MID.toFixed(2)}) / ${(1 - HEAD_MORPH_MID).toFixed(2)}));
   }
 `;
+
+/**
+ * The head drawn flat white for a silhouette capture, through its morph. A silhouette capture draws
+ * everything with the scene's plain white override, which knows nothing of the morph and would draw
+ * the closed head in the overview; this keeps itself over the override (`allowOverride` false) and
+ * reads the skin's own `morph` uniform. With the head closed (morph 0) it draws exactly what the
+ * override does.
+ */
+export function createHeadSilhouetteMaterial(morph: { value: number }) {
+  const material = new THREE.ShaderMaterial({
+    uniforms: { uMorph: morph },
+    vertexShader: /* glsl */ `
+      ${headMorphVertex}
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(morphedPosition(), 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      void main() {
+        gl_FragColor = vec4(1.0);
+      }
+    `,
+  });
+  material.allowOverride = false;
+  return material;
+}

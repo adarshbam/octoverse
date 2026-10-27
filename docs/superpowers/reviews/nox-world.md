@@ -288,3 +288,12 @@ No sample was moved: none is shown to be misregistered (the arm rim fails even w
 - Its face glow is slightly pinker than the approved one.
 - Two of its samples get worse. The arm rim does because the darker arm body darkens the inner rows of that patch. Head middle does because less green in the dark ramp stop leaves the forehead more purple against panel 2's navy.
 - The aura's violet above Nox is faint. The red below reads as a pool on the seabed rather than glow in the water round the arms, as in panel 2.
+
+#### Task 5: the overview mask follows the open head (ruling R24, 2026-10-27)
+
+A silhouette capture (`&mask`) drew the head with the scene's plain white override, which knows nothing of the head's morph, so in the overview the mask held the closed head and the overview check measured the water inside the dome. The head now draws its silhouette through its morph: a white material that reads the skin's own morph uniform and keeps itself over the override (`allowOverride` false, `createHeadSilhouetteMaterial` in `character/headMorph.ts`).
+
+- **Intro mask byte-identical:** `world-capture intro` before and after give the same mask file, byte for byte (195,033 white pixels), and the same as the Task 5 intro mask. Detail (`solo`) is byte-identical too.
+- **techFocus** (`tech=kali&solo`, head closed): 1 pixel differs from a capture before the change. Two captures before the change already differed by 8 pixels: the presenting arm moves on the real clock.
+- **Overview** (`solo`): 27,679 pixels leave the mask and 5 join it; 205,201 white pixels against 232,875. They are the closed dome over the sunk mantle (green in `assets/nox-world-t5-r24-overview-mask-v2.png`), which showed water.
+- `world.spec` (a mask with `&world` byte-identical to one without) passes, with the whole nox3d e2e suite (8 of 8).
