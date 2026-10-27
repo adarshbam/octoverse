@@ -585,7 +585,7 @@ The check reads FAIL (1 miss, cheek outer) on both runs. This miss is expected. 
 
 **Glyph lights are derived, not copied.** Each lit pillar's glyph light is placed from the pillar's own position and turn in layout.json, plus its piece's glyph column height (`GLYPH_CENTRE` in config.ts), 0.985 in front of the pillar's axis. The kit file carries each pillar's `glyph_centre` (node extras). A test checks that the config's heights match it and that each light stands in front of its pillar, within 1.5. The derived positions equal the old hand-copied ones to four decimals.
 
-**Levels of detail.** Every piece has a `<piece>_lod1` with about a quarter of its triangles. The page shows `_lod1` beyond 14 units from the camera. It switches back to full detail inside 13.58 units (3% hysteresis), so a piece on the line does not flicker as the camera hovers.
+**Levels of detail.** Every piece has a `<piece>_lod1` with about a quarter of its triangles. The page shows `_lod1` beyond 16 units from the camera (`KIT_LOD_DISTANCE` in `kitLod.ts`, ruling R28). It switches back to full detail inside 15.52 units (3% hysteresis), so a piece on the line does not flicker as the camera hovers.
 
 | Piece | Full | lod1 | Share |
 |---|---|---|---|
@@ -594,7 +594,9 @@ The check reads FAIL (1 miss, cheek outer) on both runs. This miss is expected. 
 | coral_0 / 1 / 2 | 11024 / 10944 / 14076 | 2718 / 2702 / 3470 | 25% |
 | chain | 6720 | 1680 | 25% |
 
-The two near lit pillars stand 14.02 and 14.32 units from panel 2's camera, so the intro shows their lod1. A lod1 keeps the full piece's blocks, chips and panels and loses only the rounding of its edges. An intro capture with every piece forced to full detail differs from the normal one by 0.53 and 0.37 levels (mean) over the two near pillars, and by 0.64 over the whole frame. Most of that difference is bubbles, which move on the real clock.
+The two front lit pillars stand 14.05 and 14.32 units from panel 2's camera at (0, 0, 12). The first build swapped at 14 units, so the intro showed their lod1, and Task 8's camera hover would have flipped them between levels. At 16 they are inside even the 15.52 return line, so the intro draws them at full detail. A test pins this: it reads the camera from `CAMERA_Z` and the pillars from layout.json. A browser check of the intro view confirms it. The four nearest pillars (13.43 to 14.32 units) draw full detail. Every pillar from the rear lit ones back (17.99 units and beyond) draws its lod1. A lod1 keeps the full piece's blocks, chips and panels and loses only the rounding of its edges.
+
+The strip and crop below were captured with the 14-unit line, so they show the two front lit pillars at lod1. The colour check was repeated at 16 (fix round 1): Nox's numbers did not move.
 
 **Compression.** The owner installed KTX-Software: `ktx` v4.4.2 and `toktx` v4.4.2. `@gltf-transform/cli` 4.4.2 (pinned devDependency) calls `ktx create`, and needs `ktx` on the PATH even when the file has no textures. The script adds `C:\Program Files\KTX-Software\bin` to its own PATH, or `KTX_SOFTWARE_BIN` if that is set. The script runs:
 
@@ -635,7 +637,7 @@ The world reads as the same place. The stone is now large carved blocks with pan
 **Left as found.** The floor level -2.4 is still hard-coded in `Water.tsx`, `Motes.tsx` and the rock shader in `Kit.tsx`, while `layout.floorY` is -2.45 (R13). Those lines were not otherwise touched.
 
 **Tests:**
-- `npm test`: 48 files, 301 tests.
+- `npm test`: 48 files, 301 tests; 302 after fix round 1, which adds the front-lit-pillar LOD test.
 - tsc (app, nox3d, node): exit 0.
 - oxlint on the changed files: clean. `Kit.tsx` keeps its 5 earlier `refs` warnings on the JSX lines. The vendored transcoder is now in the lint ignore list.
 - nox3d e2e: 8 of 8.

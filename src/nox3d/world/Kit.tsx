@@ -6,16 +6,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { floorHeight } from './Floor';
+import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { fbm2, seeded } from './noise';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
-
-/** Beyond this distance from the camera a piece draws its `_lod1`, about a quarter of the triangles. */
-const KIT_LOD_DISTANCE = 14;
-/** Back to full detail only inside 3% less, so a piece on the line does not flicker as the camera hovers. */
-const LOD_HYSTERESIS = 0.03;
 
 /** One KTX2 loader per renderer: it transcodes in workers, to the formats this GPU supports. */
 const ktx2Loaders = new WeakMap<THREE.WebGLRenderer, KTX2Loader>();

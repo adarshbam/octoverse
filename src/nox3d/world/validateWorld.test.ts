@@ -1,9 +1,11 @@
 /// <reference types="node" />
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
+import { CAMERA_Z } from '../config/stage';
+import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import layoutData from './security/layout.json';
 import { SECURITY_WORLD } from './security/config';
-import type { WorldConfig } from './types';
+import type { Vec3, WorldConfig } from './types';
 import { asWorldLayout, layoutProblems, validateWorld } from './validateWorld';
 
 const placements = (world: WorldConfig) => [...world.layout.pillars, ...world.layout.rocks, ...world.layout.corals];
@@ -93,6 +95,23 @@ test('pillars keep the open corridor: no pillar inside |x| < 2.9 for z between -
     return z >= -30 && z <= 2 && Math.abs(x) < 2.9;
   });
   expect(inCorridor).toEqual([]);
+});
+
+test('the intro draws its front lit pillars at full detail: each is inside the kit LOD distance from the panel 2 camera', () => {
+  // The stage camera stands on the z axis at CAMERA_Z (config/stage.ts; App.tsx puts it at
+  // (0, 0, CAMERA_Z) for the intro and its panel 2 view). THREE.LOD measures from the camera to the
+  // piece's origin, the pillar's foot. A piece that shows its lod1 comes back to full detail only
+  // inside KIT_LOD_DISTANCE less LOD_HYSTERESIS, so that is the line the pillars must clear in any
+  // state, including a camera hover that has just swapped them. The rear lit pillars (about 18 and
+  // 19 units away) are far enough back to draw their lod1.
+  const camera: Vec3 = [0, 0, CAMERA_Z];
+  const fullDetail = KIT_LOD_DISTANCE * (1 - LOD_HYSTERESIS);
+  const lit = SECURITY_WORLD.layout.pillars.filter(p => p.light);
+  for (const side of [-1, 1]) {
+    const distances = lit.filter(p => Math.sign(p.position[0]) === side).map(p => Math.hypot(...p.position.map((v, i) => v - camera[i])));
+    expect(distances.length, `lit pillars at x ${side < 0 ? '< 0' : '> 0'}`).toBeGreaterThan(0);
+    expect(Math.min(...distances), `front lit pillar at x ${side < 0 ? '< 0' : '> 0'}`).toBeLessThan(fullDetail);
+  }
 });
 
 test('a world with an unknown piece or a light without skinRange is reported', () => {
