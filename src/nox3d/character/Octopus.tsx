@@ -68,6 +68,8 @@ export interface OctopusProps {
    * then casts the surface light's shadow, and brings his aura, his glow's light and the local grade.
    */
   accents?: AccentLink;
+  /** For measurement captures only: the orbs and the dome glass are not drawn (the arms still carry and present the orbs). */
+  solo?: boolean;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -77,7 +79,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false }: OctopusProps) {
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -425,7 +427,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
     rig.uniforms.uMorph.value = ease;
     const glass = domeState(ease);
-    dome.current!.visible = glass.visible && !silhouette;
+    dome.current!.visible = glass.visible && !silhouette && !solo;
     dome.current!.scale.setScalar(glass.scale);
     dome.current!.position.set(config.dome.center[0], config.dome.center[1], 0);
     rig.domeMaterial.uniforms.uOpacity.value = glass.opacity;
@@ -452,7 +454,11 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />}
+          {orbs.length > 0 && (
+            <group visible={!solo}>
+              <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />
+            </group>
+          )}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

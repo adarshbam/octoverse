@@ -1,7 +1,9 @@
-"""Usage: python scripts/side_by_side.py <scene.png> <out.png> [label]
+"""Usage: python scripts/side_by_side.py <scene.png> <out.png> [label] [<scene2.png> <label2> ...] [--crop x0,y0,x1,y1]
 
-Puts panel 2 (the reference painting) and a capture of the spike scene side by side at the
-same size, each with a caption bar, for judging the environment and lighting together.
+Puts panel 2 (the reference painting) and one or more captures side by side at the same size, each
+with a caption bar, for judging the environment and lighting together. --crop cuts the same pixel
+box from every image first: world captures (scripts/world-capture.mjs) frame exactly the panel, so
+a box in panel 2's pixels is the same box in each capture.
 """
 import sys
 from PIL import Image, ImageDraw, ImageFont
@@ -24,15 +26,25 @@ def captioned(img, text, width):
 
 
 def main():
-    scene, out = sys.argv[1], sys.argv[2]
-    label = sys.argv[3] if len(sys.argv) > 3 else "Live 3D test scene (Option 2)"
+    args = sys.argv[1:]
+    crop = None
+    if "--crop" in args:
+        i = args.index("--crop")
+        crop = tuple(int(v) for v in args[i + 1].split(","))
+        del args[i : i + 2]
+    scene, out = args[0], args[1]
+    label = args[2] if len(args) > 2 else "Live 3D test scene (Option 2)"
+    scenes = [(scene, label)] + list(zip(args[3::2], args[4::2]))
     width = 1152
-    left = captioned(Image.open(REF), "Panel 2 - reference painting", width)
-    right = captioned(Image.open(scene), label, width)
+    cut = (lambda img: img.crop(crop)) if crop else (lambda img: img)
+    tiles = [captioned(cut(Image.open(REF)), "Panel 2 - reference painting", width)]
+    tiles += [captioned(cut(Image.open(path)), text, width) for path, text in scenes]
     gap = 12
-    sheet = Image.new("RGB", (left.width + right.width + gap, max(left.height, right.height)), (8, 10, 20))
-    sheet.paste(left, (0, 0))
-    sheet.paste(right, (left.width + gap, 0))
+    sheet = Image.new("RGB", (sum(t.width for t in tiles) + gap * (len(tiles) - 1), max(t.height for t in tiles)), (8, 10, 20))
+    x = 0
+    for tile in tiles:
+        sheet.paste(tile, (x, 0))
+        x += tile.width + gap
     sheet.save(out, quality=92)
     print("saved", out, sheet.size)
 

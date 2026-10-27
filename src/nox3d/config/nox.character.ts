@@ -33,9 +33,10 @@ export const NOX: CharacterConfig = {
     cheekWarmth: 0.75,
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#e83cf0', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
     // In a world (panel 2): a magenta-violet glow in the water round him, deep red below, and
-    // the water near him darker and warmer than the far blue. Starting values, tuned in Task 5.
-    aura: { inner: '#c83ce8', low: '#a0102c', radius: 1.6, strength: 0.5 },
-    grade: { color: '#1c0618', radius: 3, strength: 0.55 },
+    // the water near him darker and warmer than the far blue. Tuned in Task 5 against the water
+    // 10 to 60 px round him in panel 2: dark violet above, red below.
+    aura: { inner: '#1c0628', low: '#ff0a18', radius: 3.6, strength: 1 },
+    grade: { color: '#1c0612', radius: 4, strength: 1 },
   },
   palette: {
     cheek: '#7a1078',

@@ -12,7 +12,8 @@ export const GLOW_LIGHT = { color: '#ff4a30', intensity: 5, distance: 6, decay: 
 export const GLOW_LIGHT_OFFSET = new THREE.Vector3(0, -0.42, 0.5);
 /**
  * The share of the light a particle takes: a quarter of what a white surface square to the light
- * shows (three's diffuse is 1/π of the light). A starting value, tuned in Task 5.
+ * shows (three's diffuse is 1/π of the light). Kept in Task 5: the light at intensity 2 and at
+ * 10 (which scales this tint the same way) moved none of the colour measures round Nox.
  */
 export const PARTICLE_GLOW = 0.25 / Math.PI;
 /** A particle's tint is at most this on its brightest channel, so none near the glow blows out. */
