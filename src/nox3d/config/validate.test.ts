@@ -57,3 +57,10 @@ test('keeps the aura and grade radii positive and within the stage', () => {
   expect(g.aura.radius).toBeGreaterThan(0);
   expect(g.grade.radius).toBeLessThanOrEqual(8);
 });
+
+test('keeps the underside band strength within 0..2', () => {
+  const band = (underside: number) => clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, underside } }).glow.underside;
+  expect(band(5)).toBe(2);
+  expect(band(-1)).toBe(0);
+  expect(band(0.95)).toBe(0.95);
+});

@@ -31,6 +31,9 @@ export const NOX: CharacterConfig = {
     // Traced from the high-quality panel 2: the face glow warms the cheeks, and a magenta glow
     // fades about 0.2 out from the outline, red below the cup bands.
     cheekWarmth: 0.75,
+    // The arms' red oral band. It was a constant in the skin shader; moved here (ruling R23) so
+    // a palette candidate can change it. 0.95 is the approved value.
+    underside: 0.95,
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#e83cf0', crown: '#a27df5', band: '#ff1a3c', strength: 0.75, bandStrength: 0.9 },
     // In a world (panel 2): a magenta-violet glow in the water round him, deep red below, and
     // the water near him darker and warmer than the far blue. Tuned in Task 5 against the water

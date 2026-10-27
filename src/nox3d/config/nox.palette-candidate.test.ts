@@ -1,43 +1,52 @@
-import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX } from './nox.character';
-import { PALETTE_CANDIDATE, RAMP_CANDIDATE, withPaletteCandidate } from './nox.palette-candidate';
+import { HALO_CANDIDATE, PALETTE_CANDIDATE, RAMP_CANDIDATE, UNDERSIDE_CANDIDATE, withPaletteCandidate } from './nox.palette-candidate';
 
-const green = (hex: string) => new THREE.Color(hex).g;
-const CANDIDATE_COLOURS = ['armBody', 'headEdge', 'cheek'];
+// Ruling R23: what the candidate may change. Written out here, not imported, so the test holds
+// the line on its own: anything not listed (the face palette and canvas, the eyes, the suckers,
+// the dome, the halo widths and strengths, the ramp's end stops, every shape) must stay approved.
+const RIM = ['rimTop', 'rimLow'];
+const UNDERSIDE = ['armGlow', 'belly', 'terminator'];
+const ARM_TOPS = ['armBody', 'headEdge', 'wet', 'tintCool', 'tintWarm', 'sky'];
+const ALLOWED_PALETTE = [...RIM, ...UNDERSIDE, ...ARM_TOPS];
+const ALLOWED_HALO = ['color', 'crown', 'band'];
 
-test('the candidate changes only the arm body, the head edge, the cheeks and the glow ramp’s middle stops', () => {
+test('the candidate changes only the rim, halo, underside band and arm-top colours and the ramp’s middle stops', () => {
   const candidate = withPaletteCandidate(NOX);
   const { palette, glow, ...rest } = candidate;
   const { palette: approvedPalette, glow: approvedGlow, ...approvedRest } = NOX;
-  // The face, its palette, the arms, the suckers' shape and everything else are the approved ones.
+  // The face (its palette and canvas, the blush, the eyes), the arms' shapes and everything else.
   expect(rest).toEqual(approvedRest);
-  // The neon rim colours, the sucker emitters, the dome and every other palette colour are untouched.
-  expect(Object.keys(PALETTE_CANDIDATE).every(key => CANDIDATE_COLOURS.includes(key))).toBe(true);
+  expect(Object.keys(PALETTE_CANDIDATE).every(key => ALLOWED_PALETTE.includes(key))).toBe(true);
   for (const key of Object.keys(approvedPalette) as (keyof typeof approvedPalette)[]) {
-    expect(palette[key], key).toBe(CANDIDATE_COLOURS.includes(key) ? (PALETTE_CANDIDATE[key as keyof typeof PALETTE_CANDIDATE] ?? approvedPalette[key]) : approvedPalette[key]);
+    // The cheek, the blotches, the sucker colours and the dome stay exactly as approved.
+    if (!ALLOWED_PALETTE.includes(key)) expect(palette[key], key).toBe(approvedPalette[key]);
+    else expect(palette[key], key).toBe(PALETTE_CANDIDATE[key as keyof typeof PALETTE_CANDIDATE] ?? approvedPalette[key]);
   }
-  // The halo, the aura, the grade and the glow's shape are untouched; only the ramp's colours move.
-  const { ramp, ...glowRest } = glow;
-  const { ramp: approvedRamp, ...approvedGlowRest } = approvedGlow;
+  // The halo keeps its widths and strengths; only its three colours may move.
+  expect(Object.keys(HALO_CANDIDATE).every(key => ALLOWED_HALO.includes(key))).toBe(true);
+  const { color, crown, band, ...haloRest } = glow.halo;
+  const { color: c0, crown: r0, band: b0, ...approvedHaloRest } = approvedGlow.halo;
+  expect(haloRest).toEqual(approvedHaloRest);
+  expect([color, crown, band]).toEqual([HALO_CANDIDATE.color ?? c0, HALO_CANDIDATE.crown ?? r0, HALO_CANDIDATE.band ?? b0]);
+  // The glow's shape, the cheek warmth, the aura and the grade are untouched.
+  const { ramp, halo: _halo, underside, ...glowRest } = glow;
+  const { ramp: approvedRamp, halo: _approvedHalo, underside: approvedUnderside, ...approvedGlowRest } = approvedGlow;
   expect(glowRest).toEqual(approvedGlowRest);
-  expect(ramp.map(([at]) => at)).toEqual(approvedRamp.map(([at]) => at));
-  // Every changed stop is one of the ramp's; its ends (the dark dome and the white-hot core) stay.
+  expect(underside).toBe(UNDERSIDE_CANDIDATE ?? approvedUnderside);
+  // Only the ramp's middle stops move; its ends (the dark dome and the face glow's core) stay.
   const stops = approvedRamp.map(([at]) => at);
-  expect(Object.keys(RAMP_CANDIDATE).map(Number).every(at => stops.includes(at))).toBe(true);
+  expect(ramp.map(([at]) => at)).toEqual(stops);
+  expect(Object.keys(RAMP_CANDIDATE).map(Number).every(at => stops.slice(1, -1).includes(at))).toBe(true);
   expect(ramp[0]).toEqual(approvedRamp[0]);
   expect(ramp[ramp.length - 1]).toEqual(approvedRamp[approvedRamp.length - 1]);
 });
 
-test('every colour the candidate changes has less green than the approved one', () => {
+test('the candidate proposes new rim, halo and underside band colours, as the owner asked', () => {
   const candidate = withPaletteCandidate(NOX);
-  const changed: [string, string][] = [];
-  for (const key of CANDIDATE_COLOURS as (keyof typeof NOX.palette)[]) if (candidate.palette[key] !== NOX.palette[key]) changed.push([candidate.palette[key], NOX.palette[key]]);
-  candidate.glow.ramp.forEach(([, colour], i) => {
-    if (colour !== NOX.glow.ramp[i][1]) changed.push([colour, NOX.glow.ramp[i][1]]);
-  });
-  expect(changed.length).toBeGreaterThan(0);
-  for (const [next, approved] of changed) expect(green(next), `${approved} -> ${next}`).toBeLessThan(green(approved));
+  expect(RIM.some(key => candidate.palette[key as 'rimTop'] !== NOX.palette[key as 'rimTop'])).toBe(true);
+  expect(ALLOWED_HALO.some(key => candidate.glow.halo[key as 'color'] !== NOX.glow.halo[key as 'color'])).toBe(true);
+  expect(UNDERSIDE.some(key => candidate.palette[key as 'belly'] !== NOX.palette[key as 'belly'])).toBe(true);
 });
 
 test('the approved character is left as it is', () => {

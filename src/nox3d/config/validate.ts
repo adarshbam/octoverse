@@ -21,6 +21,7 @@ export function clampCharacterConfig(config: CharacterConfig): CharacterConfig {
     ...config,
     glow: {
       ...config.glow,
+      underside: clamp(config.glow.underside, 0, 2),
       aura: { ...aura, radius: clamp(aura.radius, 0.2, 4), strength: clamp(aura.strength, 0, 1) },
       grade: { ...grade, radius: clamp(grade.radius, 0.5, 8), strength: clamp(grade.strength, 0, 1) },
     },

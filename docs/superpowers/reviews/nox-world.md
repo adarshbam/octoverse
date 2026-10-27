@@ -297,3 +297,142 @@ A silhouette capture (`&mask`) drew the head with the scene's plain white overri
 - **techFocus** (`tech=kali&solo`, head closed): 1 pixel differs from a capture before the change. Two captures before the change already differed by 8 pixels: the presenting arm moves on the real clock.
 - **Overview** (`solo`): 27,679 pixels leave the mask and 5 join it; 205,201 white pixels against 232,875. They are the closed dome over the sunk mantle (green in `assets/nox-world-t5-r24-overview-mask-v2.png`), which showed water.
 - `world.spec` (a mask with `&world` byte-identical to one without) passes, with the whole nox3d e2e suite (8 of 8).
+
+#### Task 5: the wider palette candidate (ruling R23, 2026-10-27)
+
+**Result.** With the wider candidate, the intro meets the mean, the saturation and the brightness, and 6 of the 8 region samples. Two regions still miss:
+- **Cheek glow:** 9.5 against 8 (1.5 over). It is the face's blush, which may not change.
+- **Arm rim:** 40.8 against 8 (32.8 over). Our arm's top edge sits 3 px above panel 2's at that point, which is a matter of shape.
+
+The other stages still miss, by less than with the approved palette (table below). The candidate shows only with `?world&palette=candidate`; without the switch the palette and the output are the approved ones.
+
+Two captures back every number in the results; the tuning tries are single captures.
+
+**The band's strength moved into the config.** The arms' red oral band was drawn at a constant 0.95 in the skin shader (`* 0.95`). It is now `glow.underside`: 0.95 in `nox.character.ts`, read by the skin as `uUnderside`, and clamped to 0 to 2 by the validator. Tests cover both.
+
+The approved output is unchanged:
+- The world intro reads (138, 41, 94), 0.754, 0.580 on both runs, with the same nine region misses and values as after Step 1 above (arm underside band 26.0).
+- The intro mask is byte-identical to `nox-world-t5-intro-mask.png`.
+- The no-world deltas are as on HEAD (below).
+
+**The candidate, colour by colour** (`src/nox3d/config/nox.palette-candidate.ts`). The R22 column is the earlier candidate.
+
+| Colour | Approved | R22 | R23 candidate | What it does |
+|---|---|---|---|---|
+| armBody | `#640a90` | `#56067c` | `#3a0864` | Arm tops a deep blue-violet, darker; buys the brightness the red band spends. Upper arm top 10.0 to 6.8. |
+| headEdge | `#5c2a8c` | `#5c148c` | `#5c148c` | Less green in the head's edge sheen (as R22). |
+| rimTop | `#9480ff` | | `#6a38ff` | The top neon line, blue-violet, as panel 2's line over its blue-violet sheen; also the head's upper rim. |
+| rimLow | `#ff4cc0` | | `#a00838` | The undersides' rim, a dark red-pink: the band's red reads below, not a pink line; also the head's lower rim. |
+| wet | `#f6d0ff` | | `#5030e0` | Wet highlights, droplets and the broad edge line turn blue-violet; the pink-white streaks go. |
+| tintCool | `#5a6ad8` | | `#3040ff` | Bluer cool drift patches; less green. |
+| tintWarm | `#c84a8a` | | `#8c3090` | The warm drift violet, not pink; brightness 0.562 to 0.553 in the try that added it. |
+| terminator | `#a8085a` | | `#d80848` | The band's upper colour red in place of magenta. Arm underside band 26.0 to 7.0. |
+| belly | `#ff1745` | | `#ff0428` | The band's core a deeper red. |
+| glow.underside | 0.95 (shader constant) | | 1.6 | The band glows brighter, as panel 2's (210, 5, 58). |
+| halo color | `#e83cf0` | | `#d82090` | Outline round the head and along the tops: magenta-pink, not lavender-pink. |
+| halo crown | `#a27df5` | | `#7a28c0` | A deeper violet over the crown. Aura outside 15.4 to 7.6. |
+| halo band | `#ff1a3c` | | `#e80a24` | A deeper red glow below the arms. |
+| ramp 0.07 | `#1e0c30` | `#1e0530` | `#040a30` | Navy, as panel 2's head middle (1, 10, 45). Head middle 8.3 to 6.9. |
+| ramp 0.17 | `#45133e` | `#45083e` | `#3a0a40` | Toward navy too. |
+| ramp 0.27 | `#641542` | `#640842` | `#640842` | As R22: less green. |
+| ramp 0.37 | `#891d45` | `#890c45` | `#890c45` | As R22. |
+| ramp 0.49 | `#b9254b` | `#b90f4b` | `#b00c46` | Toward the core a little redder and dimmer. The face zone goes from (169, 57, 88) and v 0.666 to (164, 40, 79) and v 0.649; panel 2 is (163, 39, 71) and 0.641. |
+| ramp 0.61 | `#e8364d` | `#e8204d` | `#d8143a` | The same. |
+| ramp 0.74 | `#fb5254` | `#fb3e54` | `#ec2442` | The same. |
+| ramp 0.94 | `#fd7c5b` | `#fd705b` | `#ec4a46` | The same. |
+
+These stay exactly as approved, and the candidate's test enforces them:
+- the cheek, the blotch, the face palette and canvas (the blush), the eyes;
+- the sucker colours and the dome colours;
+- ramp 0 and 1 (the face glow's ends);
+- the halo's widths and strengths;
+- the aura, the grade, every shape.
+
+Two allowed colours stay unchanged too:
+- armGlow: its tint reaches only within about 0.4 units of the glow centre, and moved nothing;
+- sky: a bluer sky (`#3020d0`) broke the head crown, 6.4 to 9.1.
+
+**Step 3: every stage, approved and candidate** (two runs each; the overview measured through the R24 mask, 205,201 px):
+
+| Stage and query | Approved: mean, saturation, brightness | Candidate | Result |
+|---|---|---|---|
+| intro, full check | 138, 41, 94; 0.754; 0.580 (9 misses) | 125, 25, 78; 0.854 / 0.853; 0.565 (2 misses) | Candidate: mean, saturation and brightness pass; 6 of 8 regions pass |
+| overview (no `solo`) | 156, 65, 98 / 157, 66, 98; 0.654 / 0.652; 0.638 / 0.642 | 152, 56, 84; 0.695; 0.632 | FAIL both (3 misses) |
+| overview `&solo` | 156, 44, 93; 0.777; 0.626 | 148, 30, 73; 0.854; 0.607 | Approved 3 misses; candidate 2 (red 29 over the target, so 19 past the tolerance; brightness 0.037 over) |
+| techFocus `&tech=kali&solo` | 143, 41, 92; 0.771; 0.588 | 135, 29, 75; 0.844; 0.576 | FAIL both (3). Candidate: red 6 past the tolerance, saturation 0.006 under, brightness 0.006 over |
+| detail `&solo` | 127, 39, 82; 0.748; 0.532 | 117, 25, 68; 0.842; 0.523 | FAIL both (2). Candidate: blue 1 past the tolerance, saturation 0.008 under |
+
+**Intro regions** (delta E, max 8; approved, then the candidate's two runs):
+
+| Region | Approved | Candidate | Met |
+|---|---|---|---|
+| head crown | 7.2 | 6.4, 6.3 | yes |
+| head middle | 8.3 | 6.9, 6.9 | yes (approved missed) |
+| cheek glow | 10.0 | 9.5, 9.5 | no: the face's blush |
+| upper arm top | 10.0 | 6.8, 6.6 | yes (approved missed) |
+| arm underside band | 26.0 | 7.0, 6.9 | yes (approved missed) |
+| arm rim | 23.1 | 40.8, 40.9 | **no, and worse** |
+| suckers | 4.4 | 4.3, 4.3 | yes |
+| aura outside | 15.4 | 7.7, 7.6 | yes (approved missed) |
+
+**Zones** (intro). Columns are panel 2, approved and candidate; each cell is mean, saturation, brightness.
+
+| Zone | Panel 2 | Approved | Candidate |
+|---|---|---|---|
+| Outer 3 px | 144, 30, 92; 0.855; 0.599 | 191, 76, 148; 0.666; 0.789 | 145, 35, 116; 0.853; 0.719 |
+| Interior | 109, 24, 86; 0.870; 0.512 | 127, 35, 87; 0.762; 0.534 | 118, 22, 73; 0.850; 0.527 |
+| Head above the eyes | 48, 24, 94; 0.836; 0.374 | 60, 33, 86; 0.655; 0.340 | 36, 18, 84; 0.788; 0.332 |
+| Face and glow | 163, 39, 71; 0.834; 0.641 | 169, 57, 88; 0.680; 0.666 | 164, 40, 79; 0.752; 0.649 |
+| Arms | 125, 22, 93; 0.887; 0.558 | 153, 38, 98; 0.816; 0.631 | 140, 22, 74; 0.915; 0.617 |
+
+**Hue on the arms** (share of arm pixels, with that class's mean colour):
+
+| Hue class | Panel 2 | Approved | Candidate |
+|---|---|---|---|
+| Red | 31.0%: (193, 27, 64) | 44.0%: (197, 46, 72) | 54.4%: (202, 35, 55) |
+| Magenta | 32.5%: (114, 13, 92) | 31.1%: (128, 25, 106) | 13.8%: (96, 4, 72) |
+| Violet | 31.4%: (72, 18, 114) | 24.9%: (107, 42, 135) | 31.7%: (51, 7, 106) |
+| Blue | 4.2% | 0% | 0.1% |
+
+The violet tops now match panel 2's share, and are darker and more saturated than panel 2's. The red band covers more of the arm than panel 2's; the magenta between top and band shrinks.
+
+**How it was found** (single captures; the tool and the tries are in `spike-out/t6-*`):
+- **Terminator.** The band sample, the red share and the brightness move together, through `terminator`.
+  - A magenta terminator (`#900870`) gives panel 2's hue shares (red 38%, magenta 25%), but the band sample turns magenta: 37.6.
+  - A red one keeps the sample near 7, with the red share at 50 to 54%.
+- **Belly.** The strongest brightness lever, and also coupled to the band sample: `#d80424` gives brightness 0.560, but the band reads 9.5.
+- **The rim and the wet edge set the top edge.**
+  - Panel 2's top edge at x = 1070 is a 2 to 3 px white-lavender line over about 8 px of blue-violet sheen, from (121, 55, 215) down to (89, 30, 172).
+  - The approved arms have a thick pink-lavender halo and line.
+  - Dark rim and wet colours (try H3) erased the line; light ones (I3) brought it back, but cost 0.013 of saturation.
+  - The candidate's line is (140, 47, 255) and fades to (63, 5, 146) within 4 px.
+- **The halo brightens the silhouette through bloom.** A brighter halo colour (`#d82090` against `#901870`) adds 0.002 of brightness inside the mask.
+
+**What the candidate makes worse (flagged):**
+- **Arm rim**, 23.1 to 40.8.
+  - Panel 2's 7 x 7 patch spans its white line and the blue-violet sheen under it.
+  - Our edge is 3 px higher at that column, so the patch falls 3 to 9 px inside our arm, on the body.
+  - Only a broad pale rim, like the approved one, reaches 23. Lined up, R22 measured 10.8.
+  - Meeting 8 needs the edge 3 px lower (a shape), or a broader rim falloff in the shader. Neither is a palette change.
+- **Magenta between the violet tops and the red band** shrinks: 31% to 14% of the arm (panel 2: 32.5%). This is the band trade-off above.
+- **The arm tops are darker than panel 2's lit tops.** Panel 2's violet class reads at v 0.45, the candidate's at 0.42. Brightness is at its target only because the red band, which covers more of our arms, is paid for with darker tops.
+- **In the raised-arm stages (overview, techFocus) the arms read redder than approved**, as their undersides face the camera (`assets/nox-world-t5-stages-v2.jpg`).
+- **The face glow** round the coral heart is a little redder than approved (the ramp's ends are unchanged).
+
+**What it would take to meet every target:**
+- **Cheek glow:** the blush colour on the face canvas. It is 9.5 in every try (1.5 over); no palette, ramp or halo change moved it.
+- **Arm rim:** the shape at the arm's top edge, or the rim's falloff in the shader. It is 32.8 over, and 15.1 over even with the approved broad rim.
+- **The other stages:** their poses show more of the red underside and the face glow than panel 2's pose. Meeting panel 2's numbers there would need less band in those poses, or a lower band strength that gives up the intro's band sample. The misses are:
+  - overview `solo`: red 19 past the tolerance;
+  - techFocus: red 6, saturation 0.006 and brightness 0.006;
+  - detail: blue 1 and saturation 0.008.
+
+**No change without a world.** `stage-capture intro`, then `check_stage --panel 2`, two runs: PASS both. Colour deltas 12, 14, 6, 16, 12, 1, 15, 5, 10, 4, the same as HEAD's record.
+
+**Stills** (`assets/`):
+- `nox-world-t5-palette-strip-v2.jpg`: panel 2, approved and the R23 candidate, in the world, intro, full frame.
+- `nox-world-t5-palette-strip-nox-v2.jpg`: the same, cropped to Nox (HQ px 380, 380 to 1190, 920).
+- `nox-world-t5-stages-v2.jpg`: overview, overview `solo`, techFocus and detail; panel 2, approved and candidate in each row.
+- `nox-world-t5-intro-candidate-v2.png`: the measured candidate intro. Its mask is `nox-world-t5-intro-mask.png` (byte-identical), and the approved intro is `nox-world-t5-intro-approved.png`.
+
+**Tests:** `npm test` 47 files, 293 tests; tsc (app, nox3d, node) exit 0; oxlint on the changed files clean; nox3d e2e 8 of 8.

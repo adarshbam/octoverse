@@ -57,6 +57,8 @@ export function createSkinUniforms(config: CharacterConfig, lighting: StageLight
     uTerminator: color(p.terminator),
     uArmGlow: color(p.armGlow),
     uBelly: color(p.belly),
+    /** How brightly the red oral band glows along the arms' undersides. */
+    uUnderside: { value: glow.underside },
     uRimTop: color(p.rimTop),
     uRimLow: color(p.rimLow),
     uSky: color(p.sky),
@@ -146,6 +148,7 @@ const skinFragment = /* glsl */ `
   uniform vec3 uHazeColor;
   uniform vec3 uArmGlow;
   uniform vec3 uBelly;
+  uniform float uUnderside;
   uniform vec3 uRimTop;
   uniform vec3 uRimLow;
   uniform vec3 uSky;
@@ -266,7 +269,7 @@ const skinFragment = /* glsl */ `
       // The bioluminescent oral band glows red at its core and fades softly up through magenta
       // into the body: a subsurface glow, not a flat fill.
       float band = smoothstep(0.05, 0.95, vUnder);
-      col += mix(uTerminator, uBelly, smoothstep(0.45, 0.95, vUnder)) * pow(band, 1.6) * 0.95;
+      col += mix(uTerminator, uBelly, smoothstep(0.45, 0.95, vUnder)) * pow(band, 1.6) * uUnderside;
       vec3 toGlow = uGlowPos - vWorld;
       float near = exp(-dot(toGlow, toGlow) / 0.14);
       col = mix(col, uArmGlow * 0.75, near * 0.45);

@@ -50,6 +50,8 @@ export interface GlowShape {
   ramp: readonly (readonly [number, string])[];
   /** How strongly the face glow warms the cheek lobes, 0 to 1. */
   cheekWarmth: number;
+  /** How brightly the red oral band glows along each arm's underside, 0 to 2. */
+  underside: number;
   halo: HaloSettings;
   /** In a world: the soft glow in the water round him. */
   aura: AuraSettings;
