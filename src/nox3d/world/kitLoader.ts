@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { bakedLightOf } from './bakedLight';
 import type { WorldConfig } from './types';
+import { type Disposable, reclaim, retire } from './useDisposables';
 
 /** One KTX2 loader per renderer: it transcodes in workers, to the formats this GPU supports. */
 const ktx2Loaders = new WeakMap<THREE.WebGLRenderer, KTX2Loader>();
@@ -21,12 +22,42 @@ export function ktx2Loader(gl: THREE.WebGLRenderer) {
 }
 
 /**
- * Ends the renderer's KTX2 loader and its transcoder workers. The world calls it as it unmounts, so
- * the workers never outlive the renderer; a later compressed load makes a new loader.
+ * Ends the renderer's KTX2 loader and its transcoder workers; a later compressed load makes a new
+ * loader. Worlds do not call it directly: they hold the loader (`holdKtx2Loader`).
  */
 export function releaseKtx2Loader(gl: THREE.WebGLRenderer) {
   ktx2Loaders.get(gl)?.dispose();
   ktx2Loaders.delete(gl);
+}
+
+/** How many mounted worlds hold each renderer's KTX2 loader. */
+const holders = new WeakMap<THREE.WebGLRenderer, number>();
+/** Each renderer's release, as a list `retire` and `reclaim` can key on (one list per renderer). */
+const releases = new WeakMap<THREE.WebGLRenderer, readonly Disposable[]>();
+
+/**
+ * Holds the renderer's KTX2 loader for a mounted world; returns the release. The loader and its
+ * transcoder workers go the tick after the last holder on that renderer lets go, through
+ * useDisposables' `retire`: StrictMode's simulated unmount and remount, or one world handing over
+ * to the next, keeps the loader, and one world leaving never ends another's loads.
+ */
+export function holdKtx2Loader(gl: THREE.WebGLRenderer) {
+  let release = releases.get(gl);
+  if (!release) {
+    release = [{ dispose: () => releaseKtx2Loader(gl) }];
+    releases.set(gl, release);
+  }
+  const list = release;
+  holders.set(gl, (holders.get(gl) ?? 0) + 1);
+  reclaim(list);
+  let held = true;
+  return () => {
+    if (!held) return;
+    held = false;
+    const left = (holders.get(gl) ?? 1) - 1;
+    holders.set(gl, left);
+    if (left === 0) retire(list);
+  };
 }
 
 /** The kit is compressed: meshopt geometry, KTX2 (Basis) textures. */
@@ -39,14 +70,16 @@ export function compressedKit(gl: THREE.WebGLRenderer) {
 
 /**
  * The world's kit as loaded: near.glb, the pieces with the near world's baked light, when the world
- * has one; else kit.glb, lit in real time. The KTX2 loader's transcoder workers end with the world.
+ * has one; else kit.glb, lit in real time. The same object every render until the file or the
+ * world changes, so what is built from it is built once. The world holds the KTX2 loader while it
+ * is mounted.
  */
 export function useWorldKit(world: WorldConfig) {
   const gl = useThree(state => state.gl);
   const gltf = useLoader(GLTFLoader, world.near?.url ?? world.kit.url, compressedKit(gl));
-  useEffect(() => () => releaseKtx2Loader(gl), [gl]);
+  useEffect(() => holdKtx2Loader(gl), [gl]);
   const baked = useMemo(() => (world.near ? bakedLightOf(gltf.scene, world.layout) : null), [gltf, world]);
-  return { scene: gltf.scene, baked };
+  return useMemo(() => ({ scene: gltf.scene, baked }), [gltf, baked]);
 }
 export type WorldKit = ReturnType<typeof useWorldKit>;
 

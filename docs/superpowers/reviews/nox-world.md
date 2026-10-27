@@ -768,19 +768,19 @@ The three misses are the accepted ones (saturation, cheek glow, arm rim).
 | Basis transcoder (js + wasm), now fetched for the lightmaps | 584,862 |
 | **World assets, worst case** | **4,702,254** (6 MB budget) |
 
-**Stills:**
-- `assets/nox-world-t7-light-strip.jpg`: panel 2, before (real-time lights) and after (baked, relics x1.2);
-- `assets/nox-world-t7-light-crop.jpg`: the right-hand pillars and rock heap at full size;
-- `assets/nox-world-t7-light-detail.jpg`: one right-hand block at twice panel 2's size, before and after.
+**Stills** (updated in fix round 1, with the relief):
+- `assets/nox-world-t7-light-strip.jpg`: panel 2, before (real-time lights) and after (baked with relief, relics x1.2);
+- `assets/nox-world-t7-light-crop.jpg`: the right-hand pillars and rock heap at full size, before and after;
+- `assets/nox-world-t7-light-detail.jpg`: one right-hand block at twice panel 2's size: real-time lights at the same relic strength, the Task 7 bake, and the bake with relief.
 
 At panel 2's size the world reads as the same place. The red round the glyph panels is a little stronger. It sits a little tighter in the carved recesses, where the AO falls.
 
-At twice the size the stone is visibly flatter. A lightmap holds the light for the surface, not for its normal map. The glyph light used to rake across the stone's pits from 0.5 in front of it, and that detail is gone. Soft mottling shows in its place. Fine detail (high-pass RMS over mean, dim stone pixels) is 0.159 and 0.163 with real-time lights and 0.144 and 0.151 baked, about 8% less.
+At twice the size the stone is visibly flatter. A lightmap holds the light for the surface, not for its normal map. The glyph light used to rake across the stone's pits from 0.5 in front of it, and that detail is gone. Soft mottling shows in its place. Fine detail (high-pass RMS over mean, dim stone pixels) is 0.159 and 0.163 with real-time lights and 0.144 and 0.151 baked, about 8% less. Fix round 1 brings it back (below).
 
 **Left as found.**
 - Lightmaps cannot give the sharp highlights the point lights left on the wet seabed and the rocks. The sheen keeps only their average.
 - The chain has no lightmap. Only the surface spot and the water's environment light it.
-- The stone's normal-map detail no longer takes the baked light (see the detail still). A directional lightmap would bring it back: a second atlas holding each texel's main light direction, which the shader uses to shade the normal map. That is a follow-up for the owner to weigh.
+- The stone's normal-map detail no longer takes the baked light. Fixed in fix round 1 (below), in the shader, without a second atlas.
 - No denoiser was run on the bakes. A compositor denoise pass on the baked images could add one. The mottling in the detail still may be bake noise.
 - The bake must run again after any change to layout.json, the kit's pieces or the baked lights. Until it does, a test fails by name.
 
@@ -790,4 +790,66 @@ At twice the size the stone is visibly flatter. A lightmap holds the light for t
 - `npm test`: 49 files, 309 tests.
 - tsc (nox3d, app): exit 0.
 - oxlint on the changed files: no new warnings. `Kit.tsx` keeps its 5 earlier `refs` warnings, and `Floor.tsx` and `WorldScene.tsx` keep one `immutability` warning each, as at HEAD. Floor's `only-export-components` warning is gone with floorHeight's move to `seabed.ts`.
+- nox3d e2e: 8 of 8.
+
+#### Fix round 1 (2026-10-27)
+
+**Relief (R32).** The baked stone takes its normal map again. `withBakedLight` in bakedLight.ts replaces `withBakedSheen`:
+- It shades the baked glyph, lava and fill light twice in the shader, once with the normal map and once with the surface's own normal, and adds the difference to the baked light.
+- Where the bake had less light than that (the glyph lights' shadows, AO), the difference shrinks with it. It never takes away more than the bake gave.
+- The specular takes the same difference. All the lights are taken as one, from their main direction, scaled by how much they agree on that direction.
+- The sheen then reads the shaded light.
+- It runs on the stone, rocks, seabed and pebbles. Coral has no normal map and keeps the sheen only.
+- The lights come from near.glb's record. No new texture is needed.
+
+Fine relief: high-pass RMS over mean luminance (7 x 7 box), on dim stone pixels (red under 0.3) outside Nox. The real-time capture was retaken with this code (near.glb taken out of the config, then restored). Two frozen captures of the same code differ by up to 0.0005.
+
+| Region | Real-time lights, relics x1.2 | Baked, Task 7 | Baked with relief |
+|---|---|---|---|
+| 2x detail crop (x 1180-1536, y 180-560) | 0.1242 | 0.1186 (-4.5%) | 0.1274 (+2.6%) |
+| left stone (x 0-420, y 0-700) | 0.1576 | 0.1443 (-8.4%) | 0.1588 (+0.8%) |
+| right stone (x 1150-1536, y 0-700) | 0.1570 | 0.1512 (-3.7%) | 0.1598 (+1.8%) |
+
+Brightness holds:
+- the same pixels' mean luminance is 0.0572, 0.0636 and 0.0771 (Task 7: 0.0570, 0.0634, 0.0770);
+- the stone and floor region means stay within 0.003 of Task 7;
+- the left floor rises from 0.048 to 0.051, toward real-time's 0.052.
+
+**Cost.** The relief adds shader work on most of the frame: up to 8 point lights (each skipped past its reach), the fill, and two specular terms per pixel. GPU time per frame was measured with timer queries in headless Edge on an Intel UHD (the intro, frozen, 1536 x 1024, three interleaved runs each, 10th percentile of 8 s):
+- without the relief: 54.2, 60.1 and 53.3 ms;
+- with it: 69.3, 61.4 and 69.9 ms.
+
+That is about 8 to 15 ms more, roughly 15 to 25%. The runs vary by about 5 to 10 ms. The specular per light, in place of one main direction, cost much more (81 to 85 ms), so it was dropped. Its relief was +1.0% in the detail crop.
+
+**Kit built once (Important 1).** `useWorldKit` returns the same object until the file or the world changes. Checked in the browser, with a log in Kit's build:
+- after load, 1 build;
+- after 12 hovers, Tab and Escape, still 1;
+- with the old return, 3.
+
+**Placement parity (Important 2).**
+- bake_world.py records each placement's matrix in stage space and, for coral, what it rests on.
+- `placement.ts` holds the page's `applyPlacement`, `withLod` and `coralRest`. Kit.tsx uses them.
+- `placement.test.ts` loads near.glb and checks:
+  - all 41 matrices are within 1e-5 of the page's (Blender holds matrices in single precision);
+  - each coral rests on the same thing as in the bake: 6 on rock, 5 on the seabed;
+  - each coral rests at the same height: within 1e-5 on the seabed, and within 1e-3 on rock (the file's rock positions are meshopt-quantized).
+- near.glb was exported again from the measured bake. Its three lightmaps decode texel for texel the same as before. It grew by 7,292 bytes, to 2,868,472. The worst case for the world's assets is now 4,709,546 bytes.
+
+**KTX2 loader (Important 3).** `holdKtx2Loader` counts the mounted worlds on each renderer. When the last one lets go, the loader and its transcoder workers go the tick after, through useDisposables' `retire`. StrictMode's remount reclaims it in that tick.
+
+**Nox is unchanged.** `world-capture intro spike-out/t7-fix1.png`, then `check_stage --world --stage intro`:
+
+| | Mean | Unrounded mean | Saturation | Brightness |
+|---|---|---|---|---|
+| Task 7, after | (127, 29, 79) | (126.89, 28.50, 79.24) | 0.836 | 0.570 |
+| fix round 1 | (127, 29, 79) | (126.97, 28.52, 79.24) | 0.836 | 0.570 |
+
+- The mask is identical.
+- The misses are the three accepted ones: saturation, cheek glow 9.5, arm rim 40.8.
+
+**Tests:**
+- new: `bakedLight.test.ts` (each patch changes three's standard shader; the relief's uniforms), `placement.test.ts` (matrices, coral rest), and a `kitLoader.test.ts` hold/release test;
+- `npm test`: 51 files, 315 tests;
+- tsc (nox3d, app): exit 0;
+- oxlint on the changed files: no new warnings;
 - nox3d e2e: 8 of 8.

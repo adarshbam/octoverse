@@ -2,30 +2,15 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { type BakeRecord, type BakedLight, lightMapOf, stoneLights, withBakedSheen } from './bakedLight';
-import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
+import { type BakeRecord, type BakedLight, lightMapOf, stoneLights, withBakedLight } from './bakedLight';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
+import { applyPlacement, coralRest, withLod } from './placement';
 import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
-
-function applyPlacement(object: THREE.Object3D, p: Placement) {
-  object.position.set(...p.position);
-  object.rotation.set(0, p.rotY ?? 0, p.tilt ?? 0);
-  if (typeof p.scale === 'object') object.scale.set(...p.scale);
-  else object.scale.setScalar(p.scale ?? 1);
-}
-
-/** A piece at full detail near the camera and its `_lod1` beyond `KIT_LOD_DISTANCE`. */
-function withLod(full: THREE.Object3D, far: THREE.Object3D) {
-  const lod = new THREE.LOD();
-  lod.addLevel(full, 0);
-  lod.addLevel(far, KIT_LOD_DISTANCE, LOD_HYSTERESIS);
-  return lod;
-}
 
 /** Bends a straight chain (links up its local y) along a sagging curve, repeating it to length. */
 function hangChain(link: THREE.BufferGeometry, unit: number, from: Vec3, to: Vec3, sag: number) {
@@ -134,10 +119,10 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       normalMap: stoneMaps.normal,
       normalScale: new THREE.Vector2(1.1, 1.1),
     });
-    const sheen = (shader: THREE.WebGLProgramParametersWithUniforms) => {
-      shader.fragmentShader = withBakedSheen(shader.fragmentShader);
-    };
-    stone.onBeforeCompile = sheen;
+    // Stone, rock and pebbles keep their normal maps' relief under the baked light.
+    const relief = baked?.relief ?? null;
+    const bakedStone = (shader: THREE.WebGLProgramParametersWithUniforms) => withBakedLight(shader, relief);
+    stone.onBeforeCompile = bakedStone;
     const rock = new THREE.MeshStandardMaterial({
       color: '#22202e',
       roughness: 0.5,
@@ -150,7 +135,8 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vRockWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vRockWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      shader.fragmentShader = withBakedSheen(shader.fragmentShader)
+      withBakedLight(shader, relief);
+      shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
           `#include <common>
@@ -173,7 +159,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
         );
     };
     const pebble = new THREE.MeshStandardMaterial({ color: '#2a2a38', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
-    pebble.onBeforeCompile = sheen;
+    pebble.onBeforeCompile = bakedStone;
     const iron = new THREE.MeshStandardMaterial({ color: '#2a2e3c', roughness: 0.38, metalness: 0.8 });
     // Coral glows from within, brightest at the tips (the baked colour), and is still shaded by
     // the light round it, so its branches read as solid.
@@ -191,7 +177,8 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
           transformed.x += sin(uTime * 1.1 + phase + position.y * 2.5) * 0.05 * h * h;
           transformed.z += cos(uTime * 0.8 + phase * 1.3) * 0.03 * h * h;`,
         );
-      shader.fragmentShader = withBakedSheen(shader.fragmentShader).replace(
+      withBakedLight(shader, null);
+      shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
         /* glsl */ `#include <emissivemap_fragment>
         totalEmissiveRadiance *= pow(vColor.r, 1.6);`,
@@ -293,14 +280,10 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return new THREE.Mesh(geometry, material);
     };
     const rockSurfaces = rocks.map(lod => lod.levels[0].object);
-    const ray = new THREE.Raycaster();
     const corals = layout.corals.map((p, index) => {
       const object = withLod(coralLevel(p.piece, lit(coral, baked, 'corals', index, 0)), coralLevel(`${p.piece}_lod1`, lit(coral, baked, 'corals', index, 1)));
       const [x, , z] = p.position;
-      ray.set(new THREE.Vector3(x, 8, z), new THREE.Vector3(0, -1, 0));
-      const hit = ray.intersectObjects(rockSurfaces, false)[0];
-      const y = Math.max(hit ? hit.point.y : -Infinity, floorHeight(x, z, layout.floorY)) - 0.04;
-      applyPlacement(object, { ...p, position: [x, y, z] });
+      applyPlacement(object, { ...p, position: [x, coralRest(x, z, layout.floorY, rockSurfaces).y, z] });
       return object;
     });
 

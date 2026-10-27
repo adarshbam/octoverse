@@ -350,6 +350,21 @@ def rect(spot, side, size):
 
 # --- Setup -------------------------------------------------------------------------------------
 
+def rock_tree(ob):
+    """A placed boulder's surface, for coral to rest on."""
+    mw = ob.matrix_world
+    return BVHTree.FromPolygons([mw @ v.co for v in ob.data.vertices], [tuple(q.vertices) for q in ob.data.polygons])
+
+
+def coral_rest(x, z, floor_y, rock_trees):
+    """Where coral at stage (x, z) rests, as the page's coralRest (placement.ts): on the highest
+    boulder under it or the seabed, whichever is higher, sunk 0.04. Returns (y, "rock" | "seabed")."""
+    hits = [tree.ray_cast(Vector((x, -z, 8.0)), Vector((0, 0, -1)))[0] for tree in rock_trees]
+    rock = max((h.z for h in hits if h is not None), default=None)
+    seabed = floor_height(x, z, floor_y)
+    return (rock - 0.04, "rock") if rock is not None and rock > seabed else (seabed - 0.04, "seabed")
+
+
 def own_scene():
     """This script's scene and collections, emptied of what an earlier run made."""
     sc = bpy.data.scenes.get(SCENE) or bpy.data.scenes.new(SCENE)
@@ -573,9 +588,7 @@ def setup():
             kind, piece, _, _ = kinds[(p["piece"], level)]
             if group == "corals":
                 x, _, z = p["position"]
-                hits = [tree.ray_cast(Vector((x, -z, 8.0)), Vector((0, 0, -1)))[0] for tree in rock_trees]
-                y = max([h.z for h in hits if h is not None] + [floor_height(x, z, floor_y)]) - 0.04
-                matrix = KIT.stage_matrix(p, y)
+                matrix = KIT.stage_matrix(p, coral_rest(x, z, floor_y, rock_trees)[0])
             else:
                 matrix = KIT.stage_matrix(p)
             me = piece.data.copy()
@@ -593,8 +606,7 @@ def setup():
                 c.matrix_parent_inverse = child.matrix_parent_inverse.copy()
             placed[level].append(ob)
             if level == "lod0" and group == "rocks":
-                mw = ob.matrix_world
-                rock_trees.append(BVHTree.FromPolygons([mw @ v.co for v in me.vertices], [tuple(q.vertices) for q in me.polygons]))
+                rock_trees.append(rock_tree(ob))
 
     centres = {name: full["glyph_centre"] for name, (full, _) in built.items() if name.startswith("pillar")}
     record_lights, spot = lights(colls[LIGHTS], layout, centres)
@@ -734,14 +746,33 @@ def atlas_quad(coll, name, image):
     return ob
 
 
+# Blender space as stage space: stage (x, y, z) is Blender (x, -z, y), so a matrix M in Blender is
+# STAGE @ M @ STAGE.transposed() on the page (the exported pieces' own frames turn the same way).
+STAGE = Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
+
+
+def stage_elements(matrix):
+    """A Blender world matrix in stage space, column-major as three's Matrix4.elements."""
+    m = STAGE @ matrix @ STAGE.transposed()
+    return [m[row][col] for col in range(4) for row in range(4)]
+
+
 def record():
     layout, groups, squares = STATE["layout"], STATE["groups"], STATE["squares"]
+    floor_y = layout["floorY"]
+    rock_trees = [rock_tree(STATE["placed"]["lod0"][k]) for k, (group, _) in enumerate(groups) if group == "rocks"]
     instances = {"pillars": [], "rocks": [], "corals": []}
     for k, (group, p) in enumerate(groups):
         entry = {"placement": p}
         for level in LEVELS:
             _, sides, spots = squares[level]
             entry[level] = rect(spots[k], sides[k], ATLAS[level])
+        # Where the bake stood it (both levels stand alike), for the page to check its own placing.
+        # Blender holds matrices in single precision.
+        entry["matrix"] = stage_elements(STATE["placed"]["lod0"][k].matrix_world)
+        if group == "corals":
+            x, _, z = p["position"]
+            entry["restsOn"] = coral_rest(x, z, floor_y, rock_trees)[1]
         instances[group].append(entry)
     return {
         "intensity": INTENSITY,

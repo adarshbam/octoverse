@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { type BakedLight, lightMapOf, withBakedSheen } from './bakedLight';
+import { type BakedLight, lightMapOf, withBakedLight } from './bakedLight';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
@@ -82,7 +82,8 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vFloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      shader.fragmentShader = withBakedSheen(shader.fragmentShader)
+      withBakedLight(shader, baked?.relief ?? null);
+      shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\n${floorGlsl}`)
         .replace(
           '#include <roughnessmap_fragment>',
