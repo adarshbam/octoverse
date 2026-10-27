@@ -14,8 +14,14 @@ Updated 2026-10-26. Read this first in a new session, then the files it points t
 - **Test scene (throwaway reference):** `spike-env.html`, `src/spikeEnv/`, `spike-env/` (Blender kit script, capture and perf scripts, results in `spike-env/out/`). Open `http://localhost:5191/spike-env.html?compare`.
 - **No videos:** do not record review clips or frame sequences (`scripts/stepped-capture.mjs`, `spike-env/clip.mjs`). Check with stills, screenshots and measurements. The owner watches motion live.
 - **Superseded:** Entrance v1 (Task 23) is replaced by the spec's entrance; the gate plate (Task 24) is replaced by the 3D world.
-- **Plan:** `docs/superpowers/plans/2026-10-26-nox-world-and-motion.md`: 28 tasks in the spec's nine milestones, each milestone ending in the owner's live review. The owner approved the spec on 2026-10-26.
-- **Next step:** the owner reviews the plan and picks how it runs (subagent-driven or native). Then start Task 1. Its Step 0 commits the spec, plan and dependency additions, with the owner's OK.
+- **Plan:** `docs/superpowers/plans/2026-10-26-nox-world-and-motion.md`: 28 tasks in the spec's nine milestones, each milestone ending in the owner's live review. The owner approved the spec and the plan on 2026-10-26 and chose subagent-driven execution.
+- **Ledger:** `.superpowers/sdd/2026-10-26-nox-world-and-motion/progress.md` (git-ignored) holds every task's completion line, every ruling (R1 onwards), the owner's verdicts verbatim and the deferred minor findings. Trust it and `git log` over memory.
+- **Milestone 1 (Tasks 1–5) is closed, 2026-10-27.**
+  - The world runs behind `?world`.
+  - Nox has capped world accents, an aura, a glow light that also tints particles, and an in-scene local grade that never touches his own layers.
+  - The owner approved a new body palette: violet arm tops, a deep red underside band (`glow.underside` 1.6) and a red-pink rim. The face glow ramp was restored to the approved one.
+  - Accepted misses: intro saturation 0.837, cheek glow 9.5, arm rim 40.9. The record is in `docs/superpowers/reviews/nox-world.md`.
+- **Next step:** Task 6 (shared layout, kit rebuild in Blender, compression). KTX-Software (`toktx`) is not installed, so textures use WebP until the owner installs it.
 
 ## Where the work lives
 
