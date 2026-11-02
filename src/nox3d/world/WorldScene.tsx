@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
-import { stoneLights } from './bakedLight';
+import { RELIEF_GATE, stoneLights } from './bakedLight';
 import { FarCards } from './FarCards';
 import { Floor } from './Floor';
 import { Kit } from './Kit';
@@ -13,7 +13,7 @@ import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
 import { FarFish, GodRays, MarineSnow, WaterSky } from './Water';
-import { WORLD_TIERS, type WorldTier, stoneCastsShadow } from './worldTiers';
+import { WORLD_TIERS, type WorldTier, reliefShown, stoneCastsShadow } from './worldTiers';
 import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } from './worldTime';
 
 /**
@@ -24,11 +24,11 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * `time` says whether the world's clock runs or holds one moment. `tier` is what the quality tier draws (worldTiers.ts): fewer bubbles, embers and light shafts, a smaller
  * shadow map cast by Nox alone, no fish or motes on the lower ones. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
- * measurement captures only, leaves out the bubbles. `reducedMotion` holds the world's own motion
+ * measurement captures only, leaves out the bubbles. `onPlateSettled` is called once the far plate's layers have loaded or failed. `reducedMotion` holds the world's own motion
  * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
  * plane past the sky sphere (100 units).
  */
-export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false }: { world: WorldConfig; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean }) {
+export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false, onPlateSettled }: { world: WorldConfig; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean; onPlateSettled?: () => void }) {
   const surface = useSurfaceLight(world, tier.shadowMap);
   const kit = useWorldKit(world);
   useNoxAccents(world, surface, accents);
@@ -37,9 +37,21 @@ export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo
   const motion = useMemo(() => ({ freeze: time.freeze, reducedMotion }), [time.freeze, reducedMotion]);
   // The ambient bubbles drift on the world's clock, and hold still with the rest of its motion.
   const bubbleTime = useMemo(() => (state: { clock: { elapsedTime: number } }) => ambientTime(state.clock.elapsedTime, time, reducedMotion), [time, reducedMotion]);
+  // A world without a far plate has nothing to wait for.
+  useEffect(() => {
+    if (!world.farPlate) onPlateSettled?.();
+  }, [world, onPlateSettled]);
   const stone = useRef<THREE.Group>(null);
   const castFromStone = stoneCastsShadow(tier);
   useStoneShadows(stone, castFromStone);
+  // The stone's and seabed's relief is a uniform branch in their shaders: no rebuild on a tier change.
+  const relief = reliefShown(tier);
+  useLayoutEffect(() => {
+    RELIEF_GATE.value = relief ? 1 : 0;
+    return () => {
+      RELIEF_GATE.value = 1;
+    };
+  }, [relief]);
   return (
     <MotionContext.Provider value={motion}>
     <WorldTimeProvider value={time}>
@@ -52,7 +64,7 @@ export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo
       <group ref={stone}>
         <Kit world={world} kit={kit} />
       </group>
-      {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} />}
+      {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} onSettled={onPlateSettled} />}
       <GodRays amount={live.rays * tier.rays} spread={world.glow.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
       {tier.fish && <FarFish amount={live.fish} />}

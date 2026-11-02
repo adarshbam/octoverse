@@ -27,3 +27,6 @@ export const WORLD_TIERS: Record<QualityTier, WorldTier> = {
  * Nox does: the ruin's own shadows are the first thing the lower tiers give up (lever 1).
  */
 export const stoneCastsShadow = (tier: WorldTier) => tier.shadowMap > 1024;
+
+/** Whether the stone and seabed draw their baked relief and its specular (per-fragment extras, R36): the full world only. */
+export const reliefShown = stoneCastsShadow;

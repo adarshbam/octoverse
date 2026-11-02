@@ -952,3 +952,51 @@ Low: median of medians 56.0 to 55.5 ms (-0.5), median of p10 50.0 to 48.6 (-1.4)
 **Assets** unchanged (public/nox 6.2 MiB on disk; the visitor download is as in Task 10).
 
 **Checks.** `npm test` 57 files, 338 tests; tsc nox3d and app exit 0; oxlint on the changed files has no new warning; nox3d e2e 8 of 8.
+
+**Update after fix round 1: tier low now meets its budget (43.7 fps against 36) and medium reaches 27.9; tier high still misses (16.8 against 27). The paragraphs above are the first round's measurements; the section below supersedes its conclusions.**
+
+### Task 11 fix round 1 (R42)
+
+**Result.** Budget: tier low **met** (43.7 fps against 36), tier medium 27.9, tier high **not met** (16.8 against 27). Overview high is within 10% of intro high. Tier high cannot reach 27 look-neutrally on this machine; the lever that does (a render scale under 1) changes its look and is left to the owner (below).
+
+**Method.** HEAD (53bcfae, `git archive`, own vite port) and the working tree, run back to back, three rounds, `scripts/perf.mjs --gpu`, headless Edge 1536x1024 DPR 1, pane closed. `__noxReady` now waits for the far plate. Medians of three.
+
+| Query (fps median, GPU median ms) | HEAD 53bcfae | After | Budget |
+|---|---|---|---|
+| intro high | 16.8 fps, 53.1 ms | 16.8 fps, 54.6 ms | 27: MISS |
+| intro medium | 22.2 fps, 42.1 ms | 27.9 fps, 33.0 ms | none |
+| intro low | 19.6 fps, 48.7 ms | 43.7 fps, 20.5 ms | 36: met |
+| overview high | 15.7 fps, 58.4 ms | 19.6 fps, 45.9 ms (rounds 15.1, 19.6, 20.4) | within 10% of intro high: yes |
+
+Rounds: high 16.8, 15.0, 18.8 against 16.9, 16.8, 12.3; low 19.6, 20.1, 17.0 against 44.4, 43.7, 42.7; medium 18.6, 22.9, 22.2 against 27.9, 36.1, 23.1. (The machine was faster in this round than in the first Task 11 round; only paired differences count.)
+
+**Per lever** (paired runs; the "a" step was measured on its own, three rounds, tier high, intro):
+
+| Lever | Before -> after | Verdict |
+|---|---|---|
+| d. `__noxReady` waits for the far plate (loaded or failed) | ready after 17.7 s on a cold load | done; no cost |
+| a. Floor noise baked (RG 8-bit texture, 416x1104, drawn once on the GPU with the floor's own GLSL, no download bytes) | 13.1 -> 13.1 fps; GPU median 72.9 -> 61.2 ms, p10 59.4 -> 58.5 | within noise at the frame rate; look 0.21 mean abs diff (HEAD vs HEAD 0.04 to 0.19), kept (pays at every tier) |
+| floor internals (normal map, receive shadow, relief off) | no change beyond noise (GPU median 63.7 -> 58.5 to 60.9) | so the floor's cost is raw fill, not its noise |
+| Post chain: SMAA | about 7 to 12 ms (off: 65.0 -> 53.2); presets LOW and MEDIUM, luma edges: 49.1 -> 46.4 to 47.0 p10 | no look-neutral saving; left alone at high |
+| Post chain: bloom, vignette, contact shadows | 3 to 7 ms each, within noise | left alone |
+| b. Render scale per tier (1 / 0.8 / 0.6 of the pixel ratio; the frame scales up to the page) | the whole low and medium gain: high 16.8 -> (rs 0.75: 23.3, rs 0.6: 31.8 fps in the ablation) | **the lever that works**: fill-bound on this GPU |
+| c. Relief and its specular behind a uniform branch at medium and low (`RELIEF_GATE`, no rebuild) | within noise (relief off at high measured 63.7 -> 60.6 ms) | kept: R36 gate, costs nothing at high |
+| contact shadows at low | restored (see Nox) | Nox-visible, costs little (it returns early outside Nox's depth range) |
+
+**Why Nox differed at low (the finding).** Tier low turned the contact-shadow pass off (`TIER_SETTINGS.low.contactShadows false`). The pass shades Nox only (depth window 10.8 to 13.6), so it was a tier gate on a Nox-visible effect. Low-tier captures on HEAD: (129, 30, 83), saturation 0.831, brightness 0.581; with it forced on: (126, 29, 80), 0.831, 0.569. Fixed: it is on at every tier (test pins it). Bloom resolution (-0.003 brightness) and arm mesh detail (saturation 0.833) were also checked: smaller effects.
+
+**Nox / look** (`world-capture intro`, `check_stage --world`), new tree:
+
+| Tier | mean | saturation | brightness | mean abs diff vs HEAD same tier / vs HEAD high | mask diff vs HEAD |
+|---|---|---|---|---|---|
+| high | (127, 29, 79) | 0.834 | 0.570 | 0.107 / 0.107 (HEAD vs HEAD 0.067) | 0.0 |
+| medium | (127, 29, 79) | 0.834 | 0.567 | 1.41 / 3.20 | 0.44 |
+| low | (126, 29, 80) | 0.835 | 0.565 | 2.28 / 4.06 | 0.60 |
+
+High is identical to HEAD within capture noise and the masks are identical. Medium and low also drop: fewer light shafts (0.6, 0.4), bubbles and embers (0.6, 0.35), no fish at low, no motes, a smaller shadow map with only Nox casting, no baked relief or its specular, the far plate's two large layers at half size (low), and the frame drawn at 0.8 and 0.6 of the pixels. Nox's colour is unchanged to within one channel and 0.005 in brightness at every tier; his silhouette moves by 0.4 to 0.6 of a mask unit at medium and low, from the lower arm mesh detail that `TIER_SETTINGS` already had (radial and segment counts) and the lower resolution. Those are the two Nox-touching items still in the tiers; the owner may want the arm mesh kept at full detail now that render scale does the saving.
+
+**Tier high: the next lever.** 27 fps needs about 20 ms off a 53 to 60 ms frame, and every look-neutral thing measured (floor noise, SMAA presets, relief, shadow map, particles, rays) is under the machine's noise. The lever that moves it is the render scale: 0.75 gave 23 fps and 0.6 gave 32 fps at high in the ablation. That softens the whole frame, so it is the owner's decision; a high tier at about 0.8 would reach 25 to 27 fps. On this laptop the probe steps high down to medium (below 45 fps) and medium to low, so the visitor lands on a tier that holds the 30 fps floor: low 43.7 fps, medium 27.9 (the probe steps it to low under 30).
+
+**Checks.** `npm test` 57 files, 338 tests; tsc nox3d and app exit 0; oxlint on the changed files: warning list identical to HEAD; nox3d e2e 8 of 8. Console clean at tier low, medium and adaptive. Assets: the floor texture is made on the GPU at load (no bytes; 1.8 MB of GPU memory); R35 unchanged.
+
+**Concerns.** Medium holds 27.9 only just; the pair of low-detail Nox items above; the `a` server crashed in the main paired run so lever a's numbers are from its own earlier paired run.

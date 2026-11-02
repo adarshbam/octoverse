@@ -160,12 +160,13 @@ const READY_FRAMES = 40;
 /**
  * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames. Placed inside the same
  * Suspense as the world, it mounts only when the world's kit has loaded and its shaders have
- * compiled, so a frame-rate measurement (scripts/perf.mjs) starts on a settled scene.
+ * compiled; `wait` holds the count until the far plate's layers have loaded or failed. A frame-rate
+ * measurement (scripts/perf.mjs) then starts on a settled scene.
  */
-function ReadyFlag() {
+function ReadyFlag({ wait }: { wait: boolean }) {
   const frames = useRef(0);
   useFrame(() => {
-    if (frames.current > READY_FRAMES) return;
+    if (wait || frames.current > READY_FRAMES) return;
     if (++frames.current === READY_FRAMES) (window as unknown as { __noxReady?: boolean }).__noxReady = true;
   });
   return null;
@@ -185,7 +186,12 @@ export function App() {
   const config = useMemo(() => clampCharacterConfig(NOX), []);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
   const quality = useQuality(url);
+  // The far plate's layers load outside Suspense; `__noxReady` waits for them.
+  const [plateReady, setPlateReady] = useState(!url.world);
+  const settlePlate = useCallback(() => setPlateReady(true), []);
   const visible = usePageVisible();
+  // The pixels drawn per CSS pixel: the device's, up to the tier's cap, times the tier's render scale.
+  const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio, quality.settings.dpr)) * quality.settings.renderScale;
   const segments = quality.settings.segments;
   // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
   // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
@@ -311,7 +317,7 @@ export function App() {
     <div className="spike" ref={frame}>
       <Canvas
         flat
-        dpr={[1, quality.settings.dpr]}
+        dpr={pixelRatio}
         frameloop={visible ? 'always' : 'never'}
         // The world's surface light casts shadows, and its sky sphere reaches 100 units.
         shadows={url.world ? 'percentage' : false}
@@ -331,9 +337,9 @@ export function App() {
             {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
                 plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
             <Suspense fallback={null}>
-              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} tier={WORLD_TIERS[quality.tier]} accents={accents} solo={url.solo} reducedMotion={reducedMotion} /> : <Backdrop />}
+              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} tier={WORLD_TIERS[quality.tier]} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} /> : <Backdrop />}
               {octopus}
-              <ReadyFlag />
+              <ReadyFlag wait={!plateReady} />
             </Suspense>
             {!url.world && (
               <>

@@ -1,5 +1,5 @@
-import { useFrame } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLight';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
@@ -21,6 +21,7 @@ const floorGlsl = /* glsl */ `
   uniform vec2 uMotionV;
   #define uMotion uMotionV.x
   uniform sampler2D uCracks;
+  uniform sampler2D uFloorNoise;
   vec2 fhash22(vec2 p) {
     p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
     return fract(sin(p) * 43758.5453);
@@ -43,6 +44,52 @@ const floorGlsl = /* glsl */ `
   }
 `;
 
+/** Texels per world unit in the baked noise: the finest feature (a wavelength of about 0.9 units) spans 14. */
+const NOISE_TEXELS = 16;
+const NOISE_COLS = Math.round(WIDTH * NOISE_TEXELS);
+const NOISE_ROWS = Math.round((NEAR_Z - FAR_Z) * NOISE_TEXELS);
+
+/**
+ * The seabed's two value-noise fields (the puddles' and the lava patches', before their
+ * thresholds), drawn once into a texture with the same GLSL the floor used per pixel, so the
+ * pattern is the one the floor always had. Red: the puddles' mix; green: the patches'. The
+ * floor then reads one texture instead of computing four noises for every pixel.
+ */
+const NOISE_BAKE_FRAGMENT = /* glsl */ `
+  varying vec2 vUv;
+  ${floorGlsl.replace(/varying vec3 vFloorWorld;|uniform float uTime;|uniform vec2 uMotionV;|#define uMotion uMotionV.x|uniform sampler2D uCracks;|uniform sampler2D uFloorNoise;/g, '')}
+  void main() {
+    vec2 wp = vec2(${(-WIDTH / 2).toFixed(1)} + vUv.x * ${WIDTH.toFixed(1)}, ${FAR_Z.toFixed(1)} + vUv.y * ${(NEAR_Z - FAR_Z).toFixed(1)});
+    float puddle = fnoise(wp * 0.42 + 7.3) * 0.7 + fnoise(wp * 1.1) * 0.3;
+    float patchy = fnoise(wp * 0.21 + 3.1) * 0.65 + fnoise(wp * 0.53 + 1.7) * 0.35;
+    gl_FragColor = vec4(puddle, patchy, 0.0, 1.0);
+  }
+`;
+
+function makeNoiseTarget() {
+  const target = new THREE.WebGLRenderTarget(NOISE_COLS, NOISE_ROWS, { depthBuffer: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  target.texture.colorSpace = THREE.NoColorSpace;
+  return target;
+}
+
+function bakeNoise(gl: THREE.WebGLRenderer, target: THREE.WebGLRenderTarget) {
+  const material = new THREE.ShaderMaterial({
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: NOISE_BAKE_FRAGMENT,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+  quad.frustumCulled = false;
+  const scene = new THREE.Scene().add(quad);
+  const previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  gl.render(scene, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
+  gl.setRenderTarget(previous);
+  quad.geometry.dispose();
+  material.dispose();
+}
+
 /**
  * The seabed: dark wet silt with glowing cracks, brightest in patches and toward the pillars. With
  * the near world `baked`, the light of the glyphs, the lava and the fill comes from its lightmap.
@@ -50,6 +97,11 @@ const floorGlsl = /* glsl */ `
 export function Floor({ world, baked = null }: { world: WorldConfig; baked?: BakedLight | null }) {
   const now = useWorldTime();
   const motionAmount = useMotionAmount();
+  const gl = useThree(state => state.gl);
+  // The noise is drawn once, before the first frame, and kept for the life of the floor.
+  const noise = useMemo(() => makeNoiseTarget(), []);
+  useLayoutEffect(() => bakeNoise(gl, noise), [gl, noise]);
+  useDisposables(useMemo(() => [noise], [noise]));
   const { geometry, material, time, motion, disposables } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, ...SEABED.segments);
     geometry.rotateX(-Math.PI / 2);
@@ -87,6 +139,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
       shader.uniforms.uTime = time;
       shader.uniforms.uMotionV = { value: motion };
       shader.uniforms.uCracks = { value: cracks };
+      shader.uniforms.uFloorNoise = { value: noise.texture };
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vFloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
@@ -97,7 +150,8 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
           '#include <roughnessmap_fragment>',
           /* glsl */ `#include <roughnessmap_fragment>
           // Wet patches: smooth enough to mirror the glow round them.
-          float puddle = smoothstep(0.62, 0.7, fnoise(vFloorWorld.xz * 0.42 + 7.3) * 0.7 + fnoise(vFloorWorld.xz * 1.1) * 0.3);
+          vec2 floorNoise = texture2D(uFloorNoise, vec2(vFloorWorld.x * ${(1 / WIDTH).toFixed(6)} + 0.5, (vFloorWorld.z - ${FAR_Z.toFixed(1)}) * ${(1 / (NEAR_Z - FAR_Z)).toFixed(6)})).rg;
+          float puddle = smoothstep(0.62, 0.7, floorNoise.x);
           roughnessFactor = mix(roughnessFactor, 0.12, puddle);`,
         )
         .replace(
@@ -108,7 +162,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
             vec4 cracks = texture2D(uCracks, wp / ${CRACK_TILE.toFixed(2)});
             float crack = cracks.r;
             float halo = cracks.g;
-            float patchy = smoothstep(0.58, 0.76, fnoise(wp * 0.21 + 3.1) * 0.65 + fnoise(wp * 0.53 + 1.7) * 0.35);
+            float patchy = smoothstep(0.58, 0.76, floorNoise.y);
             float side = smoothstep(1.5, 3.6, abs(wp.x));
             float amount = max(patchy, side * 0.85);
             // The lava pulses slowly (liveMotion.ts); held still it keeps its mean.
@@ -124,7 +178,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     };
     const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
     return { geometry, material, time, motion, disposables: owned };
-  }, [world, baked]);
+  }, [world, baked, noise]);
   useDisposables(disposables);
   useFrame(state => {
     time.value = now(state);

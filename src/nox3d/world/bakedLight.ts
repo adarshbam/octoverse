@@ -136,6 +136,12 @@ export function reliefOf(light: BakedLight, map: THREE.Texture): Relief {
 }
 
 /**
+ * 1 draws the relief and its specular, 0 skips them (a uniform branch, so the texture read and the
+ * two BRDFs go): the lower quality tiers set it (WorldScene).
+ */
+export const RELIEF_GATE = { value: 1 };
+
+/**
  * Patches a lit material's shader for its lightmap; without a lightmap it does nothing.
  *
  * Relief, with `relief` (stone, rock, seabed): a lightmap texel is far coarser than the normal
@@ -157,7 +163,7 @@ export function withBakedLight(shader: { fragmentShader: string; uniforms: Recor
   // in each channel, a length of 0.007 after decoding: below that there is no light.
   const reliefCode = relief
     ? /* glsl */ `
-      {
+      if ( bakedReliefOn > 0.5 ) {
         vec3 v = texture2D( bakedReliefMap, vLightMapUv ).xyz * 2.0 - 1.0;
         float m = length( v );
         float strength = bakedReliefScale * max( m - 0.007, 0.0 ) / max( 1.0 - m, 1e-3 );
@@ -183,8 +189,9 @@ export function withBakedLight(shader: { fragmentShader: string; uniforms: Recor
       '#include <common>',
       /* glsl */ `#include <common>
       uniform sampler2D bakedReliefMap;
-      uniform float bakedReliefScale;`,
+      uniform float bakedReliefScale;
+      uniform float bakedReliefOn;`,
     );
-    Object.assign(shader.uniforms, { bakedReliefMap: { value: relief.map }, bakedReliefScale: { value: relief.scale } });
+    Object.assign(shader.uniforms, { bakedReliefMap: { value: relief.map }, bakedReliefScale: { value: relief.scale }, bakedReliefOn: RELIEF_GATE });
   }
 }

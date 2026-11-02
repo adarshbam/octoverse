@@ -3,14 +3,16 @@ import { FrameProbe, TIER_SETTINGS, pickTier } from './quality';
 
 test('tiers step down in every setting', () => {
   const { high, medium, low } = TIER_SETTINGS;
-  for (const key of ['dpr', 'radial', 'segments', 'suckerScale', 'bloomScale', 'particles'] as const) {
+  for (const key of ['dpr', 'renderScale', 'radial', 'segments', 'suckerScale', 'bloomScale', 'particles'] as const) {
     expect(high[key]).toBeGreaterThan(medium[key]);
     expect(medium[key]).toBeGreaterThan(low[key]);
   }
   // High is the look the owner signed off.
   expect(high.segments).toBe(128);
   expect(high.radial).toBe(24);
-  expect(low.contactShadows).toBe(false);
+  // Nox's contact shadows stay on at every tier, so his look does not change with it.
+  expect([high, medium, low].every(t => t.contactShadows)).toBe(true);
+  expect(high.renderScale).toBe(1);
 });
 
 test('probe downgrades after sustained slow frames and never upgrades', () => {

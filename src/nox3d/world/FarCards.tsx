@@ -17,10 +17,12 @@ import { useDisposables } from './useDisposables';
  * `scale` is the share of each layer's resolution kept: a layer is stored with its mip levels, and
  * a lower scale draws from a smaller one (a halving each; 0.75 rounds to the full size).
  *
+ * `onSettled` is called once every layer has loaded or failed.
+ *
  * The layers load on their own, outside Suspense: if one fails to load (a lost file, a GPU
  * without a compressed format) the world still draws, with that layer's range left to the fog.
  */
-export function FarCards({ plate, scale = 1 }: { plate: NonNullable<WorldConfig['farPlate']>; scale?: number }) {
+export function FarCards({ plate, scale = 1, onSettled }: { plate: NonNullable<WorldConfig['farPlate']>; scale?: number; onSettled?: () => void }) {
   const gl = useThree(state => state.gl);
   const drop = Math.max(0, Math.round(-Math.log2(scale)));
   const [maps, setMaps] = useState<readonly (THREE.Texture | null)[]>(() => plate.layers.map(() => null));
@@ -28,6 +30,11 @@ export function FarCards({ plate, scale = 1 }: { plate: NonNullable<WorldConfig[
     const release = holdKtx2Loader(gl);
     let current = true;
     const loaded: THREE.Texture[] = [];
+    // Every layer has either arrived or failed: the plate is as complete as it will get.
+    let settled = 0;
+    const settle = () => {
+      if (current && ++settled === plate.layers.length) onSettled?.();
+    };
     plate.layers.forEach((layer, i) => {
       ktx2Loader(gl)
         .loadAsync(layer.url)
@@ -39,15 +46,19 @@ export function FarCards({ plate, scale = 1 }: { plate: NonNullable<WorldConfig[
           dropMips(texture, drop);
           loaded.push(texture);
           setMaps(old => old.map((m, k) => (k === i ? texture : m)));
+          settle();
         })
-        .catch((error: unknown) => console.warn(`far plate layer ${layer.url} did not load:`, error));
+        .catch((error: unknown) => {
+          console.warn(`far plate layer ${layer.url} did not load:`, error);
+          settle();
+        });
     });
     return () => {
       current = false;
       loaded.forEach(texture => texture.dispose());
       release();
     };
-  }, [gl, plate, drop]);
+  }, [gl, plate, drop, onSettled]);
 
   const cards = useMemo(() => {
     const geometries = plate.layers.map(layer => {

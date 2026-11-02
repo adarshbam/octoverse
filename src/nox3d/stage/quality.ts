@@ -3,6 +3,8 @@ export type QualityTier = 'high' | 'medium' | 'low';
 export interface TierSettings {
   /** Highest device pixel ratio rendered. */
   dpr: number;
+  /** Share of that pixel ratio actually drawn (the frame is scaled up to the page): the lower tiers draw fewer pixels. */
+  renderScale: number;
   /** Arm tube vertices round each ring, and segments along each arm. */
   radial: number;
   segments: number;
@@ -12,15 +14,15 @@ export interface TierSettings {
   bloomScale: number;
   /** Fraction of the bubbles and embers drawn. */
   particles: number;
-  /** The screen-space contact-shadow pass. */
+  /** The screen-space contact-shadow pass: on at every tier, since it shades Nox's own arms and head (turned off, Nox's brightness changed). */
   contactShadows: boolean;
 }
 
 /** `high` is the look the owner signed off; the lower tiers trade detail for frame rate. */
 export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
-  high: { dpr: 2, radial: 24, segments: 128, suckerScale: 1, bloomScale: 1, particles: 1, contactShadows: true },
-  medium: { dpr: 1.5, radial: 18, segments: 96, suckerScale: 0.75, bloomScale: 0.75, particles: 0.6, contactShadows: true },
-  low: { dpr: 1, radial: 12, segments: 64, suckerScale: 0.5, bloomScale: 0.5, particles: 0.35, contactShadows: false },
+  high: { dpr: 2, renderScale: 1, radial: 24, segments: 128, suckerScale: 1, bloomScale: 1, particles: 1, contactShadows: true },
+  medium: { dpr: 1.5, renderScale: 0.8, radial: 18, segments: 96, suckerScale: 0.75, bloomScale: 0.75, particles: 0.6, contactShadows: true },
+  low: { dpr: 1, renderScale: 0.6, radial: 12, segments: 64, suckerScale: 0.5, bloomScale: 0.5, particles: 0.35, contactShadows: true },
 };
 
 const ORDER: QualityTier[] = ['high', 'medium', 'low'];
