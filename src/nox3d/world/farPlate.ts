@@ -67,3 +67,19 @@ export function farCardSize(z: number) {
   );
   return { width: Math.max(...sizes.map(s => s.width)), height: Math.max(...sizes.map(s => s.height)) };
 }
+
+/**
+ * Leaves out up to `levels` of a compressed texture's largest mip levels, so it draws (and uploads)
+ * smaller. Block-compressed storage needs a base level whose sides are multiples of 4, so it stops
+ * at the last drop that leaves one (a layer 1024 x 900 keeps its full size: 450 is not).
+ */
+export function dropMips(texture: THREE.Texture, levels: number) {
+  const mipmaps = (texture as THREE.CompressedTexture).mipmaps;
+  if (!mipmaps) return;
+  let drop = Math.min(levels, mipmaps.length - 1);
+  while (drop > 0 && (mipmaps[drop].width % 4 !== 0 || mipmaps[drop].height % 4 !== 0)) drop--;
+  if (drop <= 0) return;
+  const kept = mipmaps.slice(drop);
+  (texture as THREE.CompressedTexture).mipmaps = kept;
+  texture.image = { width: kept[0].width, height: kept[0].height };
+}

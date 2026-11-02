@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
 import { stoneLights } from './bakedLight';
@@ -13,6 +13,7 @@ import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
 import { FarFish, GodRays, MarineSnow, WaterSky } from './Water';
+import { WORLD_TIERS, type WorldTier, stoneCastsShadow } from './worldTiers';
 import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } from './worldTime';
 
 /**
@@ -20,15 +21,15 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * shafts, snow, fish), the surface light with its caustics, and the light of the glyphs and lava:
  * baked into the near world's lightmaps when it has near.glb, else real lights with a fill. A
  * world with a far plate draws the ruin beyond the near world as transparent cards.
- * `time` says whether the world's clock runs or holds one moment. `density` thins the bubbles and
- * embers on lower quality tiers. `accents` links Nox's skin: the world lights him only through
+ * `time` says whether the world's clock runs or holds one moment. `tier` is what the quality tier draws (worldTiers.ts): fewer bubbles, embers and light shafts, a smaller
+ * shadow map cast by Nox alone, no fish or motes on the lower ones. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
  * measurement captures only, leaves out the bubbles. `reducedMotion` holds the world's own motion
  * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
  * plane past the sky sphere (100 units).
  */
-export function WorldScene({ world, time, density = 1, accents, solo = false, reducedMotion = false }: { world: WorldConfig; time: WorldTimeFlags; density?: number; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean }) {
-  const surface = useSurfaceLight(world);
+export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false }: { world: WorldConfig; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean }) {
+  const surface = useSurfaceLight(world, tier.shadowMap);
   const kit = useWorldKit(world);
   useNoxAccents(world, surface, accents);
   const { live, palette, water } = world;
@@ -36,6 +37,9 @@ export function WorldScene({ world, time, density = 1, accents, solo = false, re
   const motion = useMemo(() => ({ freeze: time.freeze, reducedMotion }), [time.freeze, reducedMotion]);
   // The ambient bubbles drift on the world's clock, and hold still with the rest of its motion.
   const bubbleTime = useMemo(() => (state: { clock: { elapsedTime: number } }) => ambientTime(state.clock.elapsedTime, time, reducedMotion), [time, reducedMotion]);
+  const stone = useRef<THREE.Group>(null);
+  const castFromStone = stoneCastsShadow(tier);
+  useStoneShadows(stone, castFromStone);
   return (
     <MotionContext.Provider value={motion}>
     <WorldTimeProvider value={time}>
@@ -45,14 +49,16 @@ export function WorldScene({ world, time, density = 1, accents, solo = false, re
       {fill && <directionalLight color={fill.color} intensity={fill.intensity} position={[...fill.position]} />}
       <WaterSky world={world} caustics={surface.caustics.texture} opening={world.glow.top} />
       <Floor world={world} baked={kit.baked} />
-      <Kit world={world} kit={kit} />
-      {world.farPlate && <FarCards plate={world.farPlate} />}
-      <GodRays amount={live.rays} spread={world.glow.rays} />
+      <group ref={stone}>
+        <Kit world={world} kit={kit} />
+      </group>
+      {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} />}
+      <GodRays amount={live.rays * tier.rays} spread={world.glow.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
-      <FarFish amount={live.fish} />
-      <Motes amount={live.motes} glow={accents?.light} />
-      {!solo && <Bubbles density={live.bubbles * density} glow={accents?.light} field={WORLD_BUBBLES} time={bubbleTime} />}
-      <Embers density={live.embers * density} glow={accents?.light} scale={world.glow.embers} />
+      {tier.fish && <FarFish amount={live.fish} />}
+      {tier.motes && <Motes amount={live.motes} glow={accents?.light} />}
+      {!solo && <Bubbles density={live.bubbles * tier.particles} glow={accents?.light} field={WORLD_BUBBLES} time={bubbleTime} />}
+      <Embers density={live.embers * tier.particles} glow={accents?.light} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>
   );
@@ -98,4 +104,23 @@ function useNoxAccents(world: WorldConfig, { spot, caustics }: ReturnType<typeof
     const { at } = accents;
     writeAccentLights(accents.uniforms, pickAccentLights(world.lights.points, [at.x, at.y, at.z]));
   });
+}
+
+/**
+ * Lets the ruin's stone and iron cast into the surface light's shadow map or not. Off, only Nox
+ * casts (the map is smaller too, on those tiers); each mesh's own setting is kept to put back.
+ */
+function useStoneShadows(group: React.RefObject<THREE.Group | null>, cast: boolean) {
+  useLayoutEffect(() => {
+    const root = group.current;
+    if (!root || cast) return;
+    const turnedOff: THREE.Object3D[] = [];
+    root.traverse(child => {
+      if (child.castShadow) {
+        child.castShadow = false;
+        turnedOff.push(child);
+      }
+    });
+    return () => turnedOff.forEach(child => { child.castShadow = true; });
+  }, [group, cast]);
 }

@@ -40,6 +40,7 @@ import { Backdrop } from './world/Backdrop';
 import { ContactShadows } from './world/ContactShadows';
 import { Bubbles, Embers } from './world/Particles';
 import { SECURITY_WORLD } from './world/security/config';
+import { WORLD_TIERS } from './world/worldTiers';
 import { WorldScene } from './world/WorldScene';
 
 const url = parseUrlState(location.search);
@@ -150,6 +151,23 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
     return () => controls.dispose();
     // The stage's frame is eased in each frame above; a resize refits it at once.
   }, [camera, size, gl]);
+  return null;
+}
+
+/** Frames drawn after the scene (and with it the world) has loaded before it counts as ready. */
+const READY_FRAMES = 40;
+
+/**
+ * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames. Placed inside the same
+ * Suspense as the world, it mounts only when the world's kit has loaded and its shaders have
+ * compiled, so a frame-rate measurement (scripts/perf.mjs) starts on a settled scene.
+ */
+function ReadyFlag() {
+  const frames = useRef(0);
+  useFrame(() => {
+    if (frames.current > READY_FRAMES) return;
+    if (++frames.current === READY_FRAMES) (window as unknown as { __noxReady?: boolean }).__noxReady = true;
+  });
   return null;
 }
 
@@ -313,8 +331,9 @@ export function App() {
             {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
                 plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
             <Suspense fallback={null}>
-              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} accents={accents} solo={url.solo} reducedMotion={reducedMotion} /> : <Backdrop />}
+              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} tier={WORLD_TIERS[quality.tier]} accents={accents} solo={url.solo} reducedMotion={reducedMotion} /> : <Backdrop />}
               {octopus}
+              <ReadyFlag />
             </Suspense>
             {!url.world && (
               <>

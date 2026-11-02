@@ -888,3 +888,67 @@ The same pixels' mean luminance is 0.0572, 0.0636 and 0.0772 (real-time: 0.0570,
 **Nox is unchanged.** `world-capture intro`, then `check_stage --world --stage intro`: mean (127, 29, 79), unrounded (126.91, 28.55, 79.29), saturation 0.836, brightness 0.570. The misses are the three accepted ones.
 
 **Tests:** `npm test` 51 files, 317 tests; tsc (nox3d, app) exit 0; oxlint on the changed files has the same 7 warnings as before; nox3d e2e 8 of 8.
+
+## Task 11 performance
+
+Quality tiers for the world (`WORLD_TIERS`: particles, rays, shadow map, plate scale, fish, motes), `SLOW_MS` { high 22.2, medium 33.3 }, `window.__noxReady`, `scripts/perf.mjs`. **The budget is not met: intro at tier high measures 15.0 fps (budget 27) and tier low 16.7 fps (budget 36).** The listed levers buy nothing measurable on this laptop; the cost is in the world's own shaders (below).
+
+**Method.** `scripts/perf.mjs`: headless Edge, 1536x1024, DPR 1, browser pane closed, `world` added to the query, measured 6 s after `window.__noxReady` (40 frames after the world loads) plus 1.5 s. BEFORE is `git archive HEAD` on its own vite port with only the `__noxReady` flag added; AFTER is the working tree. Each pair back to back, three rounds. GPU frame time from `EXT_disjoint_timer_query_webgl2` around each animation-frame callback (values over 1 ms; 55 to 100 timed frames per run). **The machine drifts**: the same HEAD build gave 19.6 fps at the start of the session, 13.8 to 15.8 later, and one GPU run came out at 43.8 ms against 56 to 68 ms for the others. Differences under about 3 fps are noise.
+
+**FPS, median over 6 s (three paired rounds; median of the three in bold).**
+
+| Query | BEFORE (HEAD) | AFTER | Budget |
+|---|---|---|---|
+| `stage=intro&tier=high` | 13.8, 14.4, 15.8 (**14.4**) | 15.0, 14.4, 15.0 (**15.0**) | 27: MISS |
+| `stage=intro&tier=low` | 19.8, 17.0, 17.9 (**17.9**) | 19.3, 16.7, 16.2 (**16.7**) | 36: MISS |
+| `stage=overview&tier=high` | 15.3, 14.7, 13.6 (**14.7**) | 12.7, 14.3, 14.3 (**14.3**) | none |
+| `stage=intro&tier=medium` | 15.4, 16.1, 15.6 (**15.6**) | 14.7, 16.0, 16.1 (**16.0**) | none |
+
+p10 (slowest tenth of frames) is 10 to 12 fps in every cell. (A first low-tier AFTER set read 19.6, 16.1, 20.0 fps; it was invalid: the far plate's compressed layer 0 lost its mip level to a size not a multiple of 4, so the cards did not draw. Fixed, `dropMips` stops where block compression allows, and the low rows above are the re-measure.)
+
+**GPU frame, ms (median / p10 per run, three paired rounds).**
+
+| Query | BEFORE | AFTER |
+|---|---|---|
+| intro, high | 67.5 / 59.2, 56.5 / 51.8, 43.8 / 40.9 | 64.3 / 55.3, 58.0 / 51.4, 65.9 / 61.3 |
+| intro, low | 57.6 / 51.4, 56.0 / 49.1, 55.5 / 50.0 | 55.9 / 49.5, 53.7 / 48.2, 55.5 / 48.6 |
+
+Low: median of medians 56.0 to 55.5 ms (-0.5), median of p10 50.0 to 48.6 (-1.4). High: no difference beyond the drift.
+
+**Per lever** (tier high, one lever at a time, GPU p10 ms, mean of two runs, base 52.7; the runs drifted 8 ms between rounds, so none of these separates from noise):
+
+| Lever (in order) | GPU p10 ms | Verdict |
+|---|---|---|
+| 1 shadow map 1024, only Nox casting | 50.8 | -1.9, within noise |
+| 1 shadow map size alone (stone still casting) | 50.7 | -2.0, within noise |
+| 2 rays x 0.4 | 53.3 | +0.6, none |
+| 3 particles x 0.35 | 50.2 | -2.5, within noise |
+| 4 bloom at half resolution | 58.5 | +5.8, none (drift) |
+| 5 far plate one mip down | not measurable on its own (layer 0 cannot drop; layers 1 and 2 drop one level) | none seen |
+| 6 LOD distance 12 / 9 (R28 keeps 16) | 56.4 / 54.3 | none |
+| 7 contact-shadow pass off at high | 55.7 | none |
+
+**Where the frame goes** (intro, tier high, one thing hidden at a time, GPU p10 ms, no-change runs 55.1 and 58.9):
+
+| Hidden | GPU p10 ms | Saves |
+|---|---|---|
+| Nox | 36.6 | about 20 ms |
+| post chain (bloom, contact shadows, vignette, SMAA) | 40.7 | about 16 ms |
+| seabed floor | 42.4 | about 14 ms |
+| near kit | 44.3 | about 12 ms |
+| far plate cards | 55.0 | about 2 ms |
+| god rays | 53.2 | about 4 ms |
+| marine snow | 54.2 | about 3 ms |
+| kit + floor + cards | 30.2 | about 26 ms |
+
+**Next lever (not pulled; outside the list).** The seabed floor: a 4-octave noise and several more noise lookups per pixel (puddles, patches, lava) on a plane that covers the lower half of the frame, plus soft shadow receiving. Baking the puddle and patch noise into one texture is the likeliest large saving at no visible cost (about 14 ms hidden, a part of it recoverable). After that: the post chain at the lower tiers (SMAA off or FXAA at low, about 16 ms for the whole chain) and the stone shader. Without one of these the tiers cannot reach 27 and 36 fps on this machine.
+
+**Look.** `world-capture intro` at 1536x1024: tier high against a HEAD capture, mean absolute pixel difference 0.05 to 0.19 across repeated pairs (HEAD against HEAD: 0.004 to 0.19; both vary by particle and plate timing); silhouette masks identical (0.0). Medium against HEAD 2.06; low against HEAD 2.98 (against HEAD's own low tier 2.01, which is what these changes add). Low is thinner: the light shafts are fewer and narrower (0.4), the far fish and the red motes are gone, bubbles and embers are down to 0.35, the stone no longer throws shadows on the seabed, and the far plate's two large layers are half resolution (misses by half). Nox's layers are untouched (mask low against HEAD 0.09).
+
+**Nox** (`check_stage --world`): high and HEAD (127, 29, 79), saturation 0.834, brightness 0.570; medium (127, 29, 80), 0.834, 0.569; low (129, 30, 83), 0.831, 0.581, **identical to HEAD's own low capture**: the low tier's Nox settings (no contact shadows, half bloom) were already so at HEAD.
+
+**Rebuild on a tier change.** The shadow map is resized in place (`shadow.dispose()` then `mapSize.set`, in a layout effect), so the light, its caustics and the accents' shadow matrix are kept. Light shafts rebuild through their existing memo on `amount` and dispose through `useDisposables`; fish and motes unmount (their memos dispose the same way); the far plate reloads its layers only when the number of dropped mips changes (so 1 to 0.75 reloads nothing); the stone group's `castShadow` flags are turned off in a layout effect and put back by its cleanup. Nothing is made in render. One adaptive run showed `glGetProgramiv: Program object expected` warnings once in eight (Octopus' own tier rebuild is the likelier source; HEAD ran clean in the other runs).
+
+**Assets** unchanged (public/nox 6.2 MiB on disk; the visitor download is as in Task 10).
+
+**Checks.** `npm test` 57 files, 338 tests; tsc nox3d and app exit 0; oxlint on the changed files has no new warning; nox3d e2e 8 of 8.

@@ -33,7 +33,8 @@ export function pickTier({ cores, memoryGb, isTouch, width }: { cores: number; m
 
 /** Window of frame time judged at once, and the mean frame time each tier must keep under. */
 const WINDOW_MS = 2000;
-const SLOW_MS: Record<QualityTier, number> = { high: 20, medium: 33, low: Infinity };
+/** 22.2 ms is 45 fps, 33.3 ms is 30 fps (spec 9.13): a tier is kept while the frame rate stays at or above these. */
+const SLOW_MS: Record<QualityTier, number> = { high: 22.2, medium: 33.3, low: Infinity };
 /** A single frame longer than this (a stall, a hidden tab) is left out of the judgement. */
 const STALL_MS = 250;
 

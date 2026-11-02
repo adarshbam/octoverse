@@ -1,7 +1,7 @@
 import { useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
-import { farCardSize } from './farPlate';
+import { dropMips, farCardSize } from './farPlate';
 import { holdKtx2Loader, ktx2Loader } from './kitLoader';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -14,11 +14,15 @@ import { useDisposables } from './useDisposables';
  * entrance swim never passes behind a card. Each card's fog is baked into its pixels, so it draws
  * with fog off.
  *
+ * `scale` is the share of each layer's resolution kept: a layer is stored with its mip levels, and
+ * a lower scale draws from a smaller one (a halving each; 0.75 rounds to the full size).
+ *
  * The layers load on their own, outside Suspense: if one fails to load (a lost file, a GPU
  * without a compressed format) the world still draws, with that layer's range left to the fog.
  */
-export function FarCards({ plate }: { plate: NonNullable<WorldConfig['farPlate']> }) {
+export function FarCards({ plate, scale = 1 }: { plate: NonNullable<WorldConfig['farPlate']>; scale?: number }) {
   const gl = useThree(state => state.gl);
+  const drop = Math.max(0, Math.round(-Math.log2(scale)));
   const [maps, setMaps] = useState<readonly (THREE.Texture | null)[]>(() => plate.layers.map(() => null));
   useEffect(() => {
     const release = holdKtx2Loader(gl);
@@ -32,6 +36,7 @@ export function FarCards({ plate }: { plate: NonNullable<WorldConfig['farPlate']
             texture.dispose();
             return;
           }
+          dropMips(texture, drop);
           loaded.push(texture);
           setMaps(old => old.map((m, k) => (k === i ? texture : m)));
         })
@@ -42,7 +47,7 @@ export function FarCards({ plate }: { plate: NonNullable<WorldConfig['farPlate']
       loaded.forEach(texture => texture.dispose());
       release();
     };
-  }, [gl, plate]);
+  }, [gl, plate, drop]);
 
   const cards = useMemo(() => {
     const geometries = plate.layers.map(layer => {

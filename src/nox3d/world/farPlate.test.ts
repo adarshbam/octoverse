@@ -7,7 +7,7 @@ import { STAGE_FRAMES, fovFor } from '../stage/framing';
 import { noxFaceAnchor } from '../stage/liveAnchors';
 import { pinnedHover } from './cameraHover';
 import { leanCamera } from './lensShift';
-import { FAR_CUT_Z, FAR_HOVER, FAR_VIEWPORTS, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
+import { FAR_CUT_Z, FAR_HOVER, FAR_VIEWPORTS, dropMips, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
 import { SECURITY_WORLD } from './security/config';
 import farData from './security/far.json';
 import type { Vec3 } from './types';
@@ -119,4 +119,23 @@ test('far.json sizes are the cards the page needs, and the files are within the 
     const head = readFileSync(new URL(l.url.replace(/^\//, ''), PUBLIC)).subarray(0, 12);
     expect([...head.subarray(1, 7)]).toEqual([...Buffer.from('KTX 20')]);
   }
+});
+
+test('a lower plate scale draws from smaller mip levels, only where block compression allows', () => {
+  const make = (sizes: number[][]) => Object.assign(new THREE.Texture(), { mipmaps: sizes.map(([width, height]) => ({ width, height })) }) as unknown as THREE.CompressedTexture;
+  const full = make([[64, 32], [32, 16], [16, 8]]);
+  dropMips(full, 0);
+  expect(full.mipmaps).toHaveLength(3);
+  const half = make([[64, 32], [32, 16], [16, 8]]);
+  dropMips(half, 1);
+  expect(half.mipmaps).toHaveLength(2);
+  expect(half.image).toEqual({ width: 32, height: 16 });
+  // Never past the smallest level.
+  const tiny = make([[64, 32], [32, 16], [16, 8]]);
+  dropMips(tiny, 9);
+  expect(tiny.mipmaps).toHaveLength(1);
+  // 900 halves to 450: not a multiple of 4, so this one keeps its full size.
+  const odd = make([[1024, 900], [512, 450], [256, 225]]);
+  dropMips(odd, 1);
+  expect(odd.mipmaps).toHaveLength(3);
 });

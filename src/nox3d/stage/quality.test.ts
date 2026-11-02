@@ -44,3 +44,19 @@ test('strong desktops start high, weak ones lower', () => {
   expect(pickTier({ cores: 4, memoryGb: 4, isTouch: false, width: 1440 })).toBe('medium');
   expect(pickTier({ cores: 2, memoryGb: 8, isTouch: false, width: 1440 })).toBe('low');
 });
+
+function demotedAfter(tier: 'high' | 'medium', ms: number) {
+  const probe = new FrameProbe(tier);
+  let result = null;
+  for (let i = 0; i < 400 && !result; i++) result = probe.push(ms);
+  return result;
+}
+
+test('high demotes below 45 fps, medium below 30', () => {
+  // 22.2 ms is 45 fps: slower frames step high down, faster ones keep it.
+  expect(demotedAfter('high', 23)).toBe('medium');
+  expect(demotedAfter('high', 21.5)).toBeNull();
+  // 33.3 ms is 30 fps.
+  expect(demotedAfter('medium', 34)).toBe('low');
+  expect(demotedAfter('medium', 32.5)).toBeNull();
+});
