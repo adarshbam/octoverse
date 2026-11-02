@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
 import { stoneLights } from './bakedLight';
+import { FarCards } from './FarCards';
 import { Floor } from './Floor';
 import { Kit } from './Kit';
 import { useWorldKit } from './kitLoader';
@@ -16,7 +17,8 @@ import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
 /**
  * A world mounted from its config: the kit's pieces, the seabed, the water (fog, sky, light
  * shafts, snow, fish), the surface light with its caustics, and the light of the glyphs and lava:
- * baked into the near world's lightmaps when it has near.glb, else real lights with a fill.
+ * baked into the near world's lightmaps when it has near.glb, else real lights with a fill. A
+ * world with a far plate draws the ruin beyond the near world as transparent cards.
  * `time` says whether the world's clock runs or holds one moment. `density` thins the bubbles and
  * embers on lower quality tiers. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
@@ -38,6 +40,7 @@ export function WorldScene({ world, time, density = 1, accents, solo = false }: 
       <WaterSky world={world} caustics={surface.caustics.texture} />
       <Floor world={world} baked={kit.baked} />
       <Kit world={world} kit={kit} />
+      {world.farPlate && <FarCards plate={world.farPlate} />}
       <GodRays amount={live.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
       <FarFish amount={live.fish} />

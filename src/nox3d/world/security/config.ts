@@ -1,4 +1,5 @@
 import type { Placement, Vec3, WorldConfig, WorldLight } from '../types';
+import { FAR_LAYERS } from '../farPlate';
 import { asWorldLayout } from '../validateWorld';
 import layoutData from './layout.json';
 
@@ -58,6 +59,8 @@ export const SECURITY_WORLD: WorldConfig = {
     pieces: ['pillar_a', 'pillar_b', 'pillar_c', 'pillar_d', 'rock_0', 'rock_1', 'rock_2', 'rock_3', 'rock_4', 'coral_0', 'coral_1', 'coral_2', 'chain'],
   },
   near: { url: '/nox/world/security/near.glb' },
+  // far-0 is the farthest layer, as FAR_LAYERS orders them (blender/security/render_far.py writes the files).
+  farPlate: { layers: FAR_LAYERS.map((layer, i) => ({ url: `/nox/world/security/far-${i}.ktx2`, z: layer.z })) },
   layout,
   relics: { glyph: 2.4 * RELIC_RISE, coral: 1.7 * RELIC_RISE, spill: RELIC_RISE },
   palette,

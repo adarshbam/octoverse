@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { isFarChain, isFarPlacement } from './farPlate';
 import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, stoneLights, withBakedLight } from './bakedLight';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
@@ -248,8 +249,13 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return lod;
     };
 
-    const pillars = layout.pillars.map((p, index) =>
-      placedLod(p, (level, levelIndex) => {
+    // With the far plate in the world, the pieces beyond its cut are the plate's: they stay in the
+    // layout (the bake records their squares by index) but are not built here.
+    const near = (p: Placement) => !(world.farPlate && isFarPlacement(p));
+
+    const pillars = layout.pillars.flatMap((p, index) => {
+      if (!near(p)) return [];
+      return [placedLod(p, (level, levelIndex) => {
         const material = lit(stone, baked, 'pillars', index, levelIndex, stoneHook);
         level.traverse(child => {
           if (!(child instanceof THREE.Mesh)) return;
@@ -262,17 +268,18 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
             child.receiveShadow = true;
           }
         });
-      }),
-    );
+      })];
+    });
 
-    const rocks = layout.rocks.map((p, index) =>
-      placedLod(p, (level, levelIndex) => {
+    const rocks = layout.rocks.flatMap((p, index) => {
+      if (!near(p)) return [];
+      return [placedLod(p, (level, levelIndex) => {
         const mesh = level as THREE.Mesh;
         mesh.material = lit(rock, baked, 'rocks', index, levelIndex, rockHook);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-      }),
-    );
+      })];
+    });
 
     // Coral sits on whatever is under it: a boulder (at full detail) or the seabed. Its sway reads
     // positions in stage units, so it draws from baked float copies of the kit's coral.
@@ -286,18 +293,19 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return new THREE.Mesh(geometry, material);
     };
     const rockSurfaces = rocks.map(lod => lod.levels[0].object);
-    const corals = layout.corals.map((p, index) => {
+    const corals = layout.corals.flatMap((p, index) => {
+      if (!near(p)) return [];
       const object = withLod(coralLevel(p.piece, lit(coral, baked, 'corals', index, 0)), coralLevel(`${p.piece}_lod1`, lit(coral, baked, 'corals', index, 1)));
       const [x, , z] = p.position;
       applyPlacement(object, { ...p, position: [x, coralRest(x, z, layout.floorY, rockSurfaces).y, z] });
-      return object;
+      return [object];
     });
 
     // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation. Each
     // chain's LOD stands at its middle, so its distance is measured from there.
     const CHAIN_SCALE = 1.45;
     const links = ['chain', 'chain_lod1'].map(name => bakedGeometry(piece(name) as THREE.Mesh).scale(CHAIN_SCALE, CHAIN_SCALE, CHAIN_SCALE));
-    const chains = layout.chains.map(({ from, to, sag }) => {
+    const chains = layout.chains.filter(chain => !(world.farPlate && isFarChain(chain))).map(({ from, to, sag }) => {
       const [full, far] = links.map(link => {
         const mesh = new THREE.Mesh(hangChain(link, 30 * 0.175 * CHAIN_SCALE, from, to, sag), iron);
         mesh.castShadow = true;

@@ -92,12 +92,17 @@ test('every piece has a lod1', () => {
   }
 });
 
-test('the kit is meshopt-compressed, and all the world’s assets fit the 6 MB budget', () => {
+test('the kit is meshopt-compressed, and what a visitor downloads fits the 6 MB budget', () => {
   expect(readKit().json.extensionsUsed).toContain('EXT_meshopt_compression');
-  // Everything a world page may fetch: the kit, the baked near world and the KTX2 transcoder.
-  const total = folderBytes('nox/world/') + folderBytes('nox/basis/');
-  expect(total).toBeGreaterThan(readKit().size + readGlb(NEAR_FILE).size);
-  expect(total).toBeLessThan(6 * 1024 * 1024);
+  // What one visitor fetches (R35): the page loads near.glb or kit.glb, never both, so the larger
+  // of the two counts, with the shared world files (the far plate's layers) and the KTX2 transcoder.
+  const files = folderBytes('nox/world/') + folderBytes('nox/basis/');
+  const kit = readKit().size;
+  const near = readGlb(NEAR_FILE).size;
+  const visitor = files - Math.min(kit, near);
+  expect(files).toBeGreaterThan(kit + near);
+  expect(visitor).toBeGreaterThan(Math.max(kit, near));
+  expect(visitor).toBeLessThan(6 * 1024 * 1024);
 });
 
 test('world config with near.glb lists no stone point lights', () => {

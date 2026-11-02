@@ -54,6 +54,12 @@ export interface WorldConfig {
    * of real-time lights.
    */
   near?: { url: string };
+  /**
+   * The ruin beyond the near world as transparent cards (blender/security/render_far.py), farthest
+   * first. When it is there the near world leaves out the pieces beyond `FAR_CUT_Z` (farPlate.ts),
+   * and a layer that fails to load leaves its range to the water's fog.
+   */
+  farPlate?: { layers: readonly { url: string; z: number }[] };
   layout: WorldLayout;
   /**
    * How the relics (glyph panels and glowing coral) glow: `glyph` multiplies a panel's white before
