@@ -1,16 +1,20 @@
 import { createRoot } from 'react-dom/client';
-import { COMPONENT_VIEWS, HQ_PANEL_2, PANEL_2, hqPixel, type ComponentId } from './components';
+import { BACK_VIEW_YAWS, COMPONENT_VIEWS, HQ_PANEL_2, PANEL_2, hqPixel, type ComponentId } from './components';
 
 // One character component at a time: the reference crop beside the live render,
-// frozen, moving and in an orbit view, all framing the same world box.
+// frozen, moving and in an orbit view, all framing the same world box. The back view
+// instead shows the body turned front, three-quarter, side and back, side by side, frozen.
 
 const params = new URLSearchParams(location.search);
 const id = (params.get('component') ?? 'full') as ComponentId;
 const view = COMPONENT_VIEWS[id] ?? COMPONENT_VIEWS.full;
+const BACK = id === 'back';
 const [x0, y0, x1, y1] = view.box;
 const aspect = (y0 - y1) / (x1 - x0);
-// A 2 x 2 grid that fills the window, keeping the box's aspect.
-const PANE_WIDTH = Math.floor(Math.min((innerWidth - 44) / 2, (innerHeight - 150) / 2 / aspect));
+// A grid that fills the window, keeping the box's aspect: 2 x 2, or one row of four for the back view.
+const COLUMNS = BACK ? BACK_VIEW_YAWS.length : 2;
+const ROWS = BACK ? 1 : 2;
+const PANE_WIDTH = Math.floor(Math.min((innerWidth - 32 - 12 * (COLUMNS - 1)) / COLUMNS, (innerHeight - 150) / ROWS / aspect));
 const height = Math.round(PANE_WIDTH * aspect);
 const box = view.box.join(',');
 
@@ -50,13 +54,16 @@ function Review() {
         ))}
       </nav>
       <h1 style={{ fontSize: 18, margin: '0 0 12px' }}>{view.label}</h1>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(2, ${PANE_WIDTH}px)`, gap: 12 }}>
-        {[
-          [ORIGINAL ? 'Reference (panel 2)' : 'Reference (high-quality panel 2)', <Reference key="ref" />],
-          ['Live, frozen', live('freeze', 'Live frozen')],
-          ['Live, moving', live('', 'Live moving')],
-          ['3D orbit (drag to rotate)', live('freeze&orbit', 'Orbit view')],
-        ].map(([caption, pane]) => (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS}, ${PANE_WIDTH}px)`, gap: 12 }}>
+        {(BACK
+          ? BACK_VIEW_YAWS.map(deg => [deg === 0 ? 'Front (0°)' : `Turned ${deg}°`, live(`freeze&yaw=${deg}`, `Turned ${deg} degrees`)])
+          : [
+              [ORIGINAL ? 'Reference (panel 2)' : 'Reference (high-quality panel 2)', <Reference key="ref" />],
+              ['Live, frozen', live('freeze', 'Live frozen')],
+              ['Live, moving', live('', 'Live moving')],
+              ['3D orbit (drag to rotate)', live('freeze&orbit', 'Orbit view')],
+            ]
+        ).map(([caption, pane]) => (
           <figure key={caption as string} style={{ margin: 0 }}>
             {pane}
             <figcaption style={{ fontSize: 13, paddingTop: 4 }}>{caption}</figcaption>

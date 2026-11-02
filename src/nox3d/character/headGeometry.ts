@@ -36,9 +36,24 @@ export function cheekCentres(head: HeadShape) {
   return [-1, 1].map(side => ({ x: head.centerX + side * distance * Math.sin(a), y, z }));
 }
 
-/** Mantle radius along a ray with the cheeks merged in: a smooth maximum keeps the join soft. */
-function withCheeks(head: HeadShape, r: number, y: number, theta: number) {
-  const reach = cheekReach(head.cheeks, y, theta);
+/**
+ * How much shorter the upper half of each lobe behind the side is than the cheek's (1.1: its top
+ * sits about 0.01 lower). The camera looks down a little, so a full-height lobe behind would show
+ * a few pixels above the cheek, in the notch, over the halo; this keeps it hidden from the front.
+ */
+const BACK_LOBE_SQUASH = 1.1;
+
+/**
+ * Mantle radius along a ray with the cheeks merged in: a smooth maximum keeps the join soft. With
+ * `back`, each cheek lobe is mirrored behind the side as well (at 180 degrees less its angle), so the
+ * mantle seen from behind fills the same round outline as from the front: the lobes behind sit
+ * level with the cheeks and further from the camera, hidden behind them from the front.
+ */
+function withCheeks(head: HeadShape, r: number, y: number, theta: number, back = true) {
+  const front = cheekReach(head.cheeks, y, theta);
+  const cy = head.cheeks.y;
+  const yBack = y > cy ? cy + (y - cy) * BACK_LOBE_SQUASH : y;
+  const reach = back ? Math.max(front, cheekReach(head.cheeks, yBack, Math.PI - Math.abs(theta))) : front;
   if (reach === 0) return r;
   const k = head.cheeks.blend;
   const h = Math.max(k - Math.abs(r - reach), 0) / k;
@@ -52,7 +67,7 @@ export function silhouetteHalfWidth(head: HeadShape, y: number) {
   let widest = r;
   for (let i = 0; i <= 360; i++) {
     const theta = (i / 360) * Math.PI;
-    widest = Math.max(widest, withCheeks(head, r, y, theta) * Math.sin(theta));
+    widest = Math.max(widest, withCheeks(head, r, y, theta, false) * Math.sin(theta));
   }
   return widest;
 }
@@ -76,10 +91,15 @@ const MORPH_MID_TOP = 0.42;
  * (aMorph, aMorphNormal), pressed down beneath `mantleTop`, its sides rising straight into the
  * dome and closing in a rounded rim, so the face rises into the dome with no gap or lid.
  * Below MORPH_KEEP nothing moves.
+ *
+ * `back` (the default) mirrors the cheek lobes behind the sides, so the back is as full as the
+ * front (see withCheeks). The head's halo shell is built without them: it draws its far side, so
+ * from the front it keeps the approved glow, and from behind it rings the cheeks.
  */
-export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
+export function createHeadGeometry(head: HeadShape, mantleTop?: number, back = true) {
   const profile = mantleProfile(head);
-  const geometry = buildMantle(head, profile);
+  const buildMantle = (points: readonly (readonly [number, number])[]) => buildLathe(head, points, back);
+  const geometry = buildMantle(profile);
   if (mantleTop !== undefined) {
     const sunk = profile.map(([r, y]) => {
       if (y <= MORPH_KEEP) return [r, y] as const;
@@ -90,12 +110,12 @@ export function createHeadGeometry(head: HeadShape, mantleTop?: number) {
       const over = Math.max(0, (y2 - (mantleTop - MORPH_RIM)) / MORPH_RIM);
       return [side * Math.sqrt(Math.max(0, 1 - over * over)), y2] as const;
     });
-    const morphed = buildMantle(head, sunk);
+    const morphed = buildMantle(sunk);
     geometry.setAttribute('aMorph', morphed.attributes.position);
     geometry.setAttribute('aMorphNormal', morphed.attributes.normal);
     const midTop = mantleTop + MORPH_MID_TOP * (head.top - mantleTop);
     const squashed = profile.map(([r, y]) => (y <= MORPH_KEEP ? ([r, y] as const) : ([r, MORPH_KEEP + ((y - MORPH_KEEP) * (midTop - MORPH_KEEP)) / (head.top - MORPH_KEEP)] as const)));
-    const mid = buildMantle(head, squashed);
+    const mid = buildMantle(squashed);
     geometry.setAttribute('aMorphMid', mid.attributes.position);
     geometry.setAttribute('aMorphMidNormal', mid.attributes.normal);
   }
@@ -129,11 +149,13 @@ function mantleProfile(head: HeadShape) {
   return points;
 }
 
-function buildMantle(head: HeadShape, profile: readonly (readonly [number, number])[]) {
+const SEGMENTS = 160;
+
+function buildLathe(head: HeadShape, profile: readonly (readonly [number, number])[], back: boolean) {
   const { centerX, depth, faceOrigin } = head;
   const points = profile.map(([r, y]) => new THREE.Vector2(r, y - faceOrigin[1]));
-  // Seam at the back (phiStart = PI puts phi 0 at -z) so it never shows.
-  const geometry = new THREE.LatheGeometry(points, 160, Math.PI, Math.PI * 2);
+  // Seam at the back (phiStart = PI puts phi 0 at -z), out of sight from the front.
+  const geometry = new THREE.LatheGeometry(points, SEGMENTS, Math.PI, Math.PI * 2);
   const position = geometry.attributes.position;
   for (let i = 0; i < position.count; i++) {
     const x = position.getX(i);
@@ -141,11 +163,23 @@ function buildMantle(head: HeadShape, profile: readonly (readonly [number, numbe
     const z = position.getZ(i);
     const r = Math.hypot(x, z);
     if (r < 1e-6) continue;
-    const grow = withCheeks(head, r, y + faceOrigin[1], Math.atan2(x, z)) / r;
+    const grow = withCheeks(head, r, y + faceOrigin[1], Math.atan2(x, z), back) / r;
     position.setXYZ(i, x * grow, y, z * grow);
   }
   geometry.scale(1, 1, depth);
   geometry.translate(centerX - faceOrigin[0], 0, 0);
   geometry.computeVertexNormals();
+  // The seam's two columns share positions but not faces: give both the same normal, so the
+  // back shades smoothly across it.
+  const normal = geometry.attributes.normal;
+  const last = SEGMENTS * points.length;
+  const n = new THREE.Vector3();
+  for (let j = 0; j < points.length; j++) {
+    n.fromBufferAttribute(normal, j).add(new THREE.Vector3().fromBufferAttribute(normal, last + j));
+    if (n.lengthSq() < 1e-12) continue;
+    n.normalize();
+    normal.setXYZ(j, n.x, n.y, n.z);
+    normal.setXYZ(last + j, n.x, n.y, n.z);
+  }
   return geometry;
 }

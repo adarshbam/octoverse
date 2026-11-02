@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
+import { createSkinMaterial, createSkinUniforms, faceWeight } from './skinMaterial';
 import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
 
 test('socket shading reads the eye centres and radii from the face layout', () => {
@@ -38,6 +38,19 @@ test('world accents stay off the face glow and the arm roots, as the neon rim do
   const ownGlow = source.match(/float rimFade = ([^;]*);/)?.[1];
   expect(ownGlow).toBe('(1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow))');
   expect(source).toContain(`col = worldAccent(col, N, ndv, ${ownGlow});`);
+});
+
+test('face features never show on the back', () => {
+  expect(faceWeight(-0.5)).toBe(0);
+  expect(faceWeight(-1)).toBe(0);
+  expect(faceWeight(0.05)).toBe(0);
+  expect(faceWeight(0.0999)).toBe(0);
+  expect(faceWeight(0.9)).toBe(1);
+  expect(faceWeight(0.2)).toBeGreaterThan(0);
+  expect(faceWeight(0.2)).toBeLessThan(1);
+  // The shader masks the face texture with the same weight.
+  const source = createSkinMaterial('HEAD', createSkinUniforms(NOX)).fragmentShader;
+  expect(source).toContain('float mask = face.a * inside * faceWeight(vFront);');
 });
 
 test('the arms’ red underside band glows at the strength the config gives, 1.6 as approved (R25)', () => {

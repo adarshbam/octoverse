@@ -1,4 +1,7 @@
-export type ComponentId = 'full' | 'mantle' | 'junction' | 'brows' | 'eyes' | 'mouth' | 'arms-left' | 'arms-right' | 'curl' | 'suckers' | 'skin';
+export type ComponentId = 'full' | 'mantle' | 'junction' | 'brows' | 'eyes' | 'mouth' | 'arms-left' | 'arms-right' | 'curl' | 'suckers' | 'skin' | 'back';
+
+/** The back view's orbit: the body turned this many degrees, front to back, one pane each. */
+export const BACK_VIEW_YAWS = [0, 45, 90, 180] as const;
 
 /** Where each character component sits in panel 2, as a world box [x0, y0, x1, y1]. */
 export const COMPONENT_VIEWS: Record<ComponentId, { panel: 2; box: [number, number, number, number]; label: string }> = {
@@ -13,6 +16,7 @@ export const COMPONENT_VIEWS: Record<ComponentId, { panel: 2; box: [number, numb
   curl: { panel: 2, box: [-2.2, -0.45, -1.1, -1.15], label: 'Arm curl (T2)' },
   suckers: { panel: 2, box: [-2.2, -0.45, -1.1, -1.15], label: 'Suckers (T2 curl)' },
   skin: { panel: 2, box: [-0.7, 0.3, 0.3, -0.4], label: 'Skin detail (crown)' },
+  back: { panel: 2, box: [-2.4, 1.0, 2.4, -2.4], label: 'Back view (front, 45°, 90°, 180°)' },
 };
 
 /** Panel 2's rectangle in Nox.jpeg, for cropping the reference. */

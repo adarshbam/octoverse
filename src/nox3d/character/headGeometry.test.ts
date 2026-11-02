@@ -49,6 +49,29 @@ test('the head mesh carries the cheeks', () => {
   expect(Math.abs(widest - CHEEK.half)).toBeLessThan(0.02);
 });
 
+test('back silhouette is as full as the front', () => {
+  // Seen from behind, the mantle fills the same outline it shows from the front: per row, the
+  // half-width of the half behind (z < 0) is within 3% of the half in front (z > 0).
+  const p = createHeadGeometry(head).attributes.position;
+  const cx = head.centerX - head.faceOrigin[0];
+  const rows = new Map<number, { front: number; back: number }>();
+  for (let i = 0; i < p.count; i++) {
+    const key = Math.round(p.getY(i) * 1e5);
+    const row = rows.get(key) ?? { front: 0, back: 0 };
+    const half = Math.abs(p.getX(i) - cx);
+    if (p.getZ(i) > 1e-6) row.front = Math.max(row.front, half);
+    if (p.getZ(i) < -1e-6) row.back = Math.max(row.back, half);
+    rows.set(key, row);
+  }
+  let checked = 0;
+  for (const [key, { front, back }] of rows) {
+    if (front < 0.05) continue;
+    checked++;
+    expect(Math.abs(back / front - 1), `y ${(key / 1e5 + head.faceOrigin[1]).toFixed(3)}: front ${front.toFixed(3)} back ${back.toFixed(3)}`).toBeLessThan(0.03);
+  }
+  expect(checked).toBeGreaterThan(100);
+});
+
 test('each cheek lobe centre sits inside the outline, one lobe radius in from its fullest point', () => {
   const [left, right] = cheekCentres(head);
   expect(right.y).toBeCloseTo(head.cheeks.y, 9);

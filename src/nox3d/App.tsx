@@ -331,6 +331,7 @@ export function App() {
       focusTechId={focusedTech}
       accents={accents}
       solo={url.solo}
+      yaw={url.yaw}
       onEntranceStart={startMs => {
         entrance.current.startMs = startMs;
         turnIntoIntro();

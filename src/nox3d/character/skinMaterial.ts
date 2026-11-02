@@ -30,6 +30,29 @@ export function createRampTexture(stops: readonly (readonly [number, string])[])
   return texture;
 }
 
+/** Facing (the surface normal's z in the head's own space) below which no face feature shows, and where it shows in full. */
+const FACE_FACING = [0.1, 0.3] as const;
+
+/**
+ * How much of the face texture's projection shows on a surface whose normal has `normalZ` in the
+ * head's own space: none on the sides and back (normalZ < 0.1), so the projection never comes
+ * through from behind, in full facing forward. The skin shader's faceWeight is the same curve.
+ */
+export function faceWeight(normalZ: number) {
+  const t = Math.min(1, Math.max(0, (normalZ - FACE_FACING[0]) / (FACE_FACING[1] - FACE_FACING[0])));
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * The face glow, and its warmth on the cheeks, lie on the skin as a projection along z, so without
+ * a limit they would come through on the back too. They fade out between these facings (body-local
+ * normal z): full wherever the front views (normal z >= -0.5, which covers turns up to 30 degrees,
+ * as the detail stage's), gone round the middle of the back.
+ */
+const GLOW_FACING = [-0.85, -0.5] as const;
+
+const glsl = (v: number) => v.toFixed(3);
+
 export type SkinUniforms = ReturnType<typeof createSkinUniforms>;
 
 /** One uniform set per character, shared by every skin surface so glow moves together. */
@@ -234,14 +257,23 @@ const skinFragment = /* glsl */ `
 
   ${ACCENT_GLSL}
 
+  // The face texture's weight on a surface facing normalZ (head space): see faceWeight in skinMaterial.ts.
+  float faceWeight(float normalZ) {
+    return smoothstep(${glsl(FACE_FACING[0])}, ${glsl(FACE_FACING[1])}, normalZ);
+  }
+
   void main() {
     // Webs and the cups' insides render double-sided; light the side the camera sees.
-    vec3 N = normalize(vNormalW) * (gl_FrontFacing ? 1.0 : -1.0);
+    float facing = gl_FrontFacing ? 1.0 : -1.0;
+    vec3 N = normalize(vNormalW) * facing;
     vec3 V = normalize(cameraPosition - vWorld);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec2 d = vWorld.xy - uGlowPos.xy;
     float sy = d.y > 0.0 ? uGlowShape.y : uGlowShape.z;
-    float faceGlow = exp(-(d.x * d.x) / (uGlowShape.x * uGlowShape.x) - (d.y * d.y) / (sy * sy)) * uGlowStrength;
+    // The face glow lies on the front; it never comes through on the back (see GLOW_FACING). A
+    // double-sided web's facing is that of the side the camera sees.
+    float frontSide = smoothstep(${glsl(GLOW_FACING[0])}, ${glsl(GLOW_FACING[1])}, vFront * facing);
+    float faceGlow = exp(-(d.x * d.x) / (uGlowShape.x * uGlowShape.x) - (d.y * d.y) / (sy * sy)) * uGlowStrength * frontSide;
     float up = N.y * 0.5 + 0.5;
     vec3 L = normalize(uKeyDir);
     vec3 col;
@@ -308,7 +340,7 @@ const skinFragment = /* glsl */ `
       float lobeL = 1.0 - smoothstep(0.2, 1.6, length((cheekLocal - uCheekCentres.xy - vec2(0.05, 0.0)) / uCheekShape.x));
       float lobeR = 1.0 - smoothstep(0.2, 1.6, length((cheekLocal - uCheekCentres.zw + vec2(0.05, 0.0)) / uCheekShape.x));
       vec3 warm = texture2D(uGlowRamp, vec2(0.5, 0.5)).rgb;
-      col = mix(col, warm, max(lobeL, lobeR) * uCheekShape.y * smoothstep(0.15, 0.6, ndv));
+      col = mix(col, warm, max(lobeL, lobeR) * uCheekShape.y * smoothstep(0.15, 0.6, ndv) * frontSide);
       #ifdef HEAD
         // Opened into the dome, the mantle's sunk top tucks into the glass's shadow, with no rim
         // light round it, so the face rises out of the dome instead of a lidded box.
@@ -489,7 +521,7 @@ const skinFragment = /* glsl */ `
       // A slightly finer mip than the default keeps the eyes and lashes crisp at stage size.
       vec4 face = texture2D(uFace, vFaceUv, -0.5);
       float inside = step(0.0, vFaceUv.x) * step(vFaceUv.x, 1.0) * step(0.0, vFaceUv.y) * step(vFaceUv.y, 1.0);
-      float mask = face.a * inside * smoothstep(0.05, 0.3, vFront);
+      float mask = face.a * inside * faceWeight(vFront);
       col = mix(col, face.rgb, mask);
     #endif
     gl_FragColor = vec4(col, 1.0);

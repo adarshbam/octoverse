@@ -71,6 +71,8 @@ export interface OctopusProps {
   accents?: AccentLink;
   /** For measurement captures only: the orbs and the dome glass are not drawn (the arms still carry and present the orbs). */
   solo?: boolean;
+  /** Degrees the whole body turns about its upright axis, on top of the stage's turn: for stills of his back. */
+  yaw?: number;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -80,7 +82,8 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false, yaw = 0 }: OctopusProps) {
+  const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
   const content = useRef<THREE.Group>(null);
@@ -123,7 +126,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const profile = { tipRadius: config.tipRadius, taperPower: config.taperPower, suckerTilt: config.suckers.tilt, curlTilt: config.suckers.curlTilt, twist: config.suckers.twist, flatten: config.armFlatten };
     const arms = config.arms.map((spec, i) => {
       const chain = new ArmChain(blender.layout[spec.id], spec, i);
-      const tube = new ArmTube(chain, spec, profile, quality.radial);
+      const tube = new ArmTube(chain, spec, profile, quality.radial, config.head.centerX);
       return { chain, tube, row: new SuckerRow(chain, tube, config.suckers, i) };
     });
     const byId = new Map(config.arms.map((spec, i) => [spec.id, arms[i]]));
@@ -156,6 +159,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       webs,
       webMaterial,
       headGeometry: createHeadGeometry(config.head, config.dome.mantleTop),
+      // The halo shell draws its far side: without the cheek lobes mirrored behind, the front keeps
+      // its approved glow and the back gets a glow round the cheeks.
+      haloGeometry: createHeadGeometry(config.head, config.dome.mantleTop, false),
       domeGeometry: createDomeGeometry(config.dome),
       domeMaterial: createDomeMaterial(config.palette, config.dome),
       suckers,
@@ -197,6 +203,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     for (const { tube } of rig.arms) tube.geometry.dispose();
     for (const web of rig.webs) web.geometry.dispose();
     rig.headGeometry.dispose();
+    rig.haloGeometry.dispose();
     rig.domeGeometry.dispose();
     rig.domeMaterial.dispose();
     for (const mesh of [rig.suckers, rig.cupShadows]) {
@@ -337,10 +344,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
-    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
+    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + extraYaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
     headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, (swim ? swim.yaw : 0) + gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
     // The glow card turns with the head; swimming side-on it fades rather than show edge-on beside the face.
-    rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing(swim ? swim.yaw : 0);
+    rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw);
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
@@ -448,8 +455,13 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   return (
     <group ref={float}>
       <group ref={turn} position={[BODY_X, PIVOT_Y, 0]}>
-        {/* The aura, at the body's middle, moves and turns with him. */}
-        {world && <Aura aura={config.glow.aura} />}
+        {/* The aura, at the body's middle, moves and turns with him; a still's extra turn (?yaw) is
+            undone, so the card stays behind him, where his skin hides its middle, and never covers him. */}
+        {world && (
+          <group rotation={[0, -extraYaw, 0]}>
+            <Aura aura={config.glow.aura} />
+          </group>
+        )}
         <group ref={content} position={[-BODY_X, -PIVOT_Y, 0]}>
           {rig.arms.map(({ tube }, i) => (
             <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} castShadow={castShadow} />
@@ -479,7 +491,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
                 onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
                 onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
               >
-                {!silhouette && <mesh geometry={rig.headGeometry} material={rig.headHalo} />}
+                {!silhouette && <mesh geometry={rig.haloGeometry} material={rig.headHalo} />}
               </mesh>
               <mesh material={rig.coreGlow} position={[0.05, -0.98, 0.9]} scale={[1.3, 0.9, 1]} visible={!silhouette}>
                 <planeGeometry args={[1, 1]} />

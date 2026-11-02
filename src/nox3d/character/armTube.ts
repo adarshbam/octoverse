@@ -5,7 +5,13 @@ import type { ArmChain } from './armChain';
 /** The base swells by up to 12%, easing out along the arm, so it fills the joint with the body. */
 const BASE_SWELL = 0.12;
 /** Rings in the rounded cap that closes each arm's tip. */
-const CAP_RINGS = 6;
+export const CAP_RINGS = 6;
+/**
+ * Rings in the rounded cap that closes each arm's root, reaching in to the body's upright axis.
+ * The rear arms' roots sit on the mantle's surface, so from behind an open end read as a flat cut;
+ * the cap tucks the root into the body. From the front it lies inside the head and neck.
+ */
+export const ROOT_RINGS = 6;
 
 /**
  * Arm radius at arc fraction u (0 = root, 1 = tip): thick for most of the length, then
@@ -58,11 +64,14 @@ export class ArmTube {
   private readonly ringSin: Float32Array;
   private readonly positions: Float32Array;
   private readonly normals: Float32Array;
+  /** The body's upright axis (x, at z = 0) in the arm's space: the root cap reaches in to it. */
+  private readonly axisX: number;
 
-  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number; twist: number; flatten: number }, radial = 24) {
+  constructor(chain: ArmChain, spec: ArmSpec, profile: { tipRadius: number; taperPower: number; suckerTilt: number; curlTilt: number; twist: number; flatten: number }, radial = 24, axisX = 0) {
     const n = chain.segments;
     this.chain = chain;
     this.radial = radial;
+    this.axisX = axisX;
     this.nx = new Float32Array(n + 1);
     this.ny = new Float32Array(n + 1);
     this.bx = new Float32Array(n + 1);
@@ -85,34 +94,41 @@ export class ArmTube {
     });
 
     const ring = radial + 1;
-    // The arm's rings, then a rounded cap past the tip.
-    const count = (n + 1 + CAP_RINGS) * ring;
+    // The arm's rings, then a rounded cap past the tip, then a rounded cap behind the root.
+    const rootFirst = n + 1 + CAP_RINGS;
+    const count = (rootFirst + ROOT_RINGS) * ring;
     this.positions = new Float32Array(count * 3);
     this.normals = new Float32Array(count * 3);
     const under = new Float32Array(count);
     const arcU = new Float32Array(count);
     const speck = new Float32Array(count * 3);
-    for (let k = 0; k <= n + CAP_RINGS; k++) {
-      const kk = Math.min(k, n);
+    for (let k = 0; k < rootFirst + ROOT_RINGS; k++) {
+      const root = k >= rootFirst;
+      const kk = root ? 0 : Math.min(k, n);
+      // Distance along the arm: the root cap's rings run back from the root.
+      const along = root ? -(k - rootFirst + 1) : k;
       const suckerAngle = Math.atan2(Math.sin(this.tilt[kk]), chain.side * Math.cos(this.tilt[kk]));
       for (let j = 0; j <= radial; j++) {
         const v = k * ring + j;
         under[v] = Math.cos((j / radial) * Math.PI * 2 - suckerAngle);
         arcU[v] = kk / n;
         // Skin detail coordinates: arc length along the arm, the angle round it, and its rest radius.
-        speck[v * 3] = k * chain.segmentLength;
+        speck[v * 3] = along * chain.segmentLength;
         speck[v * 3 + 1] = (j / radial) * Math.PI * 2;
         speck[v * 3 + 2] = this.radius[kk];
       }
     }
     const indices: number[] = [];
-    for (let k = 0; k < n + CAP_RINGS; k++) {
+    const strip = (from: number, to: number) => {
       for (let j = 0; j < radial; j++) {
-        const a = k * ring + j;
-        const b = a + ring;
+        const a = from * ring + j;
+        const b = to * ring + j;
         indices.push(a, a + 1, b, b, a + 1, b + 1);
       }
-    }
+    };
+    for (let k = 0; k < n + CAP_RINGS; k++) strip(k, k + 1);
+    // The root cap runs from its closed end out to the root ring, the same way round as the arm.
+    for (let c = ROOT_RINGS; c >= 1; c--) strip(rootFirst + c - 1, c === 1 ? 0 : rootFirst + c - 2);
     this.geometry.setIndex(indices);
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('normal', new THREE.BufferAttribute(this.normals, 3).setUsage(THREE.DynamicDrawUsage));
@@ -150,6 +166,55 @@ export class ArmTube {
     const k = Math.min(n - 1, Math.floor(f));
     const w = f - k;
     return this.radius[k] * (1 - w) + this.radius[k + 1] * w;
+  }
+
+  /**
+   * The root cap: the root ring drawn in, level, toward the body's upright axis, closing to a point
+   * on it (or half a root radius past it, for a root already near the axis), with the root ring's
+   * own flattened cross-section and normals easing round to face inward.
+   */
+  private updateRootCap() {
+    const { px, py, pz, segments: n } = this.chain;
+    const ring = this.radial + 1;
+    const first = n + 1 + CAP_RINGS;
+    const r = this.radius[0];
+    let dx = this.axisX - px[0];
+    let dz = -pz[0];
+    const dist = Math.hypot(dx, dz);
+    if (dist > 1e-6) {
+      dx /= dist;
+      dz /= dist;
+    } else {
+      dx = px[0] - px[1];
+      dz = pz[0] - pz[1];
+      const l = Math.hypot(dx, dz) || 1;
+      dx /= l;
+      dz /= l;
+    }
+    const length = Math.max(dist, 0.5 * r);
+    const p = this.positions;
+    const nm = this.normals;
+    for (let c = 1; c <= ROOT_RINGS; c++) {
+      const a = (c / ROOT_RINGS) * (Math.PI / 2);
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      // Normals of an ellipsoid cap stretched to `length`: they turn inward more slowly when it is long.
+      const turn = sin * (r / length);
+      for (let j = 0; j <= this.radial; j++) {
+        const o0 = j * 3;
+        const o = ((first + c - 1) * ring + j) * 3;
+        p[o] = px[0] + dx * length * sin + (p[o0] - px[0]) * cos;
+        p[o + 1] = py[0] + (p[o0 + 1] - py[0]) * cos;
+        p[o + 2] = pz[0] + dz * length * sin + (p[o0 + 2] - pz[0]) * cos;
+        const nx = nm[o0] * cos + dx * turn;
+        const ny = nm[o0 + 1] * cos;
+        const nz = nm[o0 + 2] * cos + dz * turn;
+        const nl = Math.hypot(nx, ny, nz) || 1;
+        nm[o] = nx / nl;
+        nm[o + 1] = ny / nl;
+        nm[o + 2] = nz / nl;
+      }
+    }
   }
 
   update() {
@@ -229,6 +294,7 @@ export class ArmTube {
         this.normals[o + 2] = dz * Math.cos(a) + ez * Math.sin(a);
       }
     }
+    this.updateRootCap();
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.normal.needsUpdate = true;
   }

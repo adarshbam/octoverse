@@ -23,6 +23,8 @@ export interface UrlState {
   hover?: Vec3;
   /** The world camera's lean in radians (clamped to 0..0.7), in place of the config's, to see other values live. */
   tilt?: number;
+  /** Degrees the body turns about its upright axis (180 shows his back), added to the stage's own turn: for stills of the back view. */
+  yaw?: number;
   /** A quality tier forced for the session, instead of the one picked for the device. */
   tier?: QualityTier;
   /** Milliseconds the world's kit may take to load before the world steps down (honoured in development builds only: for tests). */
@@ -58,6 +60,8 @@ export function parseUrlState(search: string): UrlState {
   if (hover && hover.length === 3 && hover.every(Number.isFinite)) state.hover = hover as unknown as Vec3;
   const tilt = params.get('tilt');
   if (tilt && Number.isFinite(Number(tilt))) state.tilt = clampTilt(Number(tilt));
+  const yaw = params.get('yaw');
+  if (yaw && Number.isFinite(Number(yaw))) state.yaw = Number(yaw);
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   const kitWait = Number(params.get('kitwait'));

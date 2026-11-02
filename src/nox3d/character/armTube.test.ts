@@ -3,7 +3,8 @@ import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
 import { ArmChain, restFromCurve } from './armChain';
-import { ArmTube, armRadius, suckerTilt } from './armTube';
+import { ArmTube, CAP_RINGS, ROOT_RINGS, armRadius, suckerTilt } from './armTube';
+import { mantleRadius } from './headGeometry';
 
 const profile = { tipRadius: NOX.tipRadius, taperPower: NOX.taperPower };
 const samples = (spec = NOX.arms[0]) => Array.from({ length: 201 }, (_, i) => armRadius(i / 200, spec, profile));
@@ -47,8 +48,9 @@ test('arm tips end in a rounded cap that closes to a point, not a flat cut', () 
   const p = tube.geometry.attributes.position.array as Float32Array;
   const n = chain.segments;
   const ring = tube.radial + 1;
-  const rings = p.length / 3 / ring;
-  expect(rings).toBeGreaterThanOrEqual(n + 1 + 4);
+  // The tip cap's rings follow the arm's own; the root cap's come after them.
+  const rings = n + 1 + CAP_RINGS;
+  expect(CAP_RINGS).toBeGreaterThanOrEqual(4);
   const tip = [chain.px[n], chain.py[n], chain.pz[n]];
   const t = [chain.px[n] - chain.px[n - 1], chain.py[n] - chain.py[n - 1], chain.pz[n] - chain.pz[n - 1]];
   const tl = Math.hypot(t[0], t[1], t[2]);
@@ -63,6 +65,33 @@ test('arm tips end in a rounded cap that closes to a point, not a flat cut', () 
   for (let v = (n + 1) * ring; v < rings * ring; v++) {
     const d = Math.hypot(p[v * 3] - tip[0], p[v * 3 + 1] - tip[1], p[v * 3 + 2] - tip[2]);
     expect(d).toBeCloseTo(r, 4);
+  }
+});
+
+test('arm roots close in a rounded cap tucked into the body, never a flat cut seen from behind', () => {
+  const head = NOX.head;
+  const tubeProfile = { ...profile, suckerTilt: NOX.suckers.tilt, curlTilt: NOX.suckers.curlTilt, twist: NOX.suckers.twist, flatten: NOX.armFlatten };
+  for (const [i, spec] of NOX.arms.entries()) {
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[spec.id]), spec, i);
+    chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+    const tube = new ArmTube(chain, spec, tubeProfile, 24, head.centerX);
+    const p = tube.geometry.attributes.position.array as Float32Array;
+    const ring = tube.radial + 1;
+    const first = chain.segments + 1 + CAP_RINGS;
+    expect(p.length / 3 / ring, spec.id).toBe(first + ROOT_RINGS);
+    // The last root ring closes to a single point...
+    const end = (first + ROOT_RINGS - 1) * ring * 3;
+    for (let j = 1; j < ring; j++) {
+      const o = end + j * 3;
+      expect(Math.hypot(p[o] - p[end], p[o + 1] - p[end + 1], p[o + 2] - p[end + 2]), spec.id).toBeLessThan(1e-5);
+    }
+    // ...inside the mantle, on (or within half a root radius of) the body's upright axis.
+    const inward = (x: number, z: number) => Math.hypot(x - head.centerX, z / head.depth);
+    const [x, y, z] = [p[end], p[end + 1], p[end + 2]];
+    expect(inward(x, z), spec.id).toBeLessThan(mantleRadius(head, y));
+    expect(Math.hypot(x - head.centerX, z), spec.id).toBeLessThanOrEqual(0.5 * tube.radiusAt(0) + 1e-6);
+    // The root cap is closed off, not hollow: every one of its triangles exists in the index.
+    expect(tube.geometry.index!.count, spec.id).toBe((chain.segments + CAP_RINGS + ROOT_RINGS) * tube.radial * 6);
   }
 });
 
