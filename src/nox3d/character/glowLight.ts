@@ -46,9 +46,12 @@ export function createGlowLightUniforms() {
 /** The particles' light outside a world: shared by all of them and never written, so always black. */
 export const NO_NOX_LIGHT: GlowLightUniforms = createGlowLightUniforms();
 
-/** Sets the particles' light to the face glow's: its linear colour times intensity times PARTICLE_GLOW. */
-export function lightParticles(uniforms: GlowLightUniforms) {
-  uniforms.uNoxLight.value.set(GLOW_LIGHT.color).multiplyScalar(GLOW_LIGHT.intensity * PARTICLE_GLOW);
+/**
+ * Sets the particles' light to the face glow's: its linear colour times intensity times
+ * PARTICLE_GLOW, times `strength` (1 unless the glow is dimmed, as when Nox comes out of the murk).
+ */
+export function lightParticles(uniforms: GlowLightUniforms, strength = 1) {
+  uniforms.uNoxLight.value.set(GLOW_LIGHT.color).multiplyScalar(GLOW_LIGHT.intensity * PARTICLE_GLOW * strength);
 }
 
 /** Declarations and `noxGlow(at)`, the tint on a particle at world position `at`, for a particle's vertex shader. */

@@ -2,7 +2,7 @@ import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { strokeAt } from '../motion/stroke';
 import { SECURITY_WORLD } from '../world/security/config';
-import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, pathClearance, spiralOffset } from './entrance';
+import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
 import { type Sequences, loadSequences } from './theatre';
 
@@ -154,4 +154,16 @@ test('no jumps: the body moves smoothly all the way', () => {
     expect(dist(f.position, prev.position)).toBeLessThan(0.03);
     prev = f;
   }
+});
+
+test('out of the murk: the glow and aura first, then the shape', () => {
+  expect(revealParts(0)).toEqual({ glow: 0, shape: 0 });
+  expect(revealParts(1)).toEqual({ glow: 1, shape: 1 });
+  // Early on the glow is well in while the shape has not begun.
+  expect(revealParts(0.3).glow).toBeGreaterThanOrEqual(0.5);
+  expect(revealParts(0.3).shape).toBe(0);
+  for (let r = 0; r <= 1; r += 0.05) expect(revealParts(r).glow).toBeGreaterThanOrEqual(revealParts(r).shape);
+  // The sheet reveals him over the first second.
+  expect(at(0).reveal).toBe(0);
+  expect(at(1).reveal).toBe(1);
 });

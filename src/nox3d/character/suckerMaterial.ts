@@ -4,7 +4,7 @@ import type { SkinUniforms } from './skinMaterial';
 import { CUP_EMBED, CUP_FACE } from './suckerRow';
 
 /** The stage lights the cups share with the skin, so cups and arm are lit as one surface. */
-export type CupLighting = Pick<SkinUniforms, 'uKeyDir' | 'uKeyLight' | 'uUnderglow' | 'uSkyLight' | 'uGroundLight' | 'uHaze' | 'uHazeColor'>;
+export type CupLighting = Pick<SkinUniforms, 'uKeyDir' | 'uKeyLight' | 'uUnderglow' | 'uSkyLight' | 'uGroundLight' | 'uHaze' | 'uHazeColor' | 'uFarHazeColor'>;
 
 /**
  * Cup space bent to the skin: each cup carries its bend across the arm (x) and along it (y) in
@@ -51,6 +51,9 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
       uHazeColor: light.uHazeColor,
       uBoost: { value: 1.22 },
       uFace: { value: CUP_FACE },
+      /** How far the cups fade into the far water (0 to 1): far away, or veiled as Nox comes out of the murk (0 otherwise). */
+      uVeil: { value: 0 },
+      uVeilColor: light.uFarHazeColor,
     },
     vertexShader: /* glsl */ `
       ${bendCupSpace}
@@ -87,6 +90,8 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
       uniform vec3 uHaze;
       uniform vec3 uHazeColor;
       uniform float uBoost;
+      uniform float uVeil;
+      uniform vec3 uVeilColor;
       varying vec3 vLocal;
       varying vec3 vN;
       varying vec3 vV;
@@ -120,6 +125,7 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
         c *= uBoost;
         // Far cups fade into the water like the skin they sit on.
         c = mix(c, uHazeColor, smoothstep(uHaze.x, uHaze.y, -vWorld.z) * uHaze.z);
+        c = mix(c, uVeilColor, uVeil);
         gl_FragColor = vec4(c, 1.0);
       }
     `,

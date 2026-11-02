@@ -3,16 +3,19 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
-import { coreGlowFacing, mantleSqueeze } from '../behavior/entrance';
-// Entrance v1, until Task 19 drives the entrance from sequences/entrance.ts.
-import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, entrancePath, entranceStartX } from '../behavior/entranceV1';
-import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
+import { coreGlowFacing } from '../behavior/entrance';
+import { EXPRESSIONS, type ExpressionId, SWIM_BLINK, blendExpression } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
+import { strokeAt, swimDrive } from '../motion/stroke';
+import { createSwimRests, swimArmPitch, swimRests } from '../motion/swimArms';
 import { BODY_X } from '../poses/nox.poses';
+import { swimShapes } from '../poses/nox.swim';
+import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, revealParts } from '../sequences/entrance';
+import type { Sequences } from '../sequences/theatre';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type OrbState, type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
 import { ORB_Z, orbRestPosition, tipTarget } from '../artifacts/orbSlots';
@@ -31,12 +34,30 @@ import { createDomeMaterial, domeState } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
 import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
-import type { AccentLink } from './worldAccent';
+import { type AccentLink, farHaze } from './worldAccent';
 
 /** Rotation pivot for whole-body turns: the middle of the body. */
 const PIVOT_Y = -0.6;
 /** Pivot for the head's own turns and tilt (head-local height): the neck, under the chin. */
 const NECK_Y = -1.05;
+/**
+ * How long the entrance waits for its sheet (the Theatre state, loading beside the first frame)
+ * before the stage gives up on it and lands in the intro, in seconds of frames drawn; Nox stays out
+ * of sight meanwhile.
+ */
+export const ENTRANCE_SHEET_WAIT = 4;
+/**
+ * The most one frame moves the entrance's clock on (seconds). The clock runs on frame time, not the
+ * wall clock, so a long stall (shaders compiling, the world's kit decoding on a busy machine) pauses
+ * the entrance rather than skipping it; below 10 frames a second it runs slower.
+ */
+const ENTRANCE_MAX_STEP = 0.1;
+
+/** The entrance's sheet as the stage loads it: the sequences once they are in, or that they failed. */
+export interface EntranceSheet {
+  sequences: Sequences | null;
+  failed: boolean;
+}
 
 export interface OctopusProps {
   config: CharacterConfig;
@@ -62,10 +83,23 @@ export interface OctopusProps {
   orbs?: readonly PlacedOrb[];
   /** The technology in focus: its arm presents its orb and Nox looks at it. */
   focusTechId?: string | null;
-  /** The entrance's first frame, when its swim starts (performance.now() ms). */
-  onEntranceStart?: (startMs: number) => void;
+  /**
+   * The entrance (sequences/entrance.ts), read each frame while the stage is `entering`: its clock
+   * starts on the first frame drawn with the sheet in, and runs on frame time. Until then Nox is out
+   * of sight; if the sheet fails, or has not come within ENTRANCE_SHEET_WAIT, `onEntranceUnavailable`
+   * is called.
+   */
+  entranceSheet?: EntranceSheet;
+  /** With `freeze`: the moment of the entrance shown, in seconds. */
+  entranceSeconds?: number;
+  /** The settle has begun (5.5 s): the intro's words come in. */
+  onEntranceSettling?: () => void;
   /** The entrance has run its course: Nox faces the visitor in the intro pose. */
   onEntranceDone?: () => void;
+  /** The entrance cannot play (its sheet did not load in time). */
+  onEntranceUnavailable?: () => void;
+  /** Each entrance frame and its time in seconds (for development checks). */
+  onEntranceFrame?: (frame: EntranceFrame, seconds: number) => void;
   /**
    * In a world: the accents it feeds the skin; Octopus writes where the face glow and its light are each frame. Nox
    * then casts the surface light's shadow, and brings his aura, his glow's light and the local grade.
@@ -89,10 +123,15 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
+  // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
+  // sideways axis. Identity outside the entrance, but for a still's extra turn (?yaw).
+  const swimTurn = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
+  const auraMesh = useRef<THREE.Mesh>(null);
+  const gradeMesh = useRef<THREE.Mesh>(null);
   const content = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
   const dome = useRef<THREE.Mesh>(null);
@@ -180,6 +219,11 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
       glowLocal: new THREE.Vector3(...config.glow.center),
+      // The skin's atmospheric depth, measured from the body's own plane (it moves with him in z).
+      hazeBase: uniforms.uHaze.value.clone(),
+      swimRests: createSwimRests(arms[0].chain.segments),
+      // What this rig's materials last showed of the entrance's haze and veil (written only on a change).
+      shown: { hazeZ: 0, veil: 0 },
     };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
   }, [config, blender, quality, accents]);
@@ -236,7 +280,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     lastInput: performance.now(),
     rest: 0,
     breathPhase: 0,
-    entrance: { startMs: null as number | null, fromX: 0, done: false },
+    // The entrance's clock (seconds of frame time from its first frame; null until the sheet is in) and the wait for its sheet.
+    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false },
+    // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
+    glowShown: 1,
   });
 
   useEffect(() => {
@@ -268,36 +315,88 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const pose = blender.sample(now);
     const moving = reducedMotion ? 0 : live;
 
-    // The entrance: the swim carries the body in and turns the head, timed from its own first
-    // frame so a slow start never cuts it short. A still capture shows the moment panel 1 paints.
+    // The entrance (design 9.6): the sheet carries the body in from the murk, leans and turns it,
+    // and drives the strokes, timed from its own first frame on frame time, so neither a slow start
+    // nor a stall cuts it short. A still (`freeze`) shows the moment `entranceSeconds`. Until the
+    // sheet is in Nox is out of sight.
     let swim: EntranceFrame | null = null;
+    let hidden = false;
     if (stage === 'entering') {
       const e = m.entrance;
-      if (freeze) swim = entrancePath(ENTRANCE_PANEL_MS);
-      else {
-        if (e.startMs === null) {
-          // It starts just out of sight, however wide the window: half its width on the z = 0 plane.
-          const camera = state.camera as THREE.PerspectiveCamera;
-          e.startMs = now;
-          e.fromX = entranceStartX(camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect);
-          onEntranceStart?.(now);
+      const sheet = entranceSheet?.sequences ?? null;
+      const step = Math.min(delta, ENTRANCE_MAX_STEP);
+      if (!sheet) {
+        hidden = true;
+        e.waited += step;
+        if (!freeze && !e.gaveUp && (entranceSheet?.failed || e.waited >= ENTRANCE_SHEET_WAIT)) {
+          e.gaveUp = true;
+          onEntranceUnavailable?.();
         }
-        swim = entrancePath(now - e.startMs, e.fromX);
-        if (!e.done && now - e.startMs >= ENTRANCE_MS) {
-          e.done = true;
-          onEntranceDone?.();
+      } else {
+        e.seconds = e.seconds === null ? 0 : e.seconds + step;
+        const seconds = freeze ? entranceSeconds : e.seconds;
+        swim = entranceFrame(sheet, seconds);
+        onEntranceFrame?.(swim, seconds);
+        if (!freeze) {
+          if (!e.settling && swim.settle > 0) {
+            e.settling = true;
+            onEntranceSettling?.();
+          }
+          if (!e.done && seconds >= ENTRANCE_SECONDS) {
+            e.done = true;
+            onEntranceDone?.();
+          }
         }
       }
     }
-    const place = swim ?? pose.body;
+    // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
+    const stroke = swim ? strokeAt(swim.stroke, personality.swim) : null;
+    const drive = swim && stroke ? swimDrive(stroke, swim.settle) : null;
+    const bodyX = pose.body.x + (swim ? swim.position[0] : 0);
+    const bodyY = pose.body.y + (swim ? swim.position[1] : 0);
+    const bodyZ = swim ? swim.position[2] : 0;
 
     // After a long idle in the intro Nox rests; any input wakes it within half a second.
     const resting = !freeze && isRestful(stage, now - m.lastInput, panelOpen);
     m.rest = THREE.MathUtils.clamp(m.rest + (resting ? dt / REST_IN : -dt / WAKE), 0, 1);
 
     const drift = floatOffset(t, personality);
-    float.current!.position.set(place.x + moving * drift.x, place.y + moving * drift.y, 0);
-    float.current!.scale.setScalar(place.scale);
+    float.current!.position.set(bodyX + moving * drift.x, bodyY + moving * drift.y, bodyZ);
+    float.current!.scale.setScalar(pose.body.scale);
+    // A still's extra turn (?yaw) goes on outside the lean, so a swim still turned 90 degrees shows him in profile.
+    swimTurn.current!.rotation.set(swim ? swim.pitch : 0, (swim ? swim.yaw : 0) + extraYaw, 0);
+    turn.current!.visible = !hidden;
+
+    // Out of the murk: how much of Nox shows (the sheet's reveal; none while the sheet loads), and
+    // how far the water between him and the camera hides him (his own far haze, beyond 18 units).
+    const parts = swim ? revealParts(swim.reveal) : hidden ? { glow: 0, shape: 0 } : null;
+    const far = swim && world ? farHaze(state.camera.position.distanceTo(float.current!.position), rig.uniforms.uFarHaze.value) : 0;
+    const glowShown = parts ? parts.glow * (1 - far) : 1;
+    // The skin fades by the pixel (its far haze is in its shader); the cups and the glows by the body's distance.
+    const skinVeil = parts ? 1 - parts.shape : 0;
+    const cupVeil = Math.max(far, skinVeil);
+    rig.uniforms.uVeil.value = skinVeil;
+    const shown = rig.shown;
+    if (bodyZ !== shown.hazeZ) {
+      // The skin's depth haze is for the parts behind his body's plane, wherever he is.
+      shown.hazeZ = bodyZ;
+      rig.uniforms.uHaze.value.set(rig.hazeBase.x - bodyZ, rig.hazeBase.y - bodyZ, rig.hazeBase.z);
+    }
+    if (glowShown !== m.glowShown) {
+      m.glowShown = glowShown;
+      if (world) lightParticles(world.light, glowShown);
+      if (glowLight) glowLight.intensity = GLOW_LIGHT.intensity * glowShown;
+      const aura = auraMesh.current?.material as THREE.ShaderMaterial | undefined;
+      if (aura) aura.uniforms.uStrength.value = config.glow.aura.strength * glowShown;
+      const grade = gradeMesh.current?.material as THREE.ShaderMaterial | undefined;
+      if (grade) grade.uniforms.uStrength.value = config.glow.grade.strength * glowShown;
+    }
+    if (cupVeil !== shown.veil) {
+      shown.veil = cupVeil;
+      (rig.suckers.material as THREE.ShaderMaterial).uniforms.uVeil.value = cupVeil;
+      (rig.cupShadows.material as THREE.ShaderMaterial).uniforms.uStrength.value = config.suckers.shadow * (1 - cupVeil);
+      rig.armHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - cupVeil), config.glow.halo.bandStrength * (1 - cupVeil));
+    }
 
     // The technology in focus. One timeline (FocusChoreography) runs it: the eyes turn at once,
     // the face reacts a beat later, then the orb's arm reaches its tip under the orb and lifts it
@@ -318,15 +417,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
-    faceAt.set(config.head.faceOrigin[0] + place.x, config.head.faceOrigin[1] + place.y, 0).project(state.camera);
+    faceAt.set(config.head.faceOrigin[0] + bodyX, config.head.faceOrigin[1] + bodyY, 0).project(state.camera);
 
     // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
     const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
 
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
-    // Swimming in, Nox looks where it is going.
-    const gaze = (freeze && !fixed && !rest) || swim
+    // Swimming in, Nox looks where he is going.
+    const gaze = (freeze && !fixed && !rest) || stage === 'entering'
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
@@ -334,7 +433,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
 
     // The face reacts to each technology in its own way (Kali: the focused face of panel 4;
     // others: a subtle curiosity), and the head tilts a little toward it.
-    let activeExpression = expression ? EXPRESSIONS[expression] : pose.expression;
+    // Swimming in, the determined happy face, landing on the gentle smile as he settles.
+    let activeExpression = expression ? EXPRESSIONS[expression] : swim ? blendExpression(EXPRESSIONS.happy, EXPRESSIONS.gentle, swim.settle) : pose.expression;
     let tiltTarget = 0;
     let strongest = 0;
     orbs.forEach((orb, i) => {
@@ -351,17 +451,19 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
-    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + extraYaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
-    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, (swim ? swim.yaw : 0) + gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
-    // The glow card turns with the head; swimming side-on it fades rather than show edge-on beside the face.
-    rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw);
+    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
+    // The glow card turns with the head; turned side-on (the entrance's spin) it fades rather than
+    // show edge-on beside the face.
+    rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw) * glowShown;
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
     rig.face.draw({
       ...face,
       mouthCurve: face.mouthCurve + m.smile.x * 0.7,
       blush: Math.max(face.blush, m.smile.x),
-      blink: freeze ? 0 : m.blinks.sample(t),
+      // Swimming, he blinks at a slower rate.
+      blink: freeze ? 0 : m.blinks.sample(t, swim && swim.settle < 1 ? SWIM_BLINK : 1),
       gazeX: gaze.gazeX,
       gazeY: gaze.gazeY,
     });
@@ -370,10 +472,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // by 1.4x; the phase is carried forward so a change of pace never jumps.
     m.breathPhase += (live * dt) / (personality.breathPeriod * (1 + 0.4 * m.rest));
     const b = live * Math.sin(m.breathPhase * Math.PI * 2);
-    // Swimming in, each jet pulse squeezes the mantle as the arms flare.
-    const pulse = swim ? swim.pulse * live : 0;
-    const squeeze = mantleSqueeze(pulse);
-    head.current!.scale.set((1 + b * 0.016) * squeeze, (1 + b * 0.011) * squeeze, (1 + b * 0.016) * squeeze);
+    // Swimming, the mantle fills in each recovery and squeezes in each power stroke, less as he settles.
+    const mantle = swim && stroke ? 1 + stroke.mantle * (1 - swim.settle) : 1;
+    head.current!.scale.set((1 + b * 0.016) * mantle, (1 + b * 0.011) * mantle, (1 + b * 0.016) * mantle);
 
     // Pointer on the z = 0 plane, in the space the arms are authored in.
     content.current!.updateWorldMatrix(true, false);
@@ -398,7 +499,12 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     if (reducedMotion) orbState.armReach.fill(0);
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face. While the orbs are out, only arms presenting a technology move.
-    const pointerArm = !armDrive && reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
+    // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
+    const rests = swim && stroke ? swimRests(swimShapes(rig.arms[0].chain.segments), stroke, swim.settle, rig.swimRests) : null;
+    const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
+    const straighten = drive ? drive.straighten : armDrive?.straighten;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
@@ -409,7 +515,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const driver = orbState.driver[i];
       const target = presentW > 0 && driver >= 0 ? tipTarget(orbs[driver].slot) : m.reachPoint[i];
       const w = presentW > 0 && driver >= 0 ? presentW : pointerW;
-      chain.setRest(pose.arms[ARM_IDS[i]]);
+      chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
         sway: moving * personality.sway * (1 - 0.6 * w),
@@ -417,9 +523,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
         droop: drift.vy * live * 2.2,
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
-        flare: armFlare(ARM_IDS[i]) * pulse,
-        pitch: armDrive?.pitch,
-        straighten: armDrive?.straighten,
+        pitch,
+        straighten,
       });
       orbState.tips[i].set(chain.tipX, chain.tipY);
       tube.update();
@@ -455,7 +560,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     rig.domeMaterial.uniforms.uOpacity.value = glass.opacity;
     rig.domeMaterial.uniforms.uReveal.value = glass.reveal;
     orbState.out = silhouette ? 0 : THREE.MathUtils.clamp(pose.orbs, 0, 1);
-    rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease), config.glow.halo.bandStrength * (1 - ease));
+    rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease) * (1 - cupVeil), config.glow.halo.bandStrength * (1 - ease) * (1 - cupVeil));
   });
 
   const [faceX, faceY] = config.head.faceOrigin;
@@ -463,12 +568,13 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const castShadow = accents !== undefined;
   return (
     <group ref={float}>
-      <group ref={turn} position={[BODY_X, PIVOT_Y, 0]}>
+      <group ref={swimTurn} position={[BODY_X, PIVOT_Y, 0]} rotation-order="YXZ">
+      <group ref={turn}>
         {/* The aura, at the body's middle, moves and turns with him; a still's extra turn (?yaw) is
             undone, so the card stays behind him, where his skin hides its middle, and never covers him. */}
         {world && (
           <group rotation={[0, -extraYaw, 0]}>
-            <Aura aura={config.glow.aura} />
+            <Aura aura={config.glow.aura} meshRef={auraMesh} />
           </group>
         )}
         <group ref={content} position={[-BODY_X, -PIVOT_Y, 0]}>
@@ -511,8 +617,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           <primitive object={rig.cupShadows} visible={!silhouette} />
         </group>
       </group>
+      </group>
       {glowLight && <primitive object={glowLight} />}
-      {world && <LocalGrade grade={config.glow.grade} glow={world.at} />}
+      {world && <LocalGrade grade={config.glow.grade} glow={world.at} meshRef={gradeMesh} />}
     </group>
   );
 }

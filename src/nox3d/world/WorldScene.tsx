@@ -103,8 +103,9 @@ const CAUSTIC_STRENGTH = 0.005;
 
 /**
  * Feeds the world's light to Nox's skin as accents: the world lights nearest his face glow each
- * frame, the surface light's caustics, and the water's colour for far haze (its density stays 0,
- * so it is off). On unmount the skin goes back to no accents.
+ * frame, the surface light's caustics, and the far haze: the water's colour and its fog density,
+ * so beyond HAZE_FROM (18 units, only ever reached in the entrance) he fades into the water as the
+ * corridor does, from his own shading. On unmount the skin goes back to no accents.
  */
 function useNoxAccents(world: WorldConfig, { spot, caustics }: ReturnType<typeof useSurfaceLight>, accents: AccentLink | undefined) {
   useEffect(() => {
@@ -118,11 +119,13 @@ function useNoxAccents(world: WorldConfig, { spot, caustics }: ReturnType<typeof
     u.uSurfaceDir.value.set(...surface.position).sub(new THREE.Vector3(...surface.target)).normalize();
     u.uCausticLight.value.set(surface.color).multiplyScalar(CAUSTIC_STRENGTH);
     u.uFarHazeColor.value.set(world.palette.waterFar);
+    u.uFarHaze.value = world.water.fogDensity;
     return () => {
       u.uAccentWarmth.value.setScalar(0);
       u.uCausticMap.value = null;
       u.uCausticMatrix.value = new THREE.Matrix4();
       u.uCausticLight.value.setScalar(0);
+      u.uFarHaze.value = 0;
       writeAccentLights(u, []);
     };
   }, [world, spot, caustics, accents]);

@@ -1,14 +1,9 @@
 import { expect, test } from 'vitest';
-import { coreGlowFacing, mantleSqueeze } from './entrance';
+import { coreGlowFacing } from './entrance';
 
 const times = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
 /** A head turned near profile (Entrance v1's 1.4 rad, traced from panel 1). */
 const SIDE_ON = 1.4;
-
-test('a jet pulse squeezes the mantle by 6%', () => {
-  expect(mantleSqueeze(1)).toBeCloseTo(0.94, 9);
-  expect(mantleSqueeze(0)).toBe(1);
-});
 
 test('the glow card before the chin fades as the head turns side-on, so it never shows edge-on', () => {
   expect(coreGlowFacing(0)).toBe(1);

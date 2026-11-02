@@ -116,15 +116,16 @@ test('zero accents leave the shader output unchanged', () => {
   expect(u.uAccentWarmth.value.toArray()).toEqual([0, 0, 0]);
   expect(u.uCausticLight.value.toArray()).toEqual([0, 0, 0]);
   expect(u.uFarHaze.value).toBe(0);
+  expect(u.uVeil.value).toBe(0);
   for (const c of u.uAccentColor.value) expect(c.toArray()).toEqual([0, 0, 0]);
   // Nothing divides by zero on the default path: a light's reach and the surface direction are never zero.
   expect(u.uAccentRange.value.every(r => r > 0)).toBe(true);
   expect(u.uSurfaceDir.value.length()).toBe(1);
 
   // The chunk changes the colour in exactly two places: it adds the capped accent, and it mixes in
-  // the far haze.
+  // the far haze (or the entrance's veil, if more).
   const writes = ACCENT_GLSL.match(/\bcol\s*[-+*/]?=[^;]*;/g);
-  expect(writes).toEqual(['col += accent;', 'col = mix(col, uFarHazeColor, farHaze(length(cameraPosition - vWorld), uFarHaze));']);
+  expect(writes).toEqual(['col += accent;', 'col = mix(col, uFarHazeColor, noxVeil());']);
   // The accent is built only from warmth and caustics, each a product with its zero-default
   // strength, capped first and faded after.
   expect(ACCENT_GLSL).toMatch(/vec3 warmth = warmthMask\(N\.y, ndv, inFace\) \* capAccent\(col, light \* uAccentWarmth, WORLD_WARMTH_CAP\);/);
@@ -134,6 +135,8 @@ test('zero accents leave the shader output unchanged', () => {
   expect(ACCENT_GLSL).toContain(`#define WORLD_WARMTH_CAP ${WORLD_WARMTH_CAP}`);
   expect(ACCENT_GLSL).toContain(`#define CAUSTIC_CAP ${CAUSTIC_CAP}`);
   expect(ACCENT_GLSL).toContain('#define HAZE_FROM 18.0');
+  // The far haze, or the veil if more: both zero by default.
+  expect(ACCENT_GLSL).toContain('return max(farHaze(length(cameraPosition - vWorld), uFarHaze), uVeil);');
 });
 
 test('far haze is zero within HAZE_FROM of the camera', () => {

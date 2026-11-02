@@ -42,7 +42,11 @@ export class BlinkScheduler {
     this.rng = rng;
   }
 
-  sample(t: number): number {
+  /**
+   * Lid closure at `t`. `slower` stretches the wait before the next blink (1 the personality's own
+   * pace; see SWIM_BLINK in expressions.ts); it is read as each blink ends.
+   */
+  sample(t: number, slower = 1): number {
     if (this.start < 0 && t >= this.next) {
       // A blink starts now, not when it was due, so a long gap yields one blink, not a burst.
       this.start = t;
@@ -52,7 +56,7 @@ export class BlinkScheduler {
     const u = (t - this.start) / BLINK_SECONDS;
     if (u >= 1) {
       const [low, high] = this.interval;
-      this.next = t + (this.double ? DOUBLE_BLINK_GAP : low + this.rng() * (high - low));
+      this.next = t + (this.double ? DOUBLE_BLINK_GAP : (low + this.rng() * (high - low)) * slower);
       this.start = -1;
       this.double = false;
       return 0;

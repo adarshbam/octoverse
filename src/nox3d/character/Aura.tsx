@@ -12,7 +12,7 @@ export const AURA_Z = -0.8;
  * just behind his rear arms, turned to face the camera, adding its light and writing no depth.
  * Mount it at the body's middle, in the body's own space, so it moves and turns with him.
  */
-export function Aura({ aura }: { aura: AuraSettings }) {
+export function Aura({ aura, meshRef }: { aura: AuraSettings; /** The card, for its owner to dim (uStrength) as Nox comes out of the murk. */ meshRef?: React.Ref<THREE.Mesh> }) {
   const { geometry, material, disposables } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2, 2);
     const material = createAuraMaterial(aura);
@@ -20,5 +20,5 @@ export function Aura({ aura }: { aura: AuraSettings }) {
   }, [aura]);
   useDisposables(disposables);
   // The card turns to face the camera in its shader, so its bounds never fit it: it is never culled.
-  return <mesh geometry={geometry} material={material} position={[0, 0, AURA_Z]} frustumCulled={false} />;
+  return <mesh ref={meshRef} geometry={geometry} material={material} position={[0, 0, AURA_Z]} frustumCulled={false} />;
 }

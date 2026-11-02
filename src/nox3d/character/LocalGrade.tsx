@@ -9,7 +9,7 @@ import { GRADE_ORDER, createGradeGeometry, createGradeMaterial } from './localGr
  * face glow in world space, kept up to date each frame (the world link's `at`); the discs place and
  * turn themselves from it and the camera as they are drawn, so nothing is computed here per frame.
  */
-export function LocalGrade({ grade, glow }: { grade: GradeSettings; glow: THREE.Vector3 }) {
+export function LocalGrade({ grade, glow, meshRef }: { grade: GradeSettings; glow: THREE.Vector3; /** The discs, for their owner to dim (uStrength) as Nox comes out of the murk. */ meshRef?: React.Ref<THREE.Mesh> }) {
   const { geometry, material, disposables } = useMemo(() => {
     const geometry = createGradeGeometry();
     const material = createGradeMaterial(grade, glow);
@@ -17,5 +17,5 @@ export function LocalGrade({ grade, glow }: { grade: GradeSettings; glow: THREE.
   }, [grade, glow]);
   useDisposables(disposables);
   // The discs are placed in their shader, so their bounds never fit them: they are never culled.
-  return <mesh geometry={geometry} material={material} renderOrder={GRADE_ORDER} frustumCulled={false} />;
+  return <mesh ref={meshRef} geometry={geometry} material={material} renderOrder={GRADE_ORDER} frustumCulled={false} />;
 }

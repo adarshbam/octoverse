@@ -3,12 +3,12 @@ import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessi
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { ENTRANCE_TURN } from './behavior/entranceV1';
 import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
-import { useStage } from './behavior/useStage';
-import { Octopus } from './character/Octopus';
+import { initialStage } from './behavior/stageMachine';
+import { readEntranceSeen, readReducedMotion, useStage } from './behavior/useStage';
+import { type EntranceSheet, Octopus } from './character/Octopus';
 import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
@@ -18,15 +18,18 @@ import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
 import { swimDrive } from './motion/stroke';
 import { NOX_POSES } from './poses/nox.poses';
-import { SWIM_POSES } from './poses/nox.swim';
+import { SWIM_POSES, swimShapes } from './poses/nox.swim';
 import type { StagePose } from './poses/types';
+import type { EntranceFrame } from './sequences/entrance';
+import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { liveAnchors, noxFaceAnchor } from './stage/liveAnchors';
 import { bubblePointer, cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
 import { leanCamera } from './world/lensShift';
 import type { Vec3 } from './world/types';
-import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
+import { QualityProbe, startingTier, usePageVisible, useQuality } from './stage/useQuality';
+import { TIER_SETTINGS } from './stage/quality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { ProjectDetail } from './ui/ProjectDetail';
@@ -69,6 +72,39 @@ const MASK = new URLSearchParams(location.search).has('mask');
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
 const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
+
+/**
+ * The entrance's sheet (the Theatre state, about 0.2 MB), loading from the moment this module runs
+ * when the page will open on the entrance, beside the world and the first frame: nothing waits on
+ * it. The swim's arm shapes are worked out as it arrives, at the starting tier's segment count (a
+ * tier lowered mid-swim works out its own on its next frame), so the entrance's first frame does not
+ * pay for them. Octopus starts the entrance's clock on the first frame drawn with the sheet in.
+ */
+const ENTRANCE_SHEET: EntranceSheet = { sequences: null, failed: false };
+if (initialStage({ entranceSeen: readEntranceSeen(), requested: url.stage, reducedMotion: readReducedMotion() }).stage === 'entering') {
+  loadSequences().then(
+    sequences => {
+      swimShapes(TIER_SETTINGS[startingTier(url).tier].segments);
+      ENTRANCE_SHEET.sequences = sequences;
+      if (import.meta.env.DEV) entranceDebug().loaded = true;
+    },
+    (error: unknown) => {
+      console.warn('the entrance did not load; going straight to the intro:', error);
+      ENTRANCE_SHEET.failed = true;
+    },
+  );
+}
+/** A still of the entrance (`?stage=entering&freeze`) shows `?t=<s>`, or mid-swim, 2 s in. */
+const ENTRANCE_STILL_SECONDS = url.t ?? 2;
+
+/** The entrance as the development build reports it, for the end-to-end tests (`window.__noxEntrance`). */
+function entranceDebug() {
+  const w = window as unknown as { __noxEntrance?: { loaded: boolean; t: number; spin: number; settle: number } };
+  return (w.__noxEntrance ??= { loaded: false, t: 0, spin: 0, settle: 0 });
+}
+const reportEntrance = import.meta.env.DEV
+  ? (frame: EntranceFrame, seconds: number) => Object.assign(entranceDebug(), { t: seconds, spin: frame.spin, settle: frame.settle })
+  : undefined;
 
 /** The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another. */
 const TILT = url.tilt ?? SECURITY_WORLD.camera.tilt;
@@ -236,22 +272,18 @@ export function App() {
   const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio, quality.settings.dpr)) * quality.settings.renderScale;
   const segments = quality.settings.segments;
   // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
-  // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
-  const blender = useMemo(() => new PoseBlender(stagePose(state.stage), segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
+  // the blender holds the intro pose he swims into (the swim's own arm shapes and placement come
+  // from the entrance, in Octopus), so when it ends he is already there.
+  const blender = useMemo(() => new PoseBlender(stagePose(state.stage === 'entering' ? 'intro' : state.stage), segments), [segments]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
   const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   const prevStage = useRef(state.stage);
-  // The entrance's clock: when its first frame drew (Octopus), and whether it ran its course.
-  const entrance = useRef({ startMs: null as number | null, finished: false });
-  // As Nox slows, its arms gather into the intro pose, on the entrance's clock.
-  const turnIntoIntro = useCallback(() => {
-    const { startMs } = entrance.current;
-    if (startMs === null) return;
-    const now = performance.now();
-    blender.start(NOX_POSES.intro, now, ENTRANCE_TURN.durationMs, ENTRANCE_TURN.staggerMs, startMs + ENTRANCE_TURN.delayMs - now);
-  }, [blender]);
+  // Whether the entrance ran its course (Nox is then in the intro pose already).
+  const entrance = useRef({ finished: false });
+  // The settle has begun: the intro's words come in as Nox settles (design 9.6).
+  const [settling, setSettling] = useState(false);
   // Every stage change sets Nox moving toward the new pose; with reduced motion it lands at
   // once and the view crossfades instead. Into and out of a technology focus, only the dome
   // moves (the arms keep their places), on the focus choreography's beats: it folds away as the
@@ -262,10 +294,8 @@ export function App() {
     const opening = first.current;
     first.current = false;
     if (state.stage === 'entering') {
-      // Reduced motion has no swim (the preference can change while it plays). Otherwise a
-      // blender rebuilt part-way (a lower tier) picks up the turn where it was.
+      // Reduced motion has no swim (the preference can change while it plays).
       if (reducedMotion) dispatch({ type: 'SKIP' });
-      else turnIntoIntro();
       return;
     }
     // An entrance that ran its course has already turned Nox into the intro pose.
@@ -279,7 +309,7 @@ export function App() {
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
     blender.start(stagePose(state.stage), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-  }, [blender, state.stage, reducedMotion, dispatch, turnIntoIntro]);
+  }, [blender, state.stage, reducedMotion, dispatch]);
   // Any click or key skips the entrance.
   const entering = state.stage === 'entering';
   useEffect(() => {
@@ -347,14 +377,16 @@ export function App() {
       solo={url.solo}
       yaw={url.yaw}
       armDrive={REVIEW_SWIM?.drive}
-      onEntranceStart={startMs => {
-        entrance.current.startMs = startMs;
-        turnIntoIntro();
-      }}
+      entranceSheet={ENTRANCE_SHEET}
+      entranceSeconds={ENTRANCE_STILL_SECONDS}
+      onEntranceSettling={() => setSettling(true)}
       onEntranceDone={() => {
         entrance.current.finished = true;
         dispatch({ type: 'ENTRANCE_DONE' });
       }}
+      // The sheet failed or did not come in time: land in the intro, as a skip does.
+      onEntranceUnavailable={() => dispatch({ type: 'SKIP' })}
+      onEntranceFrame={reportEntrance}
     />
   );
   return (
@@ -395,9 +427,9 @@ export function App() {
       </Canvas>
       {!MASK && !url.view && (
         <>
-          {/* The intro's words come in as Nox arrives: panel 1 has none. */}
-          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro'} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
-          <SkipEntrance hidden={!entering} onSkip={() => dispatch({ type: 'SKIP' })} />
+          {/* The intro's words come in as Nox settles at the end of the entrance (the skip control goes then). */}
+          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
+          <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
           <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />
           <OrbButtons

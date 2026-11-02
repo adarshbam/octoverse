@@ -1,5 +1,7 @@
+import { settledArms } from '../behavior/poseBlend';
 import { restFromCurve, type ArmRest } from '../character/armChain';
 import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
+import type { SwimShapes } from '../motion/swimArms';
 import { NOX_POSES } from './nox.poses';
 import type { StagePose } from './types';
 
@@ -128,3 +130,13 @@ export const SWIM_POSES: { readonly open: StagePose; readonly trail: StagePose }
     return build().trail;
   },
 };
+
+/**
+ * Nox's swim shapes as arm rests at `segments` (motion/swimArms.ts): the trail, the open umbrella
+ * and the intro pose he settles into. Worked out once per segment count (settledArms caches them),
+ * after the swim poses are built; the first call pays both, so the stage makes it before the swim
+ * starts (App.tsx), not on its first frame.
+ */
+export function swimShapes(segments: number): SwimShapes {
+  return { trail: settledArms(SWIM_POSES.trail, segments), open: settledArms(SWIM_POSES.open, segments), rest: settledArms(NOX_POSES.intro, segments) };
+}

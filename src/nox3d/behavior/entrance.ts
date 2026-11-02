@@ -1,15 +1,6 @@
-// The jet pulse's squeeze of the mantle and the glow card's fade as the head turns: shared by the
-// entrance and any swim. Entrance v1's path (entrancePath, entranceStartX, armFlare,
-// ENTRANCE_PANEL_MS) is replaced by sequences/entrance.ts; until Task 19 rewires the stage it
-// lives on in behavior/entranceV1.ts.
-
-/** A pulse squeezes the mantle by 6% at its height. */
-export const MANTLE_SQUEEZE = 0.06;
-
-/** The mantle's size during a pulse. */
-export function mantleSqueeze(pulse: number) {
-  return 1 - MANTLE_SQUEEZE * pulse;
-}
+// The glow card's fade as the head turns: shared by the entrance and any swim. The entrance's path
+// is in sequences/entrance.ts; the swim's mantle beat is the stroke's (motion/stroke.ts). Entrance
+// v1 and its jet pulse are gone.
 
 /**
  * How much of the glow card before the chin shows with the head turned `yaw` radians from the

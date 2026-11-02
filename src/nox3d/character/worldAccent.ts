@@ -78,7 +78,7 @@ export function pickAccentLights(lights: readonly WorldLight[], at: Vec3, max = 
 
 export type AccentUniforms = ReturnType<typeof createAccentUniforms>;
 
-/** The skin's world accents, all zero: no world light, no caustics, no far haze. */
+/** The skin's world accents, all zero: no world light, no caustics, no far haze, no veil. */
 export function createAccentUniforms() {
   return {
     /** The world lights reaching the skin: position, colour times intensity (black in an unused slot), and reach. */
@@ -95,6 +95,8 @@ export function createAccentUniforms() {
     /** Depth haze beyond HAZE_FROM: its density, and the water's colour. */
     uFarHaze: { value: 0 },
     uFarHazeColor: { value: new THREE.Color(0, 0, 0) },
+    /** At least this much of the far haze's colour (0 to 1): the entrance's veil, as Nox comes out of the murk (0 otherwise). */
+    uVeil: { value: 0 },
   };
 }
 
@@ -142,6 +144,7 @@ export const ACCENT_GLSL = /* glsl */ `
   uniform vec3 uCausticLight;
   uniform float uFarHaze;
   uniform vec3 uFarHazeColor;
+  uniform float uVeil;
 
   vec3 capAccent(vec3 base, vec3 add, float cap) {
     float room = cap * max(dot(base, vec3(0.2126, 0.7152, 0.0722)), 0.0);
@@ -160,6 +163,11 @@ export const ACCENT_GLSL = /* glsl */ `
   float farHaze(float dist, float density) {
     float beyond = max(dist - HAZE_FROM, 0.0) * density;
     return 1.0 - exp(-beyond * beyond);
+  }
+
+  // How much of the far water's colour the skin here takes: its far haze, or the entrance's veil if more.
+  float noxVeil() {
+    return max(farHaze(length(cameraPosition - vWorld), uFarHaze), uVeil);
   }
 
   vec3 worldAccent(vec3 col, vec3 N, float ndv, float clearOfGlow) {
@@ -189,7 +197,8 @@ export const ACCENT_GLSL = /* glsl */ `
     vec3 accent = clearOfGlow * capAccent(col, warmth + caustic, WORLD_WARMTH_CAP);
     col += accent;
     // Far away, Nox fades into the water from his own shading; the world's fog never reaches him.
-    col = mix(col, uFarHazeColor, farHaze(length(cameraPosition - vWorld), uFarHaze));
+    // The veil hides him in it as he comes out of the murk.
+    col = mix(col, uFarHazeColor, noxVeil());
     return col;
   }
 `;

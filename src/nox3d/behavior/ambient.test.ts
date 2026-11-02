@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { BlinkScheduler, floatOffset, spring } from './ambient';
 import { Attention, nearFace } from './attention';
+import { SWIM_BLINK } from './expressions';
 
 /** Deterministic generator for repeatable blink timing. */
 const seeded = (seed: number) => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -122,4 +123,24 @@ test('the pointer is near Nox when it is close to the face, wherever the stage f
   expect(nearFace(face, face)).toBe(1);
   expect(nearFace({ x: 0, y: -0.17 }, face)).toBeLessThan(0.35);
   expect(nearFace({ x: 0.5, y: 0 }, face)).toBe(0);
+});
+
+test('swimming, Nox blinks at a slower rate: the waits between blinks stretch by SWIM_BLINK', () => {
+  expect(SWIM_BLINK).toBeGreaterThan(1);
+  const gaps = (slower: number) => {
+    const scheduler = new BlinkScheduler(NOX.personality.blinkInterval, 0, seeded(7));
+    const starts: number[] = [];
+    let was = false;
+    for (let t = 0; t <= 120; t += 0.002) {
+      const closed = scheduler.sample(t, slower) > 0;
+      if (closed && !was) starts.push(t);
+      was = closed;
+    }
+    return starts.slice(1).map((s, i) => s - starts[i]);
+  };
+  const usual = gaps(1);
+  const swimming = gaps(SWIM_BLINK);
+  // The same draws, so each wait is SWIM_BLINK times as long (plus the blink itself, 0.17 s).
+  swimming.slice(0, 5).forEach((gap, i) => expect(gap - 0.17).toBeCloseTo((usual[i] - 0.17) * SWIM_BLINK, 1));
+  expect(swimming.length).toBeLessThan(usual.length);
 });

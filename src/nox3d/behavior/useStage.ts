@@ -6,7 +6,8 @@ import { parseUrlState } from './urlState';
 const ENTRANCE_SEEN = 'octoverse.nox.entranceSeen';
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
-function readEntranceSeen() {
+/** Whether this session has seen the entrance (it plays once per session). */
+export function readEntranceSeen() {
   try {
     return sessionStorage.getItem(ENTRANCE_SEEN) === '1';
   } catch {
@@ -27,7 +28,8 @@ function subscribeReducedMotion(onChange: () => void) {
   query?.addEventListener('change', onChange);
   return () => query?.removeEventListener('change', onChange);
 }
-const readReducedMotion = () => window.matchMedia?.(REDUCED_MOTION).matches ?? false;
+/** Whether the visitor prefers reduced motion. */
+export const readReducedMotion = () => window.matchMedia?.(REDUCED_MOTION).matches ?? false;
 
 /** The page's stage: starts from the URL, the visitor's motion preference and whether the entrance was seen this session. */
 export function useStage(project: Project) {

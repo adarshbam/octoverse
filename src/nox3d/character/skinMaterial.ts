@@ -522,7 +522,8 @@ const skinFragment = /* glsl */ `
       vec4 face = texture2D(uFace, vFaceUv, -0.5);
       float inside = step(0.0, vFaceUv.x) * step(vFaceUv.x, 1.0) * step(0.0, vFaceUv.y) * step(vFaceUv.y, 1.0);
       float mask = face.a * inside * faceWeight(vFront);
-      col = mix(col, face.rgb, mask);
+      // The face fades into the far water with the skin (none at the stage).
+      col = mix(col, mix(face.rgb, uFarHazeColor, noxVeil()), mask);
     #endif
     gl_FragColor = vec4(col, 1.0);
   }

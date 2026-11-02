@@ -42,6 +42,19 @@ export interface EntranceFrame {
   expression: ExpressionId;
 }
 
+const smoothstep = (a: number, b: number, x: number) => {
+  const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return u * u * (3 - 2 * u);
+};
+
+/**
+ * How much of Nox shows at `reveal` (0 to 1) as he comes out of the murk: his glow and aura first
+ * (`glow`, in by 0.6), then his shape (`shape`, from 0.35). Both are 0 at 0 and exactly 1 at 1.
+ */
+export function revealParts(reveal: number) {
+  return { glow: smoothstep(0, 0.6, reveal), shape: smoothstep(0.35, 1, reveal) };
+}
+
 /** The sheet's props at one moment. */
 interface EntranceProps {
   x: number;

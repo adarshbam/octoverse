@@ -29,6 +29,12 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   restful: { lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 },
 };
 
+/**
+ * While swimming Nox blinks at a slower rate (spec 9.5): the wait between blinks is his
+ * personality's blink interval times this (BlinkScheduler.sample's `slower`).
+ */
+export const SWIM_BLINK = 1.6;
+
 export function blendExpression(a: ExpressionParams, b: ExpressionParams, t: number): ExpressionParams {
   const mix = (x: number, y: number) => (t <= 0 ? x : t >= 1 ? y : x + (y - x) * t);
   return {
