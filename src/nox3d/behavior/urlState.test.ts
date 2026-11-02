@@ -44,3 +44,9 @@ test('parses solo, for measurement captures', () => {
   expect(parseUrlState('?world&stage=techFocus&tech=kali&solo')).toMatchObject({ world: true, stage: 'techFocus', tech: 'kali', solo: true });
   expect(parseUrlState('?world').solo).toBe(false);
 });
+
+test('parses a pinned camera hover and ignores a malformed one', () => {
+  expect(parseUrlState('?hover=0.9,0.3,1.2').hover).toEqual([0.9, 0.3, 1.2]);
+  expect(parseUrlState('?hover=-0.9,0,0').hover).toEqual([-0.9, 0, 0]);
+  for (const bad of ['?hover=1,2', '?hover=a,b,c', '?hover=', '?hover=1,2,3,4']) expect(parseUrlState(bad).hover, bad).toBeUndefined();
+});

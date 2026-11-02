@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { HoverIntent } from './hoverIntent';
+import { useAnchorShift } from '../stage/liveAnchors';
+import { bubblePointer } from '../world/cameraHover';
 import * as THREE from 'three';
 import { ArmChain, restFromCurve } from '../character/armChain';
 import { NOX } from '../config/nox.character';
@@ -78,8 +80,42 @@ function orbSpotsNow(orbs: readonly OrbChoice[], presented: boolean) {
     const radius = slot.radius * (presented ? FOCUS_GROW : 1);
     const centre = projectToScreen(new THREE.Vector3(p.x + body.x, p.y + body.y, ORB_Z), camera, size);
     const edge = projectToScreen(new THREE.Vector3(p.x + body.x + radius, p.y + body.y, ORB_Z), camera, size);
-    return { x: centre.x, y: centre.y, size: Math.max(44, 2 * (edge.x - centre.x)) };
+    return { x: centre.x, y: centre.y, size: Math.max(44, 2 * (edge.x - centre.x)), world: [p.x + body.x, p.y + body.y, ORB_Z] as const };
   });
+}
+
+type OrbSpot = ReturnType<typeof orbSpots>[number];
+
+/** One orb's button, which holds its place on the orb (a world point of its own) as the camera hovers. */
+function OrbButton({ orb, spot, focused, tooltipId, tabIndex, onChoose, onPointerEnter, onPointerMove, onPointerLeave }: {
+  orb: OrbChoice;
+  spot: OrbSpot;
+  focused: string | null;
+  tooltipId: string;
+  tabIndex: number;
+  onChoose: (techId: string) => void;
+  onPointerEnter: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerMove: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerLeave: () => void;
+}) {
+  const button = useRef<HTMLButtonElement>(null);
+  useAnchorShift(button, spot.world);
+  return (
+    <button
+      ref={button}
+      type="button"
+      className="orb-button"
+      aria-label={orb.name}
+      aria-describedby={orb.techId === focused ? tooltipId : undefined}
+      tabIndex={tabIndex}
+      style={{ left: spot.x, top: spot.y, width: spot.size, height: spot.size }}
+      onClick={() => onChoose(orb.techId)}
+      onFocus={() => onChoose(orb.techId)}
+      onPointerEnter={onPointerEnter}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+    />
+  );
 }
 
 /**
@@ -93,7 +129,10 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
   const [spots, setSpots] = useState(() => orbSpots(orbs));
   const hover = useRef<{ techId: string | null; timer?: number }>({ techId: null });
   const intent = useMemo(() => new HoverIntent(), []);
-  useEffect(() => () => window.clearTimeout(hover.current.timer), []);
+  useEffect(() => () => {
+    window.clearTimeout(hover.current.timer);
+    bubblePointer.hovered = false;
+  }, []);
   // Chooses the orb under the pointer once it has come to rest there; checks again when it might.
   const consider = (techId: string, x: number, y: number) => {
     const now = performance.now();
@@ -115,19 +154,18 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
       {orbs.map((orb, i) => {
         const spot = spots[i];
         return (
-          <button
+          <OrbButton
             key={orb.techId}
-            type="button"
-            className="orb-button"
-            aria-label={orb.name}
-            aria-describedby={orb.techId === focused ? tooltipId : undefined}
+            orb={orb}
+            spot={spot}
+            focused={focused}
+            tooltipId={tooltipId}
             tabIndex={open ? 0 : -1}
-            style={{ left: spot.x, top: spot.y, width: spot.size, height: spot.size }}
-            onClick={() => onChoose(orb.techId)}
-            onFocus={() => onChoose(orb.techId)}
+            onChoose={onChoose}
             onPointerEnter={event => {
               if (event.pointerType !== 'mouse') return;
               hover.current.techId = orb.techId;
+              bubblePointer.hovered = true;
               intent.reset();
               consider(orb.techId, event.clientX, event.clientY);
             }}
@@ -136,6 +174,7 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
             }}
             onPointerLeave={() => {
               hover.current.techId = null;
+              bubblePointer.hovered = false;
               window.clearTimeout(hover.current.timer);
             }}
           />

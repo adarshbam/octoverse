@@ -19,6 +19,8 @@ import { noxProject } from './content/noxProject';
 import { NOX_POSES } from './poses/nox.poses';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
+import { liveAnchors } from './stage/liveAnchors';
+import { bubblePointer, cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
@@ -63,6 +65,22 @@ const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
 const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
 
+/** Puts the camera where the hover has it (or back on its axis), and `rest` where the stage camera is without it. */
+function placeCamera(camera: THREE.PerspectiveCamera, rest: THREE.PerspectiveCamera, lookAt: THREE.Vector3, moved: { offset: readonly number[]; look: readonly number[] } | null) {
+  if (moved) {
+    camera.position.set(moved.offset[0], moved.offset[1], CAMERA_Z + moved.offset[2]);
+    lookAt.set(moved.offset[0] + moved.look[0], moved.offset[1] + moved.look[1], CAMERA_Z + moved.look[2]);
+    camera.lookAt(lookAt);
+  } else if (camera.position.x !== 0 || camera.position.y !== 0 || camera.position.z !== CAMERA_Z) {
+    camera.position.set(0, 0, CAMERA_Z);
+    camera.quaternion.identity();
+  }
+  rest.fov = camera.fov;
+  rest.aspect = camera.aspect;
+  rest.updateProjectionMatrix();
+  rest.position.set(0, 0, CAMERA_Z);
+}
+
 /**
  * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
  * an orbit camera.
@@ -73,11 +91,24 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
   const gl = useThree(s => s.gl);
   const framed = !url.view && !url.orbit;
   const target = fovFor(STAGE_FRAMES[stage], size);
-  useFrame((_, delta) => {
-    if (!framed || Math.abs(camera.fov - target) < 1e-4) return;
-    // Eased at the pace of the pose blend, so the view settles with Nox.
-    camera.fov = reducedMotion ? target : camera.fov + (target - camera.fov) * (1 - Math.exp(-Math.min(delta, 0.05) * 2.4));
-    camera.updateProjectionMatrix();
+  // The stage camera at rest, which the page's overlays are laid out for; and the hover's state.
+  const rest = useMemo(() => new THREE.PerspectiveCamera(24, 1, 0.1, 60), []);
+  const hover = useRef(0);
+  const lookAt = useMemo(() => new THREE.Vector3(), []);
+  useFrame((state, delta) => {
+    if (!framed) return;
+    if (Math.abs(camera.fov - target) >= 1e-4) {
+      // Eased at the pace of the pose blend, so the view settles with Nox.
+      camera.fov = reducedMotion ? target : camera.fov + (target - camera.fov) * (1 - Math.exp(-Math.min(delta, 0.05) * 2.4));
+      camera.updateProjectionMatrix();
+    }
+    // The default hover: a slow drift of the camera, eased in and out (it holds still over a bubble,
+    // and when a still is pinned: `freeze` has none unless `?hover` gives the offset).
+    const pinned = url.hover ? pinnedHover(url.hover) : null;
+    hover.current = reducedMotion ? 0 : easeHover(hover.current, url.freeze ? 0 : hoverTarget(stage, bubblePointer.hovered, false), Math.min(delta, 0.05));
+    const moved = pinned ?? (hover.current > 0 ? cameraHover(state.clock.elapsedTime, hover.current) : null);
+    placeCamera(camera, rest, lookAt, moved);
+    liveAnchors.set(camera, rest, size);
   });
   useLayoutEffect(() => {
     const aspect = size.width / size.height;

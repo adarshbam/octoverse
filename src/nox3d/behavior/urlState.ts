@@ -1,5 +1,6 @@
 import type { StageId } from '../config/types';
 import type { QualityTier } from '../stage/quality';
+import type { Vec3 } from '../world/types';
 import { EXPRESSIONS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
@@ -20,6 +21,8 @@ export interface UrlState {
   t?: number;
   /** World box [x0, y0, x1, y1] the camera frames, for real zoom. */
   view?: [number, number, number, number];
+  /** Camera hover offset [x, y, z] pinned for still captures (in place of the drift; with `freeze`, 0 otherwise). */
+  hover?: Vec3;
   /** A quality tier forced for the session, instead of the one picked for the device. */
   tier?: QualityTier;
   /** Test content in place of the project's own (honoured in development builds only). */
@@ -45,6 +48,8 @@ export function parseUrlState(search: string): UrlState {
   if (view && view.length === 4 && view.every(Number.isFinite)) state.view = view as UrlState['view'];
   const t = params.get('t');
   if (t && Number.isFinite(Number(t))) state.t = Number(t);
+  const hover = params.get('hover')?.split(',').map(Number);
+  if (hover && hover.length === 3 && hover.every(Number.isFinite)) state.hover = hover as unknown as Vec3;
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';

@@ -1,6 +1,12 @@
+import { useRef } from 'react';
 import type { Project } from '../content/projectTypes';
+import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
 import { ExploreNameplate } from './ExploreNameplate';
 import './intro.css';
+
+// The title block and nameplate move as one with Nox's face as the camera hovers, so they keep their
+// places against him.
+const FACE_ANCHOR = noxFaceAnchor('intro');
 
 function Flame() {
   return (
@@ -22,8 +28,10 @@ function Flame() {
 /** Panel 2's title block and nameplate, laid out on the square stage; it fades out when `hidden`. */
 export function IntroOverlay({ project, onExplore, hidden = false }: { project: Project; onExplore: () => void; hidden?: boolean }) {
   const [first, ...rest] = project.name.split(' ');
+  const stage = useRef<HTMLDivElement>(null);
+  useAnchorShift(stage, FACE_ANCHOR);
   return (
-    <div className={`stage${hidden ? ' is-hidden' : ''}`} aria-hidden={hidden}>
+    <div ref={stage} className={`stage${hidden ? ' is-hidden' : ''}`} aria-hidden={hidden}>
       <p className="kicker">OCTOVERSE</p>
       <h1 className="title">
         <Flame />

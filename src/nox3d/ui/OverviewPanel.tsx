@@ -1,10 +1,15 @@
+import { useRef } from 'react';
 import type { StageEvent } from '../behavior/stageMachine';
 import type { Project } from '../content/projectTypes';
 import './overview.css';
+import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
 import { useStageBox } from './useStageBox';
 
 /** The dome's inner rectangle, traced in world units from the high-quality panel 3. */
 export const DOME_PANEL_BOX = [-1.22, 1.14, 1.33, 0.06] as const;
+
+/** The panel moves as one with Nox's face, so it keeps its place in the dome as the camera hovers. */
+const FACE_ANCHOR = noxFaceAnchor('overview');
 
 export function GitHubMark() {
   return (
@@ -31,10 +36,13 @@ export function OpenMark() {
  */
 export function OverviewPanel({ project, open, dispatch }: { project: Project; open: boolean; dispatch: (event: StageEvent) => void }) {
   const box = useStageBox('overview', DOME_PANEL_BOX);
+  const panel = useRef<HTMLElement>(null);
+  useAnchorShift(panel, FACE_ANCHOR);
   const preview = project.media?.find(item => item.type === 'screenshot');
   const github = project.links?.find(link => link.kind === 'github');
   return (
     <section
+      ref={panel}
       className={`overview-panel${open ? ' is-open' : ''}`}
       style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
       aria-label={`${project.name} overview`}

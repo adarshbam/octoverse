@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
 import './tooltip.css';
 import type { TooltipContent } from './tooltipContent';
 import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPlacement';
@@ -11,8 +12,12 @@ import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPla
  * fades in with a small rise once the presentation reads (`delayMs`). A tooltip that is `leaving`
  * fades out quickly and is no longer announced.
  */
+/** The tooltip moves as one with Nox's face (it sits beside his presented orb) as the camera hovers. */
+const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
+
 export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
+  useAnchorShift(box, TOOLTIP_ANCHOR);
   // Where it goes; null for the sheet along the bottom. Measured as a card, which is never shorter
   // than the wider sheet, so a sheet that fits as measured fits as shown.
   const [place, setPlace] = useState<{ left: number; top: number } | null>({ left: 0, top: 0 });
