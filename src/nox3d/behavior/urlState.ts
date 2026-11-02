@@ -25,6 +25,8 @@ export interface UrlState {
   tilt?: number;
   /** A quality tier forced for the session, instead of the one picked for the device. */
   tier?: QualityTier;
+  /** Milliseconds the world's kit may take to load before the world steps down (honoured in development builds only: for tests). */
+  kitWait?: number;
   /** Test content in place of the project's own (honoured in development builds only). */
   fixture?: 'nosections';
   /**
@@ -58,6 +60,8 @@ export function parseUrlState(search: string): UrlState {
   if (tilt && Number.isFinite(Number(tilt))) state.tilt = clampTilt(Number(tilt));
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
+  const kitWait = Number(params.get('kitwait'));
+  if (params.has('kitwait') && Number.isFinite(kitWait) && kitWait > 0) state.kitWait = kitWait;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';
   return state;
 }

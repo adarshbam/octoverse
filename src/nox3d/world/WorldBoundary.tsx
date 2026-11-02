@@ -1,15 +1,13 @@
-import { Component, type ReactNode, useEffect, useMemo } from 'react';
-import type { WorldConfig } from './types';
-import { LAST_LEVEL, type WorldLevel, worldAtLevel } from './worldLevel';
-import { WorldScene } from './WorldScene';
+import { Component, type ReactNode, Suspense } from 'react';
+import type { WorldLevel } from './worldLevel';
 
-class Catch extends Component<{ onError: (error: unknown) => void; children: ReactNode }, { failed: boolean }> {
+class Catch extends Component<{ level: WorldLevel; onError: (error: unknown, level: WorldLevel) => void; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   componentDidCatch(error: unknown) {
-    this.props.onError(error);
+    this.props.onError(error, this.props.level);
   }
   render() {
     return this.state.failed ? null : this.props.children;
@@ -17,26 +15,19 @@ class Catch extends Component<{ onError: (error: unknown) => void; children: Rea
 }
 
 /**
- * The world, which must never take the stage down with it. A file that will not load (near.glb,
- * kit.glb) or a kit that does not match its layout throws while the world renders; this steps to
- * the next poorer world instead: the kit without its baked light, then only the water's fog, with
- * Nox in front of it. (A far plate layer that fails is already left to the fog: FarCards.)
+ * Holds the part of the world that needs a file (the kit: near.glb or kit.glb), so that it can
+ * neither take the stage down nor hide it. A file that will not load, or a kit that does not match
+ * its layout, throws while it renders; `onFail` hears of it with the level it failed at, and the
+ * world steps to the next poorer one: the kit without its baked light, then only the water, with
+ * Nox in front of it. A file that never answers keeps this Suspense empty and nothing else: the
+ * water and Nox are outside it, and the app's kit wait steps the level when it runs out. (A far
+ * plate layer that fails is already left to the fog: FarCards.)
  */
-export function WorldBoundary({ world, level, onFail, ...rest }: { world: WorldConfig; level: WorldLevel; onFail: (error: unknown) => void } & Omit<Parameters<typeof WorldScene>[0], 'world'>) {
-  const shown = useMemo(() => worldAtLevel(world, level), [world, level]);
-  if (level === LAST_LEVEL) return <FogOnly world={world} onSettled={rest.onPlateSettled} />;
+export function KitBoundary({ level, onFail, children }: { level: WorldLevel; onFail: (error: unknown, level: WorldLevel) => void; children: ReactNode }) {
   // A key per level: the poorer world mounts fresh, with none of the failed one's state.
   return (
-    <Catch key={level} onError={onFail}>
-      <WorldScene world={shown} {...rest} />
+    <Catch key={level} level={level} onError={onFail}>
+      <Suspense fallback={null}>{children}</Suspense>
     </Catch>
   );
 }
-
-/** What is left when the kit cannot load: the water's fog over the background colour. */
-function FogOnly({ world, onSettled }: { world: WorldConfig; onSettled?: () => void }) {
-  useEffect(() => onSettled?.(), [onSettled]);
-  return <fogExp2 attach="fog" args={[world.palette.waterFar, world.water.fogDensity]} />;
-}
-
-

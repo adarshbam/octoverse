@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { SECURITY_WORLD } from './security/config';
-import { nextLevel, worldAtLevel } from './worldLevel';
+import { nextLevel, stepFrom, worldAtLevel } from './worldLevel';
 
 test('a failing world steps from baked, to the kit lit live, to fog only, and no further', () => {
   expect(nextLevel(0)).toBe(1);
@@ -15,4 +15,13 @@ test('the kit level gives up near.glb and keeps everything else', () => {
   expect(live.near).toBeUndefined();
   expect(live.kit).toBe(SECURITY_WORLD.kit);
   expect(live.layout).toBe(SECURITY_WORLD.layout);
+});
+
+test('a failure steps the level once: a second report of the same failure changes nothing', () => {
+  expect(stepFrom(0, 0)).toBe(1);
+  // The same failure reported again (StrictMode's second componentDidCatch) finds the level already stepped.
+  expect(stepFrom(1, 0)).toBe(1);
+  expect(stepFrom(1, 1)).toBe(2);
+  expect(stepFrom(2, 1)).toBe(2);
+  expect(stepFrom(2, 2)).toBe(2);
 });

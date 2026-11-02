@@ -58,3 +58,11 @@ test('parses a tilt override, clamps it to 0..0.7 and ignores a bad one', () => 
   for (const bad of ['?tilt=abc', '?tilt=', '?tilt=NaN', '?tilt=Infinity', '?tilt=0.1,0.2']) expect(parseUrlState(bad).tilt, bad).toBeUndefined();
   expect(parseUrlState('').tilt).toBeUndefined();
 });
+
+test('parses kitwait as a positive number of milliseconds', () => {
+  expect(parseUrlState('?kitwait=2500').kitWait).toBe(2500);
+  expect(parseUrlState('?kitwait=0').kitWait).toBeUndefined();
+  expect(parseUrlState('?kitwait=-5').kitWait).toBeUndefined();
+  expect(parseUrlState('?kitwait=soon').kitWait).toBeUndefined();
+  expect(parseUrlState('').kitWait).toBeUndefined();
+});

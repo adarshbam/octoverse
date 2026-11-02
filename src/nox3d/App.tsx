@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ENTRANCE_TURN } from './behavior/entrance';
@@ -39,8 +39,8 @@ import { layoutFor } from './stage/framing';
 import { ContactShadows } from './world/ContactShadows';
 import { SECURITY_WORLD } from './world/security/config';
 import { WORLD_TIERS } from './world/worldTiers';
-import { type WorldLevel, nextLevel } from './world/worldLevel';
-import { WorldBoundary } from './world/WorldBoundary';
+import { LAST_LEVEL, type WorldLevel, stepFrom } from './world/worldLevel';
+import { WorldScene } from './world/WorldScene';
 
 const url = parseUrlState(location.search);
 // The project's technologies in its order, each riding an orb slot; the rest go to the tray.
@@ -156,13 +156,16 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
 /** How long `__noxReady` waits for the far plate's layers before it goes ahead without them. */
 const PLATE_WAIT_MS = 20_000;
 
+/** How long the world's kit (near.glb, then kit.glb) may take to load before the world steps down a level; `?kitwait=<ms>` shortens it while developing. */
+const KIT_WAIT_MS = 15_000;
+const KIT_WAIT = import.meta.env.DEV && url.kitWait ? url.kitWait : KIT_WAIT_MS;
+
 /** Frames drawn after the scene (and with it the world) has loaded before it counts as ready. */
 const READY_FRAMES = 40;
 
 /**
- * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames. Placed inside the same
- * Suspense as the world, it mounts only when the world's kit has loaded and its shaders have
- * compiled; `wait` holds the count until the far plate's layers have loaded or failed. A frame-rate
+ * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames; `wait` holds the count
+ * until the world's kit has loaded (or been given up) and the far plate's layers have loaded or failed. A frame-rate
  * measurement (scripts/perf.mjs) then starts on a settled scene.
  */
 function ReadyFlag({ wait }: { wait: boolean }) {
@@ -193,10 +196,21 @@ export function App() {
   const settlePlate = useCallback(() => setPlateReady(true), []);
   // A world file that will not load steps the world down (WorldBoundary) rather than blanking the stage.
   const [worldLevel, setWorldLevel] = useState<WorldLevel>(0);
-  const failWorld = useCallback((error: unknown) => {
+  // Each failure names the level it came from, so one reported twice steps once (stepFrom).
+  const failWorld = useCallback((error: unknown, failed: WorldLevel) => {
     console.warn('the world did not load; drawing less of it:', error);
-    setWorldLevel(level => nextLevel(level) ?? level);
+    setWorldLevel(level => stepFrom(level, failed));
   }, []);
+  // The level whose kit has arrived. A file that neither loads nor fails (a request left hanging)
+  // would leave the world's kit out for good, so each level gets KIT_WAIT_MS before it steps down;
+  // Nox and the water are up the whole time (they are outside the kit's Suspense).
+  const [kitLevel, setKitLevel] = useState<WorldLevel | null>(null);
+  const kitDone = kitLevel === worldLevel || worldLevel === LAST_LEVEL;
+  useEffect(() => {
+    if (kitDone) return;
+    const timer = setTimeout(() => failWorld(new Error(`the world's kit did not load in ${KIT_WAIT} ms`), worldLevel), KIT_WAIT);
+    return () => clearTimeout(timer);
+  }, [kitDone, worldLevel, failWorld]);
   // A layer that neither loads nor fails (a request left hanging) must not hold the flag for good.
   useEffect(() => {
     if (plateReady) return;
@@ -348,13 +362,11 @@ export function App() {
           </>
         ) : (
           <>
-            {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
-                plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
-            <Suspense fallback={null}>
-              <WorldBoundary world={SECURITY_WORLD} level={worldLevel} onFail={failWorld} time={url} tier={WORLD_TIERS[quality.tier]} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
-              {octopus}
-              <ReadyFlag wait={!plateReady} />
-            </Suspense>
+            {/* Nothing here waits on a file: the world's kit has a Suspense of its own, so Nox and the
+                water are drawn whatever the network does. */}
+            <WorldScene world={SECURITY_WORLD} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={WORLD_TIERS[quality.tier]} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
+            {octopus}
+            <ReadyFlag wait={!plateReady || !kitDone} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
             <EffectComposer multisampling={0}>
               {quality.settings.contactShadows ? <ContactShadows settings={POST.contactShadows} /> : <></>}

@@ -6,6 +6,7 @@ import { setReliefGate, stoneLights } from './bakedLight';
 import { FarCards } from './FarCards';
 import { Floor } from './Floor';
 import { Kit } from './Kit';
+import { KitBoundary } from './WorldBoundary';
 import { useWorldKit } from './kitLoader';
 import { Motes } from './Motes';
 import { WORLD_BUBBLES } from './bubbleField';
@@ -13,6 +14,7 @@ import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
 import { FarFish, GodRays, MarineSnow, WaterSky } from './Water';
+import { LAST_LEVEL, type WorldLevel, worldAtLevel } from './worldLevel';
 import { WORLD_TIERS, type WorldTier, reliefShown, stoneCastsShadow } from './worldTiers';
 import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } from './worldTime';
 
@@ -21,6 +23,9 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * shafts, snow, fish), the surface light with its caustics, and the light of the glyphs and lava:
  * baked into the near world's lightmaps when it has near.glb, else real lights with a fill. A
  * world with a far plate draws the ruin beyond the near world as transparent cards.
+ * Only the kit's part (the seabed's baked light, the stone) needs a file: it is a KitBoundary of its
+ * own, drawn up to `level` (worldLevel.ts), so a file that fails or hangs leaves the water, the light
+ * and Nox standing. `onFail` hears of a failure, `onKitSettled` of the kit's arrival (with its level).
  * `time` says whether the world's clock runs or holds one moment. `tier` is what the quality tier draws (worldTiers.ts): fewer bubbles, embers and light shafts, a smaller
  * shadow map cast by Nox alone, no fish or motes on the lower ones. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
@@ -28,9 +33,9 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
  * plane past the sky sphere (100 units).
  */
-export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false, onPlateSettled }: { world: WorldConfig; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean; onPlateSettled?: () => void }) {
+export function WorldScene({ world: configured, level, onFail, onKitSettled, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false, onPlateSettled }: { world: WorldConfig; level: WorldLevel; onFail: (error: unknown, level: WorldLevel) => void; onKitSettled?: (level: WorldLevel) => void; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean; onPlateSettled?: () => void }) {
+  const world = useMemo(() => worldAtLevel(configured, level), [configured, level]);
   const surface = useSurfaceLight(world, tier.shadowMap);
-  const kit = useWorldKit(world);
   useNoxAccents(world, surface, accents);
   const { live, palette, water } = world;
   const { fill } = stoneLights(world);
@@ -41,9 +46,6 @@ export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo
   useEffect(() => {
     if (!world.farPlate) onPlateSettled?.();
   }, [world, onPlateSettled]);
-  const stone = useRef<THREE.Group>(null);
-  const castFromStone = stoneCastsShadow(tier);
-  useStoneShadows(stone, castFromStone);
   // The stone's and seabed's relief is a uniform branch in their shaders: no rebuild on a tier change.
   const relief = reliefShown(tier);
   useLayoutEffect(() => setReliefGate(relief), [relief]);
@@ -55,10 +57,11 @@ export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo
       <SurfaceLight {...surface} />
       {fill && <directionalLight color={fill.color} intensity={fill.intensity} position={[...fill.position]} />}
       <WaterSky world={world} caustics={surface.caustics.texture} opening={world.glow.top} />
-      <Floor world={world} baked={kit.baked} />
-      <group ref={stone}>
-        <Kit world={world} kit={kit} />
-      </group>
+      {level < LAST_LEVEL && (
+        <KitBoundary level={level} onFail={onFail}>
+          <KitLayer world={world} level={level} tier={tier} onSettled={onKitSettled} />
+        </KitBoundary>
+      )}
       {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} onSettled={onPlateSettled} />}
       <GodRays amount={live.rays * tier.rays} spread={world.glow.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
@@ -68,6 +71,23 @@ export function WorldScene({ world, time, tier = WORLD_TIERS.high, accents, solo
       <Embers density={live.embers * tier.particles} glow={accents?.light} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>
+  );
+}
+
+/** The part of the world that needs its file: the seabed (with the baked light, when there is any) and the stone. Suspends until the file has loaded. */
+function KitLayer({ world, level, tier, onSettled }: { world: WorldConfig; level: WorldLevel; tier: WorldTier; onSettled?: (level: WorldLevel) => void }) {
+  const kit = useWorldKit(world);
+  const stone = useRef<THREE.Group>(null);
+  useStoneShadows(stone, stoneCastsShadow(tier));
+  // Mounted only once the file has loaded and built: the kit is in.
+  useEffect(() => onSettled?.(level), [level, onSettled]);
+  return (
+    <>
+      <Floor world={world} baked={kit.baked} />
+      <group ref={stone}>
+        <Kit world={world} kit={kit} />
+      </group>
+    </>
   );
 }
 
