@@ -1,7 +1,7 @@
 // Usage: node scripts/perf.mjs [--gpu] [--secs=6] "stage=intro&tier=high" "stage=intro&tier=low" ...
 // Measures the stage at 1536x1024, pixel ratio 1 by default, headless Edge, one page per query: waits for
 // window.__noxReady (set 40 frames after the world loads), then prints the median and slow10 frame
-// rate (the rate of the slowest tenth of frames) over `secs` seconds. `world` is added to a query that lacks it (the world is behind it).
+// rate (the rate of the slowest tenth of frames) over `secs` seconds.
 // `--gpu` also prints the GPU time per frame from EXT_disjoint_timer_query_webgl2 around each
 // animation-frame callback (the renderer draws inside it): median and best10 (the fastest tenth).
 // `--dpr=2` sets the device pixel ratio (default 1). Close the browser pane first.
@@ -47,7 +47,7 @@ const TIMER = `(() => {
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge', args: ['--ignore-gpu-blocklist', '--disable-frame-rate-limit'] });
 try {
   for (const raw of queries.length ? queries : ['stage=intro&tier=high']) {
-    const query = /(^|&)world(&|=|$)/.test(raw) ? raw : `${raw}&world`;
+    const query = raw;
     const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: dpr });
     if (gpu) await page.addInitScript(TIMER);
     await page.goto(`${base}/?${query}`, { waitUntil: 'load' });

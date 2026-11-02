@@ -20,7 +20,7 @@ async function open(page: Page, query: string) {
     });
     Object.assign(window, { __THREE_DEVTOOLS__: hook, __seen: seen });
   });
-  await page.goto(`/?stage=intro&world${query}`);
+  await page.goto(`/?stage=intro${query}`);
   await page.waitForFunction(() => (window as unknown as Win).__noxReady === true, undefined, { timeout: 90_000 });
 }
 

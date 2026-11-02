@@ -1,60 +1,4 @@
 {
-  "1": {
-    "colorTolerance": 40,
-    "widthTolerance": 0.03,
-    "hq": {
-      "image": "docs/design/references/Nox/Nox Enters the Security Realm.png",
-      "origin": [
-        783.6,
-        495.4
-      ],
-      "pxPerUnit": 204.5,
-      "frame": [
-        5.1,
-        5.04
-      ]
-    },
-    "points": {
-      "head dome": [
-        -0.6,
-        0.3
-      ],
-      "face glow under the eye": [
-        -0.2,
-        -0.47
-      ],
-      "near cheek blush": [
-        -0.34,
-        -0.48,
-        722,
-        594
-      ],
-      "upper arm body": [
-        -1.5,
-        0.2,
-        490,
-        442
-      ],
-      "upper arm cup": [
-        -1.435,
-        0.034,
-        465,
-        472
-      ],
-      "lower arm cup": [
-        -1.295,
-        -0.742,
-        460,
-        654
-      ],
-      "red band above a cup": [
-        -1.1,
-        -0.65,
-        460,
-        642
-      ]
-    }
-  },
   "2": {
     "colorTolerance": 24,
     "widthTolerance": 0.02,
@@ -108,133 +52,113 @@
     ]
   },
   "3": {
-    "colorTolerance": 40,
-    "widthTolerance": 0.03,
-    "hq": {
-      "image": "docs/design/references/Nox/Nox head expands on click or hover.png",
-      "origin": [
-        836.0,
-        470.5
+    "frame": [
+      5.15,
+      5.04
+    ],
+    "composition": {
+      "note": "Regression baseline of the approved composition's mask (the world has no storyboard colours to compare). Extents in world units at each row; box = Nox's whole silhouette.",
+      "tolerance": 0.06,
+      "box": [
+        -2.02,
+        1.19,
+        2.02,
+        -1.66
       ],
-      "pxPerUnit": 225.4,
-      "frame": [
-        5.15,
-        5.04
-      ]
-    },
-    "points": {
-      "dome mid low": [
-        0.1,
-        0.42
-      ],
-      "dome right inside": [
-        1.25,
-        0.6
-      ],
-      "dome left low": [
-        -1.1,
-        0.2
-      ],
-      "face top": [
-        0.07,
-        -0.1
-      ],
-      "between eyes": [
-        0.07,
-        -0.3
-      ],
-      "cheek": [
-        -0.45,
-        -0.45
-      ],
-      "bg upper-left": [
-        -2.3,
-        1.3
-      ]
+      "rows": {
+        "0.4": [
+          -1.95,
+          1.78
+        ],
+        "0.2": [
+          -2.02,
+          1.94
+        ],
+        "0.0": [
+          -2.01,
+          1.91
+        ],
+        "-0.2": [
+          -1.95,
+          1.78
+        ],
+        "-0.4": [
+          -1.81,
+          1.59
+        ]
+      }
     }
   },
   "4": {
-    "colorTolerance": 40,
-    "widthTolerance": 0.03,
-    "hq": {
-      "image": "docs/design/references/Nox/Nox holding technologies.png",
-      "origin": [
-        786.3,
-        403.2
+    "frame": [
+      5.15,
+      5.04
+    ],
+    "composition": {
+      "note": "Regression baseline of the approved composition's mask (the world has no storyboard colours to compare). Extents in world units at each row; box = Nox's whole silhouette.",
+      "tolerance": 0.06,
+      "box": [
+        -2.04,
+        1.19,
+        2.02,
+        -1.65
       ],
-      "pxPerUnit": 164.0,
-      "frame": [
-        5.15,
-        5.04
-      ]
-    },
-    "points": {
-      "face glow under the eyes": [
-        0.065,
-        -0.4,
-        797,
-        466
-      ],
-      "left cheek blush": [
-        -0.48,
-        -0.42,
-        683,
-        500
-      ],
-      "focused orb ring": [
-        1.858,
-        0.59,
-        1048,
-        310
-      ]
+      "rows": {
+        "0.4": [
+          -1.97,
+          1.63
+        ],
+        "0.2": [
+          -2.04,
+          1.91
+        ],
+        "0.0": [
+          -2.03,
+          1.9
+        ],
+        "-0.2": [
+          -1.97,
+          1.77
+        ],
+        "-0.4": [
+          -1.82,
+          1.58
+        ]
+      }
     }
   },
   "5": {
-    "colorTolerance": 40,
-    "widthTolerance": 0.03,
-    "hq": {
-      "image": "docs/design/references/Nox/Nox Project Preview.png",
-      "origin": [
-        836.0,
-        470.5
+    "frame": [
+      8.36,
+      4.705
+    ],
+    "composition": {
+      "note": "Regression baseline of the approved composition's mask (the world has no storyboard colours to compare). Extents in world units at each row; box = Nox's whole silhouette.",
+      "tolerance": 0.06,
+      "box": [
+        -4.18,
+        0.78,
+        -0.12,
+        -1.31
       ],
-      "pxPerUnit": 200.0,
-      "frame": [
-        8.36,
-        4.705
-      ]
-    },
-    "points": {
-      "face glow under the eyes": [
-        -1.83,
-        -0.2975,
-        470,
-        530
-      ],
-      "glow centre": [
-        -1.78,
-        -0.4475,
-        480,
-        560
-      ],
-      "left cheek blush": [
-        -2.32,
-        -0.4075,
-        380,
-        552
-      ],
-      "head dome": [
-        -2.03,
-        0.5525,
-        420,
-        360
-      ],
-      "panel background": [
-        -0.495,
-        -1.5975,
-        737,
-        790
-      ]
+      "rows": {
+        "0.6": [
+          -2.53,
+          -1.51
+        ],
+        "0.4": [
+          -3.6,
+          -1.36
+        ],
+        "0.0": [
+          -4.18,
+          -0.26
+        ],
+        "-0.4": [
+          -4.18,
+          -0.24
+        ]
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 """Checks a stage capture against its storyboard panel. Exit 1 on any miss.
 Usage: python scripts/check_stage.py render.png --panel N
+       (panels 3 to 5: composition only, from the capture's mask, against stage_samples.json's baseline)
        python scripts/check_stage.py capture.png --world [--stage intro] [--mask mask.png]
 Colour: mean of a small patch at each sample point, max channel delta. A panel whose samples
 name an "hq" reference is read from that high-quality image instead, through its registration
@@ -23,7 +24,7 @@ import json, sys, pathlib
 import numpy as np
 from PIL import Image
 
-PANELS = {1: (0, 0, 510, 504), 2: (512, 0, 1018, 504), 3: (1021, 0, 1536, 504), 4: (0, 506, 684, 1024), 5: (685, 506, 1536, 1024)}
+PANELS = {2: (512, 0, 1018, 504), 3: (1021, 0, 1536, 504), 4: (0, 506, 684, 1024), 5: (685, 506, 1536, 1024)}
 
 def args():
     a = sys.argv[1:]
@@ -116,11 +117,35 @@ def world():
     print('PASS' if misses == 0 else f'FAIL ({misses} misses)')
     sys.exit(1 if misses else 0)
 
+def composition(render_path, spec):
+    """Panels 3 to 5 in the 3D world: only Nox's place and shape are compared (the world has no storyboard
+    colours to match). The capture's mask gives his silhouette: its extent along each row and its box, in
+    world units, against the baseline recorded in stage_samples.json. Exit 1 on any miss."""
+    comp, (fw, fh) = spec['composition'], spec['frame']
+    mask = np.asarray(Image.open(render_path.replace('.png', '-mask.png')).convert('L'), dtype=float) > 127
+    h, w = mask.shape
+    unit = min(w / fw, h / fh)
+    ys, xs = np.nonzero(mask)
+    tol, misses = comp['tolerance'], 0
+    def report(name, want, got):
+        nonlocal misses
+        ok = got is not None and all(abs(g - t) <= tol for g, t in zip(got, want))
+        misses += not ok
+        print(f"{'ok ' if ok else 'MISS'} {name:12} baseline {want} render {None if got is None else [round(float(v), 2) for v in got]}")
+    report('box', comp['box'], [(xs.min() - w / 2) / unit, (h / 2 - ys.min()) / unit, (xs.max() - w / 2) / unit, (h / 2 - ys.max()) / unit] if len(xs) else None)
+    for wy, want in comp['rows'].items():
+        row = np.nonzero(mask[int(h / 2 - float(wy) * unit)])[0]
+        report(f'row y={wy}', want, [(row.min() - w / 2) / unit, (row.max() - w / 2) / unit] if len(row) else None)
+    print('PASS' if misses == 0 else f'FAIL ({misses} misses)')
+    sys.exit(1 if misses else 0)
+
 def main():
     if '--world' in sys.argv:
         world()
     render_path, panel = args()
     spec = json.loads(pathlib.Path('scripts/stage_samples.json').read_text())[str(panel)]
+    if 'composition' in spec:
+        composition(render_path, spec)
     x0, y0, x1, y1 = PANELS[panel]
     w, h = x1 - x0, y1 - y0
     ref = Image.open('public/spike/Nox.jpeg').convert('RGB').crop(PANELS[panel])

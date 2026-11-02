@@ -1000,3 +1000,38 @@ High is identical to HEAD within capture noise and the masks are identical. Medi
 **Checks.** `npm test` 57 files, 338 tests; tsc nox3d and app exit 0; oxlint on the changed files: warning list identical to HEAD; nox3d e2e 8 of 8. Console clean at tier low, medium and adaptive. Assets: the floor texture is made on the GPU at load (no bytes; 1.8 MB of GPU memory); R35 unchanged.
 
 **Concerns.** Medium holds 27.9 only just; the pair of low-detail Nox items above; the `a` server crashed in the main paired run so lever a's numbers are from its own earlier paired run.
+
+## Milestone 2: every stage in the 3D world (checkpoint, awaiting owner review)
+
+Commit `checkpoint(nox3d): world always on, ?tilt override, e2e fallback`. The milestone commit follows the owner's approval.
+
+### What ships
+
+- The world is always on. `?world` is gone from `urlState` and its test; an old `?world` URL is ignored, not an error. App.tsx has no painted-plate branch; `src/nox3d/world/Backdrop.tsx` is deleted. `public/spike/plate-nox.png` stays: the older `src/spike` app (`src/spike/world/Backdrop.tsx`) still loads it. `POST.vignette` (unused now) is removed.
+- `?tilt=<rad>` overrides the camera lean (parsed, clamped to 0..0.7, unit-tested); absent, the config's 0.07 stands (R39).
+- The world cannot blank the stage. `WorldBoundary` catches a failed world load and steps down: the baked near world (near.glb), then the kit lit in real time (kit.glb, no bake), then the water's fog only, with Nox and the page's panels in front. A far-plate layer that fails is left to the fog (R41). e2e: `stage stays usable when world assets fail` (all of `**/nox/world/**` aborted: canvas, "Skip intro", intro heading, overview orb buttons) and `... only near.glb fails` (the kit.glb level reaches `__noxReady`). This closes the near.glb hard-fail noted at Task 7.
+- Composition checks re-baselined. Panels 3 to 5 in `scripts/stage_samples.json` hold composition only: Nox's silhouette box and its extent at five (panel 5: four) rows, in world units, tolerance 0.06; the colour points are dropped (the storyboard's plate colours do not belong to the world). The baseline is the approved composition's own mask, a regression guard, not a comparison with the storyboard (a luminance cut of the storyboard cannot separate Nox from its plate). Panel 1 is removed. `world-capture` and `perf.mjs` no longer add `world`.
+- Checks: `stage-capture overview` / `techFocus tech=kali` / `detail` with `check_stage --panel 3 / 4 / 5` exit 0. `world-capture intro` with `check_stage --world`: mean (127, 29, 79), saturation 0.834, brightness 0.570, with the accepted misses only (saturation, brightness, cheek glow, arm rim).
+
+### Frame rate (this laptop, 1536 x 1024, DPR 1, pane closed, headless Edge, `scripts/perf.mjs`, three runs back to back, 6 s each)
+
+| Query | median fps (3 runs, median) | mean fps (3 runs, median) | slow10 fps |
+|---|---|---|---|
+| intro, adaptive | 30.8 | 21.8 | 15.2 to 16.8 |
+| overview, adaptive | 50.0 (27.2 to 58.1) | 25.0 | 11.4 to 15.4 |
+| detail, adaptive | 48.1 (45.5 to 68.5) | 26.3 | 17.8 to 19.7 |
+| intro, tier high | 14.3 | 14.1 | 9.7 to 10.5 |
+| intro, tier medium | 22.3 | 20.9 | 13.2 to 14.2 |
+| intro, tier low | 38.3 | 31.8 | 16.1 to 21.7 |
+
+The adaptive runs include the first seconds before it steps down, and their medians swing between runs (overview 27 to 58): read the mean. Left alone the adaptive logic settles on tier low (canvas 0.6 pixels per CSS pixel) about 8 s after load, passing through medium (0.8) on the way.
+
+### Known weaknesses
+
+- Lean: 0.07 gives about 1.2 degrees of pillar convergence against panel 2's 8 to 12 degrees (R39). Kept as is; `?tilt=` shows other values live.
+- Lower-third pattern: the corner rocks are too red, the centre lava is weak, the stone lost its blue sheen (R40).
+- Tier high runs at 16.8 fps against the 27 floor (R43); render scale 0.75 gives about 23 fps and 0.6 about 32 fps. Tier high misses the floor on this laptop.
+- A far-layer failure leaves fog only in that range (R41, accepted).
+- The framed-mode Nox patches are not gated at tilt 0.07.
+- Overlay edges drift about 12 px at the overview hover extremes.
+- Nox's colour at the framed camera is unmeasured.

@@ -10,7 +10,6 @@ export const POST = {
    */
   contactShadows: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#1a0418' } satisfies ContactShadowSettings,
   bloom: { luminanceThreshold: 0.66, luminanceSmoothing: 0.25, intensity: 1.05, radius: 0.85 },
-  vignette: { offset: 0.22, darkness: 0.72 },
   /** Darker corners in the 3D world: the ruin falls away into the dark, as in panel 2. */
   worldVignette: { offset: 0.3, darkness: 0.9 },
 };
