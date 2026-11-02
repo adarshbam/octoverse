@@ -1,23 +1,35 @@
 // Writes src/nox3d/sequences/state/octoverse.theatre.json from the defaults in sequences/keys.ts.
 // Runs only when the file is missing (or with --force): studio exports replace it afterwards.
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+// Naming sheets (`node scripts/theatre-seed.mjs entrance`) rewrites just those sheets in the
+// existing file and keeps the rest, studio edits included.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SEQUENCE_DEFAULTS } from '../src/nox3d/sequences/keys.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'src/nox3d/sequences/state/octoverse.theatre.json');
-if (existsSync(out) && !process.argv.includes('--force')) {
-  console.log('theatre-seed: state exists, left alone (use --force to rewrite)');
+const named = process.argv.slice(2).filter(a => !a.startsWith('--'));
+for (const name of named) {
+  if (!(name in SEQUENCE_DEFAULTS)) {
+    console.error(`theatre-seed: no sequence "${name}" (have ${Object.keys(SEQUENCE_DEFAULTS).join(', ')})`);
+    process.exit(1);
+  }
+}
+if (existsSync(out) && !named.length && !process.argv.includes('--force')) {
+  console.log('theatre-seed: state exists, left alone (use --force to rewrite, or name the sheets to reseed)');
   process.exit(0);
 }
 
-const EASE = [0.5, 1, 0.5, 0]; // Theatre's default handles
-let n = 0;
-const id = () => `seed${(++n).toString(36).padStart(6, '0')}`;
+const EASE = [0.5, 1, 0.5, 0]; // Theatre's default handles: ease in and out
 
-const sheetsById = {};
+const existing = named.length && existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : null;
+const sheetsById = existing ? existing.sheetsById : {};
 for (const [sheetId, def] of Object.entries(SEQUENCE_DEFAULTS)) {
+  if (existing && !named.includes(sheetId)) continue;
+  // Ids are per sheet, so reseeding one sheet never collides with another's.
+  let n = 0;
+  const id = () => `${sheetId}-${(++n).toString(36).padStart(4, '0')}`;
   const tracksByObject = {};
   for (const [objKey, obj] of Object.entries(def.objects)) {
     const trackData = {};
@@ -28,11 +40,11 @@ for (const [sheetId, def] of Object.entries(SEQUENCE_DEFAULTS)) {
       trackData[trackId] = {
         type: 'BasicKeyframedTrack',
         __debug_objectPath: [sheetId, objKey, prop],
-        keyframes: keys.map(([position, value], i) => ({
+        keyframes: keys.map(([position, value, handles], i) => ({
           id: id(),
           position,
           connectedRight: i < keys.length - 1,
-          handles: EASE,
+          handles: [...(handles ?? EASE)],
           value,
         })),
       };
@@ -46,5 +58,6 @@ for (const [sheetId, def] of Object.entries(SEQUENCE_DEFAULTS)) {
 }
 
 mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify({ sheetsById, definitionVersion: '0.4.0', revisionHistory: [] }, null, 2) + '\n');
-console.log('theatre-seed: wrote', out);
+const state = existing ? { ...existing, sheetsById } : { sheetsById, definitionVersion: '0.4.0', revisionHistory: [] };
+writeFileSync(out, JSON.stringify(state, null, 2) + '\n');
+console.log('theatre-seed: wrote', named.length ? named.join(', ') : 'every sheet', 'to', out);

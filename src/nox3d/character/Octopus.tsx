@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
-import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, coreGlowFacing, entrancePath, entranceStartX, mantleSqueeze } from '../behavior/entrance';
+import { coreGlowFacing, mantleSqueeze } from '../behavior/entrance';
+// Entrance v1, until Task 19 drives the entrance from sequences/entrance.ts.
+import { ENTRANCE_MS, ENTRANCE_PANEL_MS, type EntranceFrame, armFlare, entrancePath, entranceStartX } from '../behavior/entranceV1';
 import { EXPRESSIONS, type ExpressionId, blendExpression } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';

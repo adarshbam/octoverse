@@ -3,7 +3,7 @@ import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessi
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { ENTRANCE_TURN } from './behavior/entrance';
+import { ENTRANCE_TURN } from './behavior/entranceV1';
 import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';

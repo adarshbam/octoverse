@@ -97,7 +97,7 @@ const DETAIL: StagePose = { ...INTRO, body: { x: -1.909, y: 0.536, scale: 1, yaw
 // Panel 1, the entrance: Nox swims in side-on, its arms stretched out behind it in a bundle, T1 on
 // top down to T8, so neighbouring arms (and the webs between them) stay together. Shaped against
 // the high-quality panel (docs/design/references/Nox/Nox Enters the Security Realm.png) at the
-// moment it paints, 900 ms in (behavior/entrance.ts), in the space the arms are authored in; each
+// moment it paints, 900 ms in (behavior/entranceV1.ts), in the space the arms are authored in; each
 // arm keeps its intro root. The painting curls every tip under; each arm here curls the way it
 // does in the intro, toward its cups, so the lower four curl up. The painting shows more than
 // eight tentacles; Nox keeps eight.
@@ -131,7 +131,7 @@ const ENTERING_ARMS = Object.fromEntries(
   ARM_IDS.map(id => [id, withLength(flattenForDepth([INTRO_TRACED[id][0], ...ENTERING_TRACED[id]], spec(id)), SWIM_STRETCH * armLength(INTRO_ARMS[id]))]),
 ) as Record<ArmId, Point2[]>;
 
-// The entrance path (behavior/entrance.ts) carries the body in and turns the head; the intro's
+// The entrance path (behavior/entranceV1.ts) carries the body in and turns the head; the intro's
 // placement is where it lands.
 const ENTERING: StagePose = { ...INTRO, arms: ENTERING_ARMS };
 

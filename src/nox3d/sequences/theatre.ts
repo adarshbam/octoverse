@@ -12,13 +12,24 @@ export interface Sequences {
   sample<T>(id: SequenceId, objectKey: string, seconds: number): T;
 }
 
+let loading: Promise<Sequences> | null = null;
+
 /**
  * Loads the project from the repo state (`state/octoverse.theatre.json`); resolves when ready.
  * Works in Node and in the browser. Theatre and the state load on the first call only, so
- * nothing here costs startup until a sequence is first needed. The app drives
+ * nothing here costs startup until a sequence is first needed; every later call gets the same
+ * promise (a failed load is forgotten, so the next call tries again). The app drives
  * `sheet.sequence.position` from its own clock and never uses Theatre's playback.
  */
-export async function loadSequences(): Promise<Sequences> {
+export function loadSequences(): Promise<Sequences> {
+  loading ??= load().catch((error: unknown) => {
+    loading = null;
+    throw error;
+  });
+  return loading;
+}
+
+async function load(): Promise<Sequences> {
   const [{ getProject, types }, state] = await Promise.all([
     import('@theatre/core'),
     import('./state/octoverse.theatre.json').then((m) => m.default),

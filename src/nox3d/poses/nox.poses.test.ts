@@ -8,7 +8,7 @@ import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED, SWIM_STRETCH } from '
 import { projectToScreen } from '../stage/anchors';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
 import { DETAIL_PANEL_BOX } from '../ui/detailContent';
-import { ENTRANCE_PANEL_MS, entrancePath } from '../behavior/entrance';
+import { ENTRANCE_PANEL_MS, entrancePath } from '../behavior/entranceV1';
 
 /** Distance from a point to a polyline, projecting onto its segments. */
 function distance(points: number[][], x: number, y: number) {
