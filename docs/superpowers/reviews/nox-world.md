@@ -1037,3 +1037,20 @@ The adaptive runs include the first seconds before it steps down, and their medi
 - Nox's colour at the framed camera is unmeasured.
 
 **Owner verdict (2026-11-02):** "Approve M2". Accepted with the weaknesses listed above. The test-scene stills are kept in `docs/superpowers/reviews/assets/world-test-scene/`. The untracked spike files are not deleted yet; a backup is in the side-session notes (`spike-env-backup-2026-11-02.tgz`).
+
+## Milestone 4: back view (Task 15)
+
+Commit 7621c08 (checkpoint), milestone commit `feat(nox3d): Nox reads round and cute from behind`. Review page: `review.html?component=back`; stills in `docs/superpowers/reviews/assets/back-view/` (yaw 0, 45, 90, 180, and the review strip).
+
+- Back half of the head is within 2.4% of the front (was 22.5% narrower at the worst row). `faceWeight` masks the face to the front; speckles and sheen continue round the back; arm roots have caps; the halo has no back lobes; the aura stays behind him under `?yaw`.
+- Front unchanged: Nox (127.17, 28.75, 79.37), saturation 0.834, brightness 0.5704, mask diff 0.021. `check_stage --world` and `--panel 2` exit 1 on HEAD and after, with the same accepted misses (R46).
+- 350 unit tests pass; tsc clean; e2e 15/15 serial. `entrance.spec.ts` "Skip intro" flakes at 3 workers (R47).
+
+### Known weaknesses
+
+- At 90 degrees the arms bunch into a thin column because the approved poses lie nearly in one plane; fixing it means changing poses.
+- Small knobs show at the lower back (mirrored cheek lobes).
+- The aura stays behind him only under `?yaw`; the Task 28-era spin must do the same.
+- The superseded entrance's head turn loses face glow on the far side; recheck in Milestone 5.
+
+**Owner verdict (2026-11-02):** "Approve M4".
