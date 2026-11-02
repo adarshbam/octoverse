@@ -41,6 +41,8 @@ export interface UrlState {
    * ambient bubbles. The world's embers stay.
    */
   solo: boolean;
+  /** Opens the Theatre.js studio (honoured in development builds only: main.tsx guards the import). */
+  studio: boolean;
 }
 
 /** The lean `?tilt` may ask for, in radians: none up to about 40 degrees. */
@@ -50,7 +52,7 @@ const clampTilt = (v: number) => Math.min(TILT_RANGE.max, Math.max(TILT_RANGE.mi
 /** Review and debugging switches read from the page URL. Unknown values are ignored. */
 export function parseUrlState(search: string): UrlState {
   const params = new URLSearchParams(search);
-  const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl'), solo: params.has('solo') };
+  const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl'), solo: params.has('solo'), studio: params.has('studio') };
   const stage = params.get('stage');
   if (stage && (STAGES as readonly string[]).includes(stage)) state.stage = stage as StageId;
   const tech = params.get('tech');

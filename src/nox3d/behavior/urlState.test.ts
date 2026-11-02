@@ -2,11 +2,11 @@ import { expect, test } from 'vitest';
 import { parseUrlState } from './urlState';
 
 test('parses stage, freeze and view', () => {
-  expect(parseUrlState('?stage=overview&freeze&view=-1,0.5,1,-1.5')).toEqual({ stage: 'overview', freeze: true, orbit: false, noWebgl: false, solo: false, view: [-1, 0.5, 1, -1.5] });
+  expect(parseUrlState('?stage=overview&freeze&view=-1,0.5,1,-1.5')).toEqual({ stage: 'overview', freeze: true, orbit: false, noWebgl: false, solo: false, studio: false, view: [-1, 0.5, 1, -1.5] });
 });
 
 test('ignores unknown stages and malformed views', () => {
-  expect(parseUrlState('?stage=nope&view=1,2')).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false });
+  expect(parseUrlState('?stage=nope&view=1,2')).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false, studio: false });
 });
 
 test('parses expression', () => {
@@ -15,7 +15,7 @@ test('parses expression', () => {
 });
 
 test('parses tech, orbit and nowebgl flags', () => {
-  expect(parseUrlState('?tech=kali&orbit&nowebgl')).toEqual({ tech: 'kali', freeze: false, orbit: true, noWebgl: true, solo: false });
+  expect(parseUrlState('?tech=kali&orbit&nowebgl')).toEqual({ tech: 'kali', freeze: false, orbit: true, noWebgl: true, solo: false, studio: false });
 });
 
 test('parses a forced quality tier and ignores unknown ones', () => {
@@ -31,7 +31,7 @@ test('parses fixture', () => {
 
 test('parses t, and ignores the retired world switch', () => {
   expect(parseUrlState('?world&t=4.8')).toMatchObject({ t: 4.8 });
-  expect(parseUrlState('?world')).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false });
+  expect(parseUrlState('?world')).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false, studio: false });
   expect(parseUrlState('?stage=intro').t).toBeUndefined();
 });
 

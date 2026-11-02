@@ -1,0 +1,218 @@
+{
+  "sheetsById": {
+    "entrance": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "seed000001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "value"
+                ],
+                "keyframes": [
+                  {
+                    "id": "seed000002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "seed000003",
+                    "position": 1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"value\"]": "seed000001"
+            }
+          }
+        }
+      }
+    },
+    "bubbleBlow": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "seed000004": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "value"
+                ],
+                "keyframes": [
+                  {
+                    "id": "seed000005",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "seed000006",
+                    "position": 1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"value\"]": "seed000004"
+            }
+          }
+        }
+      }
+    },
+    "headSwell": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "seed000007": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "value"
+                ],
+                "keyframes": [
+                  {
+                    "id": "seed000008",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "seed000009",
+                    "position": 1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"value\"]": "seed000007"
+            }
+          }
+        }
+      }
+    },
+    "arrival": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "seed00000a": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "value"
+                ],
+                "keyframes": [
+                  {
+                    "id": "seed00000b",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "seed00000c",
+                    "position": 1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"value\"]": "seed00000a"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitionVersion": "0.4.0",
+  "revisionHistory": []
+}
