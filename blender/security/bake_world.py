@@ -18,11 +18,17 @@ detail in one atlas, lod1 in another, so a piece keeps its light when it swaps l
 shares each piece's geometry between its placements and frames the atlas on a placement's square
 through the lightmap's texture transform.
 
+A lightmap texel is far coarser than the stone's normal map, so each lightmap has a relief map
+beside it: per texel, the main direction its glyph, lava and fill light comes from and that
+light's strength, from the same lights computed as three computes them, at the texel's baked
+position and normal. The page shades the normal map with it (withBakedLight in bakedLight.ts).
+
 near.glb carries the pieces (as kit.glb has them, plus LightUV), the three lightmaps (as the
-emissive maps of the quads `lightmap_lod0`, `lightmap_lod1` and `lightmap_seabed`, KTX2 UASTC) and a
-record of the bake in its scene's extras (`nox_bake`): the layout and lights it baked, the seabed
-heights it sampled and each placement's square. validateWorld.test checks the record against the
-page's config, layout and floorHeight.
+emissive maps of the quads `lightmap_lod0`, `lightmap_lod1` and `lightmap_seabed`, KTX2 UASTC),
+their relief maps (as the same quads' normal maps, linear KTX2 UASTC) and a record of the bake in
+its scene's extras (`nox_bake`): the layout and lights it baked, the seabed heights it sampled,
+each placement's square and matrix, and the relief maps' encoding. validateWorld.test checks the
+record against the page's config, layout and floorHeight; placement.test checks the matrices.
 
 Run from a shell (a GPU is used when Blender's preferences enable one; with --factory-startup
 there are none, and Cycles bakes on the CPU):
@@ -32,7 +38,8 @@ or inside a running Blender (Blender MCP), in steps that each finish within a ca
     import importlib.util, sys
     spec = importlib.util.spec_from_file_location("nox_bake_world", p)
     bw = importlib.util.module_from_spec(spec); sys.modules["nox_bake_world"] = bw; spec.loader.exec_module(bw)
-    bw.setup(); [bw.bake(level, step) for level in bw.LEVELS for step in bw.STEPS]; bw.finish()
+    bw.setup(); [bw.bake(level, step) for level in bw.LEVELS for step in bw.STEPS]
+    [bw.bake_geometry(level) for level in bw.LEVELS]; bw.finish()
 The bake is not bit-exact between GPU runs: a second run in a fresh Blender changed 20 of the
 1024 x 1024 lod0 texels and 0.2% of the seabed's, by at most 16 levels in 255.
 
@@ -109,6 +116,15 @@ POINT_RADIUS = 0.05  # soft shadows from the glyph lights
 SHADOWS = {"glyph": True, "lava": False, "fill": False}
 # The surface light's caustic cookie averages 0.78 (caustics.ts, sampled over its time).
 COOKIE_MEAN = 0.78
+
+# The relief maps: texel positions are baked as (p / POSITION_RANGE + 1) / 2, normals as (n + 1) / 2.
+# A relief texel holds a vector along the main direction of the glyph, lava and fill light (stage
+# space), as (v + 1) / 2, whose length is s / (s + RELIEF_SCALE) for that light's strength s
+# (luminance, three's units).
+GEOMETRY = ("position", "normal")
+POSITION_RANGE = 64.0
+RELIEF_SCALE = 0.5
+LUMINANCE = (0.2126, 0.7152, 0.0722)
 
 
 # --- Small things ------------------------------------------------------------------------------
@@ -663,7 +679,71 @@ def bake(level, step):
     print(f"baked {level} {step} in {time.time() - t0:.1f} s ({SAMPLES[step]} samples)")
 
 
-# --- Finishing: lightmaps, export, compression -------------------------------------------------
+def bake_geometry(level):
+    """Each texel's world position and shading normal, for the relief maps (`level` lod0 with the
+    seabed, or lod1): an emission bake each, one sample, through the bake materials' emission."""
+    t0 = time.time()
+    sc = scene()
+    vl = sc.view_layers[0]
+    placed, mats = STATE["placed"], STATE["mats"]
+    for lv in LEVELS:
+        for ob in placed[lv]:
+            for o in (ob, *ob.children):
+                o.hide_render = lv != level
+    targets = list(placed[level]) + ([STATE["seabed"]] if level == "lod0" else [])
+    sets = {f"atlas_{level}": ([mats[(kind, level)] for kind in ("stone", "rock", "coral")], (ATLAS[level], ATLAS[level]))}
+    if level == "lod0":
+        sets["atlas_seabed"] = ([mats["seabed"]], SEABED_SIZE)
+    sc.cycles.samples = 1
+    kind = next(t for t in enum_ids(bpy.ops.object.bake.get_rna_type().properties["type"]) if t == "EMIT")
+    margin_type = next(m for m in enum_ids(bpy.types.BakeSettings.bl_rna.properties["margin_type"]) if m.startswith("ADJACENT"))
+    multiply_add = next(o for o in enum_ids(bpy.types.ShaderNodeVectorMath.bl_rna.properties["operation"]) if o == "MULTIPLY_ADD")
+    geometry = STATE.setdefault("geometry", {})
+    for what in GEOMETRY:
+        added = []
+        for name, (materials, (width, height)) in sets.items():
+            key = f"{PREFIX}{name}.{what}"
+            img = bpy.data.images.get(key)
+            if img:
+                bpy.data.images.remove(img)
+            img = bpy.data.images.new(key, width, height, alpha=True, float_buffer=True)
+            img.generated_color = (0, 0, 0, 0)
+            geometry.setdefault(name, {})[what] = img
+            for m in materials:
+                nt = m.node_tree
+                bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+                geo = nt.nodes.new("ShaderNodeNewGeometry")
+                encode = nt.nodes.new("ShaderNodeVectorMath")
+                encode.operation = multiply_add
+                half = 0.5 / POSITION_RANGE if what == "position" else 0.5
+                encode.inputs[1].default_value = (half, half, half)
+                encode.inputs[2].default_value = (0.5, 0.5, 0.5)
+                nt.links.new(geo.outputs["Position" if what == "position" else "Normal"], encode.inputs[0])
+                nt.links.new(encode.outputs[0], bsdf.inputs["Emission Color"])
+                bsdf.inputs["Emission Strength"].default_value = 1.0
+                tex = next(n for n in nt.nodes if n.type == "TEX_IMAGE")
+                tex.image = img
+                nt.nodes.active = tex  # the bake writes into the active image node
+                added.append((m, bsdf, geo, encode))
+        for ob in vl.objects:
+            ob.select_set(False, view_layer=vl)
+        for ob in targets:
+            ob.select_set(True, view_layer=vl)
+        vl.objects.active = targets[0]
+        try:
+            with bpy.context.temp_override(scene=sc, view_layer=vl, active_object=targets[0], object=targets[0], selected_objects=targets, selected_editable_objects=targets):
+                bpy.ops.object.bake(type=kind, margin=MARGIN, margin_type=margin_type, use_clear=True, target="IMAGE_TEXTURES")
+        finally:
+            for m, bsdf, geo, encode in added:
+                m.node_tree.nodes.remove(geo)
+                m.node_tree.nodes.remove(encode)
+                bsdf.inputs["Emission Strength"].default_value = 0.0
+            for ob in targets:
+                ob.select_set(False, view_layer=vl)
+    print(f"baked {level} positions and normals in {time.time() - t0:.1f} s")
+
+
+# --- Finishing: lightmaps, relief maps, export, compression ------------------------------------
 
 def pixels(img):
     a = np.empty(img.size[0] * img.size[1] * 4, np.float32)
@@ -689,25 +769,17 @@ def fill_gaps(rgb, covered, passes=24):
     return rgb
 
 
-def lightmap(name, images):
-    """Irradiance as the page reads it: pi times the diffuse light Cycles baked (direct, then
-    the bounce), times the occlusion, over INTENSITY and sRGB-encoded in an 8-bit image."""
-    direct, indirect, ao = (pixels(images[s]) for s in STEPS)
-    covered = direct[..., 3] > 0
-    occlusion = 1 - AO_STRENGTH * (1 - ao[..., :1])
-    irradiance = math.pi * (direct[..., :3] + indirect[..., :3]) * occlusion
-    irradiance = fill_gaps(irradiance, covered)
-    v = np.clip(irradiance / INTENSITY, 0, 1)
-    srgb = np.where(v <= 0.0031308, v * 12.92, 1.055 * np.power(v, 1 / 2.4) - 0.055)
-    h, w = covered.shape
+def save_png(name, rgb, colorspace):
+    """An 8-bit PNG image of `rgb` (0 to 1), saved beside the export and loaded back from it."""
+    h, w = rgb.shape[:2]
     key = PREFIX + name
     img = bpy.data.images.get(key)
     if img:
         bpy.data.images.remove(img)
     img = bpy.data.images.new(key, w, h, alpha=False, float_buffer=False)
-    img.colorspace_settings.name = "sRGB"
+    img.colorspace_settings.name = colorspace
     out = np.ones((h, w, 4), np.float32)
-    out[..., :3] = np.round(srgb * 255) / 255
+    out[..., :3] = np.round(np.clip(rgb, 0, 1) * 255) / 255
     img.pixels.foreach_set(out.ravel())
     path = TMP / f"nox-near-{name}.png"
     img.filepath_raw = str(path)
@@ -716,13 +788,78 @@ def lightmap(name, images):
     img.source = "FILE"
     img.filepath = str(path)
     img.reload()
-    stats = irradiance[covered]
-    print(f"{name}: irradiance up to {stats.max():.2f}, median {np.median(stats):.3f}, {(stats > INTENSITY).mean():.2%} over the encoding")
+    img.colorspace_settings.name = colorspace
     return img
 
 
-def atlas_quad(coll, name, image):
-    """A small quad whose material carries a lightmap as its emissive map, for the page to find."""
+def lightmap(name, images):
+    """Irradiance as the page reads it: pi times the diffuse light Cycles baked (direct, then
+    the bounce), times the occlusion, over INTENSITY and sRGB-encoded in an 8-bit image. Returns
+    the image and the irradiance."""
+    direct, indirect, ao = (pixels(images[s]) for s in STEPS)
+    covered = direct[..., 3] > 0
+    occlusion = 1 - AO_STRENGTH * (1 - ao[..., :1])
+    irradiance = math.pi * (direct[..., :3] + indirect[..., :3]) * occlusion
+    irradiance = fill_gaps(irradiance, covered)
+    v = np.clip(irradiance / INTENSITY, 0, 1)
+    srgb = np.where(v <= 0.0031308, v * 12.92, 1.055 * np.power(v, 1 / 2.4) - 0.055)
+    img = save_png(name, srgb, "sRGB")
+    stats = irradiance[covered]
+    print(f"{name}: irradiance up to {stats.max():.2f}, median {np.median(stats):.3f}, {(stats > INTENSITY).mean():.2%} over the encoding")
+    return img, irradiance
+
+
+def stage_vectors(v):
+    """Blender (x, y, z) as stage (x, z, -y)."""
+    return np.stack([v[..., 0], v[..., 2], -v[..., 1]], -1)
+
+
+def relief_map(name, atlas, irradiance):
+    """The relief map beside a lightmap. Per texel, at its baked position and normal, the glyph and
+    lava lights as three has them (colour times intensity, 1 / max(d^2, 0.01), times the cutoff
+    window) and the fill: the sum of their directions weighted by luminance is the main direction,
+    and its length their strength along it. Where the bake had less light than these lights give
+    the surface unshadowed (shadow, occlusion), the strength is scaled down to match."""
+    position, normal = (pixels(STATE["geometry"][atlas][what]) for what in GEOMETRY)
+    covered = position[..., 3] > 0
+    # Texels the bake only partly reached (island edges, margins) hold their value times alpha.
+    p = stage_vectors((position[..., :3] / np.maximum(position[..., 3:], 1e-6) * 2 - 1) * POSITION_RANGE)[covered]
+    n = stage_vectors(normal[..., :3] / np.maximum(normal[..., 3:], 1e-6) * 2 - 1)[covered]
+    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-6)
+    lum = np.array(LUMINANCE)
+    lights = STATE["lights"]
+    fill = np.array(lights["fill"]["position"], float)
+    fill /= np.linalg.norm(fill)
+    fill_colour = np.array(linear(lights["fill"]["color"])) * lights["fill"]["intensity"]
+    plain = np.outer(np.clip(n @ fill, 0, None), fill_colour)
+    toward = np.tile(fill * (fill_colour @ lum), (len(p), 1))
+    for light in lights["glyph"] + lights["lava"]:
+        to = np.array(light["position"], float) - p
+        d = np.linalg.norm(to, axis=1)
+        l = to / np.maximum(d, 1e-4)[:, None]
+        window = np.clip(1 - (d / light["distance"]) ** 4, 0, 1) ** 2
+        c = np.array(linear(light["color"])) * light["intensity"]
+        weight = window / np.maximum(d * d, 0.01)
+        plain += np.outer(weight * np.clip(np.sum(n * l, 1), 0, None), c)
+        toward += l * (weight * (c @ lum))[:, None]
+    length = np.linalg.norm(toward, axis=1)
+    strength = length * np.minimum((irradiance[covered] @ lum) / np.maximum(plain @ lum, 1e-4), 1)
+    v = np.zeros(covered.shape + (3,), np.float32)
+    v[covered] = toward / np.maximum(length, 1e-9)[:, None] * (strength / (strength + RELIEF_SCALE))[:, None]
+    v = fill_gaps(v, covered)
+    print(f"{name}: relief strength up to {strength.max():.2f}, median {np.median(strength):.3f}")
+    return save_png(name, v * 0.5 + 0.5, "Non-Color")
+
+
+def atlas_quad(coll, name, image, relief):
+    """A small quad whose material carries a lightmap as its emissive map and its relief map as
+    its normal map, for the page to find. An earlier run's quad is replaced."""
+    old = bpy.data.objects.get(PREFIX + name)
+    if old:
+        old_mesh = old.data
+        bpy.data.objects.remove(old)
+        if old_mesh.users == 0:
+            bpy.data.meshes.remove(old_mesh)
     me = bpy.data.meshes.new(PREFIX + name)
     bm = bmesh.new()
     bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.01)
@@ -734,12 +871,20 @@ def atlas_quad(coll, name, image):
     bm.free()
     m = bpy.data.materials.get(PREFIX + name) or bpy.data.materials.new(PREFIX + name)
     m.use_nodes = True
-    nodes = m.node_tree.nodes
-    bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
-    tex = next((n for n in nodes if n.type == "TEX_IMAGE"), None) or nodes.new("ShaderNodeTexImage")
+    nodes, links = m.node_tree.nodes, m.node_tree.links
+    nodes.clear()
+    out = nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    links.new(bsdf.outputs[0], out.inputs["Surface"])
+    tex = nodes.new("ShaderNodeTexImage")
     tex.image = image
-    m.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
     bsdf.inputs["Emission Strength"].default_value = 1.0
+    relief_tex = nodes.new("ShaderNodeTexImage")
+    relief_tex.image = relief
+    normal_map = nodes.new("ShaderNodeNormalMap")
+    links.new(relief_tex.outputs["Color"], normal_map.inputs["Color"])
+    links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
     me.materials.append(m)
     ob = bpy.data.objects.new(PREFIX + name, me)
     coll.objects.link(ob)
@@ -780,6 +925,7 @@ def record():
         "instances": instances,
         "seabed": {**SEABED, "samples": seabed_samples(layout["floorY"])},
         "lights": STATE["lights"],
+        "relief": {"scale": RELIEF_SCALE, "encoding": "per texel (v + 1) / 2 for v along the glyph, lava and fill light's main direction (stage space), |v| = s / (s + scale) for its luminance s along it; linear, 8 bits; KTX2 UASTC"},
         "spill": SPILL,
         "settings": {
             "atlas": {"lod0": ATLAS["lod0"], "lod1": ATLAS["lod1"], "seabed": list(SEABED_SIZE)},
@@ -802,9 +948,10 @@ def finish():
     """The lightmaps from the bakes, then near.glb: exported, recorded and compressed."""
     t0 = time.time()
     colls, images = STATE["colls"], STATE["images"]
-    maps = {"lightmap_lod0": lightmap("lightmap_lod0", images["lod0"]), "lightmap_lod1": lightmap("lightmap_lod1", images["lod1"]), "lightmap_seabed": lightmap("lightmap_seabed", images["seabed"])}
-    for name, image in maps.items():
-        atlas_quad(colls[PIECES], name, image)
+    for level in ("lod0", "lod1", "seabed"):
+        image, irradiance = lightmap(f"lightmap_{level}", images[level])
+        relief = relief_map(f"relief_{level}", f"atlas_{level}", irradiance)
+        atlas_quad(colls[PIECES], f"lightmap_{level}", image, relief)
     bake_record = record()
     with in_scene():
         KIT.export(colls[PIECES], RAW)
@@ -814,8 +961,12 @@ def finish():
     KIT.edit_glb_json(RAW, add_record)
     raw = RAW.stat().st_size
     # Lightmaps are smooth gradients: UASTC keeps them (ETC1S, gltf-transform's default for an
-    # emissive map, bands them). Then meshopt, as for the kit; optimize leaves KTX2 textures be.
-    KIT.gltf_transform("uastc", RAW, UASTC, "--slots", "emissiveTexture", "--level", 2, "--rdo", "--rdo-multithreading", "false", "--zstd", 18)
+    # emissive map, bands them); the relief maps, as normal maps, are encoded linear (a pass of
+    # their own: a slot pattern with a comma does not reach gltf-transform intact on Windows). Then
+    # meshopt, as for the kit; optimize leaves KTX2 textures be.
+    uastc = ("--level", 2, "--rdo", "--rdo-multithreading", "false", "--zstd", 18)
+    KIT.gltf_transform("uastc", RAW, UASTC, "--slots", "emissiveTexture", *uastc)
+    KIT.gltf_transform("uastc", UASTC, UASTC, "--slots", "normalTexture", *uastc)
     KIT.compress(UASTC, NEAR)
     print(f"exported {NEAR}: {raw} bytes raw, {NEAR.stat().st_size} bytes compressed, in {time.time() - t0:.1f} s")
 
@@ -825,6 +976,7 @@ def main():
     for level in LEVELS:
         for step in STEPS:
             bake(level, step)
+        bake_geometry(level)
     finish()
 
 

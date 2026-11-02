@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
-import { asBakeRecord, stoneLights, type LightRect } from './bakedLight';
+import { asBakeRecord, reliefOf, stoneLights, type BakedLight, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { SEABED, floorHeight } from './seabed';
 import layoutData from './security/layout.json';
@@ -28,7 +28,7 @@ interface Gltf {
   nodes: GltfNode[];
   meshes: { primitives: { indices?: number; attributes: Record<string, number>; material?: number }[] }[];
   accessors: { count: number }[];
-  materials: { name?: string; emissiveTexture?: { index: number } }[];
+  materials: { name?: string; emissiveTexture?: { index: number }; normalTexture?: { index: number } }[];
   textures: { source?: number; extensions?: Record<string, { source: number }> }[];
   images: { mimeType?: string }[];
   scenes: { extras?: Record<string, unknown> }[];
@@ -162,7 +162,7 @@ test('the baked seabed is the page’s: floorHeight agrees at every sampled poin
   for (const [x, z, y] of seabed.samples) expect(Math.abs(floorHeight(x, z, SECURITY_WORLD.layout.floorY) - y), `${x}, ${z}`).toBeLessThan(1e-9);
 });
 
-test('near.glb carries the kit’s pieces, with a lightmap UV set on stone, rock and coral, and KTX2 lightmaps', () => {
+test('near.glb carries the kit’s pieces, with a lightmap UV set on stone, rock and coral, and KTX2 lightmaps and relief maps', () => {
   const near = readGlb(NEAR_FILE);
   const kit = readKit();
   expect(near.json.extensionsUsed).toEqual(expect.arrayContaining(['EXT_meshopt_compression', 'KHR_texture_basisu']));
@@ -186,9 +186,25 @@ test('near.glb carries the kit’s pieces, with a lightmap UV set on stone, rock
     const node = near.byName.get(name);
     expect(node, name).toBeDefined();
     const material = near.json.materials[near.json.meshes[node!.mesh!].primitives[0].material!];
-    const texture = near.json.textures[material.emissiveTexture!.index];
-    expect(near.json.images[texture.extensions!.KHR_texture_basisu.source].mimeType, name).toBe('image/ktx2');
+    // The lightmap is its emissive map, the relief map beside it its normal map.
+    for (const slot of [material.emissiveTexture, material.normalTexture]) {
+      const texture = near.json.textures[slot!.index];
+      expect(near.json.images[texture.extensions!.KHR_texture_basisu.source].mimeType, name).toBe('image/ktx2');
+    }
+    expect(material.normalTexture!.index, name).not.toBe(material.emissiveTexture!.index);
   }
+  expect(readBake().relief.scale).toBeGreaterThan(0);
+});
+
+test('the bake record carries the relief maps� scale, and a record without it is refused', () => {
+  const baked = readBake();
+  expect(baked.relief.scale).toBeGreaterThan(0);
+  expect(typeof baked.relief.encoding).toBe('string');
+  expect(() => asBakeRecord({ ...baked, relief: undefined })).toThrow(/relief/);
+  expect(() => asBakeRecord({ ...baked, relief: { scale: 0, encoding: '' } })).toThrow(/relief/);
+  // reliefOf hands the shader a relief map and the scale the bake stored its strengths with.
+  const map = {} as Parameters<typeof reliefOf>[1];
+  expect(reliefOf({ record: baked } as BakedLight, map)).toEqual({ map, scale: baked.relief.scale });
 });
 
 test('each placed piece has a lightmap rect of its own inside its atlas, at both levels', () => {

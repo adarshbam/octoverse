@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { type BakeRecord, type BakedLight, lightMapOf, stoneLights, withBakedLight } from './bakedLight';
+import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, stoneLights, withBakedLight } from './bakedLight';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
 import { applyPlacement, coralRest, withLod } from './placement';
@@ -119,10 +119,14 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       normalMap: stoneMaps.normal,
       normalScale: new THREE.Vector2(1.1, 1.1),
     });
-    // Stone, rock and pebbles keep their normal maps' relief under the baked light.
-    const relief = baked?.relief ?? null;
-    const bakedStone = (shader: THREE.WebGLProgramParametersWithUniforms) => withBakedLight(shader, relief);
-    stone.onBeforeCompile = bakedStone;
+    // Stone, rock and pebbles keep their normal maps' relief under the baked light, each material
+    // reading the relief map beside its lightmap. A hook is made per relief: hooks of one source
+    // share a program (three keys it by the hook's text), each material with its own uniforms.
+    const reliefMaps = baked && { lod0: lightMapOf(baked.reliefMaps.lod0), lod1: lightMapOf(baked.reliefMaps.lod1), seabed: lightMapOf(baked.reliefMaps.seabed) };
+    const relief = (atlas: keyof BakeRecord['atlases']) => (baked && reliefMaps ? reliefOf(baked, reliefMaps[atlas]) : null);
+    type Hook = (relief: Relief | null) => THREE.Material['onBeforeCompile'];
+    const stoneHook: Hook = r => shader => withBakedLight(shader, r);
+    stone.onBeforeCompile = stoneHook(relief('lod0'));
     const rock = new THREE.MeshStandardMaterial({
       color: '#22202e',
       roughness: 0.5,
@@ -131,11 +135,11 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       normalMap: rockMaps.normal,
       normalScale: new THREE.Vector2(1.4, 1.4),
     });
-    rock.onBeforeCompile = shader => {
+    const rockHook: Hook = r => shader => {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vRockWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vRockWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      withBakedLight(shader, relief);
+      withBakedLight(shader, r);
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
@@ -158,8 +162,9 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
           }`,
         );
     };
+    rock.onBeforeCompile = rockHook(relief('lod0'));
     const pebble = new THREE.MeshStandardMaterial({ color: '#2a2a38', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
-    pebble.onBeforeCompile = bakedStone;
+    pebble.onBeforeCompile = stoneHook(relief('seabed'));
     const iron = new THREE.MeshStandardMaterial({ color: '#2a2e3c', roughness: 0.38, metalness: 0.8 });
     // Coral glows from within, brightest at the tips (the baked colour), and is still shaded by
     // the light round it, so its branches read as solid.
@@ -214,11 +219,12 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
 
     // With the near world baked, each placed stone, rock and coral reads its own rect of its level's
     // lightmap atlas: a copy of its material per placement and level, sharing shader and textures.
-    const litMaterials: (THREE.Material | THREE.Texture)[] = [];
-    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: keyof BakeRecord['instances'], index: number, level: number) => {
+    // With a hook, it also reads that level's relief map.
+    const litMaterials: (THREE.Material | THREE.Texture)[] = reliefMaps ? Object.values(reliefMaps) : [];
+    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: keyof BakeRecord['instances'], index: number, level: number, hook?: Hook) => {
       if (!light) return base;
       const material = base.clone() as M;
-      material.onBeforeCompile = base.onBeforeCompile;
+      material.onBeforeCompile = hook ? hook(relief(level === 0 ? 'lod0' : 'lod1')) : base.onBeforeCompile;
       const rects = light.record.instances[group][index];
       material.lightMap = level === 0 ? lightMapOf(light.atlases.lod0, rects.lod0) : lightMapOf(light.atlases.lod1, rects.lod1);
       material.lightMapIntensity = light.record.intensity;
@@ -244,7 +250,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
 
     const pillars = layout.pillars.map((p, index) =>
       placedLod(p, (level, levelIndex) => {
-        const material = lit(stone, baked, 'pillars', index, levelIndex);
+        const material = lit(stone, baked, 'pillars', index, levelIndex, stoneHook);
         level.traverse(child => {
           if (!(child instanceof THREE.Mesh)) return;
           if (child.name.includes('glyph')) {
@@ -262,7 +268,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const rocks = layout.rocks.map((p, index) =>
       placedLod(p, (level, levelIndex) => {
         const mesh = level as THREE.Mesh;
-        mesh.material = lit(rock, baked, 'rocks', index, levelIndex);
+        mesh.material = lit(rock, baked, 'rocks', index, levelIndex, rockHook);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
       }),

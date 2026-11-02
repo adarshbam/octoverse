@@ -1,21 +1,13 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { type BakeRecord, bakedRelief, withBakedLight } from './bakedLight';
-import { SECURITY_WORLD } from './security/config';
+import { type Relief, withBakedLight } from './bakedLight';
 
 // The patches find their place by a chunk's include line; were three to rename the chunk, a patch
 // would quietly change nothing. These check each one still lands in three's standard material.
 
-const lights: BakeRecord['lights'] = {
-  glyph: [{ position: [1, 2, 3], color: '#ff2000', intensity: 2, distance: 6 }],
-  lava: [
-    { position: [-2, -1, 0], color: '#ff6010', intensity: 3.4, distance: 4 },
-    { position: [2, -1, 0], color: '#ff6010', intensity: 3.4, distance: 4 },
-  ],
-  fill: SECURITY_WORLD.lights.fill,
-  surface: SECURITY_WORLD.lights.surface,
-};
+const relief = (): Relief => ({ map: new THREE.Texture(), scale: 0.5 });
 const standard = () => ({ fragmentShader: THREE.ShaderLib.standard.fragmentShader, uniforms: {} as Record<string, THREE.IUniform> });
+const loops = (glsl: string) => glsl.match(/\bfor\s*\(/g)?.length ?? 0;
 
 test("the sheen patch changes the standard material's fragment shader, after its lightmap", () => {
   const shader = standard();
@@ -29,29 +21,39 @@ test("the relief patch changes the standard material's fragment shader, shading 
   const sheenOnly = standard();
   withBakedLight(sheenOnly, null);
   const shader = standard();
-  withBakedLight(shader, bakedRelief(lights));
+  withBakedLight(shader, relief());
   expect(shader.fragmentShader).not.toBe(sheenOnly.fragmentShader);
   const maps = shader.fragmentShader.indexOf('#include <lights_fragment_maps>');
-  const relief = shader.fragmentShader.indexOf('lightMapIrradiance += relief', maps);
-  expect(relief).toBeGreaterThan(maps);
-  expect(shader.fragmentShader.indexOf('radiance += lightMapIrradiance', maps)).toBeGreaterThan(relief);
-  // It reads both normals, which three's standard shader still names so.
-  for (const name of ['nonPerturbedNormal', 'geometryNormal', 'geometryPosition', 'getDistanceAttenuation']) {
+  const shaded = shader.fragmentShader.indexOf('lightMapIrradiance += relief', maps);
+  expect(shaded).toBeGreaterThan(maps);
+  expect(shader.fragmentShader.indexOf('radiance += lightMapIrradiance', maps)).toBeGreaterThan(shaded);
+  // It reads both normals and the lightmap's UVs, which three's standard shader still names so.
+  for (const name of ['nonPerturbedNormal', 'geometryNormal', 'vLightMapUv', 'BRDF_GGX']) {
     expect(THREE.ShaderLib.standard.fragmentShader + Object.values(THREE.ShaderChunk).join(), name).toContain(name);
   }
 });
 
-test('the relief carries every baked point light and the fill, in the arrays its shader declares', () => {
-  const relief = bakedRelief(lights);
+test('the relief reads its map through the lightmap UVs, with no loop over lights', () => {
+  const r = relief();
   const shader = standard();
-  withBakedLight(shader, relief);
-  expect(shader.fragmentShader).toContain('uniform vec3 bakedLightPosition[ 3 ]');
-  expect(shader.uniforms.bakedLightPosition.value).toHaveLength(3);
-  expect(shader.uniforms.bakedLightColor.value).toHaveLength(3);
-  expect(shader.uniforms.bakedLightReach.value).toEqual([6, 4, 4]);
-  // Colours as three's lights have them: linear, times the intensity.
-  expect((shader.uniforms.bakedLightColor.value as THREE.Color[])[1].equals(new THREE.Color('#ff6010').multiplyScalar(3.4))).toBe(true);
-  // The fill shines from its position toward the origin, as three's directional light does.
-  const [x, y, z] = SECURITY_WORLD.lights.fill.position;
-  expect((shader.uniforms.bakedFillDirection.value as THREE.Vector3).distanceTo(new THREE.Vector3(x, y, z).normalize())).toBeLessThan(1e-9);
+  withBakedLight(shader, r);
+  expect(shader.fragmentShader).toContain('uniform sampler2D bakedReliefMap;');
+  expect(shader.fragmentShader).toContain('texture2D( bakedReliefMap, vLightMapUv )');
+  // R36: no per-fragment light loop, so no light arrays (which could not be declared empty).
+  const sheenOnly = standard();
+  withBakedLight(sheenOnly, null);
+  expect(loops(shader.fragmentShader)).toBe(loops(sheenOnly.fragmentShader));
+  expect(shader.fragmentShader).not.toMatch(/uniform \w+ \w+\[/);
+  expect(shader.uniforms.bakedReliefMap.value).toBe(r.map);
+  expect(shader.uniforms.bakedReliefScale.value).toBe(0.5);
+});
+
+test('each relief has uniforms of its own, so materials sharing a program keep their own maps', () => {
+  const [a, b] = [standard(), standard()];
+  const [ra, rb] = [relief(), relief()];
+  withBakedLight(a, ra);
+  withBakedLight(b, rb);
+  expect(a.fragmentShader).toBe(b.fragmentShader);
+  expect(a.uniforms.bakedReliefMap).not.toBe(b.uniforms.bakedReliefMap);
+  expect(b.uniforms.bakedReliefMap.value).toBe(rb.map);
 });

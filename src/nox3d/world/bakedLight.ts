@@ -35,6 +35,12 @@ export interface BakeRecord {
   lights: { glyph: BakedPointLight[]; lava: BakedPointLight[]; fill: WorldConfig['lights']['fill']; surface: WorldConfig['lights']['surface'] };
   /** The relics' spill: the glyph lights' rise over the WorldLight data. */
   spill: number;
+  /**
+   * The relief maps beside the lightmaps (each atlas quad's normal map): per texel the glyph and
+   * lava light's main direction in stage space, its length s / (s + scale) for their strength s
+   * along it, stored linear as (v + 1) / 2.
+   */
+  relief: { scale: number; encoding: string };
   /** How it was baked (resolutions, samples, occlusion), for the record. */
   settings: Record<string, unknown>;
 }
@@ -56,6 +62,7 @@ export function asBakeRecord(data: unknown): BakeRecord {
   if (!Array.isArray(r.seabed?.samples) || !Array.isArray(r.seabed?.segments)) problems.push('seabed');
   if (!Array.isArray(r.lights?.glyph) || !Array.isArray(r.lights?.lava) || !r.lights?.fill || !r.lights?.surface) problems.push('lights');
   if (typeof r.spill !== 'number') problems.push('spill');
+  if (typeof r.relief?.scale !== 'number' || !(r.relief.scale > 0)) problems.push('relief');
   if (problems.length > 0) throw new Error(`near.glb's bake record lacks ${problems.join(', ')}`);
   return r as BakeRecord;
 }
@@ -69,12 +76,12 @@ export function stoneLights(world: WorldConfig) {
   return world.near ? { points: [], fill: null } : { points: world.lights.points, fill: world.lights.fill };
 }
 
-/** near.glb's baked light, read from its loaded scene: the record, the three atlases and the lights' uniforms. */
+/** near.glb's baked light, read from its loaded scene: the record, and the three atlases with their relief maps. */
 export interface BakedLight {
   record: BakeRecord;
   atlases: Record<keyof BakeRecord['atlases'], THREE.Texture>;
-  /** Its lights, for withBakedLight's relief. */
-  relief: BakedRelief;
+  /** The relief map beside each atlas, for withBakedLight. */
+  reliefMaps: Record<keyof BakeRecord['atlases'], THREE.Texture>;
 }
 
 /** The baked light in near.glb's scene; throws if it was baked from another layout than `layout`. */
@@ -84,19 +91,23 @@ export function bakedLightOf(scene: THREE.Object3D, layout: WorldLayout): BakedL
     const baked = record.instances[group].map(i => i.placement.piece).join();
     if (baked !== layout[group].map(p => p.piece).join()) throw new Error(`near.glb was baked from another layout (${group}): run blender/security/bake_world.py`);
   }
-  const atlas = (name: string) => {
-    const map = ((scene.getObjectByName(name) as THREE.Mesh | undefined)?.material as THREE.MeshStandardMaterial | undefined)?.emissiveMap;
-    if (!map) throw new Error(`near.glb has no lightmap on ${name}`);
+  const quad = (name: string, slot: 'emissiveMap' | 'normalMap') => {
+    const map = ((scene.getObjectByName(name) as THREE.Mesh | undefined)?.material as THREE.MeshStandardMaterial | undefined)?.[slot];
+    if (!map) throw new Error(`near.glb has no ${slot === 'emissiveMap' ? 'lightmap' : 'relief map'} on ${name}`);
     return map;
   };
   const { lod0, lod1, seabed } = record.atlases;
-  return { record, atlases: { lod0: atlas(lod0), lod1: atlas(lod1), seabed: atlas(seabed) }, relief: bakedRelief(record.lights) };
+  return {
+    record,
+    atlases: { lod0: quad(lod0, 'emissiveMap'), lod1: quad(lod1, 'emissiveMap'), seabed: quad(seabed, 'emissiveMap') },
+    reliefMaps: { lod0: quad(lod0, 'normalMap'), lod1: quad(lod1, 'normalMap'), seabed: quad(seabed, 'normalMap') },
+  };
 }
 
 /**
  * A lightmap: a copy of an atlas read through the lightmap UV set (uv1), framed on one piece's rect
  * when it has one, clamped at the atlas's edges. Copies share the atlas's image, which the GPU holds
- * once.
+ * once. A relief map's copy is clamped the same way; it is read where its lightmap is.
  */
 export function lightMapOf(atlas: THREE.Texture, rect?: LightRect) {
   const map = atlas.clone();
@@ -109,37 +120,27 @@ export function lightMapOf(atlas: THREE.Texture, rect?: LightRect) {
   return map;
 }
 
-/**
- * The baked lights, for withBakedLight's relief: the glyph and lava point lights (positions in
- * stage space; colours linear and times their intensity, as three's lights have them; reach) and
- * the fill (the direction it shines from, and its colour).
- */
-export function bakedRelief(lights: BakeRecord['lights']) {
-  const points = [...lights.glyph, ...lights.lava];
-  const { fill } = lights;
-  return {
-    count: points.length,
-    uniforms: {
-      bakedLightPosition: { value: points.map(p => new THREE.Vector3(...p.position)) },
-      bakedLightColor: { value: points.map(p => new THREE.Color(p.color).multiplyScalar(p.intensity)) },
-      bakedLightReach: { value: points.map(p => p.distance) },
-      bakedFillDirection: { value: new THREE.Vector3(...fill.position).normalize() },
-      bakedFillColor: { value: new THREE.Color(fill.color).multiplyScalar(fill.intensity) },
-    },
-  };
+/** What withBakedLight shades relief from: the relief map beside the material's lightmap, and the scale the bake stored its strengths with. */
+export interface Relief {
+  map: THREE.Texture;
+  scale: number;
 }
-export type BakedRelief = ReturnType<typeof bakedRelief>;
+
+/** The relief from one of near.glb's relief maps (or a copy of one). */
+export function reliefOf(light: BakedLight, map: THREE.Texture): Relief {
+  return { map, scale: light.record.relief.scale };
+}
 
 /**
  * Patches a lit material's shader for its lightmap; without a lightmap it does nothing.
  *
  * Relief, with `relief` (stone, rock, seabed): a lightmap texel is far coarser than the normal
- * map's grain, so the baked light lands as if the surface were smooth. The glyph, lava and fill
- * light is shaded again here, once with the normal map and once with the surface's own normal,
- * and the difference goes onto the baked light. Where the bake had less light than that (shadow,
- * occlusion) the difference shrinks with it, and it never takes more than the bake gave. Its
- * specular is shaded the same way, with all the lights taken as one from their main direction,
- * scaled by how much they agree on that direction (light from all round has no main direction).
+ * map's grain, so the baked light lands as if the surface were smooth. The relief map holds, per
+ * texel, the main direction the glyph, lava and fill light came from and its strength along it
+ * (weakened where the bake had less light: shadow, occlusion). That light is shaded again here,
+ * once with the normal map and once with the surface's own normal, in the lightmap's colour, and
+ * the difference goes onto the baked light. It never takes more than the bake gave. Its specular is shaded the same way, from the same direction. One
+ * texture read; no light is looped over.
  *
  * Sheen: lightmaps carry diffuse light only, but the real lights they replace also lit the stone's
  * sheen, which on dark wet rock is most of what shows. Its specular gets the baked light back as
@@ -147,44 +148,23 @@ export type BakedRelief = ReturnType<typeof bakedRelief>;
  * arrives from in front of the surface, so a reflection that grazes it, as the low camera sees the
  * seabed, looks away from that light. The sheen keeps its average strength, not its highlights.
  */
-export function withBakedLight(shader: { fragmentShader: string; uniforms: Record<string, THREE.IUniform> }, relief: BakedRelief | null) {
-  const n = relief?.count ?? 0;
-  // In world space, as the lights are: the fragment and its two normals are turned there once. A
-  // point light past its reach gives nothing (three's window is 0 there), so it is skipped.
+export function withBakedLight(shader: { fragmentShader: string; uniforms: Record<string, THREE.IUniform> }, relief: Relief | null) {
+  // The direction is in stage (world) space, turned into view space here. An 8-bit zero is 128
+  // in each channel, a length of 0.007 after decoding: below that there is no light.
   const reliefCode = relief
     ? /* glsl */ `
       {
-        vec3 worldPosition = ( vec4( geometryPosition - viewMatrix[ 3 ].xyz, 0.0 ) * viewMatrix ).xyz;
-        vec3 mappedNormal = ( vec4( geometryNormal, 0.0 ) * viewMatrix ).xyz;
-        vec3 plainNormal = ( vec4( nonPerturbedNormal, 0.0 ) * viewMatrix ).xyz;
-        vec3 mapped = bakedFillColor * saturate( dot( mappedNormal, bakedFillDirection ) );
-        vec3 plain = bakedFillColor * saturate( dot( plainNormal, bakedFillDirection ) );
-        vec3 incoming = bakedFillColor;
-        vec3 mainDirection = bakedFillDirection * ( incoming.r + incoming.g + incoming.b );
-        for ( int i = 0; i < ${n}; i ++ ) {
-          vec3 toLight = bakedLightPosition[ i ] - worldPosition;
-          float d2 = dot( toLight, toLight );
-          if ( d2 < bakedLightReach[ i ] * bakedLightReach[ i ] ) {
-            float d = sqrt( d2 );
-            vec3 l = toLight / max( d, 1e-4 );
-            vec3 c = bakedLightColor[ i ] * getDistanceAttenuation( d, bakedLightReach[ i ], 2.0 );
-            mapped += c * saturate( dot( mappedNormal, l ) );
-            plain += c * saturate( dot( plainNormal, l ) );
-            incoming += c;
-            mainDirection += l * ( c.r + c.g + c.b );
-          }
-        }
-        vec3 baked = min( lightMapIrradiance / max( plain, vec3( 1e-4 ) ), vec3( 1.0 ) );
-        vec3 relief = ( mapped - plain ) * baked;
+        vec3 v = texture2D( bakedReliefMap, vLightMapUv ).xyz * 2.0 - 1.0;
+        float m = length( v );
+        float strength = bakedReliefScale * max( m - 0.007, 0.0 ) / max( 1.0 - m, 1e-3 );
+        vec3 l = ( viewMatrix * vec4( v / max( m, 1e-4 ), 0.0 ) ).xyz;
+        vec3 light = lightMapIrradiance * ( strength / max( dot( lightMapIrradiance, vec3( 0.2126, 0.7152, 0.0722 ) ), 1e-4 ) );
+        vec3 relief = max( light * ( saturate( dot( geometryNormal, l ) ) - saturate( dot( nonPerturbedNormal, l ) ) ), -lightMapIrradiance );
         irradiance += relief;
         lightMapIrradiance += relief;
-        if ( dot( mainDirection, mainDirection ) > 1e-8 ) {
-          vec3 l = normalize( ( viewMatrix * vec4( mainDirection, 0.0 ) ).xyz );
-          vec3 specular = saturate( dot( geometryNormal, l ) ) * BRDF_GGX( l, geometryViewDir, geometryNormal, material )
-            - saturate( dot( nonPerturbedNormal, l ) ) * BRDF_GGX( l, geometryViewDir, nonPerturbedNormal, material );
-          float directional = length( mainDirection ) / ( incoming.r + incoming.g + incoming.b );
-          reflectedLight.directSpecular += incoming * specular * baked * directional;
-        }
+        vec3 specular = saturate( dot( geometryNormal, l ) ) * BRDF_GGX( l, geometryViewDir, geometryNormal, material )
+          - saturate( dot( nonPerturbedNormal, l ) ) * BRDF_GGX( l, geometryViewDir, nonPerturbedNormal, material );
+        reflectedLight.directSpecular += light * specular;
       }`
     : '';
   shader.fragmentShader = shader.fragmentShader.replace(
@@ -198,12 +178,9 @@ export function withBakedLight(shader: { fragmentShader: string; uniforms: Recor
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <common>',
       /* glsl */ `#include <common>
-      uniform vec3 bakedLightPosition[ ${n} ];
-      uniform vec3 bakedLightColor[ ${n} ];
-      uniform float bakedLightReach[ ${n} ];
-      uniform vec3 bakedFillDirection;
-      uniform vec3 bakedFillColor;`,
+      uniform sampler2D bakedReliefMap;
+      uniform float bakedReliefScale;`,
     );
-    Object.assign(shader.uniforms, relief.uniforms);
+    Object.assign(shader.uniforms, { bakedReliefMap: { value: relief.map }, bakedReliefScale: { value: relief.scale } });
   }
 }

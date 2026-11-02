@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { type BakedLight, lightMapOf, withBakedLight } from './bakedLight';
+import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLight';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
@@ -64,6 +64,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     maps.tone.repeat.copy(tiles);
     const time = { value: 0 };
     const cracks = makeCrackMap();
+    const reliefMap = baked && lightMapOf(baked.reliefMaps.seabed);
     const material = new THREE.MeshStandardMaterial({
       color: world.palette.floor,
       roughness: 0.62,
@@ -82,7 +83,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vFloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      withBakedLight(shader, baked?.relief ?? null);
+      withBakedLight(shader, baked && reliefMap ? reliefOf(baked, reliefMap) : null);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\n${floorGlsl}`)
         .replace(
@@ -113,7 +114,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
           }`,
         );
     };
-    const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : [])];
+    const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
     return { geometry, material, time, disposables: owned };
   }, [world, baked]);
   useDisposables(disposables);

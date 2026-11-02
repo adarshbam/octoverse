@@ -686,7 +686,7 @@ With the sheen:
 - seabed 1.00;
 - rock heaps 0.89 and 0.90. The gap is the AO and the highlights, which an average cannot give.
 
-The sheen is one shader line (`withBakedSheen` in bakedLight.ts). It does nothing without a lightmap.
+The sheen is one shader line, in `withBakedLight` in bakedLight.ts (`withBakedSheen` until fix round 1). It does nothing without a lightmap.
 
 **Bake settings.**
 - Blender 5.2.2 LTS, Cycles on the GPU (Quadro T1000).
@@ -780,7 +780,7 @@ At twice the size the stone is visibly flatter. A lightmap holds the light for t
 **Left as found.**
 - Lightmaps cannot give the sharp highlights the point lights left on the wet seabed and the rocks. The sheen keeps only their average.
 - The chain has no lightmap. Only the surface spot and the water's environment light it.
-- The stone's normal-map detail no longer takes the baked light. Fixed in fix round 1 (below), in the shader, without a second atlas.
+- The stone's normal-map detail no longer takes the baked light. Fixed in fix round 1 (below), in the shader. Fix round 2 reads the light's direction from a relief atlas baked beside each lightmap.
 - No denoiser was run on the bakes. A compositor denoise pass on the baked images could add one. The mottling in the detail still may be bake noise.
 - The bake must run again after any change to layout.json, the kit's pieces or the baked lights. Until it does, a test fails by name.
 
@@ -853,3 +853,38 @@ That is about 8 to 15 ms more, roughly 15 to 25%. The runs vary by about 5 to 10
 - tsc (nox3d, app): exit 0;
 - oxlint on the changed files: no new warnings;
 - nox3d e2e: 8 of 8.
+
+#### Fix round 2 (2026-10-28)
+
+**Relief cost (R36).** Fix round 1's relief looped over every baked light in each fragment: up to 8 point lights, the fill and two specular terms. It cost about 5.7 to 7.6 ms of the intro's 49 to 60 ms (12 to 16%; 15 to 25% in the first measurement). Now the bake stores the light's main direction, and the page reads it with one fetch.
+- `bake_world.py` writes a relief map beside each lightmap (the same quad's normal map; linear 8-bit KTX2 UASTC, same size as its lightmap). Per texel, at the baked position and normal, it computes the glyph, lava and fill light as three has it (colour times intensity, `1 / max(d^2, 0.01)`, the cutoff window). The sum of their directions weighted by luminance is the main direction. Its length is the strength along it. Where the bake had less light than the unshadowed lights give (shadow, AO), the strength scales down to match.
+- A texel holds the direction as `(v + 1) / 2`, with `|v| = s / (s + 0.5)` for the strength s. The record has `relief: { scale, encoding }`.
+- `withBakedLight(shader, relief)` takes `{ map, scale }` and reads `bakedReliefMap` at the lightmap's UVs. It shades that one direction with the normal map and with the surface normal, in the lightmap's colour, and adds the difference to the baked light and to the specular. It never takes more than the bake gave. There is no loop and no light array.
+- Kit and Floor give each material the relief map of its lightmap's atlas.
+
+**GPU time.** Timer queries, headless Edge, Intel UHD, intro frozen at 1536 x 1024, pixel ratio 1. Four builds each in their own page, woken one at a time in a rotating order. Three cycles of 8 s, twice (run A, run B), mean of the middle half of the frames; run B's 10th percentile in brackets.
+
+| Build | Run A (ms) | Run B (ms) |
+|---|---|---|
+| Task 6, real-time lights (7de3e24) | 55.7 | 60.2 (58.8) |
+| baked, no relief | 43.5 | 47.5 (45.6) |
+| fix round 1 relief (ee7c062) | 49.3 | 54.8 (53.0) |
+| fix round 2 relief | 46.2 | 49.8 (48.4) |
+
+The relief now costs +2.6 ms (5.7% of the frame) and +2.0 ms (4.0%), against +5.7 and +7.6 for fix round 1. A separate three-way run (baked, no relief; fix round 2; fix round 2 without the specular) gave +1.9 ms (4.0%), of which the specular is about 0.8 ms.
+
+**Fine relief** (same pixels and method as fix round 1):
+
+| Region | Real-time lights | Fix round 1 | Fix round 2 |
+|---|---|---|---|
+| 2x detail crop (x 1180-1536, y 180-560) | 0.1242 | 0.1274 (+2.6%) | 0.1264 (+1.8%) |
+| left stone (x 0-420, y 0-700) | 0.1576 | 0.1588 (+0.8%) | 0.1550 (-1.6%) |
+| right stone (x 1150-1536, y 0-700) | 0.1570 | 0.1598 (+1.8%) | 0.1583 (+0.8%) |
+
+The same pixels' mean luminance is 0.0572, 0.0636 and 0.0772 (real-time: 0.0570, 0.0640, 0.0782; fix round 1: 0.0572, 0.0636, 0.0771).
+
+**Assets.** near.glb is 3,845,832 bytes (2,868,472 before). One visitor downloads near.glb and the 584,862-byte transcoder, 4,430,694 bytes. The test counts kit.glb too (the fallback): 5,686,906 of 6,291,456.
+
+**Nox is unchanged.** `world-capture intro`, then `check_stage --world --stage intro`: mean (127, 29, 79), unrounded (126.91, 28.55, 79.29), saturation 0.836, brightness 0.570. The misses are the three accepted ones.
+
+**Tests:** `npm test` 51 files, 317 tests; tsc (nox3d, app) exit 0; oxlint on the changed files has the same 7 warnings as before; nox3d e2e 8 of 8.
