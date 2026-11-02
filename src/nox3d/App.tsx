@@ -19,8 +19,10 @@ import { noxProject } from './content/noxProject';
 import { NOX_POSES } from './poses/nox.poses';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
-import { liveAnchors } from './stage/liveAnchors';
+import { liveAnchors, noxFaceAnchor } from './stage/liveAnchors';
 import { bubblePointer, cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
+import { leanCamera } from './world/lensShift';
+import type { Vec3 } from './world/types';
 import { QualityProbe, usePageVisible, useQuality } from './stage/useQuality';
 import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
@@ -65,13 +67,21 @@ const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
 const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
 
+/** The world's camera lean (its pillars converge toward the top, as in panel 2); a stage without a world has none. */
+const TILT = url.world ? SECURITY_WORLD.camera.tilt : 0;
+
+/** Nox's face in a stage: the point the lean's lens shift keeps where it was. */
+const faceOf = (stage: StageId) => noxFaceAnchor(stage === 'detail' ? 'detail' : stage === 'overview' || stage === 'techFocus' ? 'overview' : 'intro');
+
+const REST: Vec3 = [0, 0, CAMERA_Z];
+
 /** Puts the camera where the hover has it (or back on its axis), and `rest` where the stage camera is without it. */
 function placeCamera(camera: THREE.PerspectiveCamera, rest: THREE.PerspectiveCamera, lookAt: THREE.Vector3, moved: { offset: readonly number[]; look: readonly number[] } | null) {
   if (moved) {
     camera.position.set(moved.offset[0], moved.offset[1], CAMERA_Z + moved.offset[2]);
     lookAt.set(moved.offset[0] + moved.look[0], moved.offset[1] + moved.look[1], CAMERA_Z + moved.look[2]);
     camera.lookAt(lookAt);
-  } else if (camera.position.x !== 0 || camera.position.y !== 0 || camera.position.z !== CAMERA_Z) {
+  } else {
     camera.position.set(0, 0, CAMERA_Z);
     camera.quaternion.identity();
   }
@@ -108,6 +118,7 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
     hover.current = reducedMotion ? 0 : easeHover(hover.current, url.freeze ? 0 : hoverTarget(stage, bubblePointer.hovered, false), Math.min(delta, 0.05));
     const moved = pinned ?? (hover.current > 0 ? cameraHover(state.clock.elapsedTime, hover.current) : null);
     placeCamera(camera, rest, lookAt, moved);
+    leanCamera(camera, TILT, faceOf(stage), REST, { fullWidth: size.width, fullHeight: size.height, x: 0, y: 0, width: size.width, height: size.height });
     liveAnchors.set(camera, rest, size);
   });
   useLayoutEffect(() => {
@@ -115,7 +126,8 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
     camera.clearViewOffset();
     if (url.view && !url.orbit) {
       // A zoom is a window onto the unmoved stage camera, so arms in front of or behind the
-      // traced plane line up exactly as they do on the stage.
+      // traced plane line up exactly as they do on the stage (it has no lean: the traced stage
+      // is what the zoom compares with panel 2).
       const w = viewWindow(url.view, size.width, size.height);
       camera.position.set(0, 0, CAMERA_Z);
       camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(STAGE_HALF / CAMERA_Z));
@@ -301,7 +313,7 @@ export function App() {
             {/* Nox comes in with the realm behind it, so on a first visit the swim starts with the
                 plate (or the world's kit) in place rather than popping in behind it mid-swim. */}
             <Suspense fallback={null}>
-              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} accents={accents} solo={url.solo} /> : <Backdrop />}
+              {url.world ? <WorldScene world={SECURITY_WORLD} time={url} density={quality.settings.particles} accents={accents} solo={url.solo} reducedMotion={reducedMotion} /> : <Backdrop />}
               {octopus}
             </Suspense>
             {!url.world && (

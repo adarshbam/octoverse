@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
 import { stoneLights } from './bakedLight';
@@ -8,11 +8,12 @@ import { Floor } from './Floor';
 import { Kit } from './Kit';
 import { useWorldKit } from './kitLoader';
 import { Motes } from './Motes';
+import { WORLD_BUBBLES } from './bubbleField';
 import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
 import { FarFish, GodRays, MarineSnow, WaterSky } from './Water';
-import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
+import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } from './worldTime';
 
 /**
  * A world mounted from its config: the kit's pieces, the seabed, the water (fog, sky, light
@@ -22,32 +23,38 @@ import { WorldTimeProvider, type WorldTimeFlags } from './worldTime';
  * `time` says whether the world's clock runs or holds one moment. `density` thins the bubbles and
  * embers on lower quality tiers. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
- * measurement captures only, leaves out the bubbles. The scene around it needs shadows on and a far
+ * measurement captures only, leaves out the bubbles. `reducedMotion` holds the world's own motion
+ * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
  * plane past the sky sphere (100 units).
  */
-export function WorldScene({ world, time, density = 1, accents, solo = false }: { world: WorldConfig; time: WorldTimeFlags; density?: number; accents?: AccentLink; solo?: boolean }) {
+export function WorldScene({ world, time, density = 1, accents, solo = false, reducedMotion = false }: { world: WorldConfig; time: WorldTimeFlags; density?: number; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean }) {
   const surface = useSurfaceLight(world);
   const kit = useWorldKit(world);
   useNoxAccents(world, surface, accents);
   const { live, palette, water } = world;
   const { fill } = stoneLights(world);
+  const motion = useMemo(() => ({ freeze: time.freeze, reducedMotion }), [time.freeze, reducedMotion]);
+  // The ambient bubbles drift on the world's clock, and hold still with the rest of its motion.
+  const bubbleTime = useMemo(() => (state: { clock: { elapsedTime: number } }) => ambientTime(state.clock.elapsedTime, time, reducedMotion), [time, reducedMotion]);
   return (
+    <MotionContext.Provider value={motion}>
     <WorldTimeProvider value={time}>
       <fogExp2 attach="fog" args={[palette.waterFar, water.fogDensity]} />
       <WaterEnvironment world={world} />
       <SurfaceLight {...surface} />
       {fill && <directionalLight color={fill.color} intensity={fill.intensity} position={[...fill.position]} />}
-      <WaterSky world={world} caustics={surface.caustics.texture} />
+      <WaterSky world={world} caustics={surface.caustics.texture} opening={world.glow.top} />
       <Floor world={world} baked={kit.baked} />
       <Kit world={world} kit={kit} />
       {world.farPlate && <FarCards plate={world.farPlate} />}
-      <GodRays amount={live.rays} />
+      <GodRays amount={live.rays} spread={world.glow.rays} />
       <MarineSnow amount={live.snow} glow={accents?.light} />
       <FarFish amount={live.fish} />
       <Motes amount={live.motes} glow={accents?.light} />
-      {!solo && <Bubbles density={live.bubbles * density} glow={accents?.light} />}
-      <Embers density={live.embers * density} glow={accents?.light} />
+      {!solo && <Bubbles density={live.bubbles * density} glow={accents?.light} field={WORLD_BUBBLES} time={bubbleTime} />}
+      <Embers density={live.embers * density} glow={accents?.light} scale={world.glow.embers} />
     </WorldTimeProvider>
+    </MotionContext.Provider>
   );
 }
 

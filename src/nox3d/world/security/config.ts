@@ -17,7 +17,7 @@ const palette = {
   coral: '#ff1a30',
   lava: '#ff3418',
   waterFar: '#071535',
-  floor: '#15161f',
+  floor: '#1d1218',
 };
 
 /**
@@ -52,6 +52,9 @@ const lavaLights: WorldLight[] = layout.coralLights.map(position => ({ kind: 'la
  */
 const RELIC_RISE = 1.2;
 
+/** The lower third and top fixes (see WorldConfig.glow); bake_world.py's LAVA_RISE and BACK_LIGHT carry the baked two. */
+const GLOW = { lava: 1.4, back: 1.0, crevice: 1.8, floor: 1.4, embers: 2.2, top: 1.5, rays: 1.6 };
+
 export const SECURITY_WORLD: WorldConfig = {
   id: 'security',
   kit: {
@@ -62,13 +65,16 @@ export const SECURITY_WORLD: WorldConfig = {
   // far-0 is the farthest layer, as FAR_LAYERS orders them (blender/security/render_far.py writes the files).
   farPlate: { layers: FAR_LAYERS.map((layer, i) => ({ url: `/nox/world/security/far-${i}.ktx2`, z: layer.z })) },
   layout,
+  // Radians; tuned in the capture until the near pillars' edges lean as panel 2's do.
+  camera: { tilt: 0.07 },
+  glow: GLOW,
   relics: { glyph: 2.4 * RELIC_RISE, coral: 1.7 * RELIC_RISE, spill: RELIC_RISE },
   palette,
   lights: {
-    surface: { color: '#6f9cff', intensity: 2.2, position: [0.6, 24, -10], target: [0, layout.floorY, -8] },
-    fill: { color: '#6f8fff', intensity: 2.2, position: [-1.5, 10, 2] },
+    surface: { color: '#6f9cff', intensity: 1.1, position: [0.6, 24, -10], target: [0, layout.floorY, -8] },
+    fill: { color: '#6f8fff', intensity: 1.1, position: [-1.5, 10, 2] },
     points: [...glyphLights, ...lavaLights],
   },
-  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.4 },
+  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06 },
   live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1 },
 };

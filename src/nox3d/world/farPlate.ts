@@ -17,7 +17,7 @@ export const FAR_VIEWPORTS = [{ width: 2560, height: 1080 }, { width: 390, heigh
 /** Live pieces beyond this z are in the plate instead. */
 export const FAR_CUT_Z = farData.cutZ;
 /** World units each card grows past the frustum on every side, so a hover never reaches its edge. */
-export const FAR_OVERSCAN = 0.25;
+export const FAR_OVERSCAN = 0.6;
 
 export interface FarLayer {
   /** Depth of the card. */

@@ -32,9 +32,12 @@ export interface BakeRecord {
   /** The seabed grid the bake built, and heights it sampled from its copy of floorHeight: [x, z, y]. */
   seabed: { width: number; nearZ: number; farZ: number; segments: [number, number]; samples: [number, number, number][] };
   /** The lights baked: glyph and lava as point lights, the fill, and the surface light (its bounce only). */
-  lights: { glyph: BakedPointLight[]; lava: BakedPointLight[]; fill: WorldConfig['lights']['fill']; surface: WorldConfig['lights']['surface'] };
+  lights: { glyph: BakedPointLight[]; lava: BakedPointLight[]; back: BakedPointLight[]; fill: WorldConfig['lights']['fill']; surface: WorldConfig['lights']['surface'] };
   /** The relics' spill: the glyph lights' rise over the WorldLight data. */
   spill: number;
+  /** The lava lights' rise over the WorldLight data (`glow.lava`), and the intensity of the lights behind the rock heaps in times the lava data's (`glow.back`). */
+  lavaRise: number;
+  backRise: number;
   /**
    * The relief maps beside the lightmaps (each atlas quad's normal map): per texel the glyph and
    * lava light's main direction in stage space, its length s / (s + scale) for their strength s
@@ -60,8 +63,9 @@ export function asBakeRecord(data: unknown): BakeRecord {
     if (!Array.isArray(list) || !list.every(i => i?.placement && isRect(i.lod0) && isRect(i.lod1) && placed(i))) problems.push(`instances.${group}`);
   }
   if (!Array.isArray(r.seabed?.samples) || !Array.isArray(r.seabed?.segments)) problems.push('seabed');
-  if (!Array.isArray(r.lights?.glyph) || !Array.isArray(r.lights?.lava) || !r.lights?.fill || !r.lights?.surface) problems.push('lights');
+  if (!Array.isArray(r.lights?.glyph) || !Array.isArray(r.lights?.lava) || !Array.isArray(r.lights?.back) || !r.lights?.fill || !r.lights?.surface) problems.push('lights');
   if (typeof r.spill !== 'number') problems.push('spill');
+  if (typeof r.lavaRise !== 'number' || typeof r.backRise !== 'number') problems.push('lavaRise, backRise');
   if (typeof r.relief?.scale !== 'number' || !(r.relief.scale > 0)) problems.push('relief');
   if (problems.length > 0) throw new Error(`near.glb's bake record lacks ${problems.join(', ')}`);
   return r as BakeRecord;

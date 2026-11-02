@@ -62,6 +62,12 @@ export interface WorldConfig {
   farPlate?: { layers: readonly { url: string; z: number }[] };
   layout: WorldLayout;
   /**
+   * The camera's lean: it pitches up by `tilt` radians (a low camera looking up, so the pillars
+   * converge toward the top as in panel 2) and shifts its frame down by the matching lens shift
+   * (lensShift.ts), so Nox's face stays where the unleaned camera had it.
+   */
+  camera: { tilt: number };
+  /**
    * How the relics (glyph panels and glowing coral) glow: `glyph` multiplies a panel's white before
    * its own brightness, `coral` the coral's red, and `spill` the glyph light that the bake lays on
    * the stone round them. The WorldLight data for Nox's accents does not rise with them.
@@ -75,6 +81,14 @@ export interface WorldConfig {
     fill: { color: string; intensity: number; position: Vec3 };
     points: WorldLight[];
   };
+  /**
+   * The look fixes of the test scene, each a multiplier on what that part had (1 is the test
+   * scene): `lava` the lava lights baked on the stone and seabed (the WorldLight data Nox's skin
+   * takes does not rise), `back` the red lights behind the front rock heaps that rim them, `crevice`
+   * the glow in the rocks' pores, `floor` the seabed's lava cracks and glow, `embers` how many
+   * embers drift, `top` the cyan opening at the surface and `rays` how many light shafts fan down.
+   */
+  glow: { lava: number; back: number; crevice: number; floor: number; embers: number; top: number; rays: number };
   /** `surfaceDir` points at the brightest patch of surface; the sky, the water's reflections and its rays follow it. */
   water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number };
   /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */

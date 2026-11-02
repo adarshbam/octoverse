@@ -83,12 +83,20 @@ STEPS = ("direct", "indirect", "ao")
 GLYPH = {"color": "#ff2436", "intensity": 1.7, "distance": 2.1}  # WorldLight, kind glyph
 GLYPH_LIGHT_REACH = 0.985  # in front of the pillar's axis (config.ts)
 LAVA = {"color": "#ff3418", "intensity": 3.4, "distance": 5}  # WorldLight, kind lava
-FILL = {"color": "#6f8fff", "intensity": 2.2, "position": [-1.5, 10, 2]}  # a directional light at the origin
-SURFACE = {"color": "#6f9cff", "intensity": 2.2, "position": [0.6, 24, -10], "target_xz": (0, -8)}  # target y: floorY
+FILL = {"color": "#6f8fff", "intensity": 1.1, "position": [-1.5, 10, 2]}  # a directional light at the origin
+SURFACE = {"color": "#6f9cff", "intensity": 1.1, "position": [0.6, 24, -10], "target_xz": (0, -8)}  # target y: floorY
 SURFACE_CONE = (0.6, 0.55)  # three's angle and penumbra
 # The relics' spill (config.ts relics.spill): the glyph light on the stone is the test scene's,
 # 1.2 times as strong. Nox's accents keep the WorldLight data as it is.
 SPILL = 1.2
+# The lava's rise (config.ts glow.lava): the lava lights baked on the stone and seabed are this many
+# times the WorldLight data (the lower third wants far more lava glow; Nox's accents keep the data).
+LAVA_RISE = 1.4
+# The red lights behind the front rock heaps (config.ts glow.back): a lava light at each heap's back
+# and foot, this many times the lava data's intensity, so the heaps are rimmed red against the dark.
+BACK_RISE = 1.0
+BACK_REACH = 3.2  # their distance window
+BACK_HEAPS = (-1.5, 2.3)  # rocks nearer than this z (front) and wider than this |x| (heaps)
 SEABED = {"width": 26, "nearZ": 7, "farZ": -62, "segments": [110, 260]}
 # The page's albedos (linear), for the bounce: stone #343c5a, rock #22202e, coral #7a0a18, seabed #15161f.
 ALBEDO = {"stone": "#343c5a", "rock": "#22202e", "coral": "#7a0a18", "seabed": "#15161f"}
@@ -484,11 +492,22 @@ def lights(coll, layout, centres):
         position = [x + math.sin(rot) * GLYPH_LIGHT_REACH, y + centres[p["piece"]], z + math.cos(rot) * GLYPH_LIGHT_REACH]
         glyph.append({"position": position, "color": GLYPH["color"], "intensity": GLYPH["intensity"] * SPILL, "distance": GLYPH["distance"]})
     for position in layout["coralLights"]:
-        lava.append({"position": list(position), "color": LAVA["color"], "intensity": LAVA["intensity"], "distance": LAVA["distance"]})
+        lava.append({"position": list(position), "color": LAVA["color"], "intensity": LAVA["intensity"] * LAVA_RISE, "distance": LAVA["distance"]})
+    back = []
+    for p in layout["rocks"]:
+        x, y, z = p["position"]
+        if z < BACK_HEAPS[0] or abs(x) < BACK_HEAPS[1]:
+            continue
+        scale = p.get("scale", 1.0)
+        size = max(scale) if isinstance(scale, list) else scale
+        # Behind the heap (away from the lens), low, a little out from the middle of the corridor.
+        back.append({"position": [round(x * 1.05, 4), round(layout["floorY"] + 0.45, 4), round(z - 0.75 * size - 0.5, 4)], "color": LAVA["color"], "intensity": LAVA["intensity"] * BACK_RISE, "distance": BACK_REACH})
     for i, light in enumerate(glyph):
         point_light(coll, f"glyph{i}", light, SHADOWS["glyph"])
     for i, light in enumerate(lava):
         point_light(coll, f"lava{i}", light, SHADOWS["lava"])
+    for i, light in enumerate(back):
+        point_light(coll, f"back{i}", light, SHADOWS["lava"])
 
     # The fill: three's directional light, shining from its position to the origin, unshadowed.
     data = bpy.data.lights.new(PREFIX + "fill", "SUN")
@@ -515,7 +534,7 @@ def lights(coll, layout, centres):
     spot.location = blender(surface["position"])
     spot.rotation_euler = (blender(surface["target"]) - blender(surface["position"])).to_track_quat("-Z", "Y").to_euler()
     coll.objects.link(spot)
-    return {"glyph": glyph, "lava": lava, "fill": dict(FILL), "surface": surface}, spot
+    return {"glyph": glyph, "lava": lava, "back": back, "fill": dict(FILL), "surface": surface}, spot
 
 
 def gpu_device(sc):
@@ -833,7 +852,7 @@ def relief_map(name, atlas, irradiance):
     fill_colour = np.array(linear(lights["fill"]["color"])) * lights["fill"]["intensity"]
     plain = np.outer(np.clip(n @ fill, 0, None), fill_colour)
     toward = np.tile(fill * (fill_colour @ lum), (len(p), 1))
-    for light in lights["glyph"] + lights["lava"]:
+    for light in lights["glyph"] + lights["lava"] + lights["back"]:
         to = np.array(light["position"], float) - p
         d = np.linalg.norm(to, axis=1)
         l = to / np.maximum(d, 1e-4)[:, None]
@@ -927,6 +946,8 @@ def record():
         "lights": STATE["lights"],
         "relief": {"scale": RELIEF_SCALE, "encoding": "per texel (v + 1) / 2 for v along the glyph, lava and fill light's main direction (stage space), |v| = s / (s + scale) for its luminance s along it; linear, 8 bits; KTX2 UASTC"},
         "spill": SPILL,
+        "lavaRise": LAVA_RISE,
+        "backRise": BACK_RISE,
         "settings": {
             "atlas": {"lod0": ATLAS["lod0"], "lod1": ATLAS["lod1"], "seabed": list(SEABED_SIZE)},
             "texelsPerUnit": {level: round(squares[level][0], 2) for level in LEVELS},

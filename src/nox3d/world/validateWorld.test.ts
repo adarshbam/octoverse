@@ -154,8 +154,19 @@ test('near.glb is baked from layout.json and the world’s lights', () => {
   expect(baked.lights.lava).toHaveLength(lava.length);
   baked.lights.lava.forEach((light, i) => {
     close(light.position, lava[i].position, 9);
-    expect([light.color, light.intensity, light.distance]).toEqual([lava[i].color, lava[i].intensity, lava[i].distance]);
+    // The bake lays the lava on the stone and seabed a little stronger than the data Nox's skin takes.
+    expect(light.intensity).toBeCloseTo(lava[i].intensity * SECURITY_WORLD.glow.lava, 9);
+    expect([light.color, light.distance]).toEqual([lava[i].color, lava[i].distance]);
   });
+  expect(baked.lavaRise).toBe(SECURITY_WORLD.glow.lava);
+  // A lava light stands behind each front rock heap, low, rimming it red from behind.
+  expect(baked.backRise).toBe(SECURITY_WORLD.glow.back);
+  expect(baked.lights.back.length).toBeGreaterThanOrEqual(6);
+  for (const light of baked.lights.back) {
+    expect(light.intensity).toBeCloseTo(lava[0].intensity * SECURITY_WORLD.glow.back, 9);
+    expect(light.position[1]).toBeLessThan(layout.floorY + 1);
+    expect(light.position[2]).toBeLessThan(layout.rocks.map(r => r.position[2]).reduce((a, b) => Math.max(a, b)));
+  }
   expect(baked.lights.fill).toEqual(lights.fill);
   expect(baked.lights.surface).toEqual(lights.surface);
 });

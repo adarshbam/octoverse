@@ -6,10 +6,11 @@ import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
 
 /**
- * Nox's face in the intro or the overview (the point the overlays stay attached to): the same
- * place the overview's face spot is projected from, at the head's front.
+ * Nox's face in the intro, the overview or the detail (the point the overlays stay attached to,
+ * and the world camera's lens shift keeps in place): the same place the overview's face spot is
+ * projected from, at the head's front.
  */
-export function noxFaceAnchor(stage: 'intro' | 'overview'): Vec3 {
+export function noxFaceAnchor(stage: 'intro' | 'overview' | 'detail'): Vec3 {
   const { body } = NOX_POSES[stage];
   const [ox, oy] = NOX.head.faceOrigin;
   return [body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth];

@@ -11,6 +11,7 @@ import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
+import { CORAL_SWAY_GLSL, useMotionAmount } from './liveMotion';
 import { useWorldTime } from './worldTime';
 
 /** Bends a straight chain (links up its local y) along a sagging curve, repeating it to length. */
@@ -103,6 +104,8 @@ function pebbleField(material: THREE.Material, floorY: number, lightUv: boolean)
 export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
   const now = useWorldTime();
   const coralTime = useRef({ value: 0 });
+  const coralMotion = useRef({ value: 1 });
+  const motionAmount = useMotionAmount();
   const group = useRef<THREE.Group>(null);
 
   const built = useMemo(() => {
@@ -115,6 +118,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const stone = new THREE.MeshStandardMaterial({
       color: palette.stone,
       roughness: 0.62,
+      envMapIntensity: 0.35,
       vertexColors: true,
       map: stoneMaps.tone,
       normalMap: stoneMaps.normal,
@@ -129,8 +133,9 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const stoneHook: Hook = r => shader => withBakedLight(shader, r);
     stone.onBeforeCompile = stoneHook(relief('lod0'));
     const rock = new THREE.MeshStandardMaterial({
-      color: '#22202e',
+      color: '#211a26',
       roughness: 0.5,
+      envMapIntensity: 0.35,
       vertexColors: true,
       map: rockMaps.tone,
       normalMap: rockMaps.normal,
@@ -159,12 +164,12 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
           {
             float pore = smoothstep(0.72, 0.88, rn(vRockWorld * 14.0)) * smoothstep(0.4, 0.66, rn(vRockWorld * 2.1 + 4.0));
             float low = 1.0 - smoothstep(-2.4, -1.0, vRockWorld.y);
-            totalEmissiveRadiance += vec3(1.0, 0.16, 0.05) * pore * (0.45 + 2.4 * low);
+            totalEmissiveRadiance += vec3(1.0, 0.16, 0.05) * pore * (0.45 + 2.4 * low) * ${world.glow.crevice.toFixed(2)};
           }`,
         );
     };
     rock.onBeforeCompile = rockHook(relief('lod0'));
-    const pebble = new THREE.MeshStandardMaterial({ color: '#2a2a38', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
+    const pebble = new THREE.MeshStandardMaterial({ color: '#2a2230', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
     pebble.onBeforeCompile = stoneHook(relief('seabed'));
     const iron = new THREE.MeshStandardMaterial({ color: '#2a2e3c', roughness: 0.38, metalness: 0.8 });
     // Coral glows from within, brightest at the tips (the baked colour), and is still shaded by
@@ -172,16 +177,14 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const coral = new THREE.MeshStandardMaterial({ vertexColors: true, color: '#7a0a18', roughness: 0.42, emissive: new THREE.Color(palette.coral).multiplyScalar(relics.coral) });
     coral.onBeforeCompile = shader => {
       shader.uniforms.uTime = coralTime.current;
+      shader.uniforms.uMotion = coralMotion.current;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nuniform float uTime;')
+        .replace('#include <common>', '#include <common>\nuniform float uTime;\nuniform float uMotion;')
         .replace(
           '#include <begin_vertex>',
           /* glsl */ `#include <begin_vertex>
-          // Swaying in the current: more toward the tips, each clump on its own beat.
-          float phase = modelMatrix[3].x * 1.7 + modelMatrix[3].z * 0.9;
-          float h = max(position.y, 0.0);
-          transformed.x += sin(uTime * 1.1 + phase + position.y * 2.5) * 0.05 * h * h;
-          transformed.z += cos(uTime * 0.8 + phase * 1.3) * 0.03 * h * h;`,
+          // Swaying in the current: more toward the tips, each clump on its own beat (liveMotion.ts); still when motion is held.
+          ${CORAL_SWAY_GLSL}`,
         );
       withBakedLight(shader, null);
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -356,6 +359,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
 
   useFrame(state => {
     coralTime.current.value = now(state);
+    coralMotion.current.value = motionAmount;
   });
 
   useLayoutEffect(() => {

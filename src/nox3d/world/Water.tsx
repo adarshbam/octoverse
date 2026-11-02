@@ -8,8 +8,8 @@ import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
-/** Open water beyond the ruin: deep navy below, brightening up to the surface's rippling glow. */
-export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: THREE.Texture }) {
+/** Open water beyond the ruin: deep navy below, brightening up to the surface's rippling glow. `opening` is how many times brighter the cyan opening at the surface is than in the test scene. */
+export function WaterSky({ world, caustics, opening = 1 }: { world: WorldConfig; caustics: THREE.Texture; opening?: number }) {
   const now = useWorldTime();
   const material = useMemo(
     () =>
@@ -24,6 +24,8 @@ export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: TH
           uDeep: { value: new THREE.Color('#03050f') },
           uZenith: { value: new THREE.Color('#0c2468') },
           uGlow: { value: new THREE.Color('#3f8cff') },
+          // The opening at the very top of the frame: brighter and more cyan, fading in over the upper quarter.
+          uOpenGlow: { value: new THREE.Color('#3f8cff').lerp(new THREE.Color('#3fd0ff'), Math.min(opening - 1, 1)).multiplyScalar(opening) },
         },
         vertexShader: /* glsl */ `
           varying vec3 vWorld;
@@ -41,6 +43,7 @@ export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: TH
           uniform vec3 uDeep;
           uniform vec3 uZenith;
           uniform vec3 uGlow;
+          uniform vec3 uOpenGlow;
           varying vec3 vWorld;
           void main() {
             vec3 d = normalize(vWorld - cameraPosition);
@@ -49,19 +52,20 @@ export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: TH
             c = mix(c, uZenith, smoothstep(0.04, 0.6, e));
             float s = max(dot(d, uSun), 0.0);
             // The surface: a broad glow and a hot core, rippling.
-            c += uGlow * (pow(s, 24.0) * 1.1 + pow(s, 90.0) * 2.5);
+            vec3 glow = mix(uGlow, uOpenGlow, smoothstep(0.06, 0.2, e));
+            c += glow * (pow(s, 24.0) * 1.1 + pow(s, 90.0) * 2.5);
             vec2 suv = d.xz / max(d.y, 0.06);
             // The surface ripples: the light's caustic net (it tiles), seen from below.
             float rip = max(texture2D(uCaustics, fract(suv * 0.04)).r - 0.18, 0.0) * 0.5;
-            c += uGlow * rip * smoothstep(0.08, 0.3, e) * pow(s, 20.0) * 1.4;
+            c += glow * rip * smoothstep(0.08, 0.3, e) * pow(s, 20.0) * 1.4;
             // Faint far shafts, swaying slowly.
             float shafts = pow(0.5 + 0.5 * sin(d.x * 34.0 + sin(d.x * 6.0 + uTime * 0.17) * 2.5), 8.0);
-            c += uGlow * shafts * 0.05 * smoothstep(-0.02, 0.3, e) * pow(s, 12.0);
+            c += glow * shafts * 0.05 * smoothstep(-0.02, 0.3, e) * pow(s, 12.0);
             gl_FragColor = vec4(c, 1.0);
           }
         `,
       }),
-    [world, caustics],
+    [world, caustics, opening],
   );
   const disposables = useMemo(() => [material], [material]);
   useDisposables(disposables);
@@ -76,11 +80,13 @@ export function WaterSky({ world, caustics }: { world: WorldConfig; caustics: TH
 }
 
 const SHAFT_TOP = new THREE.Vector3(0.6, 13.5, -15);
-/** Shafts fan out from the bright patch of surface: thin, uneven, a few broad ones behind. */
-const SHAFTS = (() => {
+const SHAFT_COUNT = 9;
+/** Shafts fan out from the bright patch of surface: thin, uneven, a few broad ones behind. `spread` times as many, fanning wider. */
+const shaftsFor = (spread: number) => {
+  const n = Math.round(SHAFT_COUNT * Math.max(spread, 1));
   const rand = seeded(17);
-  return Array.from({ length: 9 }, (_, i) => {
-    const across = (i / 8 - 0.5) * 10 + (rand() - 0.5) * 1.1;
+  return Array.from({ length: n }, (_, i) => {
+    const across = (i / (n - 1) - 0.5) * (10 + (n - SHAFT_COUNT) * 0.9) + (rand() - 0.5) * 1.1;
     const depth = -2 - rand() * 14;
     const broad = rand() < 0.25;
     return {
@@ -89,10 +95,10 @@ const SHAFTS = (() => {
       strength: broad ? 0.45 + rand() * 0.3 : 0.7 + rand() * 0.6,
     };
   });
-})();
+};
 
 /** Shafts of light from the surface, soft-edged, flickering as the ripples above move. `amount` is the share of the shafts drawn, evenly thinned. */
-export function GodRays({ amount = 1 }: { amount?: number }) {
+export function GodRays({ amount = 1, spread = 1 }: { amount?: number; spread?: number }) {
   const now = useWorldTime();
   const { meshes, material, disposables } = useMemo(() => {
     const material = new THREE.ShaderMaterial({
@@ -100,7 +106,7 @@ export function GodRays({ amount = 1 }: { amount?: number }) {
       depthWrite: false,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color('#4f86ff') } },
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color('#4f86ff').lerp(new THREE.Color('#4fc0ff'), Math.min(spread - 1, 1) * 0.7) } },
       vertexShader: /* glsl */ `
         attribute float aStrength;
         varying vec3 vN;
@@ -137,7 +143,7 @@ export function GodRays({ amount = 1 }: { amount?: number }) {
       `,
     });
     const up = new THREE.Vector3(0, -1, 0);
-    const kept = SHAFTS.filter((_, i) => Math.floor((i + 1) * amount) > Math.floor(i * amount));
+    const kept = shaftsFor(spread).filter((_, i) => Math.floor((i + 1) * amount) > Math.floor(i * amount));
     const meshes = kept.map(({ to, radius, strength }) => {
       const end = new THREE.Vector3(...to);
       const dir = end.clone().sub(SHAFT_TOP);
@@ -153,7 +159,7 @@ export function GodRays({ amount = 1 }: { amount?: number }) {
       return mesh;
     });
     return { meshes, material, disposables: [material, ...meshes.map(m => m.geometry)] };
-  }, [amount]);
+  }, [amount, spread]);
   useDisposables(disposables);
   useFrame(state => {
     material.uniforms.uTime.value = now(state);

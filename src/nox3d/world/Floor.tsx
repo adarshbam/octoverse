@@ -6,6 +6,7 @@ import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
+import { LAVA_PULSE_GLSL, useMotionAmount } from './liveMotion';
 import { useWorldTime } from './worldTime';
 
 const WIDTH = SEABED.width;
@@ -17,6 +18,8 @@ const CRACK_TILE = 10.4;
 const floorGlsl = /* glsl */ `
   varying vec3 vFloorWorld;
   uniform float uTime;
+  uniform vec2 uMotionV;
+  #define uMotion uMotionV.x
   uniform sampler2D uCracks;
   vec2 fhash22(vec2 p) {
     p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -46,7 +49,8 @@ const floorGlsl = /* glsl */ `
  */
 export function Floor({ world, baked = null }: { world: WorldConfig; baked?: BakedLight | null }) {
   const now = useWorldTime();
-  const { geometry, material, time, disposables } = useMemo(() => {
+  const motionAmount = useMotionAmount();
+  const { geometry, material, time, motion, disposables } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, ...SEABED.segments);
     geometry.rotateX(-Math.PI / 2);
     geometry.translate(0, 0, (NEAR_Z + FAR_Z) / 2);
@@ -63,6 +67,8 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     maps.normal.repeat.copy(tiles);
     maps.tone.repeat.copy(tiles);
     const time = { value: 0 };
+    const motion = new THREE.Vector2(1, 0);
+    const glow = world.glow.floor;
     const cracks = makeCrackMap();
     const reliefMap = baked && lightMapOf(baked.reliefMaps.seabed);
     const material = new THREE.MeshStandardMaterial({
@@ -70,7 +76,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
       roughness: 0.62,
       metalness: 0,
       // Wet stone mirrors the red glows round it more than the far-off surface.
-      envMapIntensity: 0.2,
+      envMapIntensity: 0.08,
       map: maps.tone,
       normalMap: maps.normal,
       normalScale: new THREE.Vector2(0.8, 0.8),
@@ -79,6 +85,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     });
     material.onBeforeCompile = shader => {
       shader.uniforms.uTime = time;
+      shader.uniforms.uMotionV = { value: motion };
       shader.uniforms.uCracks = { value: cracks };
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
@@ -104,22 +111,24 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
             float patchy = smoothstep(0.58, 0.76, fnoise(wp * 0.21 + 3.1) * 0.65 + fnoise(wp * 0.53 + 1.7) * 0.35);
             float side = smoothstep(1.5, 3.6, abs(wp.x));
             float amount = max(patchy, side * 0.85);
-            float pulse = 0.72 + 0.28 * sin(uTime * 0.9 + wp.x * 1.7 + wp.y * 0.9);
-            totalEmissiveRadiance += vec3(1.0, 0.09, 0.05) * amount * pulse * (crack * 3.4 + halo * (0.25 + 1.4 * side));
+            // The lava pulses slowly (liveMotion.ts); held still it keeps its mean.
+            float pulse = ${LAVA_PULSE_GLSL};
+            totalEmissiveRadiance += vec3(1.0, 0.09, 0.05) * amount * pulse * (crack * 3.4 + halo * (0.25 + 1.4 * side)) * ${glow.toFixed(2)};
             // Lava under the rubble at the sides: a broad glow, strongest near the lens.
             float lava = smoothstep(2.0, 4.5, abs(wp.x)) * smoothstep(-8.0, 1.0, wp.y);
-            totalEmissiveRadiance += vec3(1.0, 0.12, 0.04) * lava * pulse * 0.12;
+            totalEmissiveRadiance += vec3(1.0, 0.12, 0.04) * lava * pulse * 0.12 * ${glow.toFixed(2)};
             // Puddles mirror that glow: a red sheen, stronger toward the sides.
             totalEmissiveRadiance += vec3(1.0, 0.1, 0.05) * puddle * (0.03 + 0.12 * side);
           }`,
         );
     };
     const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
-    return { geometry, material, time, disposables: owned };
+    return { geometry, material, time, motion, disposables: owned };
   }, [world, baked]);
   useDisposables(disposables);
   useFrame(state => {
     time.value = now(state);
+    motion.set(motionAmount, 0);
   });
   return <mesh geometry={geometry} material={material} receiveShadow />;
 }
