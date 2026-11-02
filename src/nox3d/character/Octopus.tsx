@@ -73,6 +73,11 @@ export interface OctopusProps {
   solo?: boolean;
   /** Degrees the whole body turns about its upright axis, on top of the stage's turn: for stills of his back. */
   yaw?: number;
+  /**
+   * A swim drive held on every arm (ArmDrive.pitch and straighten), for review stills of the swim
+   * poses; no arm reaches for the pointer while it is on.
+   */
+  armDrive?: { pitch: number; straighten: number };
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -82,7 +87,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false, yaw = 0 }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, onEntranceStart, onEntranceDone, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
@@ -391,7 +396,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     if (reducedMotion) orbState.armReach.fill(0);
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face. While the orbs are out, only arms presenting a technology move.
-    const pointerArm = reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    const pointerArm = !armDrive && reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
@@ -411,6 +416,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
         flare: armFlare(ARM_IDS[i]) * pulse,
+        pitch: armDrive?.pitch,
+        straighten: armDrive?.straighten,
       });
       orbState.tips[i].set(chain.tipX, chain.tipY);
       tube.update();

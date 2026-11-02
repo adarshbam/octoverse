@@ -21,6 +21,12 @@ const box = view.box.join(',');
 // The high-quality panel 2 by default; `&ref=panel` shows the original storyboard panel.
 const ORIGINAL = params.get('ref') === 'panel';
 
+// `&pose=swim-open` or `swim-trail` shows that swim pose in every live pane, its arms swung back as
+// in the swim, and `&yaw=<deg>` turns the body (the back view sets its own turns).
+const POSE = params.get('pose');
+const YAW = BACK ? null : params.get('yaw');
+const EXTRA = `${POSE ? `&pose=${encodeURIComponent(POSE)}` : ''}${YAW ? `&yaw=${encodeURIComponent(YAW)}` : ''}`;
+
 function Reference() {
   const crop = ORIGINAL
     ? { left: PANEL_2.left + PANEL_2.width / 2 + x0 * 100, top: PANEL_2.top + PANEL_2.height / 2 - y0 * 100, k: PANE_WIDTH / ((x1 - x0) * 100) }
@@ -42,7 +48,7 @@ function Reference() {
 }
 
 const live = (query: string, title: string) => (
-  <iframe title={title} src={`/?stage=intro&${query}&view=${box}`} style={{ width: PANE_WIDTH, height, border: 0, display: 'block' }} />
+  <iframe title={title} src={`/?stage=intro&${query}&view=${box}${EXTRA}`} style={{ width: PANE_WIDTH, height, border: 0, display: 'block' }} />
 );
 
 function Review() {
@@ -53,7 +59,11 @@ function Review() {
           <a key={key} href={`?component=${key}`} style={{ color: key === id ? '#ff8fa8' : '#a99cc8' }}>{COMPONENT_VIEWS[key].label}</a>
         ))}
       </nav>
-      <h1 style={{ fontSize: 18, margin: '0 0 12px' }}>{view.label}</h1>
+      <h1 style={{ fontSize: 18, margin: '0 0 12px' }}>
+        {view.label}
+        {POSE ? `, pose ${POSE}` : ''}
+        {YAW ? `, turned ${YAW}°` : ''}
+      </h1>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS}, ${PANE_WIDTH}px)`, gap: 12 }}>
         {(BACK
           ? BACK_VIEW_YAWS.map(deg => [deg === 0 ? 'Front (0°)' : `Turned ${deg}°`, live(`freeze&yaw=${deg}`, `Turned ${deg} degrees`)])

@@ -4,6 +4,9 @@ import type { Vec3 } from '../world/types';
 import { EXPRESSIONS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
+const REVIEW_POSES = ['swim-open', 'swim-trail'] as const;
+/** A swim pose (poses/nox.swim.ts) a review still shows in place of the stage's own. */
+export type ReviewPose = (typeof REVIEW_POSES)[number];
 
 export interface UrlState {
   stage?: StageId;
@@ -25,6 +28,8 @@ export interface UrlState {
   tilt?: number;
   /** Degrees the body turns about its upright axis (180 shows his back), added to the stage's own turn: for stills of the back view. */
   yaw?: number;
+  /** A swim pose in place of the stage's own, its arms swung back as in the swim: for review stills of the stroke's two shapes. */
+  pose?: ReviewPose;
   /** A quality tier forced for the session, instead of the one picked for the device. */
   tier?: QualityTier;
   /** Milliseconds the world's kit may take to load before the world steps down (honoured in development builds only: for tests). */
@@ -62,6 +67,8 @@ export function parseUrlState(search: string): UrlState {
   if (tilt && Number.isFinite(Number(tilt))) state.tilt = clampTilt(Number(tilt));
   const yaw = params.get('yaw');
   if (yaw && Number.isFinite(Number(yaw))) state.yaw = Number(yaw);
+  const pose = params.get('pose');
+  if (pose && (REVIEW_POSES as readonly string[]).includes(pose)) state.pose = pose as ReviewPose;
   const tier = params.get('tier');
   if (tier === 'high' || tier === 'medium' || tier === 'low') state.tier = tier;
   const kitWait = Number(params.get('kitwait'));

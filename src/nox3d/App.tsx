@@ -16,7 +16,10 @@ import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import type { StageId } from './config/types';
 import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
+import { swimDrive } from './motion/stroke';
 import { NOX_POSES } from './poses/nox.poses';
+import { SWIM_POSES } from './poses/nox.swim';
+import type { StagePose } from './poses/types';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { liveAnchors, noxFaceAnchor } from './stage/liveAnchors';
@@ -69,6 +72,17 @@ const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { .
 
 /** The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another. */
 const TILT = url.tilt ?? SECURITY_WORLD.camera.tilt;
+
+/**
+ * `?pose=swim-open` or `swim-trail` (review stills): that swim pose in place of every stage's own,
+ * its arms swung back as the stroke has them, open (sweep 0) or swept back into the trail (sweep 1).
+ */
+const REVIEW_SWIM = url.pose
+  ? url.pose === 'swim-open'
+    ? { pose: SWIM_POSES.open, drive: swimDrive({ sweep: 0, straighten: 0 }) }
+    : { pose: SWIM_POSES.trail, drive: swimDrive({ sweep: 1, straighten: 0 }) }
+  : null;
+const stagePose = (stage: StageId): StagePose => REVIEW_SWIM?.pose ?? NOX_POSES[stage];
 
 /** Nox's face in a stage: the point the lean's lens shift keeps where it was. */
 const faceOf = (stage: StageId) => noxFaceAnchor(stage === 'detail' ? 'detail' : stage === 'overview' || stage === 'techFocus' ? 'overview' : 'intro');
@@ -223,7 +237,7 @@ export function App() {
   const segments = quality.settings.segments;
   // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
   // they are laid out (cup sides and spacing) as in the intro they swim into, as on a reload.
-  const blender = useMemo(() => new PoseBlender(NOX_POSES[state.stage], segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
+  const blender = useMemo(() => new PoseBlender(stagePose(state.stage), segments, state.stage === 'entering' ? NOX_POSES.intro : undefined), [segments]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
   const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
   const frame = useRef<HTMLDivElement>(null);
@@ -263,7 +277,7 @@ export function App() {
     const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
     const duration = reducedMotion || skipped ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(NOX_POSES[state.stage], performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
+    blender.start(stagePose(state.stage), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
   }, [blender, state.stage, reducedMotion, dispatch, turnIntoIntro]);
   // Any click or key skips the entrance.
@@ -332,6 +346,7 @@ export function App() {
       accents={accents}
       solo={url.solo}
       yaw={url.yaw}
+      armDrive={REVIEW_SWIM?.drive}
       onEntranceStart={startMs => {
         entrance.current.startMs = startMs;
         turnIntoIntro();

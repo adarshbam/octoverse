@@ -166,5 +166,7 @@ export const NOX: CharacterConfig = {
     curl: 1.1,
     float: { amplitude: 0.045, period: 6.2 },
     breathPeriod: 4.6,
+    // Spec 9.5: a slow opening, a fast sweep back, then a glide; the mantle fills 4% and squeezes 6%.
+    swim: { recovery: 0.52, power: 0.21, glide: 0.6, fill: 0.04, squeeze: 0.06 },
   },
 };

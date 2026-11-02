@@ -246,6 +246,19 @@ export interface ArmSpec {
   suckerStart?: number;
 }
 
+/**
+ * One swim stroke (spec 9.5): the seconds each phase lasts, a slow recovery (the arms open), a fast
+ * power stroke (they sweep back) and a glide (they trail), and how far the mantle fills in recovery
+ * and squeezes in the power stroke, as fractions of its size.
+ */
+export interface StrokeTiming {
+  recovery: number;
+  power: number;
+  glide: number;
+  fill: number;
+  squeeze: number;
+}
+
 export interface Personality {
   /** Seconds between ordinary blinks. */
   blinkInterval: [number, number];
@@ -256,6 +269,8 @@ export interface Personality {
   curl: number;
   float: { amplitude: number; period: number };
   breathPeriod: number;
+  /** The swim stroke's pace and mantle beat (motion/stroke.ts). */
+  swim: StrokeTiming;
 }
 
 /**

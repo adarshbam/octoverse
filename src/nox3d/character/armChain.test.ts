@@ -204,6 +204,81 @@ test('a rest bend gives each arm gentle undulations along its length while keepi
   }
 });
 
+/** The arm's length along its centre line, in 3D. */
+function length3(chain: ArmChain) {
+  let sum = 0;
+  for (let k = 0; k < chain.segments; k++) sum += Math.hypot(chain.px[k + 1] - chain.px[k], chain.py[k + 1] - chain.py[k], chain.pz[k + 1] - chain.pz[k]);
+  return sum;
+}
+
+/** How much the outer 40% of the arm turns, as seen in its own plane (radians, summed unsigned). */
+function tipCurvature(chain: ArmChain) {
+  const n = chain.segments;
+  const heading = (k: number) => Math.atan2(chain.py[k + 1] - chain.py[k], chain.px[k + 1] - chain.px[k]);
+  let sum = 0;
+  for (let k = Math.ceil(0.6 * n); k < n; k++) {
+    const d = heading(k) - heading(k - 1);
+    sum += Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+  }
+  return sum;
+}
+
+test('pitch preserves arm length', () => {
+  NOX.arms.forEach((arm, i) => {
+    const rest = restFromCurve(NOX_POSES.intro.arms[arm.id]);
+    const drive = { time: 1.3, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0, bend: NOX.armBend };
+    const level = new ArmChain(rest, arm, i);
+    level.solve(drive);
+    const pitched = new ArmChain(rest, arm, i);
+    pitched.solve({ ...drive, pitch: 0.9 });
+    expect(Math.abs(length3(pitched) / length3(level) - 1), arm.id).toBeLessThan(0.001);
+    // A swing about the root, out of the arm's plane and back behind Nox (toward -z): the root
+    // stays put, the tip goes back, and the arm's middle leaves its plane by the pitch.
+    const n = pitched.segments;
+    expect([pitched.px[0], pitched.py[0], pitched.pz[0]], arm.id).toEqual([level.px[0], level.py[0], level.pz[0]]);
+    expect(pitched.pz[n], arm.id).toBeLessThan(level.pz[n] - 0.5);
+    const chord = (c: ArmChain) => [c.px[n / 2] - c.px[0], c.py[n / 2] - c.py[0], c.pz[n / 2] - c.pz[0]];
+    const [a, b] = [chord(level), chord(pitched)];
+    const cos = (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]) / (Math.hypot(...a) * Math.hypot(...b));
+    expect(Math.acos(Math.min(1, cos)), arm.id).toBeCloseTo(0.9, 3);
+  });
+});
+
+test('straighten removes tip curl', () => {
+  NOX.arms.forEach((arm, i) => {
+    const rest = restFromCurve(NOX_POSES.intro.arms[arm.id]);
+    const drive = { time: 2.2, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0, bend: NOX.armBend };
+    const curled = new ArmChain(rest, arm, i);
+    curled.solve(drive);
+    const straight = new ArmChain(rest, arm, i);
+    straight.solve({ ...drive, straighten: 1 });
+    expect(tipCurvature(straight), arm.id).toBeLessThan(0.1 * tipCurvature(curled));
+    // Only the outer arm straightens: the half nearest the body keeps its shape, and no segment stretches.
+    const n = straight.segments;
+    for (let k = 0; k <= n / 2; k++) expect(Math.hypot(straight.px[k] - curled.px[k], straight.py[k] - curled.py[k]), `${arm.id} ${k}`).toBeLessThan(1e-5);
+    for (let k = 0; k < n; k++) expect(Math.hypot(straight.px[k + 1] - straight.px[k], straight.py[k + 1] - straight.py[k])).toBeCloseTo(rest.segmentLength, 5);
+    // Half way, half the curl.
+    const half = new ArmChain(rest, arm, i);
+    half.solve({ ...drive, straighten: 0.5 });
+    expect(tipCurvature(half) / tipCurvature(curled), arm.id).toBeGreaterThan(0.3);
+    expect(tipCurvature(half) / tipCurvature(curled), arm.id).toBeLessThan(0.7);
+  });
+});
+
+test('no pitch and no straighten leave every arm exactly as it was', () => {
+  NOX.arms.forEach((arm, i) => {
+    const rest = restFromCurve(NOX_POSES.intro.arms[arm.id]);
+    const drive = { time: 3.1, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0.2, bend: NOX.armBend };
+    const before = new ArmChain(rest, arm, i);
+    before.solve(drive);
+    const after = new ArmChain(rest, arm, i);
+    after.solve({ ...drive, pitch: 0, straighten: 0 });
+    expect(after.px, arm.id).toEqual(before.px);
+    expect(after.py, arm.id).toEqual(before.py);
+    expect(after.pz, arm.id).toEqual(before.pz);
+  });
+});
+
 test('idle drift is not synchronised: each arm sways at its own pace', () => {
   const rates = NOX.arms.map((arm, i) => new ArmChain(restFromCurve(NOX_POSES.intro.arms[arm.id]), arm, i).driftRate);
   const sorted = [...rates].sort((a, b) => a - b);

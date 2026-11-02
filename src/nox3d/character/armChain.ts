@@ -37,7 +37,22 @@ export interface ArmDrive {
    * rather than bending.
    */
   flare?: number;
+  /**
+   * A swing of the whole arm out of its plane about its root (radians), positive back toward -z,
+   * behind Nox, as the arms trail while he swims. The arm turns as one piece about the line through
+   * its root square to the way it leaves the body (root to middle), so it keeps its length and shape.
+   */
+  pitch?: number;
+  /**
+   * 0 to 1: blends the turn of the outer 40% of the arm toward zero, so at 1 the tip runs on
+   * straight (the whip at the end of a swim stroke).
+   */
+  straighten?: number;
 }
+
+/** Straightening takes hold from half way along the arm and is complete from 60%: the outer 40% runs straight. */
+const STRAIGHTEN_FROM = 0.5;
+const STRAIGHTEN_FULL = 0.6;
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const smoothstep = (a: number, b: number, x: number) => {
@@ -142,7 +157,7 @@ export class ArmChain {
     this.rest = rest;
   }
 
-  solve({ time: t, sway, curl, droop, reach, bend = 0, flare = 0 }: ArmDrive) {
+  solve({ time: t, sway, curl, droop, reach, bend = 0, flare = 0, pitch = 0, straighten = 0 }: ArmDrive) {
     const n = this.segments;
     const ph = this.phase;
     let acc = 0;
@@ -160,6 +175,7 @@ export class ArmChain {
       acc += (wave + tipCurl + trail + fan) / n;
       this.angle[k] = this.rest.angles[k] + acc + bend * this.undulation[k];
     }
+    if (straighten > 0) this.straightenTip(Math.min(1, straighten));
     this.integrate();
     const dt = this.lastTime === null ? 0 : Math.min(Math.max(t - this.lastTime, 0), 1 / 20);
     this.lastTime = t;
@@ -189,6 +205,7 @@ export class ArmChain {
       this.reachSpeed.fill(0);
     }
     this.updateZ(t);
+    if (pitch !== 0) this.pitchBack(pitch);
   }
 
   /** Position at arc fraction u (0 = root, 1 = tip). */
@@ -209,6 +226,60 @@ export class ArmChain {
     for (let k = 0; k < n; k++) {
       this.px[k + 1] = this.px[k] + length * Math.cos(this.angle[k]);
       this.py[k + 1] = this.py[k] + length * Math.sin(this.angle[k]);
+    }
+  }
+
+  /**
+   * Scales each joint's turn over the outer arm by 1 - amount, from STRAIGHTEN_FROM (none) to
+   * STRAIGHTEN_FULL (all of it), so the tip runs on in the direction the arm has there.
+   */
+  private straightenTip(amount: number) {
+    const n = this.segments;
+    const first = Math.max(1, Math.floor(STRAIGHTEN_FROM * n));
+    let before = this.angle[first - 1];
+    let after = before;
+    for (let k = first; k < n; k++) {
+      const turn = wrap(this.angle[k] - before);
+      before = this.angle[k];
+      after += turn * (1 - amount * smoothstep(STRAIGHTEN_FROM, STRAIGHTEN_FULL, (k + 0.5) / n));
+      this.angle[k] = after;
+    }
+  }
+
+  /**
+   * Turns the placed arm (depth included) about the line through its root, in the arm's plane and
+   * square to the way it leaves the body, so its way out turns toward -z. A rigid turn: lengths and
+   * shape are kept.
+   */
+  private pitchBack(angle: number) {
+    const { px, py, pz } = this;
+    const n = this.segments;
+    const mid = Math.floor(n / 2);
+    let dx = px[mid] - px[0];
+    let dy = py[mid] - py[0];
+    let out = Math.hypot(dx, dy);
+    if (out < 1e-6) {
+      dx = px[1] - px[0];
+      dy = py[1] - py[0];
+      out = Math.hypot(dx, dy) || 1;
+    }
+    // The axis (ax, ay, 0) is the way out turned a quarter turn in the plane: z x (dx, dy, 0).
+    const ax = -dy / out;
+    const ay = dx / out;
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const x0 = px[0];
+    const y0 = py[0];
+    const z0 = pz[0];
+    for (let k = 1; k <= n; k++) {
+      const vx = px[k] - x0;
+      const vy = py[k] - y0;
+      const vz = pz[k] - z0;
+      // Rodrigues' rotation: v cos + (a x v) sin + a (a . v)(1 - cos).
+      const along = (ax * vx + ay * vy) * (1 - c);
+      px[k] = x0 + vx * c + ay * vz * s + ax * along;
+      py[k] = y0 + vy * c - ax * vz * s + ay * along;
+      pz[k] = z0 + vz * c + (ax * vy - ay * vx) * s;
     }
   }
 

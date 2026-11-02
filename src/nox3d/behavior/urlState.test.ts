@@ -67,6 +67,12 @@ test('parses yaw', () => {
   expect(parseUrlState('?stage=intro').yaw).toBeUndefined();
 });
 
+test('parses a swim pose for review stills and ignores unknown ones', () => {
+  expect(parseUrlState('?pose=swim-open').pose).toBe('swim-open');
+  expect(parseUrlState('?pose=swim-trail&yaw=35').pose).toBe('swim-trail');
+  for (const bad of ['?pose=swim', '?pose=', '?pose=intro', '?stage=intro']) expect(parseUrlState(bad).pose, bad).toBeUndefined();
+});
+
 test('parses kitwait as a positive number of milliseconds', () => {
   expect(parseUrlState('?kitwait=2500').kitWait).toBe(2500);
   expect(parseUrlState('?kitwait=0').kitWait).toBeUndefined();
