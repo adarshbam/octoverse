@@ -133,6 +133,14 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
     window.clearTimeout(hover.current.timer);
     bubblePointer.hovered = false;
   }, []);
+  // Hiding the buttons under a resting pointer sends no leave event: let go of the hover then, so
+  // the camera does not stay settled once the overview is left.
+  useEffect(() => {
+    if (open) return;
+    hover.current.techId = null;
+    bubblePointer.hovered = false;
+    window.clearTimeout(hover.current.timer);
+  }, [open]);
   // Chooses the orb under the pointer once it has come to rest there; checks again when it might.
   const consider = (techId: string, x: number, y: number) => {
     const now = performance.now();

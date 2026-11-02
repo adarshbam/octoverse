@@ -15,6 +15,8 @@ const FAR_Z = SEABED.farZ;
 /** World units covered by one tile of the crack map (12 cells). */
 const CRACK_TILE = 10.4;
 
+// `#define uMotion uMotionV.x`: the shared lava term (LAVA_PULSE_GLSL) reads `uMotion`, while the
+// floor's uniform is a vec2 (x is the amount), so the name is an alias over its x.
 const floorGlsl = /* glsl */ `
   varying vec3 vFloorWorld;
   uniform float uTime;

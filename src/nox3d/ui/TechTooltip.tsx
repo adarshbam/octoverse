@@ -4,6 +4,9 @@ import './tooltip.css';
 import type { TooltipContent } from './tooltipContent';
 import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPlacement';
 
+/** The tooltip moves as one with Nox's face (it sits beside his presented orb) as the camera hovers. */
+const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
+
 /**
  * How a technology is used in this project, beside its presented orb (panel 4): the name, the
  * role, the details as bullets (or a one-line summary), and, while developing, a Placeholder badge
@@ -12,9 +15,6 @@ import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPla
  * fades in with a small rise once the presentation reads (`delayMs`). A tooltip that is `leaving`
  * fades out quickly and is no longer announced.
  */
-/** The tooltip moves as one with Nox's face (it sits beside his presented orb) as the camera hovers. */
-const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
-
 export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   useAnchorShift(box, TOOLTIP_ANCHOR);
