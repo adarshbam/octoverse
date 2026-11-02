@@ -1,6 +1,6 @@
 # Nox 3D build: handoff
 
-Updated 2026-10-26. Read this first in a new session, then the files it points to.
+Updated 2026-11-02. Read this first in a new session, then the files it points to.
 
 ## Current direction (2026-10-26, governs over everything below)
 
@@ -21,7 +21,31 @@ Updated 2026-10-26. Read this first in a new session, then the files it points t
   - Nox has capped world accents, an aura, a glow light that also tints particles, and an in-scene local grade that never touches his own layers.
   - The owner approved a new body palette: violet arm tops, a deep red underside band (`glow.underside` 1.6) and a red-pink rim. The face glow ramp was restored to the approved one.
   - Accepted misses: intro saturation 0.837, cheek glow 9.5, arm rim 40.9. The record is in `docs/superpowers/reviews/nox-world.md`.
-- **Next step:** Task 6 (shared layout, kit rebuild in Blender, compression). KTX-Software (`toktx`) is not installed, so textures use WebP until the owner installs it.
+- **Task 6 is complete** (e045bc1..7de3e24): `layout.json` is the single source for placements, the kit is compressed with meshopt and KTX2 (KTX-Software v4.4.2 at `C:\Program Files\KTX-Software\bin`; prepend it to PATH), and LODs swap at 16 units (R28).
+- **Task 7 (baked light, relics 1.2x) is in fix round 2 of 5.**
+  - Commits 27f7666 and ee7c062 are reviewed clean.
+  - Round 2 carries ruling R36: the stone relief re-shades every baked point light per fragment, which costs +15 to 25% GPU. It must drop to at most about 5% of the intro frame while the relief stays within about 3% of real-time.
+  - The round 2 implementer stalled. Its **uncommitted edits are in the worktree** (bake_world.py, nox-world.md, near.glb, Floor.tsx, Kit.tsx, bakedLight.ts and its test, validateWorld.test.ts). Inspect them before redoing anything; never discard them blindly.
+  - Then: a scoped re-review on Haiku, then "Task 7: complete" in the ledger.
+- **Next:** Tasks 8 to 11, then Task 12 (the owner's Milestone 2 live review).
+
+## Token plan (owner-approved 2026-11-02, governs how the work runs)
+
+The owner kept hitting usage limits. Task 7 used about 0.95M subagent tokens, 45% of it in fix rounds caused by requirements added after dispatch.
+
+- **Model and effort by difficulty.** Set both on every subagent.
+  - **Haiku, low:** captures and measurements, Blender bakes from committed scripts, git, the ledger, re-reviews of small fixes, Task 12's spike deletion, Task 28's test runs.
+  - **Sonnet, medium:** ordinary code and tests, and the one review per task. Tasks 7 (finish), 8, 9, 11, 12, 17, 20, 21, 26 and 27. Task 10 runs at high effort and moves to Opus only if the owner rejects the look at Milestone 2.
+  - **Opus, high:** Tasks 14, 15, 18, 19, 22, 23, 24 and 25, and the final whole-branch review. **Opus, max:** Task 13 (physics core) and Task 16 (stroke cycle).
+- **A fresh controller session per milestone.** Start from this file and the ledger, with the controller on Sonnet.
+- **Acceptance criteria in the first brief:** frame budget, close-up detail, colour numbers. A ruling added after dispatch costs a fix round.
+- **Fewer reviews.**
+  - One review per task. A re-review runs only when a fix changes logic, and it runs on Haiku.
+  - Simple tasks are reviewed together at the end of their milestone.
+  - The owner's gates are unchanged.
+- **No blocking waits.** Long Blender jobs run headless in the background (`blender -b -P <script>`), not as one blocking MCP call.
+- **Images and dispatches.** Judge from numbers. Look at images only at owner gates or when a number cannot answer. Hand subagents file paths, not pasted text.
+- **OmniRoute (optional, text only).** MCP server `omniroute` on localhost:20128, with NVIDIA NIM, Gemini, Mistral, Groq and Kimi. `omniroute_route_request` with `groq/openai/gpt-oss-120b` works. Use it for plain web markup, boilerplate, test-case lists and copy. Never use it for 3D, animation or Nox's look. Check everything it returns. Code sent there goes to that provider.
 
 ## Where the work lives
 
