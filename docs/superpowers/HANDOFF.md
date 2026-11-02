@@ -11,7 +11,7 @@ Updated 2026-11-02. Read this first in a new session, then the files it points t
   - technology bubbles, the head swell, variants;
   - the process rules.
 - **Older docs:** the 2026-10-23 spec and plan below only list what to build; where they disagree with the new spec, the new spec wins.
-- **Test scene (throwaway reference):** `spike-env.html`, `src/spikeEnv/`, `spike-env/` (Blender kit script, capture and perf scripts, results in `spike-env/out/`). Open `http://localhost:5191/spike-env.html?compare`.
+- **Test scene (throwaway reference):** its code was deleted after Milestone 2; the stills are in `docs/superpowers/reviews/assets/world-test-scene/`.
 - **No videos:** do not record review clips or frame sequences (`scripts/stepped-capture.mjs`, `spike-env/clip.mjs`). Check with stills, screenshots and measurements. The owner watches motion live.
 - **Superseded:** Entrance v1 (Task 23) is replaced by the spec's entrance; the gate plate (Task 24) is replaced by the 3D world.
 - **Plan:** `docs/superpowers/plans/2026-10-26-nox-world-and-motion.md`: 28 tasks in the spec's nine milestones, each milestone ending in the owner's live review. The owner approved the spec and the plan on 2026-10-26 and chose subagent-driven execution.
@@ -31,9 +31,20 @@ Updated 2026-11-02. Read this first in a new session, then the files it points t
 - **Task 12 and Milestone 2 are approved (owner, 2026-11-02, "Approve M2").** Milestone commit cad8f8a `feat(nox3d): every stage in the 3D world`.
   - The world is always on (`?world` is ignored). `?tilt=<rad>` overrides the lean (default 0.07). Fallback chain: baked `near.glb`, then `kit.glb` live-lit, then no kit; Nox and the non-GLB water stay up while assets fail or hang (`KIT_WAIT_MS` 15 s; dev-only `?kitwait=<ms>`).
   - The spike code (`src/spikeEnv/`, `spike-env.html`, `spike-env/{capture,clip,perf}.mjs`, `public/spike-env/`) is deleted (backup: `spike-env-backup-2026-11-02.tgz` in the side-session notes folder). `spike-env/out/` (with the mp4s) and `spike-env/blender/` stay untracked. The test-scene stills are in `docs/superpowers/reviews/assets/world-test-scene/`.
-  - **Next: Milestone 3 (Task 13 physics core on Opus max, Task 14 physics on every arm on Opus high).** Start a fresh controller session from this file and the ledger.
+  - **Milestone 3 (arm water physics, Tasks 13–14) is deferred by the owner (2026-11-02, "Skip, go to M4"; ledger R45).** The arms look good to the owner at rest, and they want fast progress. Physics only shows in motion, so it is judged again at the Milestone 5 review.
+  - **Next: Milestone 4 (Task 15, back view, Opus high).** Start a fresh controller session from this file and the ledger.
   - **Known weaknesses given to the owner:** pillar lean 1.2 degrees vs panel 2's 8 to 12 (R39: a stronger lean means leaning the pillars in the layout, bake plus far rerun, or a larger tilt that changes Nox); lower-third pattern (corner rocks too red, centre lava weak, stone lost most of its blue sheen: R40); tier high 16.8 fps vs the 27 fps floor on this Intel UHD (R43; render scale 0.75 gives about 23, 0.6 about 32 fps); the adaptive logic settles on tier low (about 38 fps) after about 8 s; far layer failure = fog only (R41); framed-mode Nox colour at tilt 0.07 not measured; overview panel edges drift about 12 px at hover extremes.
   - Open minors worth a glance: `keyboard.spec.ts` flakes under parallel Playwright load; `bake_world.py` ALBEDO table is stale; the `world-capture.mjs` `view=` freezes the camera so `hover=` stills need a framed capture.
+
+## Without arm physics (owner, 2026-11-02, ledger R45)
+
+- **Milestone 5:** build the stroke cycle, swim and entrance (Tasks 16–19) without `ArmPhysicsRig`. Drop the plan's physics hooks: no trailing from physics in Task 18, no `ArmPhysicsRig.snap` in Task 19. Arm follow-through comes only from the stroke drives (`spread`, `sweep`, `straighten`). Task 16 still runs on Opus max.
+- **Milestone 5 review:** ask the owner whether the arms read stiff while swimming and on stage changes. If they do, physics comes back: either Milestone 3 as planned or a cheaper delayed trail. Expect to retune the swim then.
+- **Milestones 6 and 8:** Tasks 22, 23 and 25 mention physics follow-through. Without physics, their motions drive the pose directly.
+
+## Deferred owner fixes (do not start until the owner asks)
+
+- **Intro start (owner, 2026-11-02):** "It starts with a black screen and then octopus appears, so I'm not able to see anything properly." The owner wants the intro readable from the first frame and a better frame rate, later, not now. Likely causes: the world waits on the kit and plate while tier detection settles on tier low after about 8 s.
 
 ## Token plan (owner-approved 2026-11-02, governs how the work runs)
 
