@@ -1001,7 +1001,7 @@ High is identical to HEAD within capture noise and the masks are identical. Medi
 
 **Concerns.** Medium holds 27.9 only just; the pair of low-detail Nox items above; the `a` server crashed in the main paired run so lever a's numbers are from its own earlier paired run.
 
-## Milestone 2: every stage in the 3D world (checkpoint, awaiting owner review)
+## Milestone 2: every stage in the 3D world (approved 2026-11-02)
 
 Commit `checkpoint(nox3d): world always on, ?tilt override, e2e fallback`. The milestone commit follows the owner's approval.
 
@@ -1035,3 +1035,5 @@ The adaptive runs include the first seconds before it steps down, and their medi
 - The framed-mode Nox patches are not gated at tilt 0.07.
 - Overlay edges drift about 12 px at the overview hover extremes.
 - Nox's colour at the framed camera is unmeasured.
+
+**Owner verdict (2026-11-02):** "Approve M2". Accepted with the weaknesses listed above. The test-scene stills are kept in `docs/superpowers/reviews/assets/world-test-scene/`. The untracked spike files are not deleted yet; a backup is in the side-session notes (`spike-env-backup-2026-11-02.tgz`).
