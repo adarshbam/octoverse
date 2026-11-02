@@ -17,17 +17,23 @@ Updated 2026-11-02. Read this first in a new session, then the files it points t
 - **Plan:** `docs/superpowers/plans/2026-10-26-nox-world-and-motion.md`: 28 tasks in the spec's nine milestones, each milestone ending in the owner's live review. The owner approved the spec and the plan on 2026-10-26 and chose subagent-driven execution.
 - **Ledger:** `.superpowers/sdd/2026-10-26-nox-world-and-motion/progress.md` (git-ignored) holds every task's completion line, every ruling (R1 onwards), the owner's verdicts verbatim and the deferred minor findings. Trust it and `git log` over memory.
 - **Milestone 1 (Tasks 1–5) is closed, 2026-10-27.**
-  - The world runs behind `?world`.
+  - The world ran behind `?world` at the time; it is always on since Task 12.
   - Nox has capped world accents, an aura, a glow light that also tints particles, and an in-scene local grade that never touches his own layers.
   - The owner approved a new body palette: violet arm tops, a deep red underside band (`glow.underside` 1.6) and a red-pink rim. The face glow ramp was restored to the approved one.
   - Accepted misses: intro saturation 0.837, cheek glow 9.5, arm rim 40.9. The record is in `docs/superpowers/reviews/nox-world.md`.
 - **Task 6 is complete** (e045bc1..7de3e24): `layout.json` is the single source for placements, the kit is compressed with meshopt and KTX2 (KTX-Software v4.4.2 at `C:\Program Files\KTX-Software\bin`; prepend it to PATH), and LODs swap at 16 units (R28).
-- **Task 7 (baked light, relics 1.2x) is in fix round 2 of 5.**
-  - Commits 27f7666 and ee7c062 are reviewed clean.
-  - Round 2 carries ruling R36: the stone relief re-shades every baked point light per fragment, which costs +15 to 25% GPU. It must drop to at most about 5% of the intro frame while the relief stays within about 3% of real-time.
-  - The round 2 implementer stalled. Its **uncommitted edits are in the worktree** (bake_world.py, nox-world.md, near.glb, Floor.tsx, Kit.tsx, bakedLight.ts and its test, validateWorld.test.ts). Inspect them before redoing anything; never discard them blindly.
-  - Then: a scoped re-review on Haiku, then "Task 7: complete" in the ledger.
-- **Next:** Tasks 8 to 11, then Task 12 (the owner's Milestone 2 live review).
+- **Tasks 7 to 11 are complete** (ledger has every completion line, R36 to R44 and the deferred minors).
+  - **7:** baked light, relics 1.2x. Stone relief comes from a per-texel dominant-direction map beside each lightmap (one fetch, no light loop): +2.0 to 2.6 ms, 4.0 to 5.7% of the intro frame; relief within 1.8% of real-time in the 2x crop. `near.glb` 3.85 MB.
+  - **8:** default camera hover and live HTML anchors; `?hover=x,y,z` pins it for stills (ignored when `view=` is set).
+  - **9:** three transparent far-plate layers (z -16, -27, -45; 171 KB); live pieces beyond z -12 are cut. A failed layer leaves fog only (R41).
+  - **10:** look fixes: lens shift (`WorldConfig.camera.tilt` 0.07), more lava and embers (x2.2), brighter top opening, ambient bubbles, lava pulse and coral sway (off under reduced motion and freeze, e2e `worldMotion.spec.ts`).
+  - **11:** quality tiers (`WORLD_TIERS`, render scale 1 / 0.8 / 0.6, floor noise baked on the GPU, relief gate, contact shadows on at every tier), `scripts/perf.mjs`.
+- **Task 12 is code-complete and presented to the owner for the Milestone 2 live review (2026-11-02).**
+  - The world is always on (`?world` is ignored). `?tilt=<rad>` overrides the lean (default 0.07). Fallback chain: baked `near.glb`, then `kit.glb` live-lit, then no kit; Nox and the non-GLB water stay up while assets fail or hang (`KIT_WAIT_MS` 15 s; dev-only `?kitwait=<ms>`).
+  - Checkpoint commits: e219377 and 98386e3 (last: `git log`). The milestone commit `feat(nox3d): every stage in the 3D world` is NOT made yet.
+  - **After the owner approves, in this order (R44):** (1) copy `spike-env/out/*.png` to `docs/superpowers/reviews/assets/world-test-scene/`; (2) Haiku low deletes `src/spikeEnv/`, `spike-env.html`, `spike-env/capture.mjs`, `clip.mjs`, `perf.mjs` and `public/spike-env/` (untracked, so back up first; keep `spike-env/out/` and the mp4s); (3) the milestone commit; (4) record the owner's words in `docs/superpowers/reviews/nox-world.md`. Then Milestone 3 (Tasks 13 to 14, physics) starts.
+  - **Known weaknesses given to the owner:** pillar lean 1.2 degrees vs panel 2's 8 to 12 (R39: a stronger lean means leaning the pillars in the layout, bake plus far rerun, or a larger tilt that changes Nox); lower-third pattern (corner rocks too red, centre lava weak, stone lost most of its blue sheen: R40); tier high 16.8 fps vs the 27 fps floor on this Intel UHD (R43; render scale 0.75 gives about 23, 0.6 about 32 fps); the adaptive logic settles on tier low (about 38 fps) after about 8 s; far layer failure = fog only (R41); framed-mode Nox colour at tilt 0.07 not measured; overview panel edges drift about 12 px at hover extremes.
+  - Open minors worth a glance: `keyboard.spec.ts` flakes under parallel Playwright load; `bake_world.py` ALBEDO table is stale; the `world-capture.mjs` `view=` freezes the camera so `hover=` stills need a framed capture.
 
 ## Token plan (owner-approved 2026-11-02, governs how the work runs)
 
