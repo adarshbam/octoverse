@@ -100,9 +100,16 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
   const now = useWorldTime();
   const motionAmount = useMotionAmount();
   const gl = useThree(state => state.gl);
-  // The noise is drawn once, before the first frame, and kept for the life of the floor.
+  // The noise is drawn before the first frame, and again if the context is restored.
   const noise = useMemo(() => makeNoiseTarget(), []);
-  useLayoutEffect(() => bakeNoise(gl, noise), [gl, noise]);
+  useLayoutEffect(() => {
+    bakeNoise(gl, noise);
+    // A lost WebGL context takes the target's pixels with it: draw them again once it is restored
+    // (three.js's own listener, added first, has by then rebuilt its state).
+    const redraw = () => bakeNoise(gl, noise);
+    gl.domElement.addEventListener('webglcontextrestored', redraw);
+    return () => gl.domElement.removeEventListener('webglcontextrestored', redraw);
+  }, [gl, noise]);
   useDisposables(useMemo(() => [noise], [noise]));
   const { geometry, material, time, motion, disposables } = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(WIDTH, NEAR_Z - FAR_Z, ...SEABED.segments);

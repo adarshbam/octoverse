@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { UrlState } from '../behavior/urlState';
 import { FrameProbe, type QualityTier, TIER_SETTINGS, pickTier } from './quality';
 
@@ -24,6 +24,14 @@ export function startingTier(url: UrlState): { tier: QualityTier; adaptive: bool
 export function useQuality(url: UrlState) {
   const [start] = useState(() => startingTier(url));
   const [tier, setTier] = useState(start.tier);
+  // Dev server only: lets a browser test force a tier change (the frame probe's step, on demand).
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as unknown as { __noxSetTier?: (tier: QualityTier) => void }).__noxSetTier = setTier;
+    return () => {
+      delete (window as unknown as { __noxSetTier?: unknown }).__noxSetTier;
+    };
+  }, []);
   return { tier, settings: TIER_SETTINGS[tier], adaptive: start.adaptive, step: setTier };
 }
 

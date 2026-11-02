@@ -28,5 +28,9 @@ export const WORLD_TIERS: Record<QualityTier, WorldTier> = {
  */
 export const stoneCastsShadow = (tier: WorldTier) => tier.shadowMap > 1024;
 
-/** Whether the stone and seabed draw their baked relief and its specular (per-fragment extras, R36): the full world only. */
-export const reliefShown = stoneCastsShadow;
+/**
+ * Whether the stone and seabed draw their baked relief and its specular (per-fragment extras, R36):
+ * the full world only. Its own decision; it shares only the test with the shadows, by the tier whose
+ * surface light has the large shadow map.
+ */
+export const reliefShown = (tier: WorldTier) => tier.shadowMap > 1024;

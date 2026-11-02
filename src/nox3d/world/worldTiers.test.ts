@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { WORLD_TIERS } from './worldTiers';
+import { RELIEF_GATE, setReliefGate } from './bakedLight';
+import { WORLD_TIERS, reliefShown, stoneCastsShadow } from './worldTiers';
 
 test('world tiers scale down monotonically', () => {
   const { high, medium, low } = WORLD_TIERS;
@@ -14,6 +15,30 @@ test('world tiers scale down monotonically', () => {
   }
 });
 
-test('high is the full world', () => {
-  expect(WORLD_TIERS.high).toEqual({ particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true });
+test('every tier is pinned', () => {
+  expect(WORLD_TIERS).toEqual({
+    high: { particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
+    medium: { particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
+    low: { particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
+  });
+});
+
+test('the stone casts shadows and shows its relief at high only', () => {
+  expect(stoneCastsShadow(WORLD_TIERS.high)).toBe(true);
+  expect(stoneCastsShadow(WORLD_TIERS.medium)).toBe(false);
+  expect(stoneCastsShadow(WORLD_TIERS.low)).toBe(false);
+  expect(reliefShown(WORLD_TIERS.high)).toBe(true);
+  expect(reliefShown(WORLD_TIERS.medium)).toBe(false);
+  expect(reliefShown(WORLD_TIERS.low)).toBe(false);
+});
+
+test('the relief gate follows the tier and goes back to shown', () => {
+  const gate = (tier: keyof typeof WORLD_TIERS) => {
+    const restore = setReliefGate(reliefShown(WORLD_TIERS[tier]));
+    const value = RELIEF_GATE.value;
+    restore();
+    expect(RELIEF_GATE.value).toBe(1);
+    return value;
+  };
+  expect([gate('high'), gate('medium'), gate('low')]).toEqual([1, 0, 0]);
 });

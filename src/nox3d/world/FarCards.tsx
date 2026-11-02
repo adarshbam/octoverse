@@ -55,6 +55,9 @@ export function FarCards({ plate, scale = 1, onSettled }: { plate: NonNullable<W
     });
     return () => {
       current = false;
+      // The cards must stop drawing what is about to be disposed: a disposed texture that is still
+      // drawn is uploaded to the GPU again, and nothing would dispose that copy.
+      setMaps(old => (old.every(m => m === null) ? old : old.map(() => null)));
       loaded.forEach(texture => texture.dispose());
       release();
     };

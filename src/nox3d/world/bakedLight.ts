@@ -141,6 +141,14 @@ export function reliefOf(light: BakedLight, map: THREE.Texture): Relief {
  */
 export const RELIEF_GATE = { value: 1 };
 
+/** Sets the relief gate for a tier's decision; the returned function puts it back to shown. */
+export function setReliefGate(shown: boolean) {
+  RELIEF_GATE.value = shown ? 1 : 0;
+  return () => {
+    RELIEF_GATE.value = 1;
+  };
+}
+
 /**
  * Patches a lit material's shader for its lightmap; without a lightmap it does nothing.
  *

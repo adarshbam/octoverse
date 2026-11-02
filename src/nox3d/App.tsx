@@ -154,6 +154,9 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
   return null;
 }
 
+/** How long `__noxReady` waits for the far plate's layers before it goes ahead without them. */
+const PLATE_WAIT_MS = 20_000;
+
 /** Frames drawn after the scene (and with it the world) has loaded before it counts as ready. */
 const READY_FRAMES = 40;
 
@@ -189,6 +192,12 @@ export function App() {
   // The far plate's layers load outside Suspense; `__noxReady` waits for them.
   const [plateReady, setPlateReady] = useState(!url.world);
   const settlePlate = useCallback(() => setPlateReady(true), []);
+  // A layer that neither loads nor fails (a request left hanging) must not hold the flag for good.
+  useEffect(() => {
+    if (plateReady) return;
+    const timer = setTimeout(settlePlate, PLATE_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [plateReady, settlePlate]);
   const visible = usePageVisible();
   // The pixels drawn per CSS pixel: the device's, up to the tier's cap, times the tier's render scale.
   const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio, quality.settings.dpr)) * quality.settings.renderScale;
