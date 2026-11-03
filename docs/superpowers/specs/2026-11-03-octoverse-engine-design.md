@@ -215,6 +215,8 @@ Validation (`clampCharacterConfig`) clamps every new field. A field absent from 
 - `post: { contactShadow, bloom, vignette }` moves in from the global `POST`.
 - `live` set: today's six shares stay; a world may add named live elements it supplies a renderer module for (kelp, seagrass). That is the same closed-table rule as head effects (section 9).
 - `floor.material` names a floor shader variant from a closed list (`'lava-cracks'`, `'sand'`, `'moss'`), added by the world that needs it.
+- `props: { id, node, drive }[]` names animatable parts of the kit (Veyra's gate: a padlock ring that turns and clicks). `node` is a named node in the kit glTF; `drive` is one of a small closed set (`'rotateZ'`, `'emissive'`). A sequence object in the world's Theatre state targets a prop by id (`SequenceSet.kitDrives`), so the entrance can turn the ring without engine code that knows about gates. A world with no props declares none; Nox declares none.
+- The entrance's gate, path and clearance inputs come from the bundle's layout and props, never from the security realm's constants.
 - `camera: { tilt, hover }` (hover amount per world).
 
 ## 7. Ownership boundaries
@@ -285,7 +287,7 @@ Closed variant sets, with who needs them:
 | `ArtifactConfig.strategy` | `'orbit'` (Nox) | `'pendant'` (Veyra) once the owner settles item 5 below |
 | `floor.material`, extra live elements | `'lava-cracks'` | with the world that needs each |
 
-`HEAD_EFFECTS`, `ARTIFACT_STRATEGIES` and the like are plain `Record<Id, Module>` tables in the engine. The cost of adding a variant is one module, one table entry and one test. This is the same weight as the master plan's "shared extension points" in F02.
+`HEAD_EFFECTS`, `ARTIFACT_STRATEGIES` and the like are plain `Record<Id, Module>` tables in the engine, and the id unions are derived from them (`type HeadEffectId = keyof typeof HEAD_EFFECTS`). Adding a variant is therefore one module, one table entry and one test, with no other edit to shared code. That meets Veyra's real concern (a closed union scattered through shared code would force edits there) without runtime registration. It is the same weight as the master plan's "shared extension points" in F02.
 
 ### 9.1 Head effect module
 
@@ -373,7 +375,7 @@ Every existing effect and authored pose, where it goes, and how its preservation
 | `keys.ts` Nox defaults for `entrance`, `bubbleBlow`, `headSwell`, `arrival` | `worlds/nox/sequences/defaults.ts` | `theatre.test`; the check that the Theatre JSON and the defaults agree |
 | `state/octoverse.theatre.json` | `worlds/nox/sequences/state.theatre.json` (content unchanged) | JSON diff is empty |
 | `theatre.ts` loader | `engine/sequences/` taking `{ projectId, state, defaults }` | `theatre.test` |
-| `entrance.ts` run logic and path; `ARM_HALF_SPAN`, `PILLAR_HALF` | Run logic to `engine/sequences/`; path, clearance inputs and the layout they test against to the bundle | `entrance.test` (clearance against the Nox layout) |
+| `entrance.ts` run logic and path; `ARM_HALF_SPAN`, `PILLAR_HALF` | Run logic to `engine/sequences/`; path, clearance inputs, the layout they test against and any gate prop to the bundle. Nox's entrance has no gate prop and runs as today. | `entrance.test` (clearance against the Nox layout) |
 | `bubbleBlow.ts`, `BLOW_MOUTH` | Logic to engine; `BLOW_MOUTH` is computed from the bundle's head and face at instance creation, not at module load | `bubbleBlow.test`; blow stills (`?blow=<s>`) |
 | `headSwell.ts` | Engine; sheet from the bundle | `headSwell.test`; swell stills |
 
@@ -480,15 +482,17 @@ Measure with `scripts/perf.mjs` only (pane closed, back to back, 1536 x 1024, pi
 
 ## 15. Veyra reconciliation
 
-Source: Veyra's first list, relayed 2026-11-03. "Accepted" means included above as written.
+Source: Veyra's full answers, relayed 2026-11-03 (they supersede its first list). "Accepted" means included above as written.
 
 | # | Veyra's need | Outcome |
 |---|---|---|
 | 1 | Cheek lobes optional; tip-curl tightness and cup style as config | Accepted (6.3). |
 | 2 | "Jelly glass" mantle mode, single pass; sparkle term; no hue assumed by shaders | Accepted. `skin.mode`, `skin.sparkle`, the hard-coded hue list in 4.2 moves to config. The jelly shader is built against Veyra in F01, not speculatively now. |
 | 3 | Face fully from config; expression presets per character | Accepted. Lash count and style, brow thickness and an expression tuning table become config. |
-| 4 | `HeadEffectId` an open registry; `vaultDial` | **Modified.** Closed union plus a `HEAD_EFFECTS` table in the engine, extended when Veyra builds `vaultDial` (section 9). No runtime registration. |
-| 5 | Tech artifact strategy per world; Nox `orbit`, Veyra `pendant` with its own appear and select | **Provisional.** The type carries both (9.2); only `orbit` is built. `pendant` is built in F01 if the owner settles item 5 that way. Shared parts (glass, logos, buttons, tooltip, tray) unchanged. |
+| 4 | `HeadEffectId` an open registry; `vaultDial`; the effect gets swell progress and the dome frame | **Modified.** A `HEAD_EFFECTS` table in the engine with the id union derived from it, so adding `vaultDial` is one module and one entry with no other shared-code edit. No runtime registration. The module receives the swell progress and dome frame (9.1). |
+| 5 | Tech artifact strategy per world (layout strategy as data); Nox `orbit`, Veyra `pendant` or reuse of the Nox shells; appear (bloom from a cup) and select (arm lifts its orb) per world | **Provisional (owner deciding).** The type carries both (9.2); only `orbit` is built. If the owner picks the shells for Veyra, no new strategy is needed. `pendant`, `bloom` and `armLift` are built in F01 if the owner picks them. Blow and suction hold stay shared modules either way. |
+| 5b | The entrance's gate with an animatable part (padlock ring turns and clicks), tested against Veyra's layout | Accepted, new since the first list: `place.props` and `SequenceSet.kitDrives` (6.4). |
+| 5c | Face anchor per character (the face sits lower on a taller dome) | Already in the contract: `stage.faceAnchor` is bundle data, and the two duplicated anchor computations collapse into one function that reads it (11.6). |
 | 6 | Poses owned by the character; blender shared | Accepted (6.2, 7). |
 | 7 | World config: per-world kit and Blender script; open light and relic enums; live-element set; floor material; fog; camera tilt and hover | Accepted with closed tables for floor materials and extra live elements (6.4, 9). |
 | 8 | Personality: settle overshoot, glide/stroke bias, flourish rate; Theatre sequences and entrance clearance per world; no physics | Accepted; physics is out of the engine entirely. |
