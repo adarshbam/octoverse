@@ -6,7 +6,7 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 6.5,
+        "length": 7.5,
         "type": "PositionalSequence",
         "tracksByObject": {
           "main": {
@@ -229,7 +229,7 @@
                 "keyframes": [
                   {
                     "id": "entrance-000k",
-                    "position": 4.5,
+                    "position": 5.5,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -241,7 +241,7 @@
                   },
                   {
                     "id": "entrance-000l",
-                    "position": 5.5,
+                    "position": 6.5,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -263,7 +263,7 @@
                 "keyframes": [
                   {
                     "id": "entrance-000n",
-                    "position": 5.5,
+                    "position": 6.5,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -275,7 +275,7 @@
                   },
                   {
                     "id": "entrance-000o",
-                    "position": 6.5,
+                    "position": 7.5,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -343,7 +343,7 @@
                   },
                   {
                     "id": "entrance-000u",
-                    "position": 4.5,
+                    "position": 5.5,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -355,7 +355,7 @@
                   },
                   {
                     "id": "entrance-000v",
-                    "position": 5.5,
+                    "position": 6.5,
                     "connectedRight": false,
                     "handles": [
                       0.5,

@@ -92,7 +92,7 @@ export interface OctopusProps {
   entranceSheet?: EntranceSheet;
   /** With `freeze`: the moment of the entrance shown, in seconds. */
   entranceSeconds?: number;
-  /** The settle has begun (5.5 s): the intro's words come in. */
+  /** The settle has begun (6.5 s): the intro's words come in. */
   onEntranceSettling?: () => void;
   /** The entrance has run its course: Nox faces the visitor in the intro pose. */
   onEntranceDone?: () => void;

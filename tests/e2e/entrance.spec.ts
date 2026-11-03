@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// The entrance (design 9.6, Task 19): Nox swims in out of the murk for 6.5 s, spins into place and
+// The entrance (design 9.6, Task 19): Nox swims in out of the murk for 7.5 s, spins into place and
 // settles; the intro's words come in as he settles. Each test runs in a fresh browser context, so a
 // first visit.
 const skip = (page: Page) => page.getByRole('button', { name: 'Skip intro' });
@@ -21,8 +21,8 @@ const holdClock = async (page: Page) => {
 // grows with the steps it may take, so a busy machine slows the test without failing it. (Not
 // expect.poll: it sleeps up to a second of wall time between steps, 8 s of its budget here.)
 const STEP_MS = 250;
-/** Steps the first visit may take for the words to come in: 9 s of page time; they come at 5.5 s, as Nox settles. */
-const ENTRANCE_STEPS = 36;
+/** Steps the first visit may take for the words to come in: 10 s of page time; they come at 6.5 s, as Nox settles. */
+const ENTRANCE_STEPS = 40;
 /** Wall time allowed per step (15 frames at most 0.25 s each), and for the rest of the test. */
 const STEP_WALL_MS = 4_000;
 const REST_WALL_MS = 30_000;
@@ -66,11 +66,11 @@ test('first visit shows the entrance, a reload in the same session goes straight
     expect(steps++, `the intro's words within ${ENTRANCE_STEPS} steps of ${STEP_MS} ms`).toBeLessThan(ENTRANCE_STEPS);
     await page.clock.runFor(STEP_MS);
   }
-  // They came as he settled (5.5 s), not before.
+  // They came as he settled (6.5 s), not before.
   expect((await entrance(page))?.settle ?? 0).toBeGreaterThan(0);
   await expect(skip(page)).toBeHidden();
-  // The entrance runs its course (6.5 s) into the intro; the session remembers it.
-  await entranceAt(page, 6.5);
+  // The entrance runs its course (7.5 s) into the intro; the session remembers it.
+  await entranceAt(page, 7.5);
   await page.clock.runFor(STEP_MS);
   await page.reload();
   await opened(page);
@@ -92,8 +92,8 @@ test('skip mid-spin lands in the intro', async ({ page }) => {
   await page.goto('/');
   await opened(page);
   await sheetLoaded(page);
-  // 5.0 s in, on the paused clock: Nox is half way round his turn (4.5 to 5.5 s).
-  await entranceAt(page, 5.0);
+  // 6.0 s in, on the paused clock: Nox is half way round his turn (5.5 to 6.5 s).
+  await entranceAt(page, 6.0);
   const now = await entrance(page);
   expect(now?.spin ?? 0).toBeGreaterThan(0.1);
   expect(now?.spin ?? 1).toBeLessThan(0.9);

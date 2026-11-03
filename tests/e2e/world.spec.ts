@@ -76,7 +76,7 @@ test('stage stays usable when world assets fail', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Skip intro' })).toBeVisible();
   // On a busy machine the entrance can end by itself first (and the button goes): the heading comes either way.
   // The page can draw no frames for seconds while it loads, so the click does not wait for the button to be
-  // stable, and the heading may wait out the whole entrance (6.5 s of frame time, paused through stalls).
+  // stable, and the heading may wait out the whole entrance (7.5 s of frame time, paused through stalls).
   await page.getByRole('button', { name: 'Skip intro' }).click({ timeout: 3_000, force: true }).catch(() => {});
   await expect(page.getByRole('heading', { level: 1, name: 'Security Lab' })).toBeVisible({ timeout: 30_000 });
   await page.goto('/?stage=intro');

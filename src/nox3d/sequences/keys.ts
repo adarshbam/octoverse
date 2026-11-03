@@ -66,8 +66,16 @@ export const ENTRANCE_SPIRAL = { r0: 0.9, phase: Math.PI + Math.atan((1 - GOLDEN
 /** Where the swim ends and the arc begins: the spot plus the spiral's start. */
 const ARC_START = [ENTRANCE_SPIRAL.r0 * Math.sin(ENTRANCE_SPIRAL.phase), 0, ENTRANCE_SPIRAL.r0 * Math.cos(ENTRANCE_SPIRAL.phase)] as const;
 
-/** The swim runs from 0 to 4.5 s; the spin follows to 5.5 s and the settle to 6.5 s. */
+/**
+ * The swim runs from 0 to 4.5 s (the last stroke's glide ends there); Nox holds for ENTRANCE_HOLD
+ * s, then the spin runs 5.5 to 6.5 s and the settle to 7.5 s.
+ */
 const SWIM_END = 4.5;
+/** Seconds between the end of the last stroke and the start of the spin (owner request, Task 19b). */
+export const ENTRANCE_HOLD = 1.0;
+const SPIN_START = SWIM_END + ENTRANCE_HOLD;
+const SPIN_END = SPIN_START + 1;
+const SETTLE_END = SPIN_END + 1;
 /**
  * The swim path's waypoints: deep in the corridor on the left, drifting to the centre, to the
  * arc's start. The path must clear the pillars with Nox's arms as they are (sequences/entrance.ts
@@ -117,12 +125,12 @@ function swimKeys() {
  * are "to be tuned live". So the stroke runs at Nox's own rate and the window opens a little
  * early: three whole strokes from 0.51 to 4.5 s (the first recovery as he comes out of the murk),
  * surges at about 1.0, 2.4 and 3.7 s. It ends on a whole stroke, the arms trailing with the tips
- * curled, so he turns and settles from the trail. The spin, settle and reveal keep their beats.
+ * curled, so he holds a second in the trail, then turns and settles. The reveal keeps its beat.
  */
 const STROKES = 3;
 
 const ENTRANCE: SequenceDefaults = {
-  length: 6.5,
+  length: SETTLE_END,
   objects: {
     main: {
       props: { x: WAYPOINTS[0][0], y: WAYPOINTS[0][1], z: WAYPOINTS[0][2], stroke: 0, spin: 0, settle: 0, reveal: 0, pitch: 0.45, yaw: 0, surge: 0.6 },
@@ -131,13 +139,13 @@ const ENTRANCE: SequenceDefaults = {
         // Stroke clock: whole strokes, at an even rate of one per NOX_STROKE_SECONDS.
         stroke: [[SWIM_END - STROKES * NOX_STROKE_SECONDS, 0, LINEAR], [SWIM_END, STROKES, LINEAR]],
         // One full turn along the spiral arc into the spot.
-        spin: [[4.5, 0], [5.5, 1]],
+        spin: [[SPIN_START, 0], [SPIN_END, 1]],
         // The arms open into the intro pose, the face lands on the gentle smile.
-        settle: [[5.5, 0], [6.5, 1]],
+        settle: [[SPIN_END, 0], [SETTLE_END, 1]],
         // Out of the murk: the glow and aura first, then the shape.
         reveal: [[0, 0], [1, 1]],
         // Leaning head first while swimming, upright by the end of the spin.
-        pitch: [[0, 0.45], [4.5, 0.45], [5.5, 0]],
+        pitch: [[0, 0.45], [SPIN_START, 0.45], [SPIN_END, 0]],
       },
     },
   },

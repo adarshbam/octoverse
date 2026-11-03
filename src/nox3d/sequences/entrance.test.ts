@@ -3,7 +3,7 @@ import { NOX } from '../config/nox.character';
 import { strokeAt } from '../motion/stroke';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, pathClearance, revealParts, spiralOffset } from './entrance';
-import { ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
+import { ENTRANCE_HOLD, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
 import { type Sequences, loadSequences } from './theatre';
 
 let seq: Sequences;
@@ -16,8 +16,8 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b
 const speed = (s: number, h = 0.005) => dist(at(s + h).position, at(s - h).position) / (2 * h);
 const timing = NOX.personality.swim;
 
-test('lasts 6.5 s and ends exactly at the intro spot facing the visitor', () => {
-  expect(ENTRANCE_SECONDS).toBe(6.5);
+test('lasts 7.5 s and ends exactly at the intro spot facing the visitor', () => {
+  expect(ENTRANCE_SECONDS).toBe(7.5);
   expect(SEQUENCE_DEFAULTS.entrance.length).toBe(ENTRANCE_SECONDS);
   const end = at(ENTRANCE_SECONDS);
   end.position.forEach(v => expect(Math.abs(v)).toBeLessThan(1e-9));
@@ -92,7 +92,7 @@ test('each stroke is a surge: Nox slows as the arms open and speeds up after the
   }
 });
 
-test('one full turn between 4.5 and 5.5 s along the spiral', () => {
+test('one full turn between 5.5 and 6.5 s along the spiral', () => {
   const { r0 } = ENTRANCE_SPIRAL;
   const radius = (spin: number) => Math.hypot(...spiralOffset(spin, r0));
   expect(radius(0)).toBeCloseTo(r0, 12);
@@ -103,15 +103,15 @@ test('one full turn between 4.5 and 5.5 s along the spiral', () => {
     last = radius(spin);
     expect(spiralOffset(spin, r0)[1]).toBe(0);
   }
-  expect(at(4.5).spin).toBe(0);
-  expect(at(5.5).spin).toBe(1);
+  expect(at(5.5).spin).toBe(0);
+  expect(at(6.5).spin).toBe(1);
   // The swim ends where the arc starts, and the arc ends on the spot.
-  expect(dist(at(4.5).position, spiralOffset(0, r0))).toBeLessThan(1e-9);
-  expect(dist(at(5.5).position, [0, 0, 0])).toBeLessThan(1e-9);
+  expect(dist(at(5.5).position, spiralOffset(0, r0))).toBeLessThan(1e-9);
+  expect(dist(at(6.5).position, [0, 0, 0])).toBeLessThan(1e-9);
   // Facing turns once round, the way the arc curls: on the arc Nox faces along his way.
   let turned = 0;
-  let yaw = at(4.5).yaw;
-  for (const s of times(4.5, 5.5, 0.002)) {
+  let yaw = at(5.5).yaw;
+  for (const s of times(5.5, 6.5, 0.002)) {
     const f = at(s);
     turned += Math.atan2(Math.sin(f.yaw - yaw), Math.cos(f.yaw - yaw));
     yaw = f.yaw;
@@ -129,6 +129,27 @@ test('one full turn between 4.5 and 5.5 s along the spiral', () => {
   expect(turned).toBeCloseTo(2 * Math.PI, 6);
 });
 
+// Owner request (Task 19b): the last stroke plays out (power and glide), Nox holds a second, then
+// the spin starts. The stroke clock reaches 3 when the last glide ends.
+test('a second of hold between the end of the last stroke and the start of the spin', () => {
+  const strokeEnd = times(0, ENTRANCE_SECONDS, 0.001).find(s => at(s).stroke >= 3 - 1e-9) as number;
+  const spinStart = times(0, ENTRANCE_SECONDS, 0.001).find(s => at(s).spin > 0) as number;
+  expect(strokeEnd).toBeCloseTo(4.5, 2);
+  expect(ENTRANCE_HOLD).toBeGreaterThanOrEqual(1);
+  expect(spinStart - strokeEnd).toBeGreaterThanOrEqual(1.0 - 0.002);
+  // The glide has played to its end by then, and nothing else moves in the hold: still, upright
+  // pitch held, face unchanged, arms in the trail.
+  expect(strokeAt(at(strokeEnd - 0.001).stroke, timing).phase).toBe('glide');
+  for (const s of times(strokeEnd, spinStart, 0.01)) {
+    const f = at(s);
+    expect(f.stroke).toBeCloseTo(3, 9);
+    expect(f.yaw).toBe(0);
+    expect(f.pitch).toBeCloseTo(0.45, 9);
+    expect(f.settle).toBe(0);
+    expect(dist(f.position, at(strokeEnd).position)).toBeLessThan(1e-9);
+  }
+});
+
 test('the path clears every pillar', () => {
   expect(pathClearance(at, SECURITY_WORLD.layout)).toBeGreaterThan(0.1);
 });
@@ -141,10 +162,10 @@ test('murk first: reveal is 0 at the start', () => {
 });
 
 test('leans head first while swimming, upright by the end of the spin; the face lands on gentle as he settles', () => {
-  for (const s of [0, 2, 4.5]) expect(at(s).pitch).toBeCloseTo(0.45, 6);
-  expect(at(5.5).pitch).toBeCloseTo(0, 9);
-  expect(at(5.4).expression).toBe('happy');
-  expect(at(5.6).expression).toBe('gentle');
+  for (const s of [0, 2, 4.5, 5.5]) expect(at(s).pitch).toBeCloseTo(0.45, 6);
+  expect(at(6.5).pitch).toBeCloseTo(0, 9);
+  expect(at(6.4).expression).toBe('happy');
+  expect(at(6.6).expression).toBe('gentle');
 });
 
 test('no jumps: the body moves smoothly all the way', () => {

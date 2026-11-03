@@ -63,7 +63,7 @@ test('every arm moves smoothly through a whole entrance of strokes and the settl
     for (const id of ARM_IDS) for (let k = 0; k < SEGMENTS; k++) worst = Math.max(worst, Math.abs(wrap(next[id].angles[k] - prev[id].angles[k])));
     prev = next;
   }
-  // 2000 steps over a 6.5 s entrance is 3 ms a step; no joint turns more than about 6 degrees in it.
+  // 2000 steps over the entrance is 3 ms a step; no joint turns more than about 6 degrees in it.
   expect(worst).toBeLessThan(0.1);
 });
 

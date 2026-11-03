@@ -13,7 +13,7 @@ import type { Sequences } from './theatre';
 // follow-through is in the stroke drives, which the stage takes from `stroke` and `settle`.
 
 /** The entrance's length in seconds: the sheet's length. */
-export const ENTRANCE_SECONDS = 6.5;
+export const ENTRANCE_SECONDS = 7.5;
 
 export interface EntranceFrame {
   /** The body's place: stage units, (0, 0, 0) being the intro spot. */
