@@ -1,6 +1,7 @@
 # Veyra in 3D: Character, Vault World and Motion Design
 
 Date: 2026-11-03
+Status: approved by the owner, 2026-11-03.
 Branch: `claude/veyra-design-3b1c3c` (docs only)
 Packets: master plan F01 (Veyra static) and F02 (Veyra behaviour and engine validation).
 References (read-only, main checkout): `docs/design/references/Veyra.jpeg` (panels P1 to P5), `girlfriend-reference.jpg` (character DNA), `docs/design/── DESIGN-SPEC.md` (Veyra: cyan, teal, emerald, underwater ruins, secure vault, soft bioluminescence; "Veyra — The Keeper of Files").
