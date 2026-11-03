@@ -22,9 +22,12 @@ export function pinnedHover(offset: Vec3): { offset: Vec3; look: Vec3 } {
   return { offset, look: [offset[0] / 3, moved ? -0.05 : 0, -24] };
 }
 
-/** Target hover amount: intro and entering 1, overview 0.5, techFocus and detail 0; 0 while a bubble is hovered, and with reduced motion. */
-export function hoverTarget(stage: StageId, bubbleHovered: boolean, reducedMotion: boolean): number {
-  if (reducedMotion || bubbleHovered) return 0;
+/**
+ * Target hover amount: intro and entering 1, overview 0.5, techFocus and detail 0; 0 with reduced motion.
+ * Nothing a technology bubble does (hover, choice, the suction hold) enters it: the camera goes on drifting.
+ */
+export function hoverTarget(stage: StageId, reducedMotion: boolean): number {
+  if (reducedMotion) return 0;
   switch (stage) {
     case 'entering':
     case 'intro':
@@ -42,5 +45,5 @@ export function easeHover(amount: number, target: number, delta: number): number
   return amount < target ? Math.min(target, amount + step) : Math.max(target, amount - step);
 }
 
-/** Whether the pointer is on a technology bubble; the camera settles while it is. */
+/** Whether the pointer is on a technology bubble: the orbits ease to still and no arm reaches for the pointer while it is (the camera takes no notice). */
 export const bubblePointer = { hovered: false };

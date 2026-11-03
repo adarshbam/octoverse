@@ -87,6 +87,9 @@ export function createOrbMaterial(tint: string) {
     `,
     transparent: true,
     depthWrite: false,
+    // Nox's skin writes depth, so a bubble on the far side of his head or arms would be cut away by
+    // it: bubbles always show in front (TechBubbles draws them after all of his layers).
+    depthTest: false,
   });
 }
 
@@ -143,5 +146,6 @@ export function createOrbHaloMaterial(tint: string) {
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    depthTest: false,
   });
 }
