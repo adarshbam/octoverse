@@ -4,6 +4,7 @@
 // exactly the HQ panel 2 image (world (x, y) -> px (783.6 + 204.5 x, 495.4 - 204.5 y)), so a render
 // pixel is an HQ pixel.
 import { chromium } from '@playwright/test';
+import { waitForReady } from './capture-ready.mjs';
 const [stage, out, extra = ''] = process.argv.slice(2);
 if (!stage || !out) throw new Error('usage: world-capture.mjs <stage> <out.png> [extra]');
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
@@ -16,14 +17,8 @@ for (const mask of [false, true]) {
   page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
   page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
   await page.goto(base + query(mask), { waitUntil: 'load' });
-  if (mask) await page.waitForTimeout(2500);
-  else {
-    // The world's kit (6 MB) loads and its shaders compile before the first frame, and a headless
-    // page is not drawn to until it is first captured: take one early shot, then let it settle.
-    await page.waitForTimeout(1000);
-    await page.screenshot();
-    await page.waitForTimeout(5000);
-  }
+  // Waits for `__noxReady` (the world's kit and far plate drawn, 40 frames), then a short settle.
+  await waitForReady(page, { mask, label: `${stage} ` });
   const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
   await page.screenshot({ path });
   console.log('saved', path);
