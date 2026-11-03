@@ -1,3 +1,5 @@
+import type { CharacterConfig } from '../config/types';
+
 export type ExpressionId = 'gentle' | 'happy' | 'focused' | 'attentive' | 'curious' | 'restful' | 'blow';
 
 /** Authored face shape, all values roughly -1..1 or 0..1. */
@@ -38,6 +40,27 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   // (sequences/bubbleBlow.ts) puffs the face it is on; this is the face at the top of a puff.
   blow: { ...GENTLE, puff: 1, mouthRound: 1 },
 };
+
+/** Every expression id, in the base table's order (the URL parser accepts these). */
+export const EXPRESSION_IDS = Object.keys(EXPRESSIONS) as readonly ExpressionId[];
+
+/**
+ * The faces a character wears: the base table with the character's own overrides merged over it,
+ * key by key (amendment A1, G1). No new ids: an override changes an existing face. A character
+ * with none gets the base table's values unchanged. Every reader goes through this, never `EXPRESSIONS`.
+ */
+export function resolveExpressions(config: Pick<CharacterConfig, 'expressions'>): Record<ExpressionId, ExpressionParams> {
+  const overrides = config.expressions ?? {};
+  const table = {} as Record<ExpressionId, ExpressionParams>;
+  for (const id of EXPRESSION_IDS) {
+    const face: ExpressionParams = { ...EXPRESSIONS[id] };
+    for (const [key, value] of Object.entries((overrides[id] ?? {}) as Record<string, number | undefined>)) {
+      if (value !== undefined) (face as unknown as Record<string, number>)[key] = value;
+    }
+    table[id] = face;
+  }
+  return table;
+}
 
 /**
  * While swimming Nox blinks at a slower rate (spec 9.5): the wait between blinks is his

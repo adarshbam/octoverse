@@ -72,7 +72,7 @@ function hideSpots(live: BubbleLive) {
  * each frame the bubbles' places on the page are written to `bubbleLive`. Lives in body space, so
  * the bubbles go with Nox.
  */
-export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble[]; state: () => BubbleState }) {
+export function TechBubbles({ bubbles, state, focusColour }: { bubbles: readonly PlacedBubble[]; state: () => BubbleState; focusColour: string }) {
   const { bubbleLive } = useInstance();
   const group = useRef<THREE.Group>(null);
   const parts = useMemo(() => {
@@ -83,12 +83,12 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
       plane,
       items: bubbles.map(bubble => ({
         bubble,
-        glass: createOrbMaterial(logoColour(bubble.iconKey)),
-        halo: createOrbHaloMaterial(logoColour(bubble.iconKey)),
+        glass: createOrbMaterial(logoColour(bubble.iconKey), focusColour),
+        halo: createOrbHaloMaterial(logoColour(bubble.iconKey), focusColour),
         logo: createOrbLogoMaterial(logoTexture(bubble.iconKey)),
       })),
     };
-  }, [bubbles]);
+  }, [bubbles, focusColour]);
 
   useEffect(() => () => {
     parts.sphere.dispose();

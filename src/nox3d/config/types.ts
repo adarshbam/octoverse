@@ -2,6 +2,9 @@
 // reads only these values; a new character is a new config, not new code.
 // Units are world units (1 unit = 100 storyboard panel px, +y up).
 
+import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
+import type { StageLighting } from './lighting';
+
 export const ARM_IDS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const;
 export type ArmId = (typeof ARM_IDS)[number];
 export type Point2 = readonly [number, number];
@@ -48,6 +51,10 @@ export interface GlowShape {
   reachDown: number;
   /** Mantle colour by glow strength (0 = unlit, 1 = core), sRGB hex. */
   ramp: readonly (readonly [number, string])[];
+  /** The glow card behind the face: the sRGB hex colour of its warm core. */
+  core: string;
+  /** The face glow's point light in a world, and the particles' tint taken from it. */
+  light: GlowLightSettings;
   /** How strongly the face glow warms the cheek lobes, 0 to 1. */
   cheekWarmth: number;
   /** How brightly the red oral band glows along each arm's underside, 0 to 2. */
@@ -59,6 +66,14 @@ export interface GlowShape {
   grade: GradeSettings;
 }
 
+/** The face glow's light: sRGB hex colour, intensity, reach (world units, nothing at or past it) and decay. */
+export interface GlowLightSettings {
+  color: string;
+  intensity: number;
+  distance: number;
+  decay: number;
+}
+
 /**
  * The aura: a soft glow in the water round Nox, drawn behind him and added to what is there.
  * `inner` at and above the body's middle, turning to `low` below it (sRGB hex); `radius` is how
@@ -67,6 +82,8 @@ export interface GlowShape {
 export interface AuraSettings {
   inner: string;
   low: string;
+  /** The aura is all `low` this far below the body's middle, as a share of `radius`. */
+  belowStart: number;
   radius: number;
   strength: number;
 }
@@ -125,6 +142,17 @@ export interface Palette {
   domeRim: string;
   domeRimTop: string;
   domeSheen: string;
+  /** The hot ring a technology's orb glows with while it is in focus. */
+  orbFocus: string;
+  /** The head effect's strokes (a soft halo, the stroke, a hot core): CSS colours, as the canvas takes them. */
+  effect: EffectColours;
+}
+
+/** A head effect's three colours: the wide soft halo, the stroke, and the thin hot core. */
+export interface EffectColours {
+  halo: string;
+  stroke: string;
+  core: string;
 }
 
 /**
@@ -374,6 +402,8 @@ export type HeadEffectId = 'none' | 'glyphs';
 
 export interface CharacterConfig {
   id: string;
+  /** How the stage lights the character. */
+  lighting: StageLighting;
   head: HeadShape;
   glow: GlowShape;
   palette: Palette;
@@ -393,4 +423,6 @@ export interface CharacterConfig {
   headEffect: HeadEffectId | null;
   skin: SkinDetail;
   personality: Personality;
+  /** Per-character changes to the engine's base faces, merged over it by `resolveExpressions` (a missing id or key is the base). */
+  expressions?: Partial<Record<ExpressionId, Partial<ExpressionParams>>>;
 }

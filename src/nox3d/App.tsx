@@ -3,6 +3,7 @@ import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessi
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { resolveExpressions } from './behavior/expressions';
 import { FOCUS_BEATS } from './behavior/focusChoreography';
 import { HOLD_BEATS } from './artifacts/suctionHold';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
@@ -352,7 +353,7 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   // from the entrance, in Octopus), so when it ends he is already there.
   // A technology focus keeps the stage it came from (the intro or the overview) for pose, framing and words.
   const shown: StageId = state.stage === 'techFocus' ? state.returnTo : state.stage;
-  const blender = useMemo(() => new PoseBlender(stagePoseOf(reviewSwim, state.stage === 'entering' ? 'intro' : shown), segments), [segments]);
+  const blender = useMemo(() => new PoseBlender(stagePoseOf(reviewSwim, state.stage === 'entering' ? 'intro' : shown), segments, undefined, resolveExpressions(config)), [segments, config]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
   const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
   const frame = useRef<HTMLDivElement>(null);

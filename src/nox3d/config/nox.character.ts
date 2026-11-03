@@ -1,3 +1,4 @@
+import { INTRO_LIGHTING } from './lighting';
 import type { ArmSpec, CharacterConfig } from './types';
 
 // Nox, measured against Nox.jpeg panel 2 in the 3D spike (commit 58cf458).
@@ -14,6 +15,7 @@ const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'f
 
 export const NOX: CharacterConfig = {
   id: 'nox',
+  lighting: INTRO_LIGHTING,
   // Dome, notch and cheeks traced from the panel 2 rim line (junction v2).
   head: {
     centerX: 0.01, halfWidth: 0.752, waist: -0.44, top: 0.255, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.035, -0.42],
@@ -21,6 +23,10 @@ export const NOX: CharacterConfig = {
   },
   glow: {
     center: [0.05, -0.97, 0.6],
+    // The warm card behind the face, and the point light the face glow casts in a world (moved
+    // here from literals in Octopus.tsx and glowLight.ts at the same values).
+    core: '#ff4a2a',
+    light: { color: '#ff4a30', intensity: 5, distance: 6, decay: 2 },
     spreadX: 0.58,
     reachUp: 0.45,
     reachDown: 0.2,
@@ -43,7 +49,7 @@ export const NOX: CharacterConfig = {
     // In a world (panel 2): a magenta-violet glow in the water round him, deep red below, and
     // the water near him darker and warmer than the far blue. Tuned in Task 5 against the water
     // 10 to 60 px round him in panel 2: dark violet above, red below.
-    aura: { inner: '#1c0628', low: '#ff0a18', radius: 3.6, strength: 1 },
+    aura: { inner: '#1c0628', low: '#ff0a18', belowStart: 0.75, radius: 3.6, strength: 1 },
     grade: { color: '#1c0612', radius: 4, strength: 1 },
   },
   // The Task 5 palette (R23), measured against panel 2 in the world and approved by the owner as
@@ -73,6 +79,9 @@ export const NOX: CharacterConfig = {
     domeRim: '#ff3a78',
     domeRimTop: '#ff86c4',
     domeSheen: '#ff8fc8',
+    // The in-focus orb's edge (panel 4) and the red runes of the head swell (moved from literals).
+    orbFocus: '#ff2e5a',
+    effect: { halo: 'rgba(255,24,44,0.5)', stroke: '#ff2c3c', core: '#ffb49c' },
   },
   face: {
     // Placed and sized from panel 2; border, lid and iris layers traced from the

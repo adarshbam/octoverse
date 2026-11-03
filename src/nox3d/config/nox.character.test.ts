@@ -92,3 +92,22 @@ test('the halo keeps its widths and strengths', () => {
 test('Nox has exactly eight arms, T1 to T8', () => {
   expect(NOX.arms.map(arm => arm.id)).toEqual(['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8']);
 });
+
+// Task 4: the hues and lighting that were literals in the renderer now live in the config, at the
+// values they had. Written out here so an edit to the config cannot change them quietly.
+test('the hues moved out of the renderer are the literals they replaced', () => {
+  expect(NOX.glow.core).toBe('#ff4a2a');
+  expect(NOX.glow.light).toEqual({ color: '#ff4a30', intensity: 5, distance: 6, decay: 2 });
+  expect(NOX.glow.aura.belowStart).toBe(0.75);
+  expect(NOX.palette.orbFocus).toBe('#ff2e5a');
+  expect(NOX.palette.effect).toEqual({ halo: 'rgba(255,24,44,0.5)', stroke: '#ff2c3c', core: '#ffb49c' });
+});
+
+test('the stage lighting is the intro lighting', () => {
+  expect(NOX.lighting).toEqual({
+    key: { direction: [-0.3, 0.95, 0.1], color: '#efe4ff', intensity: 1.0, wrap: 0.18 },
+    underglow: { color: '#ff4a3c', intensity: 0.42, wrap: 0.6 },
+    ambient: { sky: '#26309a', ground: '#8a1428', intensity: 0.2 },
+    haze: { color: '#1a0c30', near: 0.15, far: 0.9, strength: 0.4 },
+  });
+});

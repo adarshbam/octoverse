@@ -2,9 +2,6 @@ import * as THREE from 'three';
 import type { AuraSettings } from '../config/types';
 import type { RGB } from './worldAccent';
 
-/** The aura is all `low` this far below the body's middle, as a share of its radius. */
-const RED_BELOW = 0.75;
-
 const linear = (hex: string): RGB => {
   const c = new THREE.Color(hex);
   return [c.r, c.g, c.b];
@@ -15,7 +12,7 @@ const linear = (hex: string): RGB => {
  * and above it, turning deep red (`low`) below. Mirrors the GLSL.
  */
 export function auraColour(dy: number, aura: AuraSettings): RGB {
-  const t = THREE.MathUtils.smoothstep(-dy, 0, RED_BELOW * aura.radius);
+  const t = THREE.MathUtils.smoothstep(-dy, 0, aura.belowStart * aura.radius);
   const [a, b] = [linear(aura.inner), linear(aura.low)];
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
@@ -54,7 +51,7 @@ export function createAuraMaterial(aura: AuraSettings) {
       varying vec2 vOffset;
       void main() {
         float fade = 1.0 - smoothstep(0.0, uRadius, length(vOffset));
-        vec3 colour = mix(uInner, uLow, smoothstep(0.0, ${RED_BELOW} * uRadius, -vOffset.y));
+        vec3 colour = mix(uInner, uLow, smoothstep(0.0, ${aura.belowStart.toFixed(4)} * uRadius, -vOffset.y));
         gl_FragColor = vec4(colour * uStrength, fade * fade);
       }
     `,

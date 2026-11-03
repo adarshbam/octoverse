@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
+import { EXPRESSION_IDS } from './expressions';
 import { defaultReviewOptions, parseUrlState } from './urlState';
 
 test('parses stage, freeze and view', () => {
@@ -7,6 +8,10 @@ test('parses stage, freeze and view', () => {
 
 test('ignores unknown stages and malformed views', () => {
   expect(parseUrlState('?stage=nope&view=1,2')).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false, studio: false });
+});
+
+test('accepts every base expression id', () => {
+  for (const id of EXPRESSION_IDS) expect(parseUrlState(`?expression=${id}`).expression).toBe(id);
 });
 
 test('parses expression', () => {

@@ -49,3 +49,15 @@ test('the aura card glows additively behind Nox and never writes depth', () => {
   expect(m.uniforms.uInner.value.getHexString()).toBe(aura.inner.slice(1));
   expect(m.uniforms.uLow.value.getHexString()).toBe(aura.low.slice(1));
 });
+
+test('where the aura turns red below the body is the config, not a constant', () => {
+  const aura = NOX.glow.aura;
+  expect(aura.belowStart).toBe(0.75);
+  // All `low` from belowStart * radius below the middle; a nearer start reaches it sooner.
+  expect(auraColour(-aura.belowStart * aura.radius, aura)).toEqual(auraColour(-5, aura));
+  const near = { ...aura, belowStart: 0.25 };
+  expect(auraColour(-0.25 * aura.radius, near)).toEqual(auraColour(-5, near));
+  expect(auraColour(-0.25 * aura.radius, aura)).not.toEqual(auraColour(-5, aura));
+  expect(createAuraMaterial(near).fragmentShader).toContain('smoothstep(0.0, 0.2500 * uRadius');
+  expect(createAuraMaterial(aura).fragmentShader).toContain('smoothstep(0.0, 0.7500 * uRadius');
+});

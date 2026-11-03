@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { GlowLightSettings } from '../config/types';
 import type { RGB } from './worldAccent';
 
 // In a world, Nox's face glow lights what is round him. A point light reaches the seabed, the
@@ -6,8 +7,13 @@ import type { RGB } from './worldAccent';
 // lights, so their shaders take the same light as a tint, with three's falloff and a cap. Outside
 // a world the tint is black.
 
-/** The face glow's light: sRGB colour, intensity, reach (world units, nothing at or past it) and decay. */
-export const GLOW_LIGHT = { color: '#ff4a30', intensity: 5, distance: 6, decay: 2 } as const;
+/**
+ * The reach and decay the particles' shaders are compiled with (`GLOW_LIGHT_GLSL`): the same as
+ * Nox's `glow.light.distance` and `decay` (a test holds them equal). The light's colour and
+ * intensity come from the character's config; threading these two through the world's particle
+ * materials is the world config's job (Task 5).
+ */
+export const PARTICLE_REACH = { distance: 6, decay: 2 } as const;
 /** Where that light sits from the face glow (world units): below and in front, so it reaches the seabed. */
 export const GLOW_LIGHT_OFFSET = new THREE.Vector3(0, -0.42, 0.5);
 /**
@@ -20,14 +26,14 @@ export const PARTICLE_GLOW = 0.25 / Math.PI;
 export const PARTICLE_GLOW_CAP = 0.35;
 
 /** three's point-light falloff (getDistanceAttenuation) at `distance` from the light, for its reach and decay. Mirrors the GLSL. */
-export function glowFalloff(distance: number): number {
-  const edge = THREE.MathUtils.clamp(1 - (distance / GLOW_LIGHT.distance) ** 4, 0, 1);
-  return (edge * edge) / Math.max(distance ** GLOW_LIGHT.decay, 0.01);
+export function glowFalloff(distance: number, light: Pick<GlowLightSettings, 'distance' | 'decay'>): number {
+  const edge = THREE.MathUtils.clamp(1 - (distance / light.distance) ** 4, 0, 1);
+  return (edge * edge) / Math.max(distance ** light.decay, 0.01);
 }
 
 /** The tint on a particle at `distance` from the light, for `light` as the particles take it; its brightest channel capped. Mirrors the GLSL. */
-export function particleGlow(distance: number, light: RGB): RGB {
-  const k = glowFalloff(distance);
+export function particleGlow(distance: number, light: RGB, reach: Pick<GlowLightSettings, 'distance' | 'decay'>): RGB {
+  const k = glowFalloff(distance, reach);
   const peak = Math.max(...light) * k;
   const scale = peak > PARTICLE_GLOW_CAP ? (k * PARTICLE_GLOW_CAP) / peak : k;
   return [light[0] * scale, light[1] * scale, light[2] * scale];
@@ -47,17 +53,18 @@ export function createGlowLightUniforms() {
 export const NO_NOX_LIGHT: GlowLightUniforms = createGlowLightUniforms();
 
 /**
- * Sets the particles' light to the face glow's: its linear colour times intensity times
- * PARTICLE_GLOW, times `strength` (1 unless the glow is dimmed, as when Nox comes out of the murk).
+ * Sets the particles' light to the face glow's (`light`, the character's `glow.light`): its linear
+ * colour times intensity times PARTICLE_GLOW, times `strength` (1 unless the glow is dimmed, as
+ * when Nox comes out of the murk).
  */
-export function lightParticles(uniforms: GlowLightUniforms, strength = 1) {
-  uniforms.uNoxLight.value.set(GLOW_LIGHT.color).multiplyScalar(GLOW_LIGHT.intensity * PARTICLE_GLOW * strength);
+export function lightParticles(uniforms: GlowLightUniforms, light: GlowLightSettings, strength = 1) {
+  uniforms.uNoxLight.value.set(light.color).multiplyScalar(light.intensity * PARTICLE_GLOW * strength);
 }
 
 /** Declarations and `noxGlow(at)`, the tint on a particle at world position `at`, for a particle's vertex shader. */
 export const GLOW_LIGHT_GLSL = /* glsl */ `
-  #define NOX_GLOW_REACH ${GLOW_LIGHT.distance.toFixed(4)}
-  #define NOX_GLOW_DECAY ${GLOW_LIGHT.decay.toFixed(4)}
+  #define NOX_GLOW_REACH ${PARTICLE_REACH.distance.toFixed(4)}
+  #define NOX_GLOW_DECAY ${PARTICLE_REACH.decay.toFixed(4)}
   #define NOX_GLOW_CAP ${PARTICLE_GLOW_CAP.toFixed(4)}
   uniform vec3 uNoxLightPos;
   uniform vec3 uNoxLight;

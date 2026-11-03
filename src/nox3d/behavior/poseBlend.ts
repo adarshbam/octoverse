@@ -1,7 +1,7 @@
 import { type ArmRest, ArmChain, restFromCurve } from '../character/armChain';
 import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
 import type { StagePose } from '../poses/types';
-import { EXPRESSIONS, type ExpressionParams, blendExpression } from './expressions';
+import { EXPRESSIONS, type ExpressionId, type ExpressionParams, blendExpression } from './expressions';
 
 /** A pose part-way between two stages: arm rests, body placement, face and head shape. */
 export interface BlendedPose {
@@ -51,12 +51,12 @@ export function settledArms(pose: StagePose, segments: number) {
   return arms;
 }
 
-function settle(pose: StagePose, segments: number): BlendedPose {
+function settle(pose: StagePose, segments: number, faces: Record<ExpressionId, ExpressionParams>): BlendedPose {
   return {
     // Shared and never written: the blender copies before it changes anything.
     arms: settledArms(pose, segments),
     body: { ...pose.body },
-    expression: { ...EXPRESSIONS[pose.expression] },
+    expression: { ...faces[pose.expression] },
     headMorph: pose.headMorph,
     orbs: pose.orbs,
     tilt: pose.tilt ?? 0,
@@ -95,11 +95,17 @@ export class PoseBlender {
    */
   readonly layout: Record<ArmId, ArmRest>;
 
-  /** `segments` per arm follows the quality tier. */
-  constructor(initial: StagePose, segments = ArmChain.SEGMENTS, layout: StagePose = initial) {
+  private readonly faces: Record<ExpressionId, ExpressionParams>;
+
+  /**
+   * `segments` per arm follows the quality tier. `faces` is the character's resolved expression
+   * table (`resolveExpressions(config)`); the base table when none is given.
+   */
+  constructor(initial: StagePose, segments = ArmChain.SEGMENTS, layout: StagePose = initial, faces: Record<ExpressionId, ExpressionParams> = EXPRESSIONS) {
     this.segments = segments;
+    this.faces = faces;
     this.layout = settledArms(layout, segments);
-    this.to = settle(initial, segments);
+    this.to = settle(initial, segments, faces);
     this.from = copyPose(this.to);
     this.current = copyPose(this.to);
   }
@@ -107,7 +113,7 @@ export class PoseBlender {
   /** With `delayMs`, the pose holds where it is until then, so a change can wait for its beat. */
   start(target: StagePose, nowMs: number, durationMs = 700, staggerMs = 40, delayMs = 0) {
     this.from = copyPose(this.sample(nowMs));
-    this.to = settle(target, this.segments);
+    this.to = settle(target, this.segments, this.faces);
     this.startMs = nowMs + delayMs;
     this.durationMs = durationMs;
     this.staggerMs = staggerMs;

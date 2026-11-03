@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { CharacterConfig, DomeShape, HeadEffectId } from '../config/types';
+import type { CharacterConfig, DomeShape, EffectColours, HeadEffectId } from '../config/types';
 import { RUNES } from '../world/textures';
 
 // Nox's head effect (ledger R57, the owner's words: "Glowing red glyphs"): as the head swells into
@@ -55,7 +55,7 @@ export function glyphLayout(dome: DomeShape): GlyphPlace[] {
 const CELL = 128;
 
 /** The runes side by side, each drawn as the world's panels draw theirs: a soft glow, the red stroke and a hot core, on black. */
-function createGlyphAtlas() {
+function createGlyphAtlas(effect: EffectColours) {
   const canvas = document.createElement('canvas');
   canvas.width = CELL * GLYPH_RUNES.length;
   canvas.height = CELL;
@@ -67,7 +67,7 @@ function createGlyphAtlas() {
     const rune = RUNES[name];
     const cx = CELL * (k + 0.5);
     const cy = CELL / 2;
-    for (const [width, color, blur] of [[15, 'rgba(255,24,44,0.5)', 26], [8, '#ff2c3c', 10], [3, '#ffb49c', 3]] as const) {
+    for (const [width, color, blur] of [[15, effect.halo, 26], [8, effect.stroke, 10], [3, effect.core, 3]] as const) {
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.lineCap = 'round';
@@ -97,13 +97,13 @@ function createGlyphAtlas() {
  * `uTime` (seconds; held at 0 with motion off, so the runes stand still) and `uStrength` (the
  * glow's brightness). Place the mesh at the dome's seat; scaling it scales the crown with the glass.
  */
-export function createHeadGlyphs(dome: DomeShape, strength = 1.3) {
+export function createHeadGlyphs(dome: DomeShape, effect: EffectColours, strength = 1.3) {
   const places = glyphLayout(dome);
   const geometry = new THREE.PlaneGeometry(1, 1);
   geometry.setAttribute('aCell', new THREE.InstancedBufferAttribute(Float32Array.from(places, p => p.cell), 1));
   geometry.setAttribute('aDelay', new THREE.InstancedBufferAttribute(Float32Array.from(places, p => p.delay), 1));
   geometry.setAttribute('aPhase', new THREE.InstancedBufferAttribute(Float32Array.from(places, p => p.phase), 1));
-  const map = createGlyphAtlas();
+  const map = createGlyphAtlas(effect);
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uMap: { value: map },
@@ -171,9 +171,9 @@ export function createHeadGlyphs(dome: DomeShape, strength = 1.3) {
  * alone, as approved), and none in a silhouette capture, where they would read as shape.
  */
 export function glyphsFor<T = ReturnType<typeof createHeadGlyphs>>(
-  config: Pick<CharacterConfig, 'headEffect' | 'dome'>,
+  config: Pick<CharacterConfig, 'headEffect' | 'dome'> & { palette: Pick<CharacterConfig['palette'], 'effect'> },
   silhouette: boolean,
-  make: (dome: DomeShape) => T = createHeadGlyphs as unknown as (dome: DomeShape) => T,
+  make: (dome: DomeShape, effect: EffectColours) => T = createHeadGlyphs as unknown as (dome: DomeShape, effect: EffectColours) => T,
 ): T | null {
-  return drawsGlyphs(config.headEffect) && !silhouette ? make(config.dome) : null;
+  return drawsGlyphs(config.headEffect) && !silhouette ? make(config.dome, config.palette.effect) : null;
 }

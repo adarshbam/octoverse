@@ -64,3 +64,38 @@ test('keeps the underside band strength within 0..2', () => {
   expect(band(-1)).toBe(0);
   expect(band(0.95)).toBe(0.95);
 });
+
+test('a legacy config with none of the Task 4 fields validates and reads the Nox defaults', () => {
+  const { lighting: _lighting, ...rest } = NOX;
+  const { core: _core, light: _light, aura, ...glow } = NOX.glow;
+  const { belowStart: _belowStart, ...legacyAura } = aura;
+  const { orbFocus: _orbFocus, effect: _effect, ...palette } = NOX.palette;
+  const legacy = { ...rest, glow: { ...glow, aura: legacyAura }, palette };
+  expect(legacy).not.toHaveProperty('lighting');
+  expect(legacy.glow).not.toHaveProperty('core');
+  expect(legacy.glow).not.toHaveProperty('light');
+  expect(legacy.glow.aura).not.toHaveProperty('belowStart');
+  expect(legacy.palette).not.toHaveProperty('orbFocus');
+  expect(legacy.palette).not.toHaveProperty('effect');
+  const read = clampCharacterConfig(legacy);
+  expect(read).toEqual(clampCharacterConfig(NOX));
+  expect(read).toEqual(NOX);
+});
+
+test('clamps the new glow, lighting and expression fields into safe ranges', () => {
+  const wild = {
+    ...NOX,
+    lighting: { ...NOX.lighting, key: { ...NOX.lighting.key, intensity: 50, wrap: 3 } },
+    glow: { ...NOX.glow, light: { ...NOX.glow.light, intensity: 500, distance: 0, decay: 9 }, aura: { ...NOX.glow.aura, belowStart: -3 } },
+    expressions: { curious: { browLift: 7, puff: -2 } },
+  };
+  const c = clampCharacterConfig(wild);
+  expect(c.lighting.key.intensity).toBe(4);
+  expect(c.lighting.key.wrap).toBe(1);
+  expect(c.glow.light).toEqual({ ...NOX.glow.light, intensity: 20, distance: 0.5, decay: 4 });
+  expect(c.glow.aura.belowStart).toBe(0.05);
+  expect(c.expressions).toEqual({ curious: { browLift: 1, puff: 0 } });
+  // The colours pass through as given.
+  expect(c.glow.core).toBe(NOX.glow.core);
+  expect(c.palette.effect).toEqual(NOX.palette.effect);
+});

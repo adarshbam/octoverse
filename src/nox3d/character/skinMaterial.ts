@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { headMorphVertex } from './headMorph';
-import { INTRO_LIGHTING, type StageLighting } from '../config/lighting';
+import type { StageLighting } from '../config/lighting';
 import type { CharacterConfig } from '../config/types';
 import { cheekCentres } from './headGeometry';
 import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
@@ -56,7 +56,7 @@ const glsl = (v: number) => v.toFixed(3);
 export type SkinUniforms = ReturnType<typeof createSkinUniforms>;
 
 /** One uniform set per character, shared by every skin surface so glow moves together. */
-export function createSkinUniforms(config: CharacterConfig, lighting: StageLighting = INTRO_LIGHTING) {
+export function createSkinUniforms(config: CharacterConfig, lighting: StageLighting = config.lighting) {
   const { palette: p, glow, skin } = config;
   const color = (hex: string) => ({ value: new THREE.Color(hex) });
   const [[lx, ly], [rx, ry]] = config.face.eye.centers;

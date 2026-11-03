@@ -1,7 +1,9 @@
 import { expect, test } from 'vitest';
 import { FaceCanvas } from '../character/FaceCanvas';
 import { NOX } from '../config/nox.character';
-import { EXPRESSIONS, type FaceParams, blendExpression } from './expressions';
+import { NOX_POSES } from '../poses/nox.poses';
+import { EXPRESSIONS, EXPRESSION_IDS, type FaceParams, blendExpression, resolveExpressions } from './expressions';
+import { PoseBlender } from './poseBlend';
 
 test('blendExpression is endpoint exact and linear', () => {
   expect(blendExpression(EXPRESSIONS.gentle, EXPRESSIONS.gentle, 0.5)).toEqual(EXPRESSIONS.gentle);
@@ -103,4 +105,31 @@ test('focused (panel 4) is keen, not sleepy: lids only a little lowered and an o
   expect(f.lidRest).toBeLessThanOrEqual(0.15);
   expect(f.mouthOpen).toBeGreaterThan(0.3);
   expect(f.mouthCurve).toBeGreaterThan(EXPRESSIONS.gentle.mouthCurve);
+});
+
+test('resolveExpressions of Nox is the base table, key for key', () => {
+  expect(NOX.expressions).toBeUndefined();
+  expect(resolveExpressions(NOX)).toEqual(EXPRESSIONS);
+  // A copy: the base table is not handed out to be written.
+  expect(resolveExpressions(NOX).gentle).not.toBe(EXPRESSIONS.gentle);
+});
+
+test('an override changes only its own key of its own expression', () => {
+  const table = resolveExpressions({ ...NOX, expressions: { curious: { browLift: 0.5 } } });
+  expect(table.curious).toEqual({ ...EXPRESSIONS.curious, browLift: 0.5 });
+  for (const id of EXPRESSION_IDS) {
+    if (id !== 'curious') expect(table[id]).toEqual(EXPRESSIONS[id]);
+  }
+  expect(EXPRESSIONS.curious.browLift).toBe(0.2);
+  // An override can add a key the base face leaves out, and an undefined value is no override.
+  const blow = resolveExpressions({ ...NOX, expressions: { gentle: { puff: 0.4, browTilt: undefined } } });
+  expect(blow.gentle).toEqual({ ...EXPRESSIONS.gentle, puff: 0.4 });
+});
+
+test('the blender starts a pose in the resolved face, not the base one', () => {
+  const faces = resolveExpressions({ ...NOX, expressions: { gentle: { mouthCurve: 0.9 } } });
+  const stock = new PoseBlender(NOX_POSES.intro).sample(0).expression;
+  const own = new PoseBlender(NOX_POSES.intro, undefined, undefined, faces).sample(0).expression;
+  expect(stock).toEqual(EXPRESSIONS[NOX_POSES.intro.expression]);
+  expect(own).toEqual(faces[NOX_POSES.intro.expression]);
 });

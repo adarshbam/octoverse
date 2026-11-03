@@ -10,12 +10,14 @@ export const DUMMY: CharacterConfig = {
   id: 'dummy',
   glow: {
     ...NOX.glow,
+    core: '#30e0b8',
+    light: { color: '#30c8a8', intensity: 4, distance: 5, decay: 2 },
     ramp: [
       [0, '#041a2c'], [0.07, '#06303c'], [0.17, '#0a4a4a'], [0.27, '#10665a'], [0.37, '#1c8466'],
       [0.49, '#3ca470'], [0.61, '#76c070'], [0.74, '#b4d868'], [0.94, '#e4e670'], [1, '#fff08a'],
     ],
     halo: { ...NOX.glow.halo, color: '#20d0a8', crown: '#2870d8', band: '#e8b010' },
-    aura: { inner: '#04202e', low: '#e8a808', radius: 3.2, strength: 0.8 },
+    aura: { inner: '#04202e', low: '#e8a808', belowStart: 0.6, radius: 3.2, strength: 0.8 },
     grade: { ...NOX.glow.grade, color: '#04141c' },
   },
   palette: {
@@ -41,6 +43,8 @@ export const DUMMY: CharacterConfig = {
     domeRim: '#30e0c0',
     domeRimTop: '#9af0e0',
     domeSheen: '#a0f0e8',
+    orbFocus: '#30e0c0',
+    effect: { halo: 'rgba(32,208,168,0.5)', stroke: '#20d0a8', core: '#b4f0e0' },
   },
   headEffect: 'none',
   personality: {

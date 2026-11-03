@@ -164,7 +164,7 @@ test('headEffect none renders the approved dome', () => {
   }
   const make = vi.fn(() => sentinel);
   expect(glyphsFor(NOX, false, make)).toBe(sentinel);
-  expect(make).toHaveBeenCalledWith(NOX.dome);
+  expect(make).toHaveBeenCalledWith(NOX.dome, NOX.palette.effect);
   const masked = vi.fn(() => sentinel);
   expect(glyphsFor(NOX, true, masked)).toBeNull();
   expect(masked).not.toHaveBeenCalled();

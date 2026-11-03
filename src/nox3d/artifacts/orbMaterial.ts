@@ -7,17 +7,18 @@ import * as THREE from 'three';
  * highlights as short arcs along the rim, outside the logo: a long one up left from the key
  * light, short dashes up right, low right and low left. `uOpacity` fades it in with the overview.
  */
-/** The hot red-pink ring a technology's orb glows with while it is in focus (panel 4). */
-export const ORB_FOCUS_COLOUR = '#ff2e5a';
-
-export function createOrbMaterial(tint: string) {
+/**
+ * `focusColour` is the hot ring a technology's orb glows with while it is in focus (panel 4): the
+ * character's `palette.orbFocus`.
+ */
+export function createOrbMaterial(tint: string, focusColour: string) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTint: { value: new THREE.Color(tint) },
       uOpacity: { value: 0 },
-      /** How far the orb is in focus (0..1): its edge turns to ORB_FOCUS_COLOUR and brightens. */
+      /** How far the orb is in focus (0..1): its edge turns to the focus colour and brightens. */
       uFocus: { value: 0 },
-      uFocusColour: { value: new THREE.Color(ORB_FOCUS_COLOUR) },
+      uFocusColour: { value: new THREE.Color(focusColour) },
     },
     vertexShader: /* glsl */ `
       varying vec3 vN;
@@ -111,12 +112,12 @@ export const ORB_HALO_SCALE = 1.16;
  * outline and gone at the shell's. Bright colours are held back as on the glass ring, so the
  * threshold bloom does not pick them up.
  */
-export function createOrbHaloMaterial(tint: string) {
+export function createOrbHaloMaterial(tint: string, focusColour: string) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTint: { value: new THREE.Color(tint) },
       uFocus: { value: 0 },
-      uFocusColour: { value: new THREE.Color(ORB_FOCUS_COLOUR) },
+      uFocusColour: { value: new THREE.Color(focusColour) },
       uOpacity: { value: 0 },
       uEdge: { value: Math.sqrt(1 - 1 / (ORB_HALO_SCALE * ORB_HALO_SCALE)) },
     },

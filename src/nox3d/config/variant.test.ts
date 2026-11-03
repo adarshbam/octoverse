@@ -25,6 +25,7 @@ const lookup = (root: unknown, path: string) => path.split('.').reduce<unknown>(
  */
 const INTENTIONALLY_EQUAL = [
   'palette.suckerShadow',
+  'glow.light.decay',
   'glow.center', 'glow.spreadX', 'glow.reachUp', 'glow.reachDown', 'glow.cheekWarmth', 'glow.underside',
   'glow.halo.headWidth', 'glow.halo.armWidth', 'glow.halo.strength', 'glow.halo.bandStrength',
   'glow.grade.radius', 'glow.grade.strength',

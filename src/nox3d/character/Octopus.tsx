@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
 import { coreGlowFacing } from '../behavior/entrance';
-import { EXPRESSIONS, type ExpressionId, SWIM_BLINK, blendExpression } from '../behavior/expressions';
+import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
@@ -31,7 +31,7 @@ import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { Aura } from './Aura';
 import { FACE_RECT, FaceCanvas } from './FaceCanvas';
-import { GLOW_LIGHT, GLOW_LIGHT_OFFSET, lightParticles } from './glowLight';
+import { GLOW_LIGHT_OFFSET, lightParticles } from './glowLight';
 import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
@@ -188,14 +188,16 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   // the seabed, stone and the world's lit pieces round him (his own skin lights itself and takes
   // none of it). A silhouette capture has none of them: they would draw as shape.
   const world = silhouette ? undefined : accents;
-  const glowLight = useMemo(() => (world ? new THREE.PointLight(GLOW_LIGHT.color, GLOW_LIGHT.intensity, GLOW_LIGHT.distance, GLOW_LIGHT.decay) : null), [world]);
+  // The faces this character wears: the engine's base table with its own overrides.
+  const faces = useMemo(() => resolveExpressions(config), [config]);
+  const glowLight = useMemo(() => (world ? new THREE.PointLight(config.glow.light.color, config.glow.light.intensity, config.glow.light.distance, config.glow.light.decay) : null), [world, config.glow.light]);
   useEffect(() => () => glowLight?.dispose(), [glowLight]);
   // The world's particles take no scene lights: they take the same light as a tint, black again when he leaves.
   useEffect(() => {
     if (!world) return;
-    lightParticles(world.light);
+    lightParticles(world.light, config.glow.light);
     return () => void world.light.uNoxLight.value.setScalar(0);
-  }, [world]);
+  }, [world, config.glow.light]);
 
   const rig = useMemo(() => {
     // In a world, the world's accents replace the skin's own all-zero ones.
@@ -248,7 +250,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       suckerBend,
       headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
       armMaterial: createSkinMaterial('ARM', uniforms),
-      coreGlow: createGlowMaterial('#ff4a2a', CORE_GLOW, 2.4),
+      coreGlow: createGlowMaterial(config.glow.core, CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
       glowLocal: new THREE.Vector3(...config.glow.center),
@@ -485,8 +487,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     }
     if (glowShown !== m.glowShown) {
       m.glowShown = glowShown;
-      if (world) lightParticles(world.light, glowShown);
-      if (glowLight) glowLight.intensity = GLOW_LIGHT.intensity * glowShown;
+      if (world) lightParticles(world.light, config.glow.light, glowShown);
+      if (glowLight) glowLight.intensity = config.glow.light.intensity * glowShown;
       const aura = auraMesh.current?.material as THREE.ShaderMaterial | undefined;
       if (aura) aura.uniforms.uStrength.value = config.glow.aura.strength * glowShown;
       const grade = gradeMesh.current?.material as THREE.ShaderMaterial | undefined;
@@ -543,13 +545,13 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // The face reacts to each technology in its own way (Kali: the focused face of panel 4;
     // others: a subtle curiosity), and the head tilts a little toward it.
     // Swimming in, the determined happy face, landing on the gentle smile as he settles.
-    let activeExpression = expression ? EXPRESSIONS[expression] : swim ? blendExpression(EXPRESSIONS.happy, EXPRESSIONS.gentle, swim.settle) : pose.expression;
+    let activeExpression = expression ? faces[expression] : swim ? blendExpression(faces.happy, faces.gentle, swim.settle) : pose.expression;
     let tiltTarget = 0;
     let strongest = 0;
     orbs.forEach((orb, i) => {
       const f = choreography.face(i);
       if (f <= 0) return;
-      activeExpression = blendExpression(activeExpression, EXPRESSIONS[orb.reaction ?? 'curious'], f);
+      activeExpression = blendExpression(activeExpression, faces[orb.reaction ?? 'curious'], f);
       if (f > strongest) {
         strongest = f;
         tiltTarget = 0.1 * f * (instance.bubbleLive.sides[i] ?? 1);
@@ -566,7 +568,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // show edge-on beside the face.
     rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw) * glowShown;
 
-    const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
+    const face = blendExpression(activeExpression, faces.restful, m.rest);
     // Startled, the brows jump and the eyes open wide.
     const startled = moving * flinch.eyes;
     rig.face.draw({
@@ -761,7 +763,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
