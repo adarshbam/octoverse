@@ -1,7 +1,7 @@
 # The OctoVerse Platform in 3D: Host, Landing, Visitor Routes and Creator
 
 Date: 2026-11-03
-Status: draft for the owner's approval.
+Status: approved by the owner, 2026-11-03.
 Branch: `platform-design`, cut from `claude/engine-contract-9ac935` and fast-forwarded to `1fccbfd` (A2 final; docs only).
 Packets: master plan I01 (platform static experience), I02 (visitor experience) and J01 (local creator). K00 to K05 (backend) come later and are out of scope.
 References (read-only, main checkout, `docs/design/references/Octoverse/`):
