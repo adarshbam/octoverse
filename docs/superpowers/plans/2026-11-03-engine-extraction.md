@@ -241,7 +241,7 @@ Also in this step: `expressions.test.ts`: `resolveExpressions(NOX)` deep-equals 
 
 ### Task 8b: Host options for embedding (amendment A2)
 
-**Amendment A2 is approved, so build this task** (spec 19; the platform's approach is picked, approved by the owner on 2026-11-03); otherwise skip it and renumber nothing: Tasks 9 onward do not depend on it. It extends `WorldHost` once, while it is being built, so the platform does not need a second pass.
+**Amendment A2 is approved by the owner (2026-11-03), so build this task** (spec 19). Tasks 9 onward do not depend on it. It extends `WorldHost` once, while it is being built, so the platform does not need a second pass.
 
 **Files:**
 - Create: `src/nox3d/host/useInstanceApi.ts`, `src/nox3d/host/options.ts`, `src/nox3d/ui/ExitLink.tsx`, `src/nox3d/host/options.test.ts`, `tests/e2e/embedding.spec.ts`
