@@ -298,7 +298,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       (mesh.material as THREE.Material).dispose();
     }
     for (const material of [rig.webMaterial, rig.headMaterial, rig.armMaterial, rig.coreGlow, rig.armHalo, rig.headHalo]) material.dispose();
-    rig.face.texture.dispose();
+    rig.face.dispose();
   }, [rig]);
 
   const motion = useRef({
@@ -573,6 +573,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       gazeX: gaze.gazeX,
       gazeY: gaze.gazeY,
     });
+    rig.face.upload(state.gl);
 
     // Breathing: the mantle swells slightly; arm roots stay buried in the web. At rest it slows
     // by 1.4x; the phase is carried forward so a change of pace never jumps.

@@ -39,7 +39,17 @@ const MOUTH_POINTS: readonly MouthPoint[] = ['start', 'c1', 'c2', 'end', 'l1', '
  * swapping drawings. Lids clip the eye, so the lit 3D skin shows when it blinks.
  */
 export class FaceCanvas {
-  readonly texture: THREE.CanvasTexture;
+  /** The face as the skin samples it: sRGB, mipmapped, anisotropic (the render target `upload` fills). */
+  readonly texture: THREE.Texture;
+  /**
+   * The canvas as uploaded: plain 8-bit RGBA (no sRGB format), because the browser copies a canvas
+   * into an sRGB texture by reading it back through the CPU, which stalled the GPU about 20 ms on
+   * every redraw (Intel UHD); into this one it copies on the GPU.
+   */
+  readonly staging: THREE.CanvasTexture;
+  readonly target: THREE.WebGLRenderTarget;
+  private readonly copy: { scene: THREE.Scene; camera: THREE.Camera; material: THREE.ShaderMaterial };
+  private dirty = false;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly layout: FaceLayout;
   private readonly palette: FacePalette;
@@ -52,14 +62,72 @@ export class FaceCanvas {
     this.ctx = canvas.getContext('2d')!;
     this.layout = layout;
     this.palette = palette;
-    this.texture = new THREE.CanvasTexture(canvas);
-    this.texture.colorSpace = THREE.SRGBColorSpace;
-    this.texture.anisotropy = 8;
+    this.staging = new THREE.CanvasTexture(canvas as HTMLCanvasElement);
+    this.staging.colorSpace = THREE.NoColorSpace;
+    this.staging.generateMipmaps = false;
+    this.staging.minFilter = this.staging.magFilter = THREE.NearestFilter;
+    // The same texture the skin sampled before (an sRGB canvas texture, mipmapped in linear light):
+    // the copy below writes the canvas's bytes into it unchanged.
+    this.target = new THREE.WebGLRenderTarget(SIZE, SIZE, {
+      colorSpace: THREE.SRGBColorSpace,
+      depthBuffer: false,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
+      magFilter: THREE.LinearFilter,
+      anisotropy: 8,
+    });
+    this.texture = this.target.texture;
+    const material = new THREE.ShaderMaterial({
+      uniforms: { uCanvas: { value: this.staging } },
+      vertexShader: /* glsl */ `
+        void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+      `,
+      // Texel for texel; decoded to linear here, encoded back to the same sRGB byte by the target.
+      fragmentShader: /* glsl */ `
+        uniform sampler2D uCanvas;
+        void main() {
+          vec4 c = texelFetch(uCanvas, ivec2(gl_FragCoord.xy), 0);
+          vec3 linear = mix(c.rgb / 12.92, pow((c.rgb + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c.rgb));
+          gl_FragColor = vec4(linear, c.a);
+        }
+      `,
+      blending: THREE.NoBlending,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    quad.frustumCulled = false;
+    const scene = new THREE.Scene();
+    scene.add(quad);
+    this.copy = { scene, camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), material };
+  }
+
+  /**
+   * Sends a redrawn face to the GPU: the canvas into the plain staging texture, then copied into
+   * the sRGB target the skin samples (which makes its mipmaps). Nothing to do when the face was not
+   * redrawn; returns whether it copied.
+   */
+  upload(gl: THREE.WebGLRenderer): boolean {
+    if (!this.dirty) return false;
+    this.dirty = false;
+    this.staging.needsUpdate = true;
+    const previous = gl.getRenderTarget();
+    gl.setRenderTarget(this.target);
+    gl.render(this.copy.scene, this.copy.camera);
+    gl.setRenderTarget(previous);
+    return true;
+  }
+
+  dispose() {
+    this.target.dispose();
+    this.staging.dispose();
+    this.copy.material.dispose();
+    for (const child of this.copy.scene.children) (child as THREE.Mesh).geometry.dispose();
   }
 
   /**
    * Redraws only when a parameter changed, and at most about 30 times a second (faceRedrawDue);
-   * returns whether the texture was updated. A change held back is drawn on a later frame.
+   * returns whether it was redrawn (`upload` then sends it to the GPU). A change held back is drawn on a later frame.
    */
   draw(p: FaceParams, nowMs = performance.now()): boolean {
     const key = [p.lidRest, p.lidBottom, p.browLift, p.browTilt, p.mouthCurve, p.mouthOpen, p.blush, p.blink, p.gazeX, p.gazeY, p.puff ?? 0, p.mouthRound ?? 0].map(v => v.toFixed(3)).join();
@@ -71,7 +139,7 @@ export class FaceCanvas {
     this.drawBrows(p);
     this.layout.eye.centers.forEach((center, i) => this.drawEye(center, i === 0 ? -1 : 1, p));
     this.drawMouth(p);
-    this.texture.needsUpdate = true;
+    this.dirty = true;
     return true;
   }
 
