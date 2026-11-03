@@ -68,11 +68,11 @@
 
 **Interfaces:**
 - Consumes: E02's `check_stage.py --world-id <id>` (reads `src/worlds/<id>/review/{stage,world}_samples.json`), `silhouette.py`.
-- Produces: `targets.json` = `{ samples: { name, x, y, size, rgb }[], deltaE: 10, warmContrast: 60, head: { halfWidth: [0.88, 0.96], top: [0.44, 0.52] }, armSpan: [3.75, 4.05], iou: 0.85, meanInside: { rgb, tolerance: 12, satTolerance: 0.04 } }`. Sample coordinates are in P2-crop pixels (crop origin x 512, y 0 of `Veyra.jpeg`).
+- Produces: `targets.json` = `{ samples: { name, x, y, size, rgb }[], deltaE: 10, warmContrast: 60, head: { halfWidth: [0.88, 0.96], top: [0.44, 0.52] }, armSpan: [3.75, 4.05], iou: 0.85, meanInside: { rgb, tolerance: 12, satTolerance: 0.04 } }`. Sample coordinates are native P2 panel pixels (spec 2.1).
 
 - [ ] **Step 1: Engine drift check.** Run `rg "export (const|type|interface|function) (WorldBundle|validateBundle|faceAnchor|HEAD_EFFECTS|PLACEMENTS|APPEARS|SELECTS|WORLDS|resolveWorld|themeVars|clampCharacterConfig)" src/engine src/worlds`. Write each name and its file at the top of `docs/superpowers/reviews/veyra.md` under "Engine as landed". If any differs from this plan, use the landed name throughout and note it there.
-- [ ] **Step 2: Crop P2.** `ffmpeg -i <main checkout>/docs/design/references/Veyra.jpeg -vf "crop=488:494:512:0" public/veyra/ref/p2.png` (copy only; never write to the main checkout). Make the mask with `python scripts/silhouette.py` as for Nox's panel 2, then check it by eye beside the crop; the mask excludes the title, nameplate and bubbles.
-- [ ] **Step 3: Write the samples and targets** from spec 2.1 and 2.2, converted to crop pixels (subtract 512 from x). Measure the mean colour inside the mask and write it to `meanInside.rgb`.
+- [ ] **Step 2: Copy P2.** Copy `<main checkout>/docs/design/references/Veyra/native-panels/02 - Veyra Arrives and Introduces Vault OS.png` to `public/veyra/ref/p2.png` (copy only; never write to the main checkout). For viewing and tracing, use the 3x panels in `docs/design/references/Veyra/`; never sample or trace detail from `docs/design/references/Veyra/regenerated/`. Make the mask with `python scripts/silhouette.py` as for Nox's panel 2, then check it by eye beside the crop; the mask excludes the title, nameplate and bubbles.
+- [ ] **Step 3: Write the samples and targets** from spec 2.1 and 2.2 (already native P2 pixels). Measure the mean colour inside the mask and write it to `meanInside.rgb`.
 - [ ] **Step 4: Write `targets.test.ts`:** `targets.json` has 13 samples; every sample's `rgb` equals the area mean of `p2.png` at its point within 1 per channel (decode the PNG with the same helper the Nox review tests use); the face-glow red minus the head-middle red is at least 60.
 - [ ] **Step 5: Run** `npx vitest run src/worlds/veyra/review`; expected PASS. Run `python scripts/check_stage.py public/veyra/ref/p2.png --stage intro --world-id veyra`; expected every sample delta E 0.0 and exit 0. This is the self-check.
 - [ ] **Step 6: Commit** `chore(veyra): P2 reference crop, mask, samples and targets`.
@@ -92,7 +92,7 @@
 - [ ] **Step 1: Write failing tests in `bundle.test.ts`:**
   - `validateBundle(VEYRA_BUNDLE)` does not throw.
   - `Object.keys(VEYRA_POSES.intro.arms)` equals `ARM_IDS`.
-  - `VEYRA.head.cheeks === null`.
+  - `VEYRA.head.cheeks.radius` is within `[0.08, 0.12]` (small blush lobes, spec 2.2).
   - `VEYRA.head.halfWidth` is within `[0.88, 0.96]` and `VEYRA.head.top` within `[0.44, 0.52]`.
   - `faceAnchor(VEYRA_BUNDLE, 'intro').y` is within 0.05 of -0.50.
   - `resolveWorld('?world=veyra').bundle.id === 'veyra'` with no warning.
@@ -100,7 +100,7 @@
   - `VEYRA_BUNDLE.content.technologies.length === 12`.
 - [ ] **Step 2: Run** `npx vitest run src/worlds/veyra`; expected FAIL (module missing).
 - [ ] **Step 3: Author `character.ts`** from spec 7.1 to 7.3 and 7.8:
-  - **Head:** no cheeks; `halfWidth` 0.92; `top` 0.48; `faceOrigin` so the eyes land at y -0.50.
+  - **Head:** small cheek lobes (radius 0.10) under the outer eyes; `halfWidth` 0.92; `top` 0.48; `faceOrigin` so the eyes land at y -0.50.
   - **Personality:** the spec 7.8 table: blink `[3.5, 8.5]`, double blink 0.12, `gazeOmega` 10, `headOmega` 2.4, sway 0.4, curl 1.4, float 0.06 / 7.5 s, breath 5.4 s, swim 0.65 / 0.26 / 1.0 with fill 0.04 and squeeze 0.06.
   - **Palette and face palette:** start values from the spec 2.1 samples; Task 7 tunes them.
   - **Skin:** `mode: 'skin'` until Task 4.
@@ -114,18 +114,26 @@
 ### Task 3: Engine variant: jelly skin mode and sparkles
 
 **Files:**
-- Modify: `src/engine/types/` (`SkinDetail.mode: 'skin' | 'jelly'`, `SkinDetail.sparkle: number`, `SkinDetail.jelly?: JellySettings`), `src/engine/character/skinMaterial.ts`, `src/engine/config/validate.ts`
-- Modify: `src/worlds/veyra/character.ts` (`skin.mode: 'jelly'`)
+- Modify: `src/engine/types/` (`SkinDetail.surfaces?: { mantle: SurfaceLook; arms: SurfaceLook }`), `src/engine/character/skinMaterial.ts` (mantle and arm materials both read their own `SurfaceLook`), `src/engine/config/validate.ts`
+- Modify: `src/worlds/veyra/character.ts` (both surfaces `mode: 'jelly'`)
 - Test: `src/engine/character/skinMaterial.test.ts`, `src/engine/config/validate.test.ts`
 
 **Interfaces:**
-- Produces: `JellySettings = { rim: string; rimPower: number; crown: string; crownHeight: number; depth: string; depthStrength: number; coreWarmth: number }`; `skin.sparkle` is specks per square world unit (0 = off; Nox 0); a `uSparkleWave` uniform (0 to 1, the crown-to-face shimmer used in Task 18). Every colour (rim, crown, depth, core) is config read into uniforms, never a shader constant: Flux reuses this mode (amendment A1).
+- Produces (amendment A1, spec 18.2: per surface, because Aether's arms are translucent and Flux reuses the mantle mode):
+  - `SurfaceLook = { mode: 'skin' | 'jelly'; jelly?: JellySettings; sparkle: number }`.
+  - `JellySettings = { rim: string; rimPower: number; crown: string; crownHeight: number; depth: string; depthStrength: number; core: string; coreCenter: readonly [number, number, number]; coreWarmth: number }`.
+  - Every colour (rim, crown, depth, core) and the core position are config read into uniforms, never shader constants.
+  - `sparkle` is specks per square world unit (0 = off).
+  - Absent `surfaces` reproduces Nox (`skin` on both, sparkle 0).
+  - A `uSparkleWave` uniform (0 to 1): the crown-to-face shimmer used in Task 18.
 
 - [ ] **Step 1: Failing tests.**
-  - `createSkinMaterial` with `mode: 'jelly'` compiles: run the material through `renderer.compile` in the existing headless GL test harness, or assert the generated fragment source contains the `JELLY` define.
+  - `createSkinMaterial` with a jelly `SurfaceLook` compiles. Run the material through `renderer.compile` in the existing headless GL test harness, or assert the generated fragment source contains the `JELLY` define.
   - It allocates no render target.
-  - `mode: 'skin'` produces a fragment source identical to the pre-change string (snapshot taken before the edit).
-  - `clampCharacterConfig` keeps `sparkle` in `[0, 400]` and defaults `mode` to `'skin'`.
+  - A Nox config (no `surfaces`) produces mantle and arm fragment sources identical to the pre-change strings (snapshots taken before the edit).
+  - A config with jelly on `arms` only gives a jelly arm material and a skin mantle.
+  - Changing `jelly.core` or `coreCenter` changes only uniform values, never the shader source.
+  - `clampCharacterConfig` keeps each `sparkle` in `[0, 400]` and defaults `mode` to `'skin'`.
 - [ ] **Step 2: Run** `npx vitest run src/engine/character/skinMaterial.test.ts src/engine/config`; expected FAIL.
 - [ ] **Step 3: Implement the jelly branch** as a `#define`, one pass:
   - **Fresnel rim:** `pow(1 - n·v, rimPower)` toward `rim`.
@@ -144,7 +152,7 @@
 - Test: `suckerRow.test.ts`, `suckerMaterial.test.ts`
 
 **Interfaces:**
-- Produces: `SuckerStyle = { rimWidth: number; scallop: number; edge: string; rim: string; hollow: string; glow: number }`. Here `scallop` (0 to 1) is how far each cup's outer edge stands proud of the arm silhouette. Absent `style` reproduces Nox exactly.
+- Produces: `SuckerStyle = { rimWidth: number; scallop: number; edge: string; rim: string; hollow: string; glow: number }`. Here `scallop` (0 to 1) is how far each cup's outer edge stands proud of the arm silhouette. Absent `style` reproduces Nox exactly. Every colour is config: Aether reuses this style in pink-white (amendment A1). The test also checks that two configs differing only in colours produce identical geometry.
 
 - [ ] **Step 1: Failing tests.** In `suckerRow.test.ts`, with `scallop: 0.6` on a straight test arm, every cup's outermost point lies outside the arm radius by at least 0.3 x cup radius, and cup radii fall monotonically toward the tip. With `style` absent, the output equals the current fixture.
 - [ ] **Step 2: Run** them; expected FAIL.
@@ -174,8 +182,8 @@ Raise this with the engine owner before starting (gap G1 in the report). `EXPRES
 - Modify: `src/worlds/veyra/character.ts` (`face`, `facePalette`, `expressions`)
 - Test: `src/worlds/veyra/bundle.test.ts` (face cases)
 
-- [ ] **Step 1: Failing tests.** `VEYRA.face.eye.lashes.length === 1` per eye (one outer flick); `VEYRA.facePalette.iris` is green (each stop's green above red and blue); the brow thickness is below Nox's; `blush` is peach-pink (red at least 230).
-- [ ] **Step 2: Author** the layout and palette from spec 7.3, traced at 3x zoom from `p2.png`:
+- [ ] **Step 1: Failing tests.** `VEYRA.face.eye.lashes.length === 2` (two short outer lashes); the iris inset is toward the nose (`iris.inset > 0`); `VEYRA.facePalette.iris` is green (each stop's green above red and blue); the brow thickness is below Nox's; `blush` is peach-pink (red at least 230).
+- [ ] **Step 2: Author** the layout and palette from spec 7.3, traced from the 3x P2 panel (`docs/design/references/Veyra/02 - …png`), with the intro head tilt of about 10 degrees in `VEYRA_POSES.intro`:
   - **Eyes:** large round, green iris top to bottom, black pupil, two catchlights, warm white sclera.
   - **Lash:** one outer lash.
   - **Brows:** thin, high, raised.
@@ -269,7 +277,7 @@ Raise this with the engine owner before starting. These are contract 14.1 deferr
 
 **Files:**
 - Create: `blender/vault/bake_world.py`, `blender/vault/render_far.py`, `public/veyra/world/near.glb`, `public/veyra/world/far/*.webp`, `src/worlds/veyra/place/far.json`
-- Create: `src/engine/world/membraneMaterial.ts` (registered as a kit material variant for nodes named `membrane*`)
+- Create: `src/engine/world/membraneMaterial.ts`, registered as the shared `KIT_MATERIAL_VARIANTS.membrane` (amendment A1) with colour params `{ color: string; edge: string; flowSpeed: number; flowScale: number; flash: number }`. A world assigns it to a kit node by name in its config; nothing in the shader is Veyra's.
 - Modify: `src/worlds/veyra/place/config.ts` (`VAULT_WORLD` replaces `VAULT_STAGE` in the bundle)
 - Test: `membraneMaterial.test.ts`, `src/worlds/veyra/place/config.test.ts`
 
@@ -329,6 +337,8 @@ Raise this with the engine owner before starting. These are contract 14.1 deferr
   - `pendantSwing(attachVelocity: Vec3, t: number, state: SwingState, reducedMotion: boolean): { angle: number; state: SwingState }`: a driven sine on the attach point's horizontal velocity with an exponential decay envelope (contract 9.2; no physics). `|angle| <= 25°`, and the swing settles to idle within 1.2 s after the arm stops.
   - `TetherStyle = { length: number; color: string; width: number; sag: number; cap: string }`.
   - `threadClearance(pose, slots, faceRect): number`: the minimum distance from any thread or orb to another arm or the face.
+  - `tetherCurve(attach: Vec3, angle: number, style: TetherStyle): { points: Vec3[]; orbCentre: Vec3 }`: the thread's sagging curve and the orb's position.
+  - **Amendment A1:** `assignPendants`, `pendantSwing`, `tetherCurve` and `threadClearance` are pure functions exported from `pendant.ts` and `tether.ts`. They take no React, no instance state and no globals, so Aether's `satellite` placement can compose them. The `pendant` placement module is a thin wrapper over them.
 - [ ] **Step 1: Failing tests.**
   - `assignPendants(3, slots)` places 3 on the slots with `order` 0 to 2.
   - `assignPendants(20, slots16)` places 16 and trays 4.
@@ -409,7 +419,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 ### Task 19: Engine variants: bloom appear and arm lift select
 
 **Files:**
-- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` (bloom entry declares `sheet: 'bloom'`, so `SequenceId` gains it by derivation) and `SELECTS`; Veyra's configs are `appear: { kind: 'bloom', duration: 1.2 }` and `select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }`
+- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` (bloom entry declares `sheet: 'bloom'`, so `SequenceId` gains it by derivation) and `SELECTS`; Veyra's configs are `appear: { kind: 'bloom', on: 'settle', duration: 1.2 }` and `select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }`
 - Test: `bloom.test.ts`, `armLift.test.ts`
 
 **Interfaces:**
@@ -427,7 +437,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 
 ### Task 20: Pendants in Veyra's stages, buttons, tooltip, tray
 
-- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: { kind: 'bloom', ... }`, `select: { kind: 'armLift', ... }`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
+- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: { kind: 'bloom', on: 'settle', ... }`, `select: { kind: 'armLift', ... }`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
 - **Tests:**
   - e2e `tests/e2e/veyra.spec.ts`: on `?world=veyra`, after settle there are 12 `.orb-button`s with unique ids.
   - Tabbing to one shows the tooltip naming the technology, and Escape clears it.

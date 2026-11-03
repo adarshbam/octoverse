@@ -4,7 +4,7 @@ Date: 2026-11-03
 Status: approved by the owner, 2026-11-03.
 Branch: `claude/veyra-design-3b1c3c` (docs only)
 Packets: master plan F01 (Veyra static) and F02 (Veyra behaviour and engine validation).
-References (read-only, main checkout): `docs/design/references/Veyra.jpeg` (panels P1 to P5), `girlfriend-reference.jpg` (character DNA), `docs/design/── DESIGN-SPEC.md` (Veyra: cyan, teal, emerald, underwater ruins, secure vault, soft bioluminescence; "Veyra — The Keeper of Files").
+References (read-only, main checkout): `docs/design/references/Veyra/` (panels P1 to P5: `native-panels/` for colour, the 3x panels for viewing, never `regenerated/`; cut from `Veyra.jpeg`), `girlfriend-reference.jpg` (character DNA), `docs/design/── DESIGN-SPEC.md` (Veyra: cyan, teal, emerald, underwater ruins, secure vault, soft bioluminescence; "Veyra — The Keeper of Files").
 Method model: `2026-10-23-nox-3d-design.md` and `2026-10-26-nox-world-and-motion-design.md`. Where this document and those disagree for Veyra, this document wins. Physics is cancelled for every world; nothing here uses it.
 Engine: Veyra is built on the shared engine described in `2026-11-03-octoverse-engine-design.md` (written in parallel on its own branch), after Nox's extraction. Section 9 lists what Veyra needs from it.
 
@@ -16,27 +16,34 @@ If the engine can make Veyra from data, small registered modules and her own ass
 
 ## 2. Acceptance criteria
 
-These come first because every work item is judged against them. All colours are sRGB, sampled from `Veyra.jpeg` P2 (panel crop x 512 to 1000, y 0 to 494 of the 1536 x 1024 file). The reference is a composite at about 488 px per panel, so sample areas are small and the tolerance is wider than Nox's.
+These come first because every work item is judged against them.
+
+**References** (read-only, main checkout, `docs/design/references/Veyra/`; provenance in its `README.md` and `../reference-panel-exports.json`):
+- **Colour truth:** `native-panels/02 - Veyra Arrives and Introduces Vault OS.png`. It is the pixel-exact P2 crop at source resolution (488 x 495, source box x 511 to 999, y 0 to 495 of `Veyra.jpeg`).
+- **Viewing:** `01 - …png` to `05 - …png` are the same panels enlarged 3x with Lanczos. Enlargement adds no detail.
+- **Never colour or detail truth:** `regenerated/` holds AI reconstructions.
+
+All colours are sRGB. The native panel is still about 488 px wide, so sample areas are small and the tolerance is wider than Nox's.
 
 ### 2.1 Colour targets (P2, intro, frozen, at P2's camera and size)
 
-Each region sample within CIE76 delta E 10 of the reference value. The region samples come from a 4 to 10 px area-average at the listed `Veyra.jpeg` pixel.
+Each region sample must be within CIE76 delta E 10 of the reference value. Each reference value is an area average of the listed size, centred on the listed pixel of the native P2 panel.
 
-| Region | Ref pixel (x, y) | Target RGB |
+| Region | Native P2 pixel (x, y), area | Target RGB |
 |---|---|---|
-| Head crown (bright cyan) | 767, 215 | 2, 179, 193 |
-| Head middle (darker, see-through) | 767, 250 | 0, 93, 102 |
-| Head side | 690, 260 | 14, 130, 163 |
-| Face glow, below the eyes | 777, 333 | 207, 218, 144 |
-| Chin, where the glow meets the body | 777, 348 | 43, 151, 124 |
-| Blush | 726, 328 | 245, 189, 138 |
-| Mouth line highlight | 780, 318 | 242, 227, 160 |
-| Arm top surface | 613, 308 | 9, 184, 167 |
-| Arm body | 647, 323 | 12, 188, 178 |
-| Sucker cup rim (cream-gold) | 610, 322 | 224, 220, 156 |
-| Water just outside the head (aura) | 672, 235 | 2, 42, 54 |
-| Mid water behind her | 562, 225 | 3, 18, 25 |
-| Upper water (lit) | 870, 100 | 3, 75, 108 |
+| Head crown (bright cyan) | 256, 215, 8 px | 4, 170, 188 |
+| Head middle (darker, see-through) | 256, 250, 10 px | 1, 95, 103 |
+| Head side | 179, 260, 6 px | 0, 112, 144 |
+| Face glow, below the eyes | 266, 333, 8 px | 194, 213, 147 |
+| Chin, where the glow meets the body | 266, 348, 6 px | 44, 151, 122 |
+| Blush | 215, 328, 6 px | 249, 190, 138 |
+| Mouth line highlight | 269, 318, 3 px | 254, 244, 189 |
+| Arm top surface | 102, 308, 3 px | 21, 183, 158 |
+| Arm body | 136, 323, 3 px | 11, 189, 171 |
+| Sucker cup rim (cream-gold) | 135, 348, 3 px | 237, 237, 168 |
+| Water just outside the head (aura) | 161, 235, 6 px | 1, 43, 55 |
+| Mid water behind her | 51, 225, 16 px | 5, 21, 31 |
+| Upper water (lit) | 359, 100, 30 px | 3, 74, 107 |
 
 Plus two global checks:
 - **Mean colour inside Veyra's silhouette:** measured on the P2 mask (made the same way as Nox's) when F01 starts. The target is recorded in the review log then, with tolerance 12 RGB per channel and saturation within 0.04.
@@ -45,7 +52,7 @@ Plus two global checks:
 ### 2.2 Shape targets (P2)
 
 1 world unit = 100 panel px, origin at the P2 panel centre, as for Nox.
-- **Head:** dome half-width 0.92 ± 0.04 (Nox 0.752), top at y 0.48 ± 0.04 (Nox 0.255). No visible cheek lobes.
+- **Head:** dome half-width 0.92 ± 0.04 (Nox 0.752), top at y 0.48 ± 0.04 (Nox 0.255). Small cheek lobes that carry the blush (radius about 0.10; Nox 0.115), one below the outer side of each eye. In the intro the head is tilted about 10 degrees, with the viewer's-left eye lower.
 - **Eyes:** centres at about y -0.50; mouth at about y -0.70; face glow centre at about y -0.86.
 - **Arm span** at rest: 3.9 ± 0.15 units.
 - **Silhouette:** mask overlap (IoU) with the P2 mask at least 0.85.
@@ -53,7 +60,13 @@ Plus two global checks:
 ### 2.3 Close-up detail
 
 Checked at 3x zoom against P2, and in an orbit view (front, three-quarter, side, back):
-- **Eyes:** green irises with dark pupils and two catchlights, one lash at each outer corner, thin dark raised brows, soft pink blush, and a small closed smile.
+- **Eyes:**
+  - green irises set toward the nose, leaving a pale crescent on the outer side (the DNA eye, as Nox's);
+  - large dark pupils with a catchlight at the upper left;
+  - two short lashes at each outer corner;
+  - thin dark raised brows;
+  - soft peach-pink blush on the cheek lobes;
+  - a small closed smile.
 - **Jelly mantle:** a bright rim, a brighter crown, a darker centre, and fine sparkle specks (at least 40 visible on the front of the head at the P2 size). No blotchy "skin" texture.
 - **Cups:** a scalloped cream-gold frill along each arm's underside, the edge reading as separate cups, smaller toward the tips.
 - **Spirals:** tip spirals read as rolled coils, not hooks. At least five of the eight arms show a full turn at rest, as in P2.
@@ -123,7 +136,7 @@ Measured at 1536 x 1024, pixel ratio 1, back to back, browser pane closed, the s
   - blue-violet fish;
   - glowing cyan bubbles on the left;
   - light rays from the surface.
-- **P2, intro.** Front view, centred. The head is a tall, round, translucent teal dome with a bright crown and a darker middle. The face sits low with a warm cream-yellow glow. The green-eyed face has a lash at each outer corner, thin brows, pink blush and a small smile. The arms are mint-aqua with big cream-gold scalloped cups:
+- **P2, intro.** Front view, centred. The head is a tall, round, translucent teal dome with a bright crown and a darker middle. The face sits low with a warm cream-yellow glow. The head is tilted slightly. The green-eyed face has two short lashes at each outer corner, thin brows, peach blush on small cheek lobes, and a small smile. The arms are mint-aqua with big cream-gold scalloped cups:
   - the top pair rises beside the head and curls outward;
   - the side arms spiral out at shoulder height;
   - two front arms hang down the centre and curl at the tips.
@@ -148,7 +161,7 @@ Measured at 1536 x 1024, pixel ratio 1, back to back, browser pane closed, the s
 
 ### 7.1 Character geometry
 
-- **Head:** a tall, round dome, wider than Nox's (section 2.2). The lower outline narrows smoothly into the neck with no cheek lobes; the engine allows cheeks "off". The face sits low on the dome, so the face anchor is per character.
+- **Head:** a tall, round dome, wider than Nox's (section 2.2). The lower outline narrows into the neck through small cheek lobes that hold the blush, a little smaller than Nox's (spec 2.2). The face sits low on the dome, so the face anchor is per character.
 - **Arms:** exactly eight, T1 to T8, with webs at the roots as for Nox.
   - **Thickness:** slightly slimmer than Nox at the root and tapered longer, so the spirals stay tidy.
   - **Tip curl:** a per-character curl amount and spiral tightness. Veyra rolls her tips into tight, full coils, at least one turn on most arms at rest.
@@ -178,8 +191,12 @@ Veyra has her own lighting, as Nox does: her glow, rim and cups are emitters the
 ### 7.3 Face
 
 The face uses the same parametric canvas as Nox, with Veyra's own layout and palette:
-- **Eyes:** large and round, with green irises (dark green top to bright green-gold bottom), a black pupil and two white catchlights. The sclera is warm white.
-- **Lid and lashes:** a dark lash line and one lash flicking up at each outer corner.
+- **Eyes:** large and round.
+  - **Iris:** green (dark green top to bright green-gold bottom), set toward the nose, leaving a pale crescent of sclera on the outer side.
+  - **Pupil:** large and black.
+  - **Catchlights:** white, at the upper left.
+  - **Sclera:** warm white.
+- **Lid and lashes:** a dark lash line, and two short lashes flicking up at each outer corner.
 - **Brows:** thin dark arcs, set high and slightly raised. Her default reads friendly and open.
 - **Mouth:** a small closed smile in dark teal-brown with tiny dimples. The open smile (overview) has a warm pink inside.
 - **Blush:** soft peach-pink ovals under the outer corners of the eyes.
@@ -438,9 +455,9 @@ Each milestone ends with the owner's live review, then a commit. F01 covers mile
   6. sparkle count (never below what section 2.3 needs).
 
   Veyra's own look (face, rim, cups, glow) is never cut. If the floor is still missed, the numbers go to the owner before anything else changes.
-- **Reference resolution.** No HQ Veyra panel exists (only `Veyra.jpeg`). The colour samples use the composite at delta E 10. The close-up items in section 2.3 are judged by the owner against the reference at 3x zoom. The sparkle count is counted on the render, not the reference.
+- **Reference resolution.** The native P2 panel is at source resolution (about 488 px); the enlarged panels add no detail. The colour samples use the native panel at delta E 10. The close-up items in section 2.3 are judged by the owner against the reference at 3x zoom. The sparkle count is counted on the render, not the reference.
 - **Entry point.** `?world=veyra` is the only entry until the landing page phase. Veyra gets her own no-WebGL poster of the intro.
-- **Tools.** `scripts/check_stage.py`, `silhouette.py`, `compare.py`, `perf.mjs` and `blender/security/` exist on the branch. They are extended to take a world id (engine item 11), and `blender/vault/` is written alongside the security scripts. The P2 mask is made with `silhouette.py` from `Veyra.jpeg`.
+- **Tools.** `scripts/check_stage.py`, `silhouette.py`, `compare.py`, `perf.mjs` and `blender/security/` exist on the branch. They are extended to take a world id (engine item 11), and `blender/vault/` is written alongside the security scripts. The P2 mask is made with `silhouette.py` from the native P2 panel.
 - **Placeholder images.** The project screenshot and carousel use crops of the storyboard's own Vault OS screen (P3, P5), clearly marked as placeholders until the owner supplies real screenshots.
 
 ## 11. Left to the builder
@@ -454,7 +471,7 @@ Each milestone ends with the owner's live review, then a commit. F01 covers mile
 
 ## 12. Calls I made (for the owner to check)
 
-1. **Colour tolerance** is delta E 10 (Nox: 8), because Veyra's reference is a 488 px composite panel, not an HQ panel. If the owner supplies an HQ Veyra P2, the tolerance drops to 8.
+1. **Colour tolerance** is delta E 10 (Nox: 8), because Veyra's native reference is about 488 px wide. The enlarged panels add no detail, so they do not tighten it.
 2. **The frame-rate floor** is 40 fps at tier low for the intro (Nox measures 38 to 49 there).
 3. **The padlock clicks during the entrance** (the vault recognising its keeper); the portal does not open.
 4. **Veyra's turn on arrival** is a slow 200-degree glide-turn, not Nox's quick 360 spin, to keep her calm.
