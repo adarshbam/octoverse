@@ -28,7 +28,7 @@ import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { liveAnchors, noxFaceAnchor } from './stage/liveAnchors';
-import { bubblePointer, cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
+import { cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
 import { leanCamera } from './world/lensShift';
 import type { Vec3 } from './world/types';
 import { QualityProbe, startingTier, usePageVisible, useQuality } from './stage/useQuality';
@@ -143,6 +143,18 @@ const reportEntrance = import.meta.env.DEV
   ? (frame: EntranceFrame, seconds: number) => Object.assign(entranceDebug(), { t: seconds, spin: frame.spin, settle: frame.settle })
   : undefined;
 
+/** The stage camera as the development build reports it, for the end-to-end tests (`window.__noxCamera`): where it is, which way it faces, its field of view and lens shift, the drift's amount and the clock the drift ran on. */
+function reportCamera(camera: THREE.PerspectiveCamera, drift: number, seconds: number) {
+  (window as unknown as { __noxCamera?: unknown }).__noxCamera = {
+    position: camera.position.toArray(),
+    quaternion: camera.quaternion.toArray(),
+    fov: camera.fov,
+    offsetY: camera.view?.offsetY ?? 0,
+    drift,
+    t: seconds,
+  };
+}
+
 /** The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another. */
 const TILT = url.tilt ?? SECURITY_WORLD.camera.tilt;
 
@@ -199,14 +211,15 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
       camera.fov = reducedMotion ? target : camera.fov + (target - camera.fov) * (1 - Math.exp(-Math.min(delta, 0.05) * 2.4));
       camera.updateProjectionMatrix();
     }
-    // The default hover: a slow drift of the camera, eased in and out (it holds still over a bubble,
-    // and when a still is pinned: `freeze` has none unless `?hover` gives the offset).
+    // The default hover: a slow drift of the camera, eased in and out with the stage (a bubble's
+    // hover, choice or hold does not touch it; `freeze` has none unless `?hover` gives the offset).
     const pinned = url.hover ? pinnedHover(url.hover) : null;
-    hover.current = reducedMotion ? 0 : easeHover(hover.current, url.freeze ? 0 : hoverTarget(stage, bubblePointer.hovered, false), Math.min(delta, 0.05));
+    hover.current = reducedMotion ? 0 : easeHover(hover.current, url.freeze ? 0 : hoverTarget(stage, false), Math.min(delta, 0.05));
     const moved = pinned ?? (hover.current > 0 ? cameraHover(state.clock.elapsedTime, hover.current) : null);
     placeCamera(camera, rest, lookAt, moved);
     leanCamera(camera, TILT, faceOf(stage), REST, { fullWidth: size.width, fullHeight: size.height, x: 0, y: 0, width: size.width, height: size.height });
     liveAnchors.set(camera, rest, size);
+    if (import.meta.env.DEV) reportCamera(camera, hover.current, state.clock.elapsedTime);
   });
   useLayoutEffect(() => {
     const aspect = size.width / size.height;

@@ -4,7 +4,8 @@ import { SWIM_PITCH, type StrokeFrame } from './stroke';
 
 // The arms' shape while Nox swims (spec 9.5/9.6), each frame: the stroke's trail, opened toward the
 // umbrella by `spread`, swept back into the trail by `sweep`, and carried into the stage pose by
-// `settle`, overshooting it a little before landing. No arm physics (ruling R48): the
+// a weight (the entrance's `open`: the arms are spread before the spin), overshooting it a little
+// before landing. No arm physics (ruling R48): the
 // follow-through is in these drives and in ArmDrive.pitch and straighten.
 
 /** The three shapes the swim moves between, as arm rests at the rig's segment count. */
@@ -66,9 +67,9 @@ export function createSwimRests(segments: number): Record<ArmId, ArmRest> {
 }
 
 /**
- * The arm rests for a stroke at `settle` (0 swimming, 1 landed), written into `out` and returned:
- * trail toward open by spread, back toward trail by sweep, then toward the rest pose by
- * settleWeight(settle). At settle 1 they are the rest pose exactly.
+ * The arm rests for a stroke at `settle` (0 swimming, 1 landed; the entrance passes its `open`),
+ * written into `out` and returned: trail toward open by spread, back toward trail by sweep, then
+ * toward the rest pose by settleWeight(settle). At settle 1 they are the rest pose exactly.
  */
 export function swimRests(shapes: SwimShapes, stroke: Pick<StrokeFrame, 'spread' | 'sweep'>, settle: number, out: Record<ArmId, ArmRest>) {
   const w = settleWeight(settle);

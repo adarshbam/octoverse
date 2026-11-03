@@ -156,7 +156,7 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
     return () => window.removeEventListener('pointermove', track, true);
   }, [intent]);
   // Hiding the buttons under a resting pointer sends no leave event: let go of the hover then, so
-  // the orbits and the camera do not stay settled once the bubbles are hidden.
+  // the orbits do not stay settled once the bubbles are hidden.
   useEffect(() => {
     if (open) return;
     hover.current.techId = null;

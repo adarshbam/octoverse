@@ -1,6 +1,9 @@
 import type { ExpressionId } from '../behavior/expressions';
 import { NOX } from '../config/nox.character';
-import { strokeAt } from '../motion/stroke';
+import type { ArmRest } from '../character/armChain';
+import type { ArmId } from '../config/types';
+import { type StrokeFrame, strokeAt, swimDrive } from '../motion/stroke';
+import { type SwimShapes, swimRests } from '../motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
 import { ENTRANCE_SPIRAL } from './keys';
 import type { Sequences } from './theatre';
@@ -8,12 +11,13 @@ import type { Sequences } from './theatre';
 // The entrance (design 9.6): Nox comes out of the murk deep in the corridor on the left, swims
 // toward the visitor and to the centre in whole strokes, each a surge, turns once round his
 // vertical axis on a short golden-spiral arc into the stage spot, and settles into the intro pose.
+// His arms open into that pose before the turn, so he turns with them fully out (owner request).
 // The keys live in the Theatre sheet `entrance` (defaults in keys.ts); this file reads them and
 // adds what is computed: the surges, the arc and the facing. No arm physics (ruling R48): the
-// follow-through is in the stroke drives, which the stage takes from `stroke` and `settle`.
+// follow-through is in the stroke drives, which the stage takes from `stroke`, `forward` and `open`.
 
 /** The entrance's length in seconds: the sheet's length. */
-export const ENTRANCE_SECONDS = 7.5;
+export const ENTRANCE_SECONDS = 8.4;
 
 export interface EntranceFrame {
   /** The body's place: stage units, (0, 0, 0) being the intro spot. */
@@ -35,7 +39,17 @@ export interface EntranceFrame {
   stroke: number;
   /** 0 to 1: how far round the turn on the spiral arc. */
   spin: number;
-  /** 0 to 1: how far into the intro pose (arms open, face gentle); the stroke drives fade with it. */
+  /**
+   * 0 to 1: how far the arms have swung forward out of the trail; the stroke drives fade with it.
+   * It leads `open` (never less than it), so the arms spread only once they have come forward.
+   */
+  forward: number;
+  /**
+   * 0 to 1: how far the arms have spread from the stroke into the intro pose. They open before the
+   * spin and stay open; never less than `settle`.
+   */
+  open: number;
+  /** 0 to 1: how far into the intro (face gentle, the intro's words in); after the spin. */
   settle: number;
   /** 0 to 1: out of the murk; the glow and aura first, then the shape. */
   reveal: number;
@@ -62,6 +76,8 @@ interface EntranceProps {
   z: number;
   stroke: number;
   spin: number;
+  forward: number;
+  open: number;
   settle: number;
   reveal: number;
   pitch: number;
@@ -132,6 +148,9 @@ export function entranceFrame(seq: Sequences, seconds: number): EntranceFrame {
     pitch: k.pitch,
     stroke: k.stroke,
     spin: k.spin,
+    // A sheet edited without the opening still lands open, as the settle used to carry the arms.
+    forward: Math.max(k.forward, k.open, k.settle),
+    open: Math.max(k.open, k.settle),
     settle: k.settle,
     reveal: k.reveal,
     expression: k.settle > 0 ? 'gentle' : 'happy',
@@ -171,25 +190,42 @@ function pillarDistance(p: Vec3, pillar: Placement) {
 
 /**
  * How far Nox's arms reach either side in `frame`: closed while he swims, open as a stroke opens
- * them and as he settles into the intro pose. A stroke's arms are the trail blended toward the
- * open pose by `spread` and back by `sweep` (motion/stroke.ts), so they are open by
- * spread (1 - sweep); that much open counts as the intro's full reach.
+ * them and as they open into the intro pose (`open`, what the stage draws them from). A stroke's
+ * arms are the trail blended toward the open pose by `spread` and back by `sweep`
+ * (motion/stroke.ts), so they are open by spread (1 - sweep); that much open counts as the intro's
+ * full reach.
  */
 export function armHalfSpan(frame: EntranceFrame) {
   const { spread, sweep } = strokeAt(frame.stroke, NOX.personality.swim);
-  const open = Math.max(spread * (1 - sweep), frame.settle);
+  const open = Math.max(spread * (1 - sweep), frame.open);
   return ARM_HALF_SPAN.closed + (ARM_HALF_SPAN.open - ARM_HALF_SPAN.closed) * Math.min(1, Math.max(0, open));
 }
 
 /**
- * Smallest gap between Nox's arm span (open 2.15, closed 1.2 half-span) and any pillar along the
- * path, sampled `samples` times over the entrance. In the x-z plane, so the pillars count at every
- * height.
+ * The arm drive the stage gives in `frame` (swing back, tip straightening): the stroke's, given
+ * way as the arms swing forward (`forward`), before they spread. Octopus and the tests both call
+ * this, so the arms cannot go back to following `settle` without a test failing.
  */
-export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, samples = 651): number {
+export function entranceDrive(frame: EntranceFrame, stroke: StrokeFrame) {
+  return swimDrive(stroke, frame.forward);
+}
+
+/** The arm rests the stage draws in `frame`, written into `out`: the stroke's, carried to the intro pose as the arms spread (`open`). */
+export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes: SwimShapes, out: Record<ArmId, ArmRest>) {
+  return swimRests(shapes, stroke, frame.open, out);
+}
+
+/**
+ * Smallest gap between Nox's arm span (open 2.15, closed 1.2 half-span) and any pillar along the
+ * path, sampled `samples` times from 0 to `until` seconds. In the x-z plane, so the pillars count at
+ * every height. A circle of reach, the same every way: right for the swim, where the strokes swing
+ * the arms back as far as they reach sideways, but blind to the open intro pose's shape (flat, side
+ * to side). Past the swim, sequences/armClearance.test.ts checks the real arms instead.
+ */
+export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, samples = 651, until = ENTRANCE_SECONDS): number {
   let least = Infinity;
   for (let i = 0; i < samples; i++) {
-    const f = frame((i / Math.max(1, samples - 1)) * ENTRANCE_SECONDS);
+    const f = frame((i / Math.max(1, samples - 1)) * until);
     const reach = armHalfSpan(f);
     for (const pillar of layout.pillars) least = Math.min(least, pillarDistance(f.position, pillar) - reach);
   }

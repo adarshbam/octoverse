@@ -87,7 +87,19 @@ export function createOrbMaterial(tint: string) {
     `,
     transparent: true,
     depthWrite: false,
+    // Nox's skin writes depth, so a bubble on the far side of his head or arms would be cut away by
+    // it: bubbles always show in front (TechBubbles draws them after all of his layers).
+    depthTest: false,
   });
+}
+
+/**
+ * A bubble's logo, a plane in front of its glass. At its plain brightness, so the bloom does not
+ * haze the glass round it, and unfogged (a world's water fog must not tint it). Like the glass, it
+ * ignores Nox's depth.
+ */
+export function createOrbLogoMaterial(map: THREE.Texture) {
+  return new THREE.MeshBasicMaterial({ map, color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false, depthTest: false, fog: false });
 }
 
 /** How far the halo shell reaches beyond the orb, as a multiple of the orb's radius. */
@@ -143,5 +155,6 @@ export function createOrbHaloMaterial(tint: string) {
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    depthTest: false,
   });
 }
