@@ -1,15 +1,15 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
+import { FOCUS_BEATS } from './behavior/focusChoreography';
 import { HOLD_BEATS } from './artifacts/suctionHold';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
-import { parseUrlState } from './behavior/urlState';
+import type { ReviewOptions } from './behavior/urlState';
 import { initialStage } from './behavior/stageMachine';
 import { readEntranceSeen, readReducedMotion, useStage } from './behavior/useStage';
-import { type EntranceSheet, Octopus } from './character/Octopus';
+import { Octopus } from './character/Octopus';
 import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
@@ -22,14 +22,15 @@ import { NOX_POSES } from './poses/nox.poses';
 import { SWIM_POSES, swimShapes } from './poses/nox.swim';
 import type { StagePose } from './poses/types';
 import type { EntranceFrame } from './sequences/entrance';
-import type { BlowSheet } from './sequences/bubbleBlow';
-import type { SwellSheet } from './sequences/headSwell';
-import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { noxFaceAnchor } from './stage/liveAnchors';
 import { EngineInstance } from './host/EngineInstance';
+import type { InstanceState } from './host/instance';
+import { debugWindow, entranceDebug, markReady } from './host/debugHooks';
 import { useInstance } from './host/instanceContext';
+import { createProjectModel, createSheets, startSheetLoaders } from './host/instanceModel';
+import { useWindowListeners } from './host/listeners';
 import { cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
 import { leanCamera } from './world/lensShift';
 import type { Vec3 } from './world/types';
@@ -57,99 +58,20 @@ import { worldTierFor } from './world/worldTiers';
 import { LAST_LEVEL, type WorldLevel, stepFrom } from './world/worldLevel';
 import { WorldScene } from './world/WorldScene';
 
-const url = parseUrlState(location.search);
-// The project's technologies in its order, each in a bubble orbiting Nox; the rest go to the tray.
-const ORDER = noxProject.primaryTechnologyIds ?? [];
-const TECH = new Map(noxTechnologies.map(t => [t.id, t]));
-const USAGE = new Map((noxProject.technologyUsages ?? []).map(u => [u.technologyId, u]));
-/** How many bubbles orbit Nox. */
-const BUBBLE_COUNT = 15;
-const OVERFLOW = ORDER.slice(BUBBLE_COUNT);
-const ORBS = ORDER.slice(0, BUBBLE_COUNT).map(techId => ({
-  techId,
-  iconKey: TECH.get(techId)?.iconKey ?? techId,
-  name: TECH.get(techId)?.name ?? techId,
-  reaction: focusReaction(USAGE.get(techId)),
-}));
 /** Storyboard or missing text shows, badged, only while developing; never in the public build. */
 const SHOW_PLACEHOLDERS = import.meta.env.DEV;
-// Without WebGL (or `?nowebgl`) the page is the poster under the HTML overlays; the entrance has nothing to play on.
-const WEBGL = !url.noWebgl && hasWebgl2();
-const TOOLTIP_ID = 'tech-tooltip';
-const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
-const MASK = import.meta.env.DEV && new URLSearchParams(location.search).has('mask');
 /** Keys that skip the entrance: any but a bare modifier. */
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
-// A project with no sections, for testing the full project view; honoured only while developing.
-const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject;
 
-/**
- * The entrance's sheet (the Theatre state, about 0.2 MB), loading from the moment this module runs
- * when the page will open on the entrance, beside the world and the first frame: nothing waits on
- * it. The swim's arm shapes are worked out as it arrives, at the starting tier's segment count (a
- * tier lowered mid-swim works out its own on its next frame), so the entrance's first frame does not
- * pay for them. Octopus starts the entrance's clock on the first frame drawn with the sheet in.
- */
-const ENTRANCE_SHEET: EntranceSheet = { sequences: null, failed: false };
-if (WEBGL && initialStage({ entranceSeen: readEntranceSeen(), requested: url.stage, reducedMotion: readReducedMotion() }).stage === 'entering') {
-  loadSequences().then(
-    sequences => {
-      swimShapes(TIER_SETTINGS[startingTier(url).tier].segments);
-      ENTRANCE_SHEET.sequences = sequences;
-      if (import.meta.env.DEV) entranceDebug().loaded = true;
-    },
-    (error: unknown) => {
-      console.warn('the entrance did not load; going straight to the intro:', error);
-      ENTRANCE_SHEET.failed = true;
-    },
-  );
-}
-/**
- * The bubble blow's sheet (the same Theatre state): Nox blows the bubbles when they first appear,
- * once the entrance has settled (or as the page opens past it), so it loads from the start unless
- * motion is off. `?freeze&blow=<s>` is a still of the blow at that moment, for review.
- */
-const BLOW_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('blow') ? Number(new URLSearchParams(location.search).get('blow')) || 0 : undefined;
-const BLOW_SHEET: BlowSheet = { sequences: null, failed: false, at: BLOW_STILL };
-if (WEBGL && (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion()))) {
-  loadSequences().then(
-    sequences => void (BLOW_SHEET.sequences = sequences),
-    () => void (BLOW_SHEET.failed = true),
-  );
-}
+/** The entrance as the development build reports it, for the end-to-end tests: written by a page instance (`window.__octoverse.entrance`, and `__noxEntrance` for Nox). */
+const entranceReporter = (instance: InstanceState) =>
+  import.meta.env.DEV ? (frame: EntranceFrame, seconds: number) => Object.assign(entranceDebug(instance), { t: seconds, spin: frame.spin, settle: frame.settle }) : undefined;
 
-/**
- * The head swell's sheet (the same Theatre state): clicking the head swells it into the overview's
- * dome. It loads from the start unless motion is off; `?freeze&swell=<s>` is a still of the opening
- * at that moment, for review.
- */
-const SWELL_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('swell') ? Number(new URLSearchParams(location.search).get('swell')) || 0 : undefined;
-const SWELL_SHEET: SwellSheet = { sequences: null, failed: false, at: SWELL_STILL };
-if (WEBGL && (SWELL_STILL !== undefined || !(url.freeze || readReducedMotion()))) {
-  loadSequences().then(
-    sequences => void (SWELL_SHEET.sequences = sequences),
-    () => void (SWELL_SHEET.failed = true),
-  );
-}
-
-/** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen, for review. */
-const HOLD_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('hold') ? Number(new URLSearchParams(location.search).get('hold')) || 0 : undefined;
-
-/** A still of the entrance (`?stage=entering&freeze`) shows `?t=<s>`, or mid-swim, 2 s in. */
-const ENTRANCE_STILL_SECONDS = url.t ?? 2;
-
-/** The entrance as the development build reports it, for the end-to-end tests (`window.__noxEntrance`). */
-function entranceDebug() {
-  const w = window as unknown as { __noxEntrance?: { loaded: boolean; t: number; spin: number; settle: number } };
-  return (w.__noxEntrance ??= { loaded: false, t: 0, spin: 0, settle: 0 });
-}
-const reportEntrance = import.meta.env.DEV
-  ? (frame: EntranceFrame, seconds: number) => Object.assign(entranceDebug(), { t: seconds, spin: frame.spin, settle: frame.settle })
-  : undefined;
-
-/** The stage camera as the development build reports it, for the end-to-end tests (`window.__noxCamera`): where it is, which way it faces, its field of view and lens shift, the drift's amount and the clock the drift ran on. */
-function reportCamera(camera: THREE.PerspectiveCamera, drift: number, seconds: number) {
-  (window as unknown as { __noxCamera?: unknown }).__noxCamera = {
+/** The stage camera as the development build reports it, for the end-to-end tests (`window.__noxCamera`, a page instance only): where it is, which way it faces, its field of view and lens shift, the drift's amount and the clock the drift ran on. */
+function reportCamera(instance: InstanceState, camera: THREE.PerspectiveCamera, drift: number, seconds: number) {
+  const w = debugWindow(instance);
+  if (!w) return;
+  w.__noxCamera = {
     position: camera.position.toArray(),
     quaternion: camera.quaternion.toArray(),
     fov: camera.fov,
@@ -159,19 +81,18 @@ function reportCamera(camera: THREE.PerspectiveCamera, drift: number, seconds: n
   };
 }
 
-/** The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another. */
-const TILT = url.tilt ?? SECURITY_WORLD.camera.tilt;
-
 /**
  * `?pose=swim-open` or `swim-trail` (review stills): that swim pose in place of every stage's own,
  * its arms swung back as the stroke has them, open (sweep 0) or swept back into the trail (sweep 1).
  */
-const REVIEW_SWIM = url.pose
-  ? url.pose === 'swim-open'
-    ? { pose: SWIM_POSES.open, drive: swimDrive({ sweep: 0, straighten: 0 }) }
-    : { pose: SWIM_POSES.trail, drive: swimDrive({ sweep: 1, straighten: 0 }) }
-  : null;
-const stagePose = (stage: StageId): StagePose => REVIEW_SWIM?.pose ?? NOX_POSES[stage];
+const reviewSwimFor = (pose: ReviewOptions['pose']) =>
+  pose
+    ? pose === 'swim-open'
+      ? { pose: SWIM_POSES.open, drive: swimDrive({ sweep: 0, straighten: 0 }) }
+      : { pose: SWIM_POSES.trail, drive: swimDrive({ sweep: 1, straighten: 0 }) }
+    : null;
+type ReviewSwim = ReturnType<typeof reviewSwimFor>;
+const stagePoseOf = (reviewSwim: ReviewSwim, stage: StageId): StagePose => reviewSwim?.pose ?? NOX_POSES[stage];
 
 /** Nox's face in a stage: the point the lean's lens shift keeps where it was. */
 const faceOf = (stage: StageId) => noxFaceAnchor(stage === 'detail' ? 'detail' : stage === 'overview' || stage === 'techFocus' ? 'overview' : 'intro');
@@ -198,12 +119,15 @@ function placeCamera(camera: THREE.PerspectiveCamera, rest: THREE.PerspectiveCam
  * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
  * an orbit camera.
  */
-function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: boolean }) {
+function StageCamera({ stage, reducedMotion, options }: { stage: StageId; reducedMotion: boolean; options: ReviewOptions }) {
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const size = useThree(s => s.size);
   const gl = useThree(s => s.gl);
-  const { liveAnchors } = useInstance();
-  const framed = !url.view && !url.orbit;
+  const instance = useInstance();
+  const { liveAnchors } = instance;
+  const framed = !options.view && !options.orbit;
+  // The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another.
+  const tilt = options.tilt ?? SECURITY_WORLD.camera.tilt;
   const target = fovFor(STAGE_FRAMES[stage], size);
   // The stage camera at rest, which the page's overlays are laid out for; and the hover's state.
   const rest = useMemo(() => new THREE.PerspectiveCamera(24, 1, 0.1, 60), []);
@@ -218,28 +142,28 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
     }
     // The default hover: a slow drift of the camera, eased in and out with the stage (a bubble's
     // hover, choice or hold does not touch it; `freeze` has none unless `?hover` gives the offset).
-    const pinned = url.hover ? pinnedHover(url.hover) : null;
-    hover.current = reducedMotion ? 0 : easeHover(hover.current, url.freeze ? 0 : hoverTarget(stage, false), Math.min(delta, 0.05));
+    const pinned = options.hover ? pinnedHover(options.hover) : null;
+    hover.current = reducedMotion ? 0 : easeHover(hover.current, options.freeze ? 0 : hoverTarget(stage, false), Math.min(delta, 0.05));
     const moved = pinned ?? (hover.current > 0 ? cameraHover(state.clock.elapsedTime, hover.current) : null);
     placeCamera(camera, rest, lookAt, moved);
-    leanCamera(camera, TILT, faceOf(stage), REST, { fullWidth: size.width, fullHeight: size.height, x: 0, y: 0, width: size.width, height: size.height });
+    leanCamera(camera, tilt, faceOf(stage), REST, { fullWidth: size.width, fullHeight: size.height, x: 0, y: 0, width: size.width, height: size.height });
     liveAnchors.set(camera, rest, size);
-    if (import.meta.env.DEV) reportCamera(camera, hover.current, state.clock.elapsedTime);
+    if (import.meta.env.DEV) reportCamera(instance, camera, hover.current, state.clock.elapsedTime);
   });
   useLayoutEffect(() => {
     const aspect = size.width / size.height;
     camera.clearViewOffset();
-    if (url.view && !url.orbit) {
+    if (options.view && !options.orbit) {
       // A zoom is a window onto the unmoved stage camera, so arms in front of or behind the
       // traced plane line up exactly as they do on the stage (it has no lean: the traced stage
       // is what the zoom compares with panel 2).
-      const w = viewWindow(url.view, size.width, size.height);
+      const w = viewWindow(options.view, size.width, size.height);
       camera.position.set(0, 0, CAMERA_Z);
       camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(STAGE_HALF / CAMERA_Z));
       camera.setViewOffset(w.fullWidth, w.fullHeight, w.x, w.y, w.width, w.height);
-    } else if (url.view) {
+    } else if (options.view) {
       // The orbit view circles the box instead.
-      const [x0, y0, x1, y1] = url.view;
+      const [x0, y0, x1, y1] = options.view;
       const halfHeight = Math.max(y0 - y1, (x1 - x0) / aspect) / 2;
       camera.position.set((x0 + x1) / 2, (y0 + y1) / 2, CAMERA_Z);
       camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfHeight / CAMERA_Z));
@@ -248,7 +172,7 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
       camera.fov = fovFor(STAGE_FRAMES[stage], size);
     }
     camera.updateProjectionMatrix();
-    if (!url.orbit) return;
+    if (!options.orbit) return;
     const controls = new OrbitControls(camera, gl.domElement);
     controls.target.set(camera.position.x, camera.position.y, 0);
     controls.update();
@@ -263,31 +187,30 @@ const PLATE_WAIT_MS = 20_000;
 
 /** How long the world's kit (near.glb, then kit.glb) may take to load before the world steps down a level; `?kitwait=<ms>` shortens it while developing. */
 const KIT_WAIT_MS = 15_000;
-const KIT_WAIT = import.meta.env.DEV && url.kitWait ? url.kitWait : KIT_WAIT_MS;
 
 /** Frames drawn after the scene (and with it the world) has loaded before it counts as ready. */
 const READY_FRAMES = 40;
 
-/**
- * The boot veil (index.html) goes at the latest this long after the kit's and plate's waits, whatever the world is doing.
- */
-const BOOT_VEIL_FAILSAFE_MS = Math.max(KIT_WAIT, PLATE_WAIT_MS) + 2_000;
+/** The boot veil (index.html) goes at the latest this long after the kit's and plate's waits, whatever the world is doing. */
+const bootVeilFailsafeMs = (kitWait: number) => Math.max(kitWait, PLATE_WAIT_MS) + 2_000;
 
 /**
- * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames; `wait` holds the count
- * until the world's kit has loaded (or been given up) and the far plate's layers have loaded or failed. A frame-rate
+ * Sets the ready flag (`window.__octoverse.ready`, and `__noxReady` for Nox; a page instance only)
+ * once the scene has drawn READY_FRAMES frames; `wait` holds the count until the world's kit has
+ * loaded (or been given up) and the far plate's layers have loaded or failed. A frame-rate
  * measurement (scripts/perf.mjs) then starts on a settled scene. The boot veil goes with it, and the
- * entrance's clock (held until then) starts.
+ * entrance's clock (held until then) starts. The page has one veil, so a preview leaves it alone.
  */
 function ReadyFlag({ wait }: { wait: boolean }) {
+  const instance = useInstance();
   const frames = useRef(0);
   useFrame(() => {
     // The stage has drawn: the veil, once it has faded, may leave without showing the bare page.
-    noteStageDrawn();
+    if (instance.mode === 'page') noteStageDrawn();
     if (wait || frames.current > READY_FRAMES) return;
     if (++frames.current === READY_FRAMES) {
-      (window as unknown as { __noxReady?: boolean }).__noxReady = true;
-      hideBootVeil();
+      markReady(instance);
+      if (instance.mode === 'page') hideBootVeil();
     }
   });
   return null;
@@ -307,47 +230,84 @@ function SilhouetteOnly() {
  * `?variant=dummy` (development only): the dummy character and world, config alone. The dynamic
  * import sits behind the literal DEV check, so the production bundle holds neither fixture.
  */
-export function App() {
+export function App({ options, mode = 'page' }: { options: ReviewOptions; mode?: 'page' | 'preview' }) {
   const [variant, setVariant] = useState<{ character: CharacterConfig; world: WorldConfig } | null>(null);
-  const wantsVariant = import.meta.env.DEV && url.variant === 'dummy';
+  const wantsVariant = import.meta.env.DEV && options.variant === 'dummy';
   useEffect(() => {
-    if (import.meta.env.DEV && url.variant === 'dummy') {
+    if (import.meta.env.DEV && options.variant === 'dummy') {
       void Promise.all([import('./config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) => setVariant({ character: c.DUMMY, world: w.DUMMY_WORLD }));
     }
-  }, []);
-  if (wantsVariant) return variant ? <EngineInstance id="nox" mode="page"><NoxApp character={variant.character} world={variant.world} /></EngineInstance> : null;
-  return <EngineInstance id="nox" mode="page"><NoxApp character={NOX} world={SECURITY_WORLD} /></EngineInstance>;
+  }, [options.variant]);
+  if (wantsVariant) return variant ? <EngineInstance id="nox" mode={mode}><NoxApp character={variant.character} world={variant.world} options={options} /></EngineInstance> : null;
+  return <EngineInstance id="nox" mode={mode}><NoxApp character={NOX} world={SECURITY_WORLD} options={options} /></EngineInstance>;
 }
 
-function NoxApp({ character, world }: { character: CharacterConfig; world: WorldConfig }) {
+function NoxApp({ character, world, options }: { character: CharacterConfig; world: WorldConfig; options: ReviewOptions }) {
   const instance = useInstance();
-  const { bubbleLive } = instance;
+  const { bubbleLive, mode } = instance;
+  const page = mode === 'page';
+  const reportEntrance = useMemo(() => entranceReporter(instance), [instance]);
   const config = useMemo(() => clampCharacterConfig(character), [character]);
-  const { state, dispatch, reducedMotion } = useStage(noxProject);
-  const quality = useQuality(url);
+  const { state, dispatch, reducedMotion } = useStage(noxProject, { worldId: instance.id, mode, options });
+  const quality = useQuality(options);
+  // What this instance shows of the project, and its Theatre sheets: its own, made here and not at module load.
+  const model = useMemo(() => createProjectModel(noxProject, noxTechnologies), []);
+  const { orbs, tech, usage, order, overflow, trayItem } = model;
+  // Without WebGL (or `?nowebgl`) the instance is the poster under the HTML overlays; the entrance has nothing to play on.
+  const webgl = useMemo(() => !options.noWebgl && hasWebgl2(), [options.noWebgl]);
+  const mask = options.mask === true;
+  // A project with no sections, for testing the full project view; honoured only while developing.
+  const detailProject = useMemo(() => (import.meta.env.DEV && options.fixture === 'nosections' ? { ...noxProject, sections: [] } : noxProject), [options.fixture]);
+  const reviewSwim = useMemo(() => reviewSwimFor(options.pose), [options.pose]);
+  const kitWait = import.meta.env.DEV && options.kitWait ? options.kitWait : KIT_WAIT_MS;
+  // The ids that tie one instance's controls to its panels: unique to it, so two instances on a page never share one.
+  const tooltipId = useId();
+  const detailsId = useId();
+  // The sheets (the entrance's, the bubble blow's, the head swell's), loading from the first render, beside the world and the first
+  // frame: nothing waits on them. The entrance's loads when the instance will open on it; the others unless motion is off
+  // (`?freeze&blow=<s>` and `&swell=<s>` are stills of those moments). The swim's arm shapes are worked out as the entrance's
+  // arrives, at the starting tier's segment count (a tier lowered mid-swim works out its own on its next frame), so the
+  // entrance's first frame does not pay for them. Octopus starts the entrance's clock on the first frame drawn with the sheet in.
+  const [sheets] = useState(() => createSheets({ blowAt: options.freeze ? options.blow : undefined, swellAt: options.freeze ? options.swell : undefined }));
+  const [wants] = useState(() => ({
+    entrance: webgl && initialStage({ entranceSeen: readEntranceSeen(instance.id, mode), requested: options.stage, reducedMotion: readReducedMotion() }).stage === 'entering',
+    blow: webgl && (sheets.blow.at !== undefined || !(options.freeze || readReducedMotion())),
+    swell: webgl && (sheets.swell.at !== undefined || !(options.freeze || readReducedMotion())),
+  }));
+  useEffect(
+    () =>
+      startSheetLoaders(sheets, wants, () => {
+        swimShapes(TIER_SETTINGS[startingTier(options).tier].segments);
+        if (import.meta.env.DEV) entranceDebug(instance).loaded = true;
+      }),
+    [sheets, wants, options, instance],
+  );
   // On a phone held upright the orbs are too small to pick out, so the tray lists every technology (as it does without WebGL).
   const viewport = useViewport();
   const phone = viewport.layout === 'phone';
-  const trayAll = viewport.phonePortrait || !WEBGL;
+  const trayAll = viewport.phonePortrait || !webgl;
   const worldTier = worldTierFor(quality.tier, phone);
   useEffect(() => {
-    if (import.meta.env.DEV) (window as unknown as { __noxWorldTier?: unknown }).__noxWorldTier = worldTier;
-  }, [worldTier]);
+    const w = debugWindow(instance);
+    if (import.meta.env.DEV && w) w.__noxWorldTier = worldTier;
+  }, [worldTier, instance]);
   // No WebGL: no entrance to wait for.
   useEffect(() => {
-    if (!WEBGL) dispatch({ type: 'SKIP' });
-  }, [dispatch]);
+    if (!webgl) dispatch({ type: 'SKIP' });
+  }, [dispatch, webgl]);
   // The boot veil (index.html) stays while the entrance is waiting on the world (the ready flag takes it away), or
   // at the failsafe; a page with no entrance to hold for (skipped, past it, a still, no WebGL, motion off) drops it now.
+  // The page has the one veil: a preview neither holds for it nor takes it away.
   const entering = state.stage === 'entering';
-  useEffect(() => armBootVeilFailsafe(BOOT_VEIL_FAILSAFE_MS), []);
+  useEffect(() => (page ? armBootVeilFailsafe(bootVeilFailsafeMs(kitWait)) : undefined), [page, kitWait]);
   useEffect(() => {
-    const plan = veilPlan({ webgl: WEBGL, entering, freeze: url.freeze, reducedMotion, mask: MASK });
+    if (!page) return;
+    const plan = veilPlan({ webgl, entering, freeze: options.freeze, reducedMotion, mask });
     if (plan === 'wait') return;
     // No canvas to wait for when there is no WebGL, and the mask page draws none of the world.
-    if (!WEBGL || MASK) noteStageDrawn();
+    if (!webgl || mask) noteStageDrawn();
     hideBootVeil({ immediate: plan === 'now' });
-  }, [entering, reducedMotion]);
+  }, [entering, reducedMotion, page, webgl, mask, options.freeze]);
   // The far plate's layers load outside Suspense; `__noxReady` waits for them.
   const [plateReady, setPlateReady] = useState(false);
   const settlePlate = useCallback(() => setPlateReady(true), []);
@@ -365,9 +325,9 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
   const kitDone = kitLevel === worldLevel || worldLevel === LAST_LEVEL;
   useEffect(() => {
     if (kitDone) return;
-    const timer = setTimeout(() => failWorld(new Error(`the world's kit did not load in ${KIT_WAIT} ms`), worldLevel), KIT_WAIT);
+    const timer = setTimeout(() => failWorld(new Error(`the world's kit did not load in ${kitWait} ms`), worldLevel), kitWait);
     return () => clearTimeout(timer);
-  }, [kitDone, worldLevel, failWorld]);
+  }, [kitDone, worldLevel, failWorld, kitWait]);
   // A layer that neither loads nor fails (a request left hanging) must not hold the flag for good.
   useEffect(() => {
     if (plateReady) return;
@@ -383,7 +343,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
   // from the entrance, in Octopus), so when it ends he is already there.
   // A technology focus keeps the stage it came from (the intro or the overview) for pose, framing and words.
   const shown: StageId = state.stage === 'techFocus' ? state.returnTo : state.stage;
-  const blender = useMemo(() => new PoseBlender(stagePose(state.stage === 'entering' ? 'intro' : shown), segments), [segments]);
+  const blender = useMemo(() => new PoseBlender(stagePoseOf(reviewSwim, state.stage === 'entering' ? 'intro' : shown), segments), [segments]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
   const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
   const frame = useRef<HTMLDivElement>(null);
@@ -416,57 +376,45 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
     const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
     const duration = reducedMotion || skipped ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(stagePose(shown), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
+    blender.start(stagePoseOf(reviewSwim, shown), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-  }, [blender, state.stage, shown, reducedMotion, dispatch]);
-  // Any click or key skips the entrance.
-  useEffect(() => {
-    if (!entering) return;
-    const skip = (event: Event) => {
-      if (event instanceof KeyboardEvent && MODIFIER_KEYS.has(event.key)) return;
-      dispatch({ type: 'SKIP' });
-    };
-    window.addEventListener('pointerdown', skip);
-    window.addEventListener('keydown', skip);
-    return () => {
-      window.removeEventListener('pointerdown', skip);
-      window.removeEventListener('keydown', skip);
-    };
-  }, [entering, dispatch]);
+  }, [blender, state.stage, shown, reducedMotion, dispatch, reviewSwim]);
+  // Any click or key skips the entrance (a page instance only: a preview on the page would otherwise skip another's).
+  const skip = (event: Event) => {
+    if (event instanceof KeyboardEvent && MODIFIER_KEYS.has(event.key)) return;
+    dispatch({ type: 'SKIP' });
+  };
+  useWindowListeners(mode, entering ? { pointerdown: skip, keydown: skip } : {});
   // Escape steps back: a focused technology lets go, detail goes to the overview, the overview to
-  // the intro. With a technology in focus, a press anywhere but an orb or its tooltip lets go too.
+  // the intro. With a technology in focus, a press anywhere but one of this instance's orbs or its tooltip lets go too.
   const focusing = state.stage === 'techFocus';
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
+  useWindowListeners(mode, {
+    keydown: event => {
       if (event.key === 'Escape') dispatch({ type: focusing ? 'BLUR_TECH' : 'CLOSE' });
-    };
-    const onPress = (event: PointerEvent) => {
-      if (focusing && !(event.target as Element | null)?.closest?.('.orb-button, .tech-tooltip, .orb-tray-item')) dispatch({ type: 'BLUR_TECH' });
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onPress);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onPress);
-    };
-  }, [dispatch, focusing]);
+    },
+    pointerdown: event => {
+      if (!focusing) return;
+      const hit = (event.target as Element | null)?.closest?.('.orb-button, .tech-tooltip, .orb-tray-item');
+      if (!hit || !frame.current?.contains(hit)) dispatch({ type: 'BLUR_TECH' });
+    },
+  });
   const focusedTech = focusing ? state.techId : null;
   // The bubble's orbit eases to still in about 0.4 s once it is hot, and the suction hold pulls it
   // to its arm's tip, so the tooltip takes its place when it has arrived there (at once with motion
   // off): the bubble's place and the others', and the face's; it then keeps beside it as it lifts.
   const SETTLE_MS = HOLD_BEATS.pullMs[1];
-  const settle = reducedMotion || url.freeze ? 0 : SETTLE_MS;
+  const settle = reducedMotion || options.freeze ? 0 : SETTLE_MS;
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: ReturnType<typeof faceSpot>; leaving: boolean }[]>([]);
   useEffect(() => {
-    const here = focusedTech ? ORBS.findIndex(o => o.techId === focusedTech) : -1;
+    const here = focusedTech ? orbs.findIndex(o => o.techId === focusedTech) : -1;
     const live = () => !trayAll && here >= 0 && !!bubbleLive.spots[here]?.size;
     const place = () => {
       if (!focusedTech) return null;
       // No bubble to stand beside (the tray's technology, a phone in portrait, no WebGL, or the first frame not yet drawn): the tooltip
       // is described beside the tray's button, as a sheet, and a disc just under Nox's face stands in for the orb.
       if (!live()) {
-        if (WEBGL && !trayAll && here >= 0) return null;
+        if (webgl && !trayAll && here >= 0) return null;
         const f = faceSpot('overview');
         return { techId: focusedTech, orb: { x: f.x, y: f.bounds.bottom + 30, size: 44 } as Disc, others: [] as Disc[], face: f, leaving: false };
       }
@@ -475,7 +423,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
       return {
         techId: focusedTech,
         orb,
-        others: ORBS.flatMap((_, i) => { const d = i === here ? null : bubbleDisc(instance, i); return d ? [d] : []; }),
+        others: orbs.flatMap((_, i) => { const d = i === here ? null : bubbleDisc(instance, i); return d ? [d] : []; }),
         face: faceSpot(shown === 'intro' ? 'intro' : 'overview'),
         leaving: false,
       };
@@ -484,7 +432,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
     const show = () => {
       const tip = place();
       // The bubbles are not drawn yet: wait for their first frame.
-      if (!tip && focusedTech && WEBGL && !trayAll) {
+      if (!tip && focusedTech && webgl && !trayAll) {
         unsub = bubbleLive.subscribe(() => { if (live()) { unsub(); show(); } });
         return;
       }
@@ -499,32 +447,32 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
       window.clearTimeout(timer);
       window.clearTimeout(gone);
     };
-  }, [focusedTech, settle, shown, viewport, trayAll, instance, bubbleLive]);
+  }, [focusedTech, settle, shown, viewport, trayAll, instance, bubbleLive, webgl, orbs]);
   const octopus = (
     <Octopus
       config={config}
       blender={blender}
       stage={state.stage}
-      expression={url.expression}
-      freeze={url.freeze}
+      expression={options.expression}
+      freeze={options.freeze}
       reducedMotion={reducedMotion}
-      silhouette={MASK}
+      silhouette={mask}
       quality={quality.settings}
       // Clicking the head swells it open; clicking it again closes it.
       onSelect={() => dispatch({ type: state.stage === 'overview' ? 'CLOSE' : 'OPEN_OVERVIEW' })}
-      headOpen={stagePose(shown).headMorph >= 0.5}
-      swellSheet={SWELL_SHEET}
-      orbs={ORBS}
+      headOpen={stagePoseOf(reviewSwim, shown).headMorph >= 0.5}
+      swellSheet={sheets.swell}
+      orbs={orbs}
       focusTechId={focusedTech}
-      blowSheet={BLOW_SHEET}
+      blowSheet={sheets.blow}
       accents={accents}
-      solo={url.solo}
-      yaw={url.yaw}
-      armDrive={REVIEW_SWIM?.drive}
-      holdAt={HOLD_STILL}
-      entranceSheet={ENTRANCE_SHEET}
-      entranceHold={bootVeilHeld}
-      entranceSeconds={ENTRANCE_STILL_SECONDS}
+      solo={options.solo}
+      yaw={options.yaw}
+      armDrive={reviewSwim?.drive}
+      holdAt={options.freeze ? options.hold : undefined}
+      entranceSheet={sheets.entrance}
+      entranceHold={page ? bootVeilHeld : undefined}
+      entranceSeconds={options.t ?? 2}
       onEntranceSettling={() => setSettling(true)}
       onEntranceDone={() => {
         entrance.current.finished = true;
@@ -537,7 +485,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
   );
   return (
     <div className="spike" ref={frame}>
-      {WEBGL && <Canvas
+      {webgl && <Canvas
         flat
         dpr={pixelRatio}
         frameloop={visible ? 'always' : 'never'}
@@ -546,10 +494,10 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
         gl={{ antialias: false, powerPreference: 'high-performance' }}
         camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 140 }}
       >
-        <color attach="background" args={[MASK ? '#000000' : world.palette.waterFar]} />
-        <StageCamera stage={shown} reducedMotion={reducedMotion} />
+        <color attach="background" args={[mask ? '#000000' : world.palette.waterFar]} />
+        <StageCamera stage={shown} reducedMotion={reducedMotion} options={options} />
         {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
-        {MASK ? (
+        {mask ? (
           <>
             <SilhouetteOnly />
             {octopus}
@@ -558,7 +506,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
           <>
             {/* Nothing here waits on a file: the world's kit has a Suspense of its own, so Nox and the
                 water are drawn whatever the network does. */}
-            <WorldScene world={world} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={worldTier} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
+            <WorldScene world={world} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={options} tier={worldTier} onPlateSettled={settlePlate} accents={accents} solo={options.solo} reducedMotion={reducedMotion} />
             {octopus}
             <ReadyFlag wait={!plateReady || !kitDone} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
@@ -571,46 +519,46 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
           </>
         )}
       </Canvas>}
-      {!WEBGL && <Poster />}
-      {!MASK && !url.view && (
+      {!webgl && <Poster />}
+      {!mask && !options.view && (
         <>
-          <SkipLink onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />
+          <SkipLink target={detailsId} onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />
           {/* The intro's words come in as Nox settles at the end of the entrance (the skip control goes then). */}
           <IntroOverlay project={noxProject} hidden={shown !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
-          <OverviewPanel project={noxProject} open={state.stage === 'overview'} sheet={phone || !WEBGL} dispatch={dispatch} />
-          <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!WEBGL} dispatch={dispatch} />
+          <OverviewPanel project={noxProject} open={state.stage === 'overview'} sheet={phone || !webgl} dispatch={dispatch} />
+          <ProjectDetail project={detailProject} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!webgl} panelId={detailsId} dispatch={dispatch} />
           <OrbButtons
-            orbs={ORBS}
-            open={(shown === 'intro' || shown === 'overview') && WEBGL && !viewport.phonePortrait}
+            orbs={orbs}
+            open={(shown === 'intro' || shown === 'overview') && webgl && !viewport.phonePortrait}
             focused={focusedTech}
-            tooltipId={TOOLTIP_ID}
+            tooltipId={tooltipId}
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
           />
           {tips.map(tip => {
-            const technology = TECH.get(tip.techId);
+            const technology = tech.get(tip.techId);
             if (!technology) return null;
             return (
               <TechTooltip
                 key={tip.techId}
-                id={TOOLTIP_ID}
-                content={tooltipContent(technology, USAGE.get(tip.techId), SHOW_PLACEHOLDERS)}
+                id={tooltipId}
+                content={tooltipContent(technology, usage.get(tip.techId), SHOW_PLACEHOLDERS)}
                 orb={tip.orb}
                 face={tip.face}
                 others={tip.others}
-                follow={trayAll ? -1 : ORBS.findIndex(o => o.techId === tip.techId)}
+                follow={trayAll ? -1 : orbs.findIndex(o => o.techId === tip.techId)}
                 delayMs={Math.max(0, FOCUS_BEATS.tooltip - settle)}
                 leaving={tip.leaving}
               />
             );
           })}
           <OrbTray
-            items={(trayAll ? ORDER : OVERFLOW).map(trayItem)}
+            items={(trayAll ? order : overflow).map(trayItem)}
             open={state.stage === 'overview' || state.stage === 'techFocus'}
             all={trayAll}
-            lifted={state.stage === 'overview' && (phone || !WEBGL)}
+            lifted={state.stage === 'overview' && (phone || !webgl)}
             focused={focusedTech}
-            tooltipId={TOOLTIP_ID}
+            tooltipId={tooltipId}
             onChoose={id => dispatch(id === focusedTech ? { type: 'BLUR_TECH' } : { type: 'FOCUS_TECH', id })}
           />
         </>

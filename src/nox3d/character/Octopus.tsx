@@ -22,7 +22,9 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
+import { debugWindow } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
+import { useWindowListeners } from '../host/listeners';
 import { type Box, HoldChoreography, nearestArm } from '../artifacts/suctionHold';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
@@ -351,24 +353,23 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     },
   });
 
+  // The pointer and the keys wake him from rest. Only a page instance listens (a preview shares the window with the page and does not).
+  useWindowListeners(instance.mode, {
+    pointermove: () => {
+      motion.current.pointerInside = true;
+      motion.current.lastInput = performance.now();
+    },
+    pointerdown: () => { motion.current.lastInput = performance.now(); },
+    keydown: () => { motion.current.lastInput = performance.now(); },
+    touchstart: () => { motion.current.lastInput = performance.now(); },
+  });
   useEffect(() => {
+    if (instance.mode !== 'page') return;
     const m = motion.current;
-    const enter = () => { m.pointerInside = true; m.lastInput = performance.now(); };
     const leave = () => { m.pointerInside = false; };
-    const wake = () => { m.lastInput = performance.now(); };
-    window.addEventListener('pointermove', enter);
-    window.addEventListener('pointerdown', wake);
-    window.addEventListener('keydown', wake);
-    window.addEventListener('touchstart', wake);
     document.documentElement.addEventListener('mouseleave', leave);
-    return () => {
-      window.removeEventListener('pointermove', enter);
-      window.removeEventListener('pointerdown', wake);
-      window.removeEventListener('keydown', wake);
-      window.removeEventListener('touchstart', wake);
-      document.documentElement.removeEventListener('mouseleave', leave);
-    };
-  }, []);
+    return () => document.documentElement.removeEventListener('mouseleave', leave);
+  }, [instance.mode]);
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 20);
@@ -596,7 +597,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const sf = swell.run.frame(swellSheet?.sequences ?? null, pose.headMorph, swell.frame);
     const hd = headDraw(sf, swell.draw);
     // The swell as the development build reports it, for the end-to-end tests (`window.__noxSwell`).
-    if (import.meta.env.DEV) Object.assign(((window as unknown as { __noxSwell?: object }).__noxSwell ??= {}), { open: swell.run.open, moving: swell.run.moving, morph: sf.morph, effect: sf.effect, push: sf.push });
+    const probe = import.meta.env.DEV ? debugWindow(instance) : null;
+    if (probe) Object.assign((probe.__noxSwell ??= {}), { open: swell.run.open, moving: swell.run.moving, morph: sf.morph, effect: sf.effect, push: sf.push });
     // Before it swells the head squeezes a little: the anticipation.
     head.current!.scale.set((1 + b * 0.016) * mantle * hd.across, (1 + b * 0.011) * mantle * hd.up, (1 + b * 0.016) * mantle * hd.across);
 
@@ -631,7 +633,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     hold.choose(selected >= 0 ? selected : null, holdStill ? 0 : now);
     const holds = hold.sample(holdStill ? holdAt : now);
     // The hold as the development build reports it, for the end-to-end tests (`window.__noxHold`).
-    if (import.meta.env.DEV) (window as unknown as { __noxHold?: { techId: string; pull: number; release: number }[] }).__noxHold = holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release }));
+    if (probe) probe.__noxHold = holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release }));
     m.holdWeight.fill(0);
     for (const sum of m.holdSum) sum.set(0, 0);
     for (const key of m.holdFrom.keys()) if (!holds.some(f => f.bubble === key)) m.holdFrom.delete(key);

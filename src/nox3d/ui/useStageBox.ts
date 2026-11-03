@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
+import { useInstance } from '../host/instanceContext';
+import { useWindowListeners } from '../host/listeners';
 import type { StageId } from '../config/types';
 import { projectToScreen } from '../stage/anchors';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
@@ -28,14 +30,15 @@ export function stageBoxFor(stage: StageId, [x0, y0, x1, y1]: readonly [number, 
  * has framed `stage`, kept up to date as the window resizes.
  */
 export function useStageBox(stage: StageId, [x0, y0, x1, y1]: readonly [number, number, number, number]): ScreenBox {
+  const { mode } = useInstance();
   const measure = () => stageBoxFor(stage, [x0, y0, x1, y1], { width: window.innerWidth, height: window.innerHeight });
   const [box, setBox] = useState(measure);
+  // The box is re-measured when the stage or the world box changes.
   useEffect(() => {
     const update = () => setBox(measure());
     update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-    // The box is re-measured when the stage or the world box changes.
   }, [stage, x0, y0, x1, y1]);
+  // And as the window resizes, for a page instance (a preview attaches no window listener).
+  useWindowListeners(mode, { resize: () => setBox(measure()) });
   return box;
 }

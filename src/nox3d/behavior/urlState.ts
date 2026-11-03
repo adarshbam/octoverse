@@ -45,7 +45,28 @@ export interface UrlState {
   solo: boolean;
   /** Opens the Theatre.js studio (honoured in development builds only: main.tsx guards the import). */
   studio: boolean;
+  /** Draws the octopus as a flat white silhouette on black, for shape comparison (development builds only). */
+  mask?: true;
+  /** `?freeze&blow=<s>`: a still of the bubble blow at that moment (an unreadable value is 0). */
+  blow?: number;
+  /** `?freeze&swell=<s>`: a still of the head swell's opening at that moment. */
+  swell?: number;
+  /** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen. */
+  hold?: number;
 }
+
+/**
+ * What an instance is told about its page: the review and debug switches, parsed once by the host
+ * (main.tsx reads `location.search` and calls `parseUrlState`) and handed down as a prop. No other
+ * module reads the location; a preview instance is handed the defaults.
+ */
+export type ReviewOptions = UrlState;
+
+/** The options of a page with no review switches (what a preview instance gets). */
+export const defaultReviewOptions = (): ReviewOptions => parseUrlState('');
+
+/** A still switch's number: its value, 0 for a bare or unreadable one, absent when the switch is. */
+const stillSeconds = (params: URLSearchParams, key: string) => (params.has(key) ? Number(params.get(key)) || 0 : undefined);
 
 /** The lean `?tilt` may ask for, in radians: none up to about 40 degrees. */
 export const TILT_RANGE = { min: 0, max: 0.7 } as const;
@@ -80,5 +101,10 @@ export function parseUrlState(search: string): UrlState {
   if (params.has('kitwait') && Number.isFinite(kitWait) && kitWait > 0) state.kitWait = kitWait;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';
   if (import.meta.env.DEV && params.get('variant') === 'dummy') state.variant = 'dummy';
+  if (params.has('mask')) state.mask = true;
+  const [blow, swell, hold] = [stillSeconds(params, 'blow'), stillSeconds(params, 'swell'), stillSeconds(params, 'hold')];
+  if (blow !== undefined) state.blow = blow;
+  if (swell !== undefined) state.swell = swell;
+  if (hold !== undefined) state.hold = hold;
   return state;
 }

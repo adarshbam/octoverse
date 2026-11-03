@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-instance page (development only)</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #071535;
+      }
+
+      /* Each instance gets a cell. The transform makes the cell the containing block of the instance's fixed-position controls, so they stay inside it. */
+      .cell {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 0;
+        height: 100vh;
+        overflow: hidden;
+        transform: translateZ(0);
+      }
+
+      .multi-bar {
+        position: fixed;
+        z-index: 1000;
+        top: 8px;
+        left: 50%;
+        translate: -50% 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" style="display: flex"></div>
+    <!-- Development only. Nothing in the production build reaches this page: Vite builds index.html alone, and multi.tsx does nothing outside a development build. -->
+    <script type="module" src="/src/app/multi.tsx"></script>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import { type PointerEvent, useEffect, useMemo, useRef } from 'react';
 import { HoverIntent } from './hoverIntent';
 import { useInstance } from '../host/instanceContext';
+import { useWindowListeners } from '../host/listeners';
 import type { InstanceState } from '../host/instance';
 import * as THREE from 'three';
 import { FOCUS_GROW } from '../artifacts/TechBubbles';
@@ -148,7 +149,7 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
  * described by the tooltip. While the pointer is on a bubble the orbits ease to still.
  */
 export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs: readonly OrbChoice[]; open: boolean; focused: string | null; tooltipId: string; onChoose: (techId: string) => void }) {
-  const { hover: pointer } = useInstance();
+  const { hover: pointer, mode } = useInstance();
   const hover = useRef<{ techId: string | null; timer?: number }>({ techId: null });
   const intent = useMemo(() => new HoverIntent(), []);
   useEffect(() => () => {
@@ -156,13 +157,16 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
     holdHover(pointer, false);
   }, [pointer]);
   // The pointer's own movement, wherever it is: a bubble that comes to a pointer that has been still is not a choice.
-  useEffect(() => {
-    const track = (event: globalThis.PointerEvent) => {
-      if (event.pointerType === 'mouse') intent.track(event.clientX, event.clientY, performance.now());
-    };
-    window.addEventListener('pointermove', track, true);
-    return () => window.removeEventListener('pointermove', track, true);
-  }, [intent]);
+  // (A page instance listens on the window; a preview does not, and goes by the pointer events on its own buttons.)
+  useWindowListeners(
+    mode,
+    {
+      pointermove: event => {
+        if (event.pointerType === 'mouse') intent.track(event.clientX, event.clientY, performance.now());
+      },
+    },
+    true,
+  );
   // Hiding the buttons under a resting pointer sends no leave event: let go of the hover then, so
   // the orbits do not stay settled once the bubbles are hidden.
   useEffect(() => {

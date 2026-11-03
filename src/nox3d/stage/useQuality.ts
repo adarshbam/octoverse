@@ -1,13 +1,15 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import type { UrlState } from '../behavior/urlState';
+import type { ReviewOptions } from '../behavior/urlState';
+import { debugWindow } from '../host/debugHooks';
+import { useInstance } from '../host/instanceContext';
 import { FrameProbe, type QualityTier, TIER_SETTINGS, pickTier } from './quality';
 
 /**
  * The tier to start with. Captures (`?freeze`, `?view`) and a forced `?tier` hold their tier;
  * otherwise the device's report picks it and the frame probe may step it down.
  */
-export function startingTier(url: UrlState): { tier: QualityTier; adaptive: boolean } {
+export function startingTier(url: ReviewOptions): { tier: QualityTier; adaptive: boolean } {
   if (url.tier) return { tier: url.tier, adaptive: false };
   if (url.freeze || url.view) return { tier: 'high', adaptive: false };
   const nav = navigator as Navigator & { deviceMemory?: number };
@@ -21,17 +23,19 @@ export function startingTier(url: UrlState): { tier: QualityTier; adaptive: bool
 }
 
 /** The quality tier and its settings; `step` lowers it when the frame probe asks. */
-export function useQuality(url: UrlState) {
+export function useQuality(url: ReviewOptions) {
+  const instance = useInstance();
   const [start] = useState(() => startingTier(url));
   const [tier, setTier] = useState(start.tier);
-  // Dev server only: lets a browser test force a tier change (the frame probe's step, on demand).
+  // Dev server only, page instance only: lets a browser test force a tier change (the frame probe's step, on demand).
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    (window as unknown as { __noxSetTier?: (tier: QualityTier) => void }).__noxSetTier = setTier;
+    const w = debugWindow(instance);
+    if (!import.meta.env.DEV || !w) return;
+    w.__noxSetTier = setTier;
     return () => {
-      delete (window as unknown as { __noxSetTier?: unknown }).__noxSetTier;
+      delete w.__noxSetTier;
     };
-  }, []);
+  }, [instance]);
   return { tier, settings: TIER_SETTINGS[tier], adaptive: start.adaptive, step: setTier };
 }
 

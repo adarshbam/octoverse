@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { parseUrlState } from './urlState';
+import { defaultReviewOptions, parseUrlState } from './urlState';
 
 test('parses stage, freeze and view', () => {
   expect(parseUrlState('?stage=overview&freeze&view=-1,0.5,1,-1.5')).toEqual({ stage: 'overview', freeze: true, orbit: false, noWebgl: false, solo: false, studio: false, view: [-1, 0.5, 1, -1.5] });
@@ -88,4 +88,26 @@ test('a production build ignores every review switch', () => {
   const off = parseUrlState('');
   expect(parseUrlState('?freeze&stage=detail&orbit&nowebgl&solo&mask&tech=kali&tier=low&variant=dummy&studio&view=1,2,3,4')).toEqual(off);
   expect(off).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false, studio: false });
+});
+
+test('parsing reads only the string it is given, never the page location', () => {
+  const had = Object.getOwnPropertyDescriptor(globalThis, 'location');
+  Reflect.deleteProperty(globalThis, 'location');
+  try {
+    expect(typeof (globalThis as { location?: unknown }).location).toBe('undefined');
+    expect(parseUrlState('?stage=intro&freeze&mask&blow=0.5&swell=0.4&hold=500')).toMatchObject({ stage: 'intro', freeze: true, mask: true, blow: 0.5, swell: 0.4, hold: 500 });
+    expect(defaultReviewOptions()).toEqual(parseUrlState(''));
+  } finally {
+    if (had) Object.defineProperty(globalThis, 'location', had);
+  }
+});
+
+test('the still switches (mask, blow, swell, hold) are read as the page used to', () => {
+  expect(parseUrlState('?mask').mask).toBe(true);
+  expect(parseUrlState('').mask).toBeUndefined();
+  expect(parseUrlState('?blow=0.25').blow).toBe(0.25);
+  // As before: a bare or unreadable value is 0, absent is undefined.
+  expect(parseUrlState('?blow').blow).toBe(0);
+  expect(parseUrlState('?swell=abc').swell).toBe(0);
+  expect(parseUrlState('?stage=intro').hold).toBeUndefined();
 });
