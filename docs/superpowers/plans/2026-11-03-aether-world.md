@@ -121,7 +121,7 @@ If a needed Veyra task has not landed, stop that milestone and report. Do not bu
 
   `rg "export (const|type|interface|function) (WorldBundle|validateBundle|faceAnchor|HEAD_EFFECTS|PLACEMENTS|APPEARS|SELECTS|LIVE_ELEMENTS|KIT_MATERIAL_VARIANTS|WORLDS|resolveWorld|themeVars|clampCharacterConfig|resolveExpressions|choosableNow|assignPendants|tetherCurve|pendantSwing|threadClearance|armLiftTarget|layoutOrbits|orbitPoint|SurfaceLook|JellySettings|SuckerStyle|EntranceShape)" src/engine src/worlds`
 
-  Write each name and its file under "Engine as landed" at the top of `aether.md`. A1 18.2 names the pendant helpers `assignSlots`, `tetherPath` and `tetherSwing`, while Veyra's plan names them `assignPendants`, `tetherCurve` and `pendantSwing`. Record whichever landed; this plan's names mean those.
+  Write each name and its file under "Engine as landed" at the top of `aether.md`. The engine spec adopts Veyra's pendant helper names (`assignPendants`, `pendantSwing`, `tetherCurve`, `threadClearance`, from `pendant.ts` and `tether.ts`; orchestrator, 2026-11-03), as this plan uses. If anything still landed under another name, use the landed name and note it.
 - [ ] **Step 2: Copy the panels.** Copy the five `<main checkout>/docs/design/references/Aether/native-panels/0N - *.png` to `public/aether/ref/pN.png` (copy only). Make `p2-mask.png` with `scripts/silhouette.py` as for Veyra. The mask excludes the title, nameplate, ring and beads; check it by eye beside the crop.
 - [ ] **Step 3: Write samples and targets.** Take all 23 P2 samples and the 8 P1, P3 and P4 samples from spec 2.1, each with its `panel`. Measure the mean colour inside the mask into `meanInside.rgb`.
 - [ ] **Step 4: Write `targets.test.ts`:**
