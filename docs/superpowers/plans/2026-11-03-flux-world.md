@@ -37,7 +37,7 @@ Flux never forks shared code.
 | 5 (motion) | Veyra Task 16 (`settle`, `glideBias`, `flourishRate`, `flourish.ts`, and from A2 `instance.flourish.subscribe(cb)`), Task 17 (`EntranceShape`, `spiral: false`), Task 18 (`kitDrives` on `'emissive'`) |
 | 6 (orbs live) | Veyra Task 19 (`bloomState`, `armLift`, `armLiftTarget`, `{ liftMs, overshoot, expression }`, and the shared `reveal` reader used by `bloom` and `pulse`) |
 
-The A2 items (contract 19.1, X1 to X3) are accepted by the engine owner and pending the owner's A2 approval. If A2 is declined, use the fallbacks in the "Gaps" section.
+The A2 items (contract 19.1, X1 to X3) are final: the owner approved A2 on 2026-11-03.
 | 7 (head swell) | Milestone 3 approved; nothing further from other worlds |
 
 If a needed task has not landed, stop that milestone and report. Never build another world's variant inside Flux's work. The one exception is `'sand'` (A1 A15): whichever of Flux or Aether needs it first adds it.
@@ -613,14 +613,11 @@ Raise this with the engine owner before starting (F2).
 
 ## Gaps found against the engine contract (to the orchestrator; not edited into the contract)
 
-All three are accepted by the engine owner into the A2 draft (contract 19.1), pending the owner's A2 approval. The fallbacks apply only if A2 is declined.
+All three are final in amendment A2 (contract 19.1), approved by the owner on 2026-11-03.
 
 - **X1: idle pulses through the flourish layer.** Veyra's Task 16 emits `instance.flourish.subscribe(cb)`. `Personality.flourishPulse` and the cup-pulse subscription are Flux's own work (Task 14).
-  - **Fallback:** an idle schedule inside Flux's `cupPulse` module, `CupPulse.idle?: { every: readonly [number, number] }`, with `flourishRate` 2.5 for tip flicks only.
 - **X2: pendant swing bounds as data.** Veyra's Task 13 builds `pendant.swing?: { maxAngle, settle }`, defaulting to 25 degrees and 1.2 s. Flux sets 18 degrees and 0.8 s (Task 16).
-  - **Fallback:** Veyra's constants; tell the owner the 18-degree bound is not met.
 - **X3: per-slot reveal stagger on the swell.** Veyra's Task 13 adds `pendant.reveal?: { start, span, step }`; Task 19's reader is shared by `bloom` and `pulse` (Task 16).
-  - **Fallback:** all orbs grow together over swell 0.35 to 0.65.
 - **Aligned:**
   - the `armLift` `pulse` flag is the select module calling the F1 trigger, inside F1;
   - "eager" is an override of the existing `focused` id (A1 G1);
