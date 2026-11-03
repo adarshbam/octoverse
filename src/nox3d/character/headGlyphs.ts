@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { DomeShape, HeadEffectId } from '../config/types';
+import type { CharacterConfig, DomeShape, HeadEffectId } from '../config/types';
 import { RUNES } from '../world/textures';
 
 // Nox's head effect (ledger R57, the owner's words: "Glowing red glyphs"): as the head swells into
@@ -164,4 +164,16 @@ export function createHeadGlyphs(dome: DomeShape, strength = 1.3) {
       map.dispose();
     },
   };
+}
+
+/**
+ * The glyphs a character's head swell draws, built by `make`: none for `'none'` or null (the dome
+ * alone, as approved), and none in a silhouette capture, where they would read as shape.
+ */
+export function glyphsFor<T = ReturnType<typeof createHeadGlyphs>>(
+  config: Pick<CharacterConfig, 'headEffect' | 'dome'>,
+  silhouette: boolean,
+  make: (dome: DomeShape) => T = createHeadGlyphs as unknown as (dome: DomeShape) => T,
+): T | null {
+  return drawsGlyphs(config.headEffect) && !silhouette ? make(config.dome) : null;
 }

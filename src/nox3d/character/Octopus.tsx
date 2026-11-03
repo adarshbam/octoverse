@@ -33,7 +33,7 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createHeadSilhouetteMaterial } from './headMorph';
-import { createHeadGlyphs, drawsGlyphs } from './headGlyphs';
+import { glyphsFor } from './headGlyphs';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
@@ -260,7 +260,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
   // The head swell's effect (Nox's: glowing red glyphs over the dome); 'none' draws the dome alone.
-  const glyphs = useMemo(() => (drawsGlyphs(config.headEffect) && !silhouette ? createHeadGlyphs(config.dome) : null), [config, silhouette]);
+  const glyphs = useMemo(() => glyphsFor(config, silhouette), [config, silhouette]);
   useEffect(() => () => glyphs?.dispose(), [glyphs]);
 
   const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
