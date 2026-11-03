@@ -11,6 +11,7 @@ import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
+import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
 import { strokeAt, swimDrive } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimRests } from '../motion/swimArms';
 import { BODY_X } from '../poses/nox.poses';
@@ -296,7 +297,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       pointer: null as { x: number; y: number } | null,
       near: 0,
       body: null as { x: number; y: number } | null,
-      move: { x: 0, y: 0, frames: 0 },
+      move: SETTLE_IDLE,
       dir: { x: 0, y: 0 },
       lift: 0,
     },
@@ -386,27 +387,18 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     mc.settle += microStep;
     mc.arrival += microStep;
     // The settle overshoot: when a stage move of the body lands, he carries on past the pose along it
-    // and back. A move of only a frame or two (a skip lands at once, under the crossfade) has none.
+    // and back (motion/microTriggers.ts settleStep: a skip, landing at once, has none).
     const lastBody = (mc.body ??= { x: pose.body.x, y: pose.body.y });
-    const moveX = pose.body.x - lastBody.x;
-    const moveY = pose.body.y - lastBody.y;
+    mc.move = settleStep(mc.move, pose.body.x - lastBody.x, pose.body.y - lastBody.y, moving, swim !== null);
     lastBody.x = pose.body.x;
     lastBody.y = pose.body.y;
-    if (moveX !== 0 || moveY !== 0) {
-      mc.move.x += moveX;
-      mc.move.y += moveY;
-      mc.move.frames++;
-    } else if (mc.move.frames > 0) {
-      const travel = Math.hypot(mc.move.x, mc.move.y);
-      if (moving && !swim && mc.move.frames >= 5 && travel > 0.05) {
-        mc.dir.x = mc.move.x / travel;
-        mc.dir.y = mc.move.y / travel;
-        mc.settle = 0;
-      }
-      mc.move.x = mc.move.y = mc.move.frames = 0;
+    if (mc.move.landed) {
+      mc.dir.x = mc.move.landed.x;
+      mc.dir.y = mc.move.landed.y;
+      mc.settle = 0;
     }
     // The arrival wiggle plays once, as the entrance (run to its end, not skipped) hands over to the intro.
-    if (!mc.arrived && m.entrance.done && stage !== 'entering' && moving) {
+    if (arrivalDue({ moving, stage, arrived: mc.arrived, entranceDone: m.entrance.done })) {
       mc.arrived = true;
       if (entranceSheet?.sequences) mc.arrival = 0;
     }
@@ -414,8 +406,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const settle = moving * settleOvershoot(mc.settle, micro);
     const wiggle = entranceSheet?.sequences ? arrivalWiggle(entranceSheet.sequences, mc.arrival, micro) : { roll: 0, armWave: 0 };
     const lift = moving * flinch.lift + settle * mc.dir.y;
-    // The arms trail against the lift as they do against the float (`droop`), at a gentler gain.
-    const liftSpeed = dt > 0 ? (lift - mc.lift) / dt : 0;
+    // The arms trail against the lift as they do against the float (`droop`), at a gentler gain;
+    // never when still, and clamped, so motion switching back on mid-startle cannot spike a frame.
+    const liftSpeed = trailSpeed(lift, mc.lift, dt, moving);
     mc.lift = lift;
 
     const drift = floatOffset(t, personality);
@@ -488,11 +481,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
     spring(m.smile, near, 5, dt);
-    // The small startle: the pointer darting in close to the face, fast, as it comes near (not
-    // while it lingers there), at most once per cooldown; in the intro and the overview only.
+    // The small startle: the pointer darting in close to the face (motion/microTriggers.ts startleDue).
     const closeness = m.pointerInside ? nearFace(p, faceAt) : 0;
     const pointerSpeed = mc.pointer && dt > 0 ? Math.hypot(p.x - mc.pointer.x, p.y - mc.pointer.y) / dt : 0;
-    if (moving && (stage === 'intro' || stage === 'overview') && closeness >= micro.startle.near && mc.near < micro.startle.near && pointerSpeed >= micro.startle.speed && mc.startle >= micro.startle.cooldown) mc.startle = 0;
+    if (startleDue({ moving, stage, near: closeness, nearBefore: mc.near, speed: pointerSpeed, since: mc.startle }, micro)) mc.startle = 0;
     mc.near = closeness;
     if (m.pointerInside) {
       mc.pointer ??= { x: 0, y: 0 };
@@ -591,9 +583,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const target = presentW > 0 && driver >= 0 ? tipTarget(orbs[driver].slot) : m.reachPoint[i];
       const w = presentW > 0 && driver >= 0 ? presentW : pointerW;
       chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
-      // Toward the body: the swing about the root that brings this arm's tip toward the body's axis
+      // Toward the body: the swing about the root that brings this arm's tip toward the body's middle
       // (from where it was last frame). The startle draws the arms in; the arrival wiggle fans them out and back.
-      const inward = Math.sign((config.head.centerX - chain.tipX) * (chain.py[0] - chain.tipY));
+      const inward = inwardSign(BODY_X, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
       chain.solve({
         time: t,
         sway: moving * personality.sway * (1 - 0.6 * w),
