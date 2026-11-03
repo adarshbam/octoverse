@@ -1,0 +1,518 @@
+# OctoVerse 3D Engine Contract
+
+Date: 2026-11-03
+Branch: `claude/engine-contract-9ac935`, cut from `feat/nox-3d` at `6009863`. `feat/nox-3d` has since moved on (Nox's last lanes are merging); this contract is checked against the final tip before extraction starts (section 14).
+Master plan packet: E01 in `docs/execution/MASTER-PLAN.md` (main checkout). The extraction plan (E02) is a separate document: `docs/superpowers/plans/2026-11-03-engine-extraction.md`.
+Method comes from: `2026-10-23-nox-3d-design.md` and `2026-10-26-nox-world-and-motion-design.md`. The master plan's section 2 architecture table and minimum-interface list say which boundaries are wanted; its SVG-era technique does not apply.
+Inputs: the Nox code in `src/nox3d/` (about 14k lines), the references `Veyra.jpeg`, `Flux.jpeg`, `Aether.jpeg`, `Octoverse.jpeg` and `girlfriend-reference.jpg` (the DNA), and Veyra's engine needs (`veyra-engine-needs.md`, relayed 2026-11-03).
+
+## 1. Intent
+
+OctoVerse is four octopus worlds (Nox, Veyra, Flux, Aether), a platform that shows them, a creator, and a backend. Nox is built, procedural, and nearly finished. The engine contract answers one question: **how do we put a second, different octopus in a second, different place without recolouring Nox and without copying him?**
+
+The test is Veyra (`Veyra.jpeg`). She is not Nox in teal. She has a rounder jelly-glass body with no cheek lobes, tight spiral tips, cream-gold scalloped cups, a green iris, a vault door with a padlock instead of rune pillars and lava, glowing plants instead of coral, and orbs hung on tethers from her arms instead of bubbles orbiting her head. A contract that survives Veyra honestly will survive Flux and Aether, which are closer to Nox in kind.
+
+The contract is a **boundary map plus a migration**. It names what is engine, what is a world, who owns each piece of authored data, and how every existing Nox effect and pose reaches the new layout unchanged. It does not add features. Nox's rendered output is the frozen reference throughout.
+
+## 2. Goals, non-goals, anti-goals
+
+### Goals
+
+1. **A second world is data plus a small number of named variation modules, not a fork.** A world is one `WorldBundle` (section 5) and its assets.
+2. **Nox is preserved exactly.** Every existing effect, authored pose, timing and look has a stated destination (section 11). Frozen stills match before and after; the existing Nox test suite passes unchanged in behaviour.
+3. **Instances are isolated.** Two instances on one page, or a world switch, share no mutable state: selection, timers, sequences, anchors, bubbles, listeners, DOM ids (section 8).
+4. **Responsibilities are distinct:** geometry, content, placement, rendering and control each have one owner (section 7).
+5. **Each world keeps its own authored geometry.** The same shared system (pose blender, stroke, suction hold) runs on different authored arm curves, poses and layouts per character.
+6. **Exactly eight arms, T1 to T8, always.** Technology count never sets anatomy.
+
+### Non-goals
+
+- Moving worlds Flux, Aether or the platform to completion. This contract only says how they plug in.
+- A plugin system, runtime registration, or third-party extension API.
+- Any physics layer. **Arm physics is cancelled** (owner and orchestrator, 2026-11-03). Section 9.3 of the 2026-10-26 spec is withdrawn for the engine's purposes: no node chains, springs or drag are part of the shared systems, and no personality field depends on them. Arms follow-through comes from the existing ambient, stroke and pose-blend layers.
+- Rewriting any approved Nox component, pose or timing.
+- Changing the rendering pipeline (no tone mapping, SMAA, bloom, contact shadows) except to move its settings into a world's data.
+- Backend, accounts, uploads, billing, creator tooling.
+
+### Anti-goals
+
+The extraction fails even if it technically works when:
+
+- Nox's output changes in any way the equivalence checks (section 13) can see.
+- **Every character comes out Nox-shaped:** a "generic octopus" with a palette slot. Geometry, poses, orbit or tether layouts, head effects and personality stay authored per character.
+- A world needs engine code forked or edited to look right.
+- A shared system quietly assumes a hue (red, magenta) or a feature (cheek lobes, lava, a rune glyph).
+- A speculative extension point is built that no world uses yet.
+- The extraction becomes a big-bang rewrite that cannot be bisected.
+
+## 3. Constraints
+
+- **Stack unchanged:** React 19, three 0.186.1, R3F 9, drei 10, postprocessing 3, Vite 8, Theatre.js 0.7.2 (`@theatre/core` in production, `@theatre/studio` development only), Vitest.
+- **Owner's laptop (Intel UHD) is the performance floor.** The extraction adds no per-frame allocation and no extra draw passes. Veyra's own budget (intro at tier low, at least 40 fps at 1536 x 1024, pixel ratio 1) must stay reachable; the engine must not be what costs it.
+- **No tone mapping**, `flat` canvas, colour pipeline unchanged.
+- **No videos.** Equivalence evidence is stills, numbers and the test suite.
+- **Docs-only now.** Extraction starts after Nox's final verification lands on `feat/nox-3d`, and runs on a branch cut from that tip. The Nox session is measuring frame rate: no dev server or Playwright while this spec and plan are written.
+- **Main checkout is never edited.** Files are copied from it.
+- **Physics cancelled** (above).
+
+## 4. What the Nox code looks like today (evidence)
+
+Mechanics and data are already mostly separate. `Octopus.tsx`, `WorldScene.tsx` and the behaviour modules take their data as props. The coupling is a small, finite set of leaks.
+
+### 4.1 Direct Nox imports in shared code
+
+| File | Leak |
+|---|---|
+| `App.tsx` | Imports `NOX`, `NOX_POSES`, `SWIM_POSES`, `noxProject`, `noxTechnologies`, `SECURITY_WORLD`; module-level URL parse, project tables, sheet loaders, window globals. It is the de facto composition root. |
+| `stage/liveAnchors.ts` | `noxFaceAnchor()` reads `NOX` and `NOX_POSES`; module singleton `liveAnchors`. |
+| `ui/OrbButtons.tsx` | Same face-anchor maths as `liveAnchors.ts` from `NOX` and `NOX_POSES` (duplicated). |
+| `artifacts/TechBubbles.tsx` | `NOX_SHELLS` from `bubbleOrbits.ts`; `NOX.head.faceOrigin` for the side of the face. |
+| `sequences/bubbleBlow.ts` | `BLOW_MOUTH` computed from `NOX.head` and `NOX.face.mouth` at module load. |
+| `sequences/entrance.ts` | Reads `NOX.personality.swim`; entrance arc and clearance constants (`ARM_HALF_SPAN`, `PILLAR_HALF`) are Nox's. |
+| `sequences/keys.ts` | The Theatre defaults for all four sequences are Nox's authored numbers (and say so: "this file may not import" the config; a test checks they agree). |
+| `poses/nox.poses.ts`, `poses/nox.swim.ts` | Authored Nox poses, built from `NOX.arms` at load. They are character data, correctly named, but referenced directly by shared code. |
+| `character/Octopus.tsx` | `BODY_X` from `nox.poses`, `swimShapes` from `nox.swim`. |
+| `character/skinMaterial.ts` | `INTRO_LIGHTING` (stage lighting) is a default constant in `config/lighting.ts`, not part of `CharacterConfig`, although the 2026-10-26 spec says Nox's lighting comes from his configuration. |
+
+### 4.2 Hard-coded hues and Nox-only features in shared code
+
+These are what a teal octopus would trip over:
+
+- `character/glowLight.ts`: `GLOW_LIGHT.color '#ff4a30'` (the face-glow light).
+- `character/Octopus.tsx`: core glow `'#ff4a2a'`.
+- `artifacts/orbMaterial.ts`: `ORB_FOCUS_COLOUR '#ff2e5a'` (the focused bubble's edge).
+- `character/auraMaterial.ts`: `RED_BELOW`, red below the arms' cup bands.
+- `world/WorldScene.tsx`: `SKIN_WARMTH` (pink warmth the world adds to the skin), `CAUSTIC_STRENGTH`.
+- `post.ts`: contact-shadow colour `'#1a0418'`, bloom and vignette values, shared by all stages.
+- `character/headGlyphs.ts`: red rune strokes; this is Nox's head effect and is correct as a module, but its colours are literal rather than read from the palette.
+- `CheekShape` is required on `HeadShape`; the neck blend assumes it.
+- `WorldLight.kind` is `'glyph' | 'coral' | 'lava'`; relics are `{ glyph, coral, spill }` and `palette` is `{ stone, glyph, coral, lava, waterFar, floor }`. The world vocabulary is the security realm's.
+
+### 4.3 Shared mutable state (the isolation problem)
+
+| State | Where | Problem |
+|---|---|---|
+| `bubbleLive` | `artifacts/bubbleLive.ts` | One page-wide set of bubble screen positions. Two instances overwrite each other. |
+| `liveAnchors` | `stage/liveAnchors.ts` | One camera/anchor pair. Same. |
+| `bubblePointer` | `world/cameraHover.ts` | One hovered flag for the page. |
+| `reachState` | `character/armChain.ts` | A module-scratch spring shared by every `ArmChain`. |
+| `RELIEF_GATE` / `setReliefGate` | `world/bakedLight.ts` | A shared uniform object. |
+| `loading` promise, project id `'OctoVerse'` | `sequences/theatre.ts` | One Theatre project; a second world with its own state needs its own. |
+| `ENTRANCE_SHEET`, `BLOW_SHEET`, `SWELL_SHEET`, `url`, `ORDER`, `TECH`, `USAGE`, `ORBS` | `App.tsx` module level | Per-page state that is really per-instance; `url` is parsed from `location.search` at import. |
+| Window listeners | `App.tsx` (skip, Escape, press), `Octopus.tsx`, `useQuality.ts`, `ProjectDetail.tsx`, UI | Every instance listens on `window`; a preview would skip another's entrance or close another's detail. |
+| `sessionStorage['octoverse.nox.entranceSeen']` | `behavior/useStage.ts` | One flag; a second world would think its entrance was seen. |
+| Fixed DOM ids and selectors | `'tech-tooltip'`, `.orb-button`, `.tech-tooltip` via `closest` | Duplicate ids with two instances. |
+| `window.__noxReady`, `window.__noxEntrance` | `App.tsx`, `Octopus.tsx` | Read by five e2e specs and `scripts/perf.mjs`. |
+| `logoTexture` cache | `artifacts/logoTexture.ts` | Module cache of canvas textures. Safe to share (immutable canvases, never disposed), but must be stated, not accidental. |
+| Kit loader per renderer | `world/kitLoader.ts` | Already keyed by `WebGLRenderer` in a `WeakMap`: correct. |
+
+### 4.4 Content contract leftovers
+
+- `ARM_IDS` is defined twice (`config/types.ts`, `content/projectTypes.ts`).
+- `SCENE_STATES` (`realm_entry`, `introduction`, ...) is the SVG-era vocabulary and is used only inside the content module; the 3D code uses `StageId` (`entering`, `intro`, `overview`, `techFocus`, `detail`).
+- `Project.placements` / `ArtifactPlacement` carries 2D positions in the content contract. Nox sets `placements: {}`. It breaks the master plan's rule that content holds no coordinates.
+
+## 5. Approaches considered
+
+| Approach | Verdict |
+|---|---|
+| **A. Parameterize in place.** Keep `src/nox3d/`, pass Nox's constants in as arguments. | Fastest to a first Veyra, but nothing structural stops Nox leaking back in, and the singletons and window listeners stay. Rejected as the end state; its useful part (take data as arguments) is step one of B. |
+| **B. Split engine from worlds.** `src/engine/` holds shared mechanics; each world is a `WorldBundle` under `src/worlds/<id>/`; every mounted instance owns its own state. | **Chosen.** One migration with a checkable boundary, the only option that fixes isolation, and it matches the master plan's "common contracts, separate technology data". |
+| **C. Copy Nox into Veyra and deduplicate later.** | Quickest Veyra, but the master plan prohibits whole-engine duplication, Nox would be edited twice, and "later" does not arrive. Rejected. |
+
+Recommended by this session; the owner confirms it when approving this document.
+
+## 6. Architecture
+
+### 6.1 Layout
+
+```
+src/engine/
+  arms.ts            ARM_IDS, ArmId: the one definition
+  types/             CharacterConfig, StagePose, WorldConfig, StageId, ... (contract types)
+  character/         Octopus, ArmChain, ArmTube, ArmWeb, suckers, face, skin and dome materials,
+                     halo, aura, grade, head geometry, head-effect modules (HEAD_EFFECTS table)
+  motion/            stroke, swimArms (the shared stroke cycle)
+  behavior/          ambient, attention, expressions, reach, focus choreography, pose blender,
+                     stage state machine, stage hook
+  artifacts/         bubbles, tethered orbs, orbit layout, suction hold, logo textures, orb glass
+  sequences/         sheet loader, entrance/blow/swell run logic (data from the bundle)
+  world/             WorldScene, kit loader, floor, water, particles, far plate, baked light, tiers
+  stage/             framing, anchors, quality probe
+  ui/                the shared HTML layer (intro, overview, detail, tooltip, tray, skip, orb buttons)
+  host/              WorldHost, EngineInstance, instance context, URL/review options
+src/worlds/
+  nox/               bundle.ts, character.ts, poses.ts, swim.ts, content/, sequences/, world/, theme
+  veyra/             (later) same shape
+  flux/  aether/     (later)
+src/app/main.tsx     reads `?world=`, mounts <WorldHost>
+```
+
+Files move with `git mv` to keep history. Tests move beside their modules. Engine imports nothing from `src/worlds/`; a lint check enforces it (section 13).
+
+### 6.2 The world bundle
+
+A world is one object. The engine reads only this; it never imports a world.
+
+```ts
+export type WorldId = string; // 'nox' | 'veyra' | 'flux' | 'aether'
+
+export interface WorldBundle {
+  id: WorldId;
+  /** What the creature looks like and how it moves: geometry, materials, face, personality, lighting. */
+  character: CharacterConfig;
+  /** Authored arm curves, body transform, expression, head morph, per stage. */
+  poses: Record<StageId, StagePose>;
+  /** The swim's two arm shapes (open, trail) and the swim stretch. */
+  swim: SwimPoseSet;
+  /** How technology artifacts are placed, appear and are chosen. */
+  artifacts: ArtifactConfig;
+  /** Theatre state and per-sequence extras (entrance path, clearance) for this world. */
+  sequences: SequenceSet;
+  /** The place: kit, layout, palette, lights, far plate, live elements, post. */
+  place: WorldConfig;
+  /** Per-stage framing and the face anchor the overlays and lens shift register on. */
+  stage: { frames: Record<StageId, StageFrame>; faceAnchor: Record<'intro' | 'overview' | 'detail', Vec3> };
+  /** Project data. No coordinates. */
+  content: { project: Project; technologies: readonly Technology[] };
+  /** UI tokens: accents, title icon, nameplate, surface tint, focus ring. */
+  theme: UiTheme;
+  /** Optional dev-only helpers: extra URL stills, review components. */
+  review?: ReviewHooks;
+}
+```
+
+Master-plan names map as follows: `WorldDefinition` = `WorldBundle` (with `place` = the environment part); `PoseDefinition` = `StagePose`; `TechnologyPlacement` = `ArtifactConfig` (strategy data, section 9.2); `SceneState` = `StageId`; `TechnologyUsage` = `ProjectTechnologyUsage`; `TechnologyDefinition` = `Technology`; `ProjectDefinition` = `Project`. The newer 3D names stay because the code uses them.
+
+### 6.3 CharacterConfig changes
+
+`CharacterConfig` keeps its current shape (the approved Nox values are unchanged). Additions, each defaulting so Nox's values are byte-for-byte what they are now:
+
+| Change | For | Nox value |
+|---|---|---|
+| `head.cheeks: CheekShape \| null`; radius 0 or `null` removes the lobes and the neck blend must hold | Veyra has no cheeks | unchanged |
+| `lighting: StageLighting` moved into the config (today `INTRO_LIGHTING`) | lighting is the character's | `INTRO_LIGHTING` |
+| `glow.core: string`, `glow.light: { color, intensity, distance, decay }` replacing the `'#ff4a2a'` and `GLOW_LIGHT` literals | no hard-coded hue | the current literals |
+| `glow.aura.low`: already config. `RED_BELOW` becomes `aura.belowStart` | no hard-coded hue | 0.75 |
+| `palette.orbFocus` replacing `ORB_FOCUS_COLOUR` | focused-bubble edge colour | `'#ff2e5a'` |
+| `skin.mode: 'skin' \| 'jelly'` | Veyra's jelly-glass mantle: fresnel rim, bright crown, see-through middle, warm core; single pass, no transmission target | `'skin'` |
+| `skin.sparkle: number` (default 0) | sparkle-speck term | 0 |
+| `suckers.style`: rim width, scallop height, colours as config; the red underside band's colour and strength already come from `glow.underside` and the palette | Veyra's cream-gold frill cups | current values |
+| `armCurl: { tightness: number }` (spiral tip tightness) | Veyra's tight spirals | current constant |
+| `face.lashes: { count, style }`, `face.brow.thickness`, expression tuning table | per-character face | current values |
+| `personality.settle`, `personality.glideBias`, `personality.flourishRate` | Veyra's calm motion | values that reproduce today's behaviour |
+| `headEffect: HeadEffectId \| null`, a closed union extended by editing the engine | `'none' \| 'glyphs'` today; `'vaultDial'` when Veyra builds it | `'glyphs'` |
+
+Validation (`clampCharacterConfig`) clamps every new field. A field absent from a legacy config reads its default, so Nox's existing config validates unchanged.
+
+### 6.4 World configuration changes
+
+`WorldConfig` gains vocabulary, not rendering:
+
+- `WorldLight.kind` and the relic table become world-defined string keys with a numeric multiplier each; the security world's `glyph` / `coral` / `lava` stay valid.
+- `palette` and `relics` keys are validated by `validateWorld`; the engine reads them by the names the world declares in `lights` and `relics`.
+- `skinAccent: string` replaces `SKIN_WARMTH`; caustic strength becomes `water.causticStrength`.
+- `post: { contactShadow, bloom, vignette }` moves in from the global `POST`.
+- `live` set: today's six shares stay; a world may add named live elements it supplies a renderer module for (kelp, seagrass). That is the same closed-table rule as head effects (section 9).
+- `floor.material` names a floor shader variant from a closed list (`'lava-cracks'`, `'sand'`, `'moss'`), added by the world that needs it.
+- `camera: { tilt, hover }` (hover amount per world).
+
+## 7. Ownership boundaries
+
+One owner per kind of data. A worker changes only what their layer owns.
+
+| Layer | Owns | Lives in | Never contains |
+|---|---|---|---|
+| **Geometry** | Authored shapes: head, arm specs and curves, swim shapes, kit pieces and layout, dome, orbit shells or tether slots | `worlds/<id>/` (and the Blender script for its kit) | Colours, copy, behaviour logic |
+| **Content** | Project identity, text, sections, links, media, technology catalog, per-project usage notes | `worlds/<id>/content/` | Coordinates, arm ids for layout, colours |
+| **Placement** | Where artifacts sit and how they are chosen: strategy plus its parameters, per world, per stage and per breakpoint | `ArtifactConfig` in the bundle | Technology text; anatomy |
+| **Rendering** | Turning configs into pixels: materials, shaders, meshes, post, kit loading | `engine/` | World-specific numbers, hues, imports from worlds |
+| **Control** | Stage machine, input, focus, selection, timers, sequence clocks, URL, storage | `engine/` per instance | Visual data |
+
+Rules, verbatim from the owner's hard rules and the master plan:
+
+- **Exactly eight arms, T1 to T8.** `ARM_IDS` is defined once in `engine/arms.ts`. A technology is never an arm. An arm can carry more than one artifact; extras go to the tray.
+- **Shared systems may use different authored geometry per character and pose.**
+- **Content holds no coordinates.** `Project.placements`, `ArtifactPlacement`, `PosePlacementMap` and the `SCENE_STATES` vocabulary are removed from the content contract; `StageId` is the single stage vocabulary. A small table maps storyboard panel numbers to `StageId` for review tooling.
+- **No creator-supplied geometry.** Authored geometry is trusted application code. Creators choose among approved presets.
+
+## 8. Instance model and isolation
+
+### 8.1 EngineInstance
+
+`<WorldHost world={bundle} />` mounts one **instance**. The instance owns everything mutable and passes it through React context. The engine has no module-level mutable state after extraction, except immutable caches named in the table below.
+
+An instance holds: its stage reducer state, quality probe, `bubbleLive`, `liveAnchors`, camera-hover state, pointer-hover flag, sequence loaders, entrance clock, Theatre project handle, `useId`-derived DOM ids, and its root element ref.
+
+### 8.2 Decisions per shared state
+
+| Today | After |
+|---|---|
+| `bubbleLive` | Instance field; created by the instance, read via context. |
+| `liveAnchors` | Instance field. |
+| `bubblePointer` | Instance field (`hover.bubble`). |
+| `reachState` in `armChain.ts` | Per-`ArmChain` field. |
+| `RELIEF_GATE` | Per-world uniform object owned by the instance; passed to the materials that read it. |
+| Theatre `loading` promise, project id | One Theatre project per world, id `OctoVerse/<worldId>`, loaded once per world and memoised per world id. Sampling is synchronous (set position, read value), so two instances of one world sharing the project is safe; the loader documents this. |
+| `ENTRANCE_SHEET`, `BLOW_SHEET`, `SWELL_SHEET` | Instance-owned sheet holders. |
+| Module-level `url` | The host parses the URL once and passes a `ReviewOptions` prop; engine modules never read `location`. A preview instance gets default options. |
+| Window listeners | Instances are `mode: 'page'` or `mode: 'preview'`. Only a page instance attaches `window` listeners; a preview attaches none, runs ambient motion at most, and ignores URL and storage. Page listeners are removed on unmount. |
+| `sessionStorage` entrance flag | Key `octoverse.<worldId>.entranceSeen`. Nox keeps `octoverse.nox.entranceSeen`, so existing sessions behave as before. |
+| `'tech-tooltip'`, `.orb-button`, `.tech-tooltip` | `useId` ids; `closest` calls scoped to the instance root. Class names stay as styling hooks. |
+| `window.__noxReady`, `window.__noxEntrance` | The instance writes `window.__octoverse = { ready, entrance }` for the active page instance, and for the Nox world also keeps the two legacy names, so the five e2e specs and `scripts/perf.mjs` pass unchanged. They migrate to the new names later, in their own change. |
+| `logoTexture` cache | Stays module-level. It is an immutable cache of canvas textures, never disposed, safe across instances. Documented in the module. |
+
+### 8.3 World switching
+
+`?world=<id>` selects the bundle. The host keys the instance on `world.id`, so a switch is a full unmount and remount: stage, timers, selection, sequences, listeners and uniforms reset by construction. The renderer's GL context is released with the old canvas. A deliberate non-goal: cross-fading two worlds.
+
+### 8.4 Multiple instances
+
+A page may mount several preview instances (platform storyboard, creator preview) beside one page instance. Previews share the module-level WebGL kit loader (already keyed by renderer) and the immutable logo cache, and nothing else.
+
+## 9. Variation points and the "no plugin system" rule
+
+Veyra asked for open registries. The contract takes the need and rejects the mechanism.
+
+**Rule:** a world may differ from Nox only through (a) data in its bundle, or (b) a **closed, named variant** in a table inside the engine. A variant is added by editing the engine, in the same change as the first world that uses it, with a test. There is no runtime registration and no public extension API.
+
+Closed variant sets, with who needs them:
+
+| Point | Variants today | Added when |
+|---|---|---|
+| `HeadEffectId` | `'none'`, `'glyphs'` (Nox) | `'vaultDial'` (Veyra) in F01 |
+| `skin.mode` | `'skin'`, `'jelly'` | `'jelly'` in F01, built against Veyra |
+| `ArtifactConfig.strategy` | `'orbit'` (Nox) | `'pendant'` (Veyra) once the owner settles item 5 below |
+| `floor.material`, extra live elements | `'lava-cracks'` | with the world that needs each |
+
+`HEAD_EFFECTS`, `ARTIFACT_STRATEGIES` and the like are plain `Record<Id, Module>` tables in the engine. The cost of adding a variant is one module, one table entry and one test. This is the same weight as the master plan's "shared extension points" in F02.
+
+### 9.1 Head effect module
+
+```ts
+export interface HeadEffectModule {
+  /** Builds the effect's meshes once per character config. */
+  create(dome: DomeShape, palette: Palette): HeadEffectRuntime;
+}
+export interface HeadEffectRuntime {
+  /** swell: 0 to 1 progress; frame: the dome frame; called each frame the head is open or moving. */
+  update(swell: number, frame: DomeFrame, clockSeconds: number): void;
+  dispose(): void;
+}
+```
+
+Nox's glyph effect (`headGlyphs.ts`) becomes the `'glyphs'` module with its colours read from the palette, not literals.
+
+### 9.2 Artifact strategy (item 5: provisional)
+
+The shared parts do not vary: orb glass look, logo textures, HTML buttons that follow the artifact, tooltip, keyboard and touch access, phone tray, overflow tray. The strategy decides three things:
+
+```ts
+export interface ArtifactConfig {
+  strategy: 'orbit' | 'pendant';
+  /** How artifacts appear (Nox: blown from the mouth; Veyra: bloomed from a cup). */
+  appear: 'blow' | 'bloom';
+  /** How one is chosen (Nox: suction hold; Veyra: its arm lifts its own orb). */
+  select: 'suctionHold' | 'armLift';
+  orbit?: { shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; /* centre, squareness, swell push */ };
+  pendant?: { slots: Record<'intro' | 'overview', readonly { arm: ArmId; at: number; order: number }[]>; maxPerArm: number; tether: TetherStyle };
+}
+```
+
+For Nox, `strategy: 'orbit'`, `appear: 'blow'`, `select: 'suctionHold'` and `orbit` is today's `NOX_SHELLS` and constants. `pendant` is specified here so the type is honest but is **not built** until the owner approves it for Veyra; the engine ships `orbit` only. No physics: a pendant swings procedurally from the arm's own motion.
+
+## 10. Coordinate conventions
+
+All of these exist today and are frozen. They are now written down so a second world cannot drift.
+
+- **Units:** 1 world unit = 100 storyboard panel pixels. Time is seconds in code, milliseconds only at the UI boundary. Angles are radians in data and code; degrees only in the URL (`?yaw`) and in `CheekShape.angle`, which is already degrees and is named so.
+- **Stage space:** origin at the centre of the 506 x 504 panel; **+x right, +y up, +z toward the camera**. The traced plane is `z = 0`. The camera looks down `-z` from `CAMERA_Z = 12`. Things beyond the character have `z < 0`. The stage's vertical half-extent is `STAGE_HALF = 2.52`.
+- **Camera:** perspective, field of view fitted per stage frame (`fovFor`): tall windows widen, nothing is cropped. A world's `camera.tilt` pitches the camera up, with the matching lens shift so the face anchor keeps its screen place (`leanCamera`). Hover drift is a camera offset from this rest camera.
+- **Body space:** the octopus's own frame. Origin where the stage pose places the body (`pose.body: { x, y, scale, yaw }`), turning about `PIVOT_Y`; the head's own turn and tilt about the neck. Arms are authored in this space.
+- **Head-local space:** origin at `head.faceOrigin`; the face canvas covers `FACE_RECT`.
+- **Arm authoring:** each arm is a polyline of `Point2` in the flat traced plane, root first (root hidden under the mantle), then flattened for depth (`flattenForDepth`) so that, at the arm's own z, the stage camera still sees the traced curve. Every world's poses are authored in the traced plane and flattened the same way.
+- **Depth tags:** arms are `rear` / `middle` / `front` with a root z and a tip z in `ArmSpec`.
+- **Screen space:** CSS pixels from the canvas's top-left. Page UI is laid out for the **rest** camera and follows the live camera by a per-frame `translate` (`useAnchorShift`), never by React state.
+- **Colour:** sRGB hex strings in config; the renderer converts. No tone mapping.
+- **World layout:** stage units, `z < 0` beyond the character, `floorY` the seabed mean.
+
+## 11. Nox migration map
+
+Every existing effect and authored pose, where it goes, and how its preservation is checked. Paths are today's under `src/nox3d/`. "Verbatim" means the numbers and maths do not change. The extraction plan sequences these moves.
+
+### 11.1 Character
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| Mantle: `headGeometry`, `headMorph`, dome geometry and material | `engine/character/` (cheeks optional) | Frozen stills of intro and overview; `headGeometry` and `domeMaterial` unit tests |
+| Skin material (`skinMaterial`), skin detail, wet gloss, speckles | `engine/character/` (`mode: 'skin'`; `'jelly'` is added later) | `skinMaterial.test`; frozen stills; colour samples |
+| Arms: `armChain`, `armTube`, `armWeb`, suckers (`suckerRow`, `suckerMaterial`) | `engine/character/` | Their unit tests unchanged; frozen stills |
+| Face: `FaceCanvas`, `eyeShape`, `browShape`, `mouthShape`, `faceRedraw`, blush, puff and round mouth | `engine/character/` (lashes and brow thickness read config) | The face tests; expression stills for all seven expression ids |
+| Halo, aura, local grade, glow light, core glow | `engine/character/` with colours read from config (`glow.core`, `glow.light`) | `haloMaterial`, `auraMaterial`, `glowLight` tests; colour targets (`check_stage.py --world`) |
+| Head effect: glyphs | `engine/character/headEffects/glyphs.ts` as `HEAD_EFFECTS.glyphs` | Head-swell stills (`?swell=<s>`), `headSwell` tests |
+| `NOX` config | `worlds/nox/character.ts`, plus new fields at Nox's current values | `nox.character.test`, `validate.test` unchanged |
+| `INTRO_LIGHTING` | `worlds/nox/character.ts` as `lighting` | Frozen stills; colour samples |
+| `worldAccent.ts` (world accents on skin) | `engine/character/` (skin accent now from the world) | `worldAccent.test` |
+
+### 11.2 Poses and motion
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| `NOX_POSES.intro`, `overview`, `techFocus`, `detail`, `entering` (traced curves, body, expression, tilt, look) | `worlds/nox/poses.ts`, verbatim, built from `bundle.character.arms` | `nox.poses.test`; frozen stills of every stage |
+| `INTRO_TRACED`, `OVERVIEW_TRACED`, `ENTERING_TRACED` | `worlds/nox/poses.ts` (authored data) | Same |
+| `flattenForDepth`, `withRoot`, `toContent` | `engine/poses/` (pure helpers every world uses) | `nox.poses.test` |
+| `SWIM_POSES` (`open`, `trail`), `swimShapes`, `SWIM_STRETCH` | `worlds/nox/swim.ts` (authored), helpers in `engine/motion/` | `nox.swim.test`; `?pose=swim-open` / `swim-trail` stills |
+| `stroke.ts`, `swimArms.ts` (the stroke cycle) | `engine/motion/`, reading `personality.swim` from the config | `stroke.test`, `swimArms.test` |
+| `PoseBlender`, `STAGE_TRANSITION` | `engine/behavior/` | `poseBlend.test` |
+| `ambient`, `attention`, `expressions`, `reach`, `focusChoreography` | `engine/behavior/` | Their tests; `FOCUS_BEATS` and `HOLD_BEATS` unchanged |
+
+### 11.3 Sequences
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| `keys.ts` Nox defaults for `entrance`, `bubbleBlow`, `headSwell`, `arrival` | `worlds/nox/sequences/defaults.ts` | `theatre.test`; the check that the Theatre JSON and the defaults agree |
+| `state/octoverse.theatre.json` | `worlds/nox/sequences/state.theatre.json` (content unchanged) | JSON diff is empty |
+| `theatre.ts` loader | `engine/sequences/` taking `{ projectId, state, defaults }` | `theatre.test` |
+| `entrance.ts` run logic and path; `ARM_HALF_SPAN`, `PILLAR_HALF` | Run logic to `engine/sequences/`; path, clearance inputs and the layout they test against to the bundle | `entrance.test` (clearance against the Nox layout) |
+| `bubbleBlow.ts`, `BLOW_MOUTH` | Logic to engine; `BLOW_MOUTH` is computed from the bundle's head and face at instance creation, not at module load | `bubbleBlow.test`; blow stills (`?blow=<s>`) |
+| `headSwell.ts` | Engine; sheet from the bundle | `headSwell.test`; swell stills |
+
+### 11.4 Artifacts
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| `TechBubbles`, `bubbleOrbits` (`NOX_SHELLS`, centre, size, swell push) | Engine component; shells and constants become `bundle.artifacts.orbit` | `bubbleOrbits.test`; frozen stills with bubbles |
+| `suctionHold` | Engine, `select: 'suctionHold'` | `suctionHold.test`; `?hold=<ms>` stills |
+| `orbMaterial` (glass look, halo), `logoTexture` | Engine; focus colour from `palette.orbFocus` | `logoTexture.test`; stills |
+| `bubbleLive` | Instance-owned | Isolation tests (section 13) |
+| The 15 bubbles over shells, overflow to the tray | Same logic; count and overflow from content | `content.test`; e2e keyboard spec |
+
+### 11.5 World
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| `WorldScene`, `Kit`, `Floor`, `Water`, `Particles`, `Motes`, `FarCards`, `SurfaceLight`, `bakedLight`, `kitLoader`, `kitLod`, `liveMotion`, `placement`, `worldTiers`, `worldLevel`, `worldTime`, `cameraHover`, `lensShift`, `ContactShadows` | `engine/world/` | Their unit tests; e2e `world`, `worldMotion`, `worldTiers` specs; frozen stills |
+| `SECURITY_WORLD` (`world/security/config.ts`), `layout.json`, `far.json` | `worlds/nox/place/` | `validateWorld.test`; the Blender script reads the same `layout.json` |
+| `blender/security/*.py`, `public/nox/world/security/*` | Stay at their paths; the Blender scripts live with the world. `public/nox/` keeps its path for Nox; new worlds use `public/<id>/`. | Asset hashes unchanged |
+| `POST` | `place.post` of the bundle | Frozen stills (bloom and vignette identical) |
+| Quality tiers (`quality.ts`, `useQuality`, `FrameProbe`) | `engine/stage/` | `quality.test` |
+
+### 11.6 Stage, UI, content, tooling
+
+| Existing | Destination | Preserved by |
+|---|---|---|
+| `STAGE_FRAMES`, `framing`, `config/stage.ts`, `viewWindow` | Frames from the bundle; maths in `engine/stage/` | `framing.test`, `stage.test` |
+| `noxFaceAnchor`, `OrbButtons` anchor maths | One shared function reading `bundle.stage.faceAnchor`; the duplicated code is removed | Both consumers' tests; tooltip stills |
+| `stageMachine`, `useStage`, `urlState` | `engine/behavior/`, per instance; URL parsed in the host | `stageMachine.test`, `urlState.test` |
+| UI components and CSS (`IntroOverlay`, `OverviewPanel`, `ProjectDetail`, `OrbButtons`, `OrbTray`, `TechTooltip`, `SkipEntrance`, `ExploreNameplate`) | `engine/ui/`; colours and the title icon from `bundle.theme`; Nox's theme reproduces the current CSS values | UI tests (`detailContent`, `tooltipContent`, `tooltipPlacement`, `hoverIntent`); e2e `detail`, `keyboard`; stills |
+| Content: `nox.ts`, `noxProject.ts`, `noxTechnologies.ts`, `placeholders.ts` | `worlds/nox/content/` | `content.test` |
+| `projectTypes.ts`, `validateProject.ts` | `engine/content/`, minus `placements` | `content.test` updated only for the removed field |
+| Review page (`review/`) | `engine/review/` and `worlds/nox/review.ts` | The review page builds and loads |
+| Scripts: `check_stage.py`, `perf.mjs`, `world-capture.mjs`, `stage_samples.json`, `world_samples.json` | Stay; take a `--world <id>` (default `nox`) and read the world's samples | Same numbers for Nox |
+
+Anything not listed that a later grep finds in `src/nox3d/` gets a row in the extraction plan before it moves. Nothing is deleted without a row.
+
+## 12. How the other worlds plug in
+
+Each new world is a directory with a bundle and its assets, and engine changes only for a named closed variant it introduces.
+
+### 12.1 Per-world deliverables
+
+1. `character.ts` (all `CharacterConfig` fields), authored against the world's reference panel.
+2. `poses.ts` and `swim.ts` for the five stages, authored (never derived from Nox's).
+3. `artifacts` config.
+4. `sequences/` Theatre state and defaults (entrance, blow or bloom, swell), and the entrance clearance test against this world's layout.
+5. `place/`: kit glTF, Blender script, layout, far plate, palette, lights, live elements, post, camera.
+6. `content/` and `theme.ts`.
+7. Samples and colour targets for `check_stage.py --world <id>`, and a perf run.
+
+### 12.2 Veyra (the second-world proof)
+
+Reconciled with the Veyra session's list (section 15). Needs engine variants: no cheeks, jelly skin mode, sparkle term, `vaultDial` head effect, `pendant` artifacts if approved, a world-defined relic and light vocabulary, a floor material, kelp and seagrass live elements.
+
+### 12.3 Flux and Aether (from the references; to be confirmed by their own design sessions)
+
+These are read from `Flux.jpeg` and `Aether.jpeg`, not from a design. They are closer to Nox in kind, which is the point of the order: engine owner approves anything beyond data.
+
+- **Flux:** blue-violet body, brighter and more energetic. A server-and-pipeline realm with a GitHub shield gate. Orbs hang at arm ends and arms spread wide; the references show the same pendant-style layout as Veyra, so Flux will likely reuse `pendant` if it exists. Likely needs: a floor and relic vocabulary for server racks, a gate prop.
+- **Aether:** indigo-pink, translucent jellyfish glow, a crown, floating particles, an AI-brain gate, jellyfish live elements. Likely needs: a translucent skin tint, a jellyfish live element, orbiting particle dots.
+- **Platform (O):** a different shape: a landing, an explore view of mini octopuses, a creator preview, a profile. Mini octopuses are **preview instances** of the same engine (section 8.4). That is the first place multi-instance isolation is exercised for real.
+
+A new variant for any of these goes through the engine owner: one worker owns shared engine changes; world workers cannot independently change contracts (master plan, section 2).
+
+### 12.4 Creator octopuses
+
+A creator picks a base character preset, palette and personality from approved choices. The result is a `WorldBundle` assembled from templates: no arbitrary geometry or SVG. This needs `CharacterConfig` to stay fully serialisable data, which it is today and must remain.
+
+## 13. Verification
+
+### 13.1 Equivalence (extraction acceptance)
+
+1. **Baseline first.** Before any move, on the cut tip of `feat/nox-3d`: capture frozen stills (`?freeze&stage=<s>` for all five stages, the entrance at `?t=` 2 and 4, `?blow=`, `?swell=`, `?hold=`, `?pose=swim-open|swim-trail`, `?yaw=180`, and a phone viewport) with `scripts/stage-capture.mjs`, and record the `check_stage.py` colour and silhouette numbers. Keep them as the baseline set.
+2. **Noise floor.** Capture the baseline twice; the difference between the two is the tolerance. A frozen frame that differs by more than that floor after a migration step is a regression. Tolerance is set from the measurement, not guessed.
+3. **After each migration step** the vitest suite passes, and the stills are compared against the baseline.
+4. The numbers `check_stage.py` reports for Nox (colour samples, silhouette widths) are equal within the tolerance.
+
+### 13.2 Existing suite
+
+- All vitest tests under `src/nox3d/**` (today 66 test files, about 399 cases at `6009863`; the extraction plan records the count on the final tip) move with their modules and pass; the count of test cases does not drop. `vitest.config.ts` `include` and `tsconfig.nox3d.json` are updated to the new paths in the same change.
+- The six e2e specs (`detail`, `entrance`, `keyboard`, `world`, `worldMotion`, `worldTiers`) pass unmodified. The legacy `__nox*` names stay (section 8.2).
+- `tests/visual/*` is SVG-era and not part of this suite; it is neither a gate nor edited.
+
+### 13.3 New tests
+
+- **Isolation:** two instances of Nox mounted on one page: distinct DOM ids and aria ownership; selecting a technology in one leaves the other's state and `bubbleLive` untouched; the entrance in one is not skipped by input to the other; unmounting one leaves the other running; a `mode: 'preview'` instance registers no window listener.
+- **World switch:** `?world=a` to `?world=b` resets stage, selection, timers and sequences; no listeners leak (listener count equals before).
+- **Boundary lint:** `src/engine/**` imports nothing from `src/worlds/**`; `src/worlds/**` imports only engine contract types and its own files.
+- **Config defaults:** a legacy Nox config with none of the new fields validates and reads defaults that reproduce current behaviour.
+- **No hue literals:** a test greps `src/engine/**` shader and material sources for hex literals not in an allow list (logo marks).
+
+### 13.4 Performance
+
+Measure with `scripts/perf.mjs` only (pane closed, back to back, 1536 x 1024, pixel ratio 1), after the extraction lands, against the numbers recorded at baseline. Not at this stage: no dev server runs while the spec and plan are written.
+
+## 14. Sequencing and what this blocks
+
+- E01 (this) -> owner approval -> E02 plan (written now, not executed).
+- **Extraction begins only after** Nox's final verification lands on `feat/nox-3d`. The plan's first task re-reads this contract against that tip and records any drift (new files, new singletons) as additional migration-map rows.
+- F01 (Veyra static) starts after E02 lands and is approved.
+- Master plan packet E02 asks for human approval of the engine foundation; second-world validation (F02) follows.
+
+## 15. Veyra reconciliation
+
+Source: Veyra's first list, relayed 2026-11-03. "Accepted" means included above as written.
+
+| # | Veyra's need | Outcome |
+|---|---|---|
+| 1 | Cheek lobes optional; tip-curl tightness and cup style as config | Accepted (6.3). |
+| 2 | "Jelly glass" mantle mode, single pass; sparkle term; no hue assumed by shaders | Accepted. `skin.mode`, `skin.sparkle`, the hard-coded hue list in 4.2 moves to config. The jelly shader is built against Veyra in F01, not speculatively now. |
+| 3 | Face fully from config; expression presets per character | Accepted. Lash count and style, brow thickness and an expression tuning table become config. |
+| 4 | `HeadEffectId` an open registry; `vaultDial` | **Modified.** Closed union plus a `HEAD_EFFECTS` table in the engine, extended when Veyra builds `vaultDial` (section 9). No runtime registration. |
+| 5 | Tech artifact strategy per world; Nox `orbit`, Veyra `pendant` with its own appear and select | **Provisional.** The type carries both (9.2); only `orbit` is built. `pendant` is built in F01 if the owner settles item 5 that way. Shared parts (glass, logos, buttons, tooltip, tray) unchanged. |
+| 6 | Poses owned by the character; blender shared | Accepted (6.2, 7). |
+| 7 | World config: per-world kit and Blender script; open light and relic enums; live-element set; floor material; fog; camera tilt and hover | Accepted with closed tables for floor materials and extra live elements (6.4, 9). |
+| 8 | Personality: settle overshoot, glide/stroke bias, flourish rate; Theatre sequences and entrance clearance per world; no physics | Accepted; physics is out of the engine entirely. |
+| 9 | UI theme tokens and project data per world | Accepted (`theme`, `content`). |
+| 10 | `?world=`, full reset on switch; `check_stage --world`; perf script takes a world id; Veyra budget 40 fps at tier low | Accepted (8.3, 11.6, 13.4). The 40 fps budget is Veyra's own acceptance, not the engine's; the engine's duty is to add no frame cost. |
+
+Not raised by Veyra and added by this contract: instance isolation (section 8), the `lighting` and `post` moves into data, and removing `Project.placements`.
+
+## 16. Left to the builder
+
+- Exact file names inside `engine/` beyond the layout in 6.1, and the final names of the new config fields.
+- The `HeadEffectRuntime` and `DomeFrame` signatures, within 9.1.
+- The order of migration steps (the plan proposes one).
+- How to pass the instance through React (one context versus a few), provided the engine has no module-level mutable state.
+- The still-comparison tool (a small script versus the existing Python tools) and the tolerance, measured per 13.1.
+- The `ReviewHooks` shape for dev-only stills.
+
+## 17. Calls I made (for the owner to check)
+
+1. **Approach B** (engine and worlds split) over parameterizing in place or copying. The owner has not yet confirmed it; approving this document confirms it.
+2. **Variation by closed tables**, not open registries; this overrides Veyra's wording and keeps the "no speculative plugin systems" rule.
+3. **`pendant` specified, not built**, until item 5 is settled.
+4. **`StageId` is the only stage vocabulary**; the SVG-era `SCENE_STATES` and `Project.placements` are removed from the content contract.
+5. **Legacy `__nox*` globals stay** so the e2e suite passes untouched.
+6. **A world switch is a full remount**, not a transition.
+7. **Preview instances take no input, URL or storage.** This is the isolation story for the platform's mini octopuses.
+8. **Arm physics is gone from the engine**, per the orchestrator; the 2026-10-26 section 9.3 is not implemented by this work.
