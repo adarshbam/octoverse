@@ -419,7 +419,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 ### Task 19: Engine variants: bloom appear and arm lift select
 
 **Files:**
-- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` (bloom entry declares `sheet: 'bloom'`, so `SequenceId` gains it by derivation) and `SELECTS`; Veyra's configs are `appear: { kind: 'bloom', on: 'settle', duration: 1.2 }` and `select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }`
+- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` (bloom entry declares `sheet: 'bloom'`, so `SequenceId` gains it by derivation) and `SELECTS`; Veyra's configs are `appear: { kind: 'bloom', duration: 1.2 }` and `select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }`
 - Test: `bloom.test.ts`, `armLift.test.ts`
 
 **Interfaces:**
@@ -437,7 +437,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 
 ### Task 20: Pendants in Veyra's stages, buttons, tooltip, tray
 
-- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: { kind: 'bloom', on: 'settle', ... }`, `select: { kind: 'armLift', ... }`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
+- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: { kind: 'bloom', ... }`, `select: { kind: 'armLift', ... }`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
 - **Tests:**
   - e2e `tests/e2e/veyra.spec.ts`: on `?world=veyra`, after settle there are 12 `.orb-button`s with unique ids.
   - Tabbing to one shows the tooltip naming the technology, and Escape clears it.
