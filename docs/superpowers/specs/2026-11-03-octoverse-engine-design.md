@@ -321,8 +321,8 @@ export interface PendantSlot { arm: ArmId; at: number; order: number }
 
 export interface ArtifactConfig {
   placement: PlacementConfig;
-  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup); each kind carries its own parameters (A1, F5). `on` says when it runs: after the entrance settles, or with the head swell (A1, Aether A2). */
-  appear: { kind: AppearId; on: 'settle' | 'swell' };
+  /** How artifacts appear after the entrance settles: 'blow' (Nox: from the mouth), 'bloom' (Veyra: from a cup) or 'twinkle' (Aether: the ring forms); each kind carries its own parameters (A1, F5). */
+  appear: { kind: AppearId };
   /** The stages in which an artifact can be chosen (Nox: both; Aether: the overview only). */
   choosableIn: readonly ('intro' | 'overview')[];
   /** How one is chosen: 'suctionHold' (Nox: the arm pulls it to its tip and lifts it) or 'armLift' (Veyra: its own arm lifts its orb toward the pointer; carries `liftMs`, `overshoot`, `expression`). */
@@ -330,8 +330,9 @@ export interface ArtifactConfig {
 }
 ```
 
-- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: { kind: 'blow', on: 'settle' }`, `select: { kind: 'suctionHold' }`, `choosableIn: ['intro', 'overview']`.
+- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: { kind: 'blow' }`, `select: { kind: 'suctionHold' }`, `choosableIn: ['intro', 'overview']`.
 - **Veyra:** `placement.kind: 'pendant'`: orbs on short tethers at arm arc-length slots, at most two per arm, the tether swinging **procedurally** from the owning arm's motion (a driven sine on the arm's own velocity; no physics). `appear: 'bloom'`: each orb grows out of a cup on its arm. `select: 'armLift'`: on hover, focus or tap the owning arm lifts its orb toward the pointer, the orb grows and glows, and the tooltip shows (P4).
+- **Every appear runs after the entrance settles**, on one trigger for all worlds. Anything that moves with the head swell belongs to the placement: each placement module receives `{ stage, swell, dt }` each frame, as `orbit` reads the swell today (`BubbleState.swell` pushes the shells out). Aether's `satellite` uses it for the flight between its ring and its pendant slots.
 - **Combinations are independent.** Nothing requires a placement to pair with one appear or select; a world may mix (for example, orbit placement with `armLift`). The tooltip, buttons and tray read positions from the instance's `bubbleLive` whichever strategy writes them.
 - **Slot rules.** The pendant slots map arms to technologies by `order` in the project's declared technology order. With more technologies than slots (at most 16 slots against the 15 primary technologies), the extras go to the tray, as today.
 - **Built in F01.** E02 ships the three tables with Nox's entries only and the `PlacementConfig` union with `orbit`; the `pendant`, `bloom` and `armLift` modules are added in F01 with Veyra (spec 14.1).
@@ -578,12 +579,12 @@ Flux is mostly data on this contract (cheeks kept, `jelly` skin with its own col
 
 ### 18.2 Aether's gaps (first list; the owner chose approach A, so A1 to A3 are firm)
 
-Aether's proposed approach A: in the intro and detail a tilted gold ring carries five seed beads joined by constellation lines; when the head opens the beads flare, split into the technology orbs and fly to arm-tip pendant slots. Technologies are choosable from the overview on, not in the intro. The owner chose approach A (relayed 2026-11-03), so A1 to A3 are firm. All are built in Aether's own work (H01) unless marked E02.
+Aether's proposed approach A: in the intro and detail a tilted gold ring carries five seed beads joined by constellation lines; when the head opens the beads flare, split into the technology orbs and fly to arm-tip pendant slots. Technologies are choosable from the overview on, not in the intro. The owner chose approach A (relayed 2026-11-03), so A1 and A3 are firm; A2 was withdrawn by Aether (below). All are built in Aether's own work (H01) unless marked E02.
 
 | Gap | Need | Decision |
 |---|---|---|
 | A1 | `satellite` placement: a ring rest form plus pendant slots, swell-driven flight between them | **Accepted (approach A chosen).** One entry in `PLACEMENTS`. **Build rule for Veyra's work:** the pendant's slot assignment, tether path and swing are exported as pure functions (`assignSlots`, `tetherPath`, `tetherSwing`) from `engine/artifacts/pendant/`, and Nox's orbit maths (`orbitPoint`, `layoutOrbits`) stays exported, so `satellite` composes them without copying. A placement is built from shared helpers, never from another placement's component. |
-| A2 | The contract never says when an appear runs | **Accepted: a gap in the contract, fixed as data.** `appear: { kind; on: 'settle' \| 'swell' }`. `'settle'` (Nox, Veyra): the appear runs once, after the entrance settles. `'swell'` (Aether): it runs on the head swell into the overview and reverses on close. Every appear module receives `{ stage, swell, dt }` each frame whichever trigger is set. E02 plumbs the field with the type admitting only `'settle'`; `'swell'` is built in H01 (if approach A). |
+| A2 | The contract never says when an appear runs | **Withdrawn by Aether.** The swell-driven flight lives in the `satellite` placement, which reads the swell as `orbit` does; Aether's appear is `twinkle` (the ring forms after the entrance settles), on the same trigger as blow and bloom. No `appear.on` field exists. The contract now states the single trigger in 9.2. |
 | A3 | A stage with zero choosable artifacts (the intro) must work | **Accepted; built and tested in E02.** `ArtifactConfig.choosableIn: readonly ('intro' \| 'overview')[]` (Nox: both). The stage reducer ignores `FOCUS_TECH` in a stage not listed; the bubble buttons and the tray render nothing there; Explore still leads to the overview; keyboard order has no dead stops. |
 | A4 | `HEAD_EFFECTS.synapse` (star nodes, gold lines wiring in a wave, one pulse, dissolve) | **Accepted.** Fits `HeadEffectModule` (9.1). |
 | A5 | A `jellyfish` live element (instanced bell with trailing filaments) | **Accepted** as a closed `LIVE_ELEMENTS` entry, with `packets` and kelp. |
