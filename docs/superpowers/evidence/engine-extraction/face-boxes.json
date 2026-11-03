@@ -1,0 +1,10 @@
+{
+  "_note": "Face box in still pixels [x0, y0, x1, y1), 240 x 200 = 48000 px (the box the perf work compared). Stills are 1012 x 1008 (506 x 504 at scale 2). Intro-framed stills use the intro box; overview and techFocus shift by the overview body offset (x 0.03, y 0.353 world units = +6, -71 px).",
+  "intro.png": [396, 560, 636, 760],
+  "intro-blow025.png": [396, 560, 636, 760],
+  "intro-blow05.png": [396, 560, 636, 760],
+  "intro-swell04.png": [396, 560, 636, 760],
+  "intro-hold500-kali.png": [396, 560, 636, 760],
+  "overview.png": [402, 489, 642, 689],
+  "techFocus.png": [402, 489, 642, 689]
+}

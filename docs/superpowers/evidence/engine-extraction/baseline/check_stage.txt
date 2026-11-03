@@ -1,0 +1,14 @@
+panel 2  mean (118, 26, 89)  saturation 0.867  brightness 0.538  (195034 px)
+capture  mean (128, 36, 80)  saturation 0.779  brightness 0.568  (195034 px)
+MISS mean        target (119, 23, 79) +-10
+MISS saturation  target 0.85 to 0.91
+ok  brightness  target 0.49 to 0.57
+ok  region head crown         panel 2 #041145 capture #19124c deltaE   5.6  (max 8)
+ok  region head middle        panel 2 #010a2d capture #171237 deltaE   7.7  (max 8)
+MISS region cheek glow         panel 2 #fb494d capture #f7585e deltaE   9.6  (max 8)
+MISS region upper arm top      panel 2 #3d0348 capture #f7805e deltaE  85.8  (max 8)
+ok  region arm underside band panel 2 #d2053a capture #d32837 deltaE   7.1  (max 8)
+MISS region arm rim            panel 2 #a76de3 capture #de5b3b deltaE  95.5  (max 8)
+ok  region suckers            panel 2 #fc7b56 capture #f56f4e deltaE   4.0  (max 8)
+MISS region aura outside       panel 2 #381750 capture #412a65 deltaE   8.1  (max 8)
+FAIL (6 misses)

@@ -1,0 +1,150 @@
+{
+  "detail-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "detail.png": {
+    "mean": 0.3151,
+    "frac": 0.009644
+  },
+  "entering-t2-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "entering-t2.png": {
+    "mean": 0.24871,
+    "frac": 0.00668
+  },
+  "entering-t4-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "entering-t4.png": {
+    "mean": 0.19734,
+    "frac": 0.006054
+  },
+  "intro-390x844-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-390x844.png": {
+    "mean": 0.18311,
+    "frac": 0.006125
+  },
+  "intro-blow025-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-blow025.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.1519,
+    "frac": 0.005813
+  },
+  "intro-blow05-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-blow05.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.14956,
+    "frac": 0.005301
+  },
+  "intro-hold500-kali-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-hold500-kali.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.13851,
+    "frac": 0.005566
+  },
+  "intro-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-swell04-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-swell04.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.16144,
+    "frac": 0.005611
+  },
+  "intro-swim-open-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-swim-open.png": {
+    "mean": 0.19011,
+    "frac": 0.006558
+  },
+  "intro-swim-trail-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-swim-trail.png": {
+    "mean": 0.19939,
+    "frac": 0.006548
+  },
+  "intro-yaw180-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "intro-yaw180.png": {
+    "mean": 0.18716,
+    "frac": 0.006125
+  },
+  "intro.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.15799,
+    "frac": 0.005858
+  },
+  "overview-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "overview.png": {
+    "box": {
+      "mean": 0.05,
+      "frac": 0.0005
+    },
+    "mean": 0.05,
+    "frac": 0.001055
+  },
+  "techFocus-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "techFocus.png": {
+    "box": {
+      "mean": 0.52937,
+      "frac": 0.015625
+    },
+    "mean": 0.3588,
+    "frac": 0.012307
+  },
+  "world-intro-mask.png": {
+    "mean": 0.05,
+    "frac": 0.0005
+  },
+  "world-intro.png": {
+    "mean": 0.36649,
+    "frac": 0.010689
+  }
+}
