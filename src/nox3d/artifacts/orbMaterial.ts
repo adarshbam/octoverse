@@ -93,6 +93,15 @@ export function createOrbMaterial(tint: string) {
   });
 }
 
+/**
+ * A bubble's logo, a plane in front of its glass. At its plain brightness, so the bloom does not
+ * haze the glass round it, and unfogged (a world's water fog must not tint it). Like the glass, it
+ * ignores Nox's depth.
+ */
+export function createOrbLogoMaterial(map: THREE.Texture) {
+  return new THREE.MeshBasicMaterial({ map, color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false, depthTest: false, fog: false });
+}
+
 /** How far the halo shell reaches beyond the orb, as a multiple of the orb's radius. */
 export const ORB_HALO_SCALE = 1.16;
 

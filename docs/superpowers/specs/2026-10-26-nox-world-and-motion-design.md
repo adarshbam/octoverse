@@ -430,7 +430,7 @@ Each milestone ends with the owner's live review and approval, then a commit. Th
 7. **The performance targets** in section 9.13 are set against today's measured stage on the owner's laptop. Looks are approved on the tier the laptop actually runs.
 8. **Technology bubbles** orbit in the intro and the overview and can be chosen from either. The phone keeps its tray.
 9. **Every stage moves into the 3D world.** The painted-plate stage is retired, apart from a no-WebGL poster.
-10. **The camera hover** eases to still while the visitor points at or holds a bubble, and is off in detail.
+10. **The camera hover** drifts on its own and is off in detail. A bubble's hover, choice or suction hold never moves it (owner, 2026-11-03: "completely eliminating that camera pan would be better"; lane C ledger C2).
 
 ## 13. Research references (octopus swimming)
 

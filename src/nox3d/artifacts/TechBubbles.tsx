@@ -8,7 +8,7 @@ import { bubbleLive } from './bubbleLive';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { pullPosition } from './suctionHold';
 import { logoColour, logoTexture } from './logoTexture';
-import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbMaterial } from './orbMaterial';
+import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
 
 export interface PlacedBubble {
   techId: string;
@@ -78,9 +78,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
         bubble,
         glass: createOrbMaterial(logoColour(bubble.iconKey)),
         halo: createOrbHaloMaterial(logoColour(bubble.iconKey)),
-        // At its plain brightness, so the bloom does not haze the glass round it, and unfogged
-        // (a world's water fog must not tint it). Like the glass, it ignores Nox's depth (orbMaterial.ts).
-        logo: new THREE.MeshBasicMaterial({ map: logoTexture(bubble.iconKey), color: new THREE.Color(1, 1, 1), transparent: true, depthWrite: false, depthTest: false, fog: false }),
+        logo: createOrbLogoMaterial(logoTexture(bubble.iconKey)),
       })),
     };
   }, [bubbles]);
