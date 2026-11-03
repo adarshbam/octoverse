@@ -75,7 +75,7 @@ const SHOW_PLACEHOLDERS = import.meta.env.DEV;
 const WEBGL = !url.noWebgl && hasWebgl2();
 const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
-const MASK = new URLSearchParams(location.search).has('mask');
+const MASK = import.meta.env.DEV && new URLSearchParams(location.search).has('mask');
 /** Keys that skip the entrance: any but a bare modifier. */
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 // A project with no sections, for testing the full project view; honoured only while developing.
@@ -107,9 +107,9 @@ if (WEBGL && initialStage({ entranceSeen: readEntranceSeen(), requested: url.sta
  * once the entrance has settled (or as the page opens past it), so it loads from the start unless
  * motion is off. `?freeze&blow=<s>` is a still of the blow at that moment, for review.
  */
-const BLOW_STILL = url.freeze && new URLSearchParams(location.search).has('blow') ? Number(new URLSearchParams(location.search).get('blow')) || 0 : undefined;
+const BLOW_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('blow') ? Number(new URLSearchParams(location.search).get('blow')) || 0 : undefined;
 const BLOW_SHEET: BlowSheet = { sequences: null, failed: false, at: BLOW_STILL };
-if (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion())) {
+if (WEBGL && (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion()))) {
   loadSequences().then(
     sequences => void (BLOW_SHEET.sequences = sequences),
     () => void (BLOW_SHEET.failed = true),
@@ -121,9 +121,9 @@ if (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion())) {
  * dome. It loads from the start unless motion is off; `?freeze&swell=<s>` is a still of the opening
  * at that moment, for review.
  */
-const SWELL_STILL = url.freeze && new URLSearchParams(location.search).has('swell') ? Number(new URLSearchParams(location.search).get('swell')) || 0 : undefined;
+const SWELL_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('swell') ? Number(new URLSearchParams(location.search).get('swell')) || 0 : undefined;
 const SWELL_SHEET: SwellSheet = { sequences: null, failed: false, at: SWELL_STILL };
-if (SWELL_STILL !== undefined || !(url.freeze || readReducedMotion())) {
+if (WEBGL && (SWELL_STILL !== undefined || !(url.freeze || readReducedMotion()))) {
   loadSequences().then(
     sequences => void (SWELL_SHEET.sequences = sequences),
     () => void (SWELL_SHEET.failed = true),
@@ -131,7 +131,7 @@ if (SWELL_STILL !== undefined || !(url.freeze || readReducedMotion())) {
 }
 
 /** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen, for review. */
-const HOLD_STILL = url.freeze && new URLSearchParams(location.search).has('hold') ? Number(new URLSearchParams(location.search).get('hold')) || 0 : undefined;
+const HOLD_STILL = import.meta.env.DEV && url.freeze && new URLSearchParams(location.search).has('hold') ? Number(new URLSearchParams(location.search).get('hold')) || 0 : undefined;
 
 /** A still of the entrance (`?stage=entering&freeze`) shows `?t=<s>`, or mid-swim, 2 s in. */
 const ENTRANCE_STILL_SECONDS = url.t ?? 2;
@@ -442,13 +442,14 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
       if (!live()) {
         if (WEBGL && !trayAll && here >= 0) return null;
         const f = faceSpot('overview');
-        const bottom = (f as { bounds?: { bottom: number } }).bounds?.bottom ?? f.y;
-        return { techId: focusedTech, orb: { x: f.x, y: bottom + 30, size: 44 } as Disc, others: [] as Disc[], face: f, leaving: false };
+        return { techId: focusedTech, orb: { x: f.x, y: f.bounds.bottom + 30, size: 44 } as Disc, others: [] as Disc[], face: f, leaving: false };
       }
+      const orb = bubbleDisc(here, shown === 'intro' ? 'intro' : 'overview');
+      if (!orb) return null;
       return {
         techId: focusedTech,
-        orb: bubbleDisc(here, shown === 'intro' ? 'intro' : 'overview'),
-        others: ORBS.flatMap((_, i) => (i === here ? [] : [bubbleDisc(i)])),
+        orb,
+        others: ORBS.flatMap((_, i) => { const d = i === here ? null : bubbleDisc(i); return d ? [d] : []; }),
         face: faceSpot(shown === 'intro' ? 'intro' : 'overview'),
         leaving: false,
       };

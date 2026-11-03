@@ -38,8 +38,8 @@ export function TechTooltip({ id, content, orb, face, others, delayMs, leaving =
     if (follow === undefined || follow < 0 || !orb || leaving || !card || !el) return;
     let last = '';
     const apply = () => {
-      if (!bubbleLive.spots[follow]) return;
       const now = bubbleDisc(follow);
+      if (!now) return;
       const next = `${(now.y - orb.y).toFixed(1)}px 0 0 ${(now.x - orb.x).toFixed(1)}px`;
       if (next === last) return;
       last = next;

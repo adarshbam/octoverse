@@ -51,9 +51,10 @@ export interface UrlState {
 export const TILT_RANGE = { min: 0, max: 0.7 } as const;
 const clampTilt = (v: number) => Math.min(TILT_RANGE.max, Math.max(TILT_RANGE.min, v));
 
-/** Review and debugging switches read from the page URL. Unknown values are ignored. */
+/** Review and debugging switches read from the page URL (development builds only). Unknown values are ignored. */
 export function parseUrlState(search: string): UrlState {
-  const params = new URLSearchParams(search);
+  // Review and debug switches are for the development server; the public build ignores them all.
+  const params = new URLSearchParams(import.meta.env.DEV ? search : '');
   const state: UrlState = { freeze: params.has('freeze'), orbit: params.has('orbit'), noWebgl: params.has('nowebgl'), solo: params.has('solo'), studio: params.has('studio') };
   const stage = params.get('stage');
   if (stage && (STAGES as readonly string[]).includes(stage)) state.stage = stage as StageId;

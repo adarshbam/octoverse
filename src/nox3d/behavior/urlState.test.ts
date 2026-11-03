@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { parseUrlState } from './urlState';
 
 test('parses stage, freeze and view', () => {
@@ -79,4 +79,13 @@ test('parses kitwait as a positive number of milliseconds', () => {
   expect(parseUrlState('?kitwait=-5').kitWait).toBeUndefined();
   expect(parseUrlState('?kitwait=soon').kitWait).toBeUndefined();
   expect(parseUrlState('').kitWait).toBeUndefined();
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
+test('a production build ignores every review switch', () => {
+  vi.stubEnv('DEV', false);
+  const off = parseUrlState('');
+  expect(parseUrlState('?freeze&stage=detail&orbit&nowebgl&solo&mask&tech=kali&tier=low&variant=dummy&studio&view=1,2,3,4')).toEqual(off);
+  expect(off).toEqual({ freeze: false, orbit: false, noWebgl: false, solo: false, studio: false });
 });

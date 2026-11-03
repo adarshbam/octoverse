@@ -75,11 +75,12 @@ const MIN_BUTTON = 44;
 /**
  * Where bubble `i` is on the page as the stage camera at rest has it (the tooltip and the page's
  * other overlays are laid out for that camera and follow the hover themselves), in CSS pixels;
- * `grown` is how big it looks in focus.
+ * `grown` is how big it looks in focus. Null when that bubble is not drawn (yet).
  */
 export function bubbleDisc(i: number, grown: false | 'intro' | 'overview' = false) {
   const spot = bubbleLive.spots[i];
   const world = bubbleLive.worlds[i];
+  if (!spot || !world) return null;
   const { dx, dy } = liveAnchors.shift([world.x, world.y, world.z]);
   return { x: spot.x - dx, y: spot.y - dy, size: Math.max(MIN_BUTTON, spot.size * (grown ? FOCUS_GROW[grown] : 1)) };
 }
