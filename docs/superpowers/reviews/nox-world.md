@@ -1087,3 +1087,9 @@ Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64
 
 - **Task 24, step 1 (owner, via orchestrator, 2026-11-03, R57):** Nox's head effect is "Glowing red glyphs". `CharacterConfig.headEffect: 'none' | 'glyphs' | null`; Nox is `'glyphs'`.
 - **Task 24 (awaiting the owner's live check):** the head swell is a Theatre sheet (`headSwell`, 1.5 s): a squeeze of 0.2 s, the swell running past full to 1.07 at 0.85 s, settled at 1 by 1.3 s. The bubbles are pushed out 3% of their ring (peak 4.2%), the most the overview frame allows. A crown of seven red runes, the world's glyph-panel runes, rises out of the glass from the middle out as the swell settles. Closing plays it backwards. No physics, no camera move (R60). Reduced motion and `?freeze` jump to the end. `'none'` draws the approved dome. Panel 3 composition passes; parity at rest unchanged, (125,31,80), saturation 0.811, brightness 0.563.
+
+## Milestone 7: head swell
+
+- **Task 24:** squeeze, overshoot past 1, settle at 1; closing reverses it. Nox's head effect: **glowing red glyphs** (owner's words, 2026-11-03), `headEffect: 'glyphs'`; `'none'` renders the approved dome. Bubbles are pushed out while swollen (small: 3% settled). No camera moves (R60). Panel 3 exits 0; parity at rest (125,31,80), saturation 0.811, brightness 0.563.
+- Known: Kali and every-bubble keyboard e2e flake under load (also on the base); a second click right after the swell settles can be ignored.
+- **Owner verdict, Milestone 7 live check (2026-11-03): "Approve M7".**
