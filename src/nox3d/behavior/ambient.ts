@@ -1,7 +1,5 @@
 import type { Personality } from '../config/types';
 
-const BLINK_SECONDS = 0.17;
-const DOUBLE_BLINK_GAP = 0.12;
 const MAX_STEP = 1 / 20;
 
 const smoothstep = (x: number) => {
@@ -31,14 +29,17 @@ export function spring(state: { x: number; v: number }, target: number, omega: n
 export class BlinkScheduler {
   private readonly interval: [number, number];
   private readonly doubleChance: number;
+  /** One blink's length and the double blink's gap, from the personality (`micro.blink`). */
+  private readonly timing: Personality['micro']['blink'];
   private readonly rng: () => number;
   private next = 1.6;
   private start = -1;
   private double = false;
 
-  constructor(interval: [number, number], doubleChance: number, rng: () => number = Math.random) {
+  constructor(interval: [number, number], doubleChance: number, timing: Personality['micro']['blink'], rng: () => number = Math.random) {
     this.interval = interval;
     this.doubleChance = doubleChance;
+    this.timing = timing;
     this.rng = rng;
   }
 
@@ -53,10 +54,10 @@ export class BlinkScheduler {
       this.double = this.rng() < this.doubleChance;
     }
     if (this.start < 0) return 0;
-    const u = (t - this.start) / BLINK_SECONDS;
+    const u = (t - this.start) / this.timing.seconds;
     if (u >= 1) {
       const [low, high] = this.interval;
-      this.next = t + (this.double ? DOUBLE_BLINK_GAP : (low + this.rng() * (high - low)) * slower);
+      this.next = t + (this.double ? this.timing.doubleGap : (low + this.rng() * (high - low)) * slower);
       this.start = -1;
       this.double = false;
       return 0;

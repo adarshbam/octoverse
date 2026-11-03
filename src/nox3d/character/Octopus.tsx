@@ -10,6 +10,7 @@ import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
+import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { strokeAt, swimDrive } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimRests } from '../motion/swimArms';
 import { BODY_X } from '../poses/nox.poses';
@@ -267,7 +268,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
 
   const motion = useRef({
     attention: new Attention(config.personality),
-    blinks: new BlinkScheduler(config.personality.blinkInterval, config.personality.doubleBlinkChance),
+    blinks: new BlinkScheduler(config.personality.blinkInterval, config.personality.doubleBlinkChance, config.personality.micro.blink),
     smile: { x: 0, v: 0 },
     tilt: { x: 0, v: 0 },
     pointerInside: false,
@@ -284,6 +285,21 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false },
     // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
     glowShown: 1,
+    // The micro-animations (motion/micro.ts): seconds since each began (Infinity: not playing), on
+    // frame time that stops with `freeze` and reduced motion; what triggers them; and last frame's
+    // lift, so the arms trail against it.
+    micro: {
+      startle: Infinity,
+      settle: Infinity,
+      arrival: Infinity,
+      arrived: false,
+      pointer: null as { x: number; y: number } | null,
+      near: 0,
+      body: null as { x: number; y: number } | null,
+      move: { x: 0, y: 0, frames: 0 },
+      dir: { x: 0, y: 0 },
+      lift: 0,
+    },
   });
 
   useEffect(() => {
@@ -360,8 +376,50 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const resting = !freeze && isRestful(stage, now - m.lastInput, panelOpen);
     m.rest = THREE.MathUtils.clamp(m.rest + (resting ? dt / REST_IN : -dt / WAKE), 0, 1);
 
+    // The micro-animations (design 9.7, motion/micro.ts), each fed into the pose: their clocks run
+    // on frame time and stop with `freeze` and reduced motion, and each is scaled by `moving`, so a
+    // still shows the pose exactly. No arm physics (R52): the follow-through is in their curves.
+    const mc = m.micro;
+    const micro = personality.micro;
+    const microStep = moving * dt;
+    mc.startle += microStep;
+    mc.settle += microStep;
+    mc.arrival += microStep;
+    // The settle overshoot: when a stage move of the body lands, he carries on past the pose along it
+    // and back. A move of only a frame or two (a skip lands at once, under the crossfade) has none.
+    const lastBody = (mc.body ??= { x: pose.body.x, y: pose.body.y });
+    const moveX = pose.body.x - lastBody.x;
+    const moveY = pose.body.y - lastBody.y;
+    lastBody.x = pose.body.x;
+    lastBody.y = pose.body.y;
+    if (moveX !== 0 || moveY !== 0) {
+      mc.move.x += moveX;
+      mc.move.y += moveY;
+      mc.move.frames++;
+    } else if (mc.move.frames > 0) {
+      const travel = Math.hypot(mc.move.x, mc.move.y);
+      if (moving && !swim && mc.move.frames >= 5 && travel > 0.05) {
+        mc.dir.x = mc.move.x / travel;
+        mc.dir.y = mc.move.y / travel;
+        mc.settle = 0;
+      }
+      mc.move.x = mc.move.y = mc.move.frames = 0;
+    }
+    // The arrival wiggle plays once, as the entrance (run to its end, not skipped) hands over to the intro.
+    if (!mc.arrived && m.entrance.done && stage !== 'entering' && moving) {
+      mc.arrived = true;
+      if (entranceSheet?.sequences) mc.arrival = 0;
+    }
+    const flinch = startle(mc.startle, micro);
+    const settle = moving * settleOvershoot(mc.settle, micro);
+    const wiggle = entranceSheet?.sequences ? arrivalWiggle(entranceSheet.sequences, mc.arrival, micro) : { roll: 0, armWave: 0 };
+    const lift = moving * flinch.lift + settle * mc.dir.y;
+    // The arms trail against the lift as they do against the float (`droop`), at a gentler gain.
+    const liftSpeed = dt > 0 ? (lift - mc.lift) / dt : 0;
+    mc.lift = lift;
+
     const drift = floatOffset(t, personality);
-    float.current!.position.set(bodyX + moving * drift.x, bodyY + moving * drift.y, bodyZ);
+    float.current!.position.set(bodyX + moving * drift.x + settle * mc.dir.x, bodyY + moving * drift.y + lift, bodyZ);
     float.current!.scale.setScalar(pose.body.scale);
     // A still's extra turn (?yaw) goes on outside the lean, so a swim still turned 90 degrees shows him in profile.
     swimTurn.current!.rotation.set(swim ? swim.pitch : 0, (swim ? swim.yaw : 0) + extraYaw, 0);
@@ -430,6 +488,19 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
     spring(m.smile, near, 5, dt);
+    // The small startle: the pointer darting in close to the face, fast, as it comes near (not
+    // while it lingers there), at most once per cooldown; in the intro and the overview only.
+    const closeness = m.pointerInside ? nearFace(p, faceAt) : 0;
+    const pointerSpeed = mc.pointer && dt > 0 ? Math.hypot(p.x - mc.pointer.x, p.y - mc.pointer.y) / dt : 0;
+    if (moving && (stage === 'intro' || stage === 'overview') && closeness >= micro.startle.near && mc.near < micro.startle.near && pointerSpeed >= micro.startle.speed && mc.startle >= micro.startle.cooldown) mc.startle = 0;
+    mc.near = closeness;
+    if (m.pointerInside) {
+      mc.pointer ??= { x: 0, y: 0 };
+      mc.pointer.x = p.x;
+      mc.pointer.y = p.y;
+    } else {
+      mc.pointer = null;
+    }
 
     // The face reacts to each technology in its own way (Kali: the focused face of panel 4;
     // others: a subtle curiosity), and the head tilts a little toward it.
@@ -451,15 +522,19 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
-    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * drift.roll - gaze.headX * 0.02 * bodyTurn);
+    turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * (drift.roll + wiggle.roll) - gaze.headX * 0.02 * bodyTurn);
     headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
     // The glow card turns with the head; turned side-on (the entrance's spin) it fades rather than
     // show edge-on beside the face.
     rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw) * glowShown;
 
     const face = blendExpression(activeExpression, EXPRESSIONS.restful, m.rest);
+    // Startled, the brows jump and the eyes open wide.
+    const startled = moving * flinch.eyes;
     rig.face.draw({
       ...face,
+      browLift: face.browLift + startled,
+      lidRest: face.lidRest * (1 - Math.min(1, startled)),
       mouthCurve: face.mouthCurve + m.smile.x * 0.7,
       blush: Math.max(face.blush, m.smile.x),
       // Swimming, he blinks at a slower rate.
@@ -516,11 +591,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const target = presentW > 0 && driver >= 0 ? tipTarget(orbs[driver].slot) : m.reachPoint[i];
       const w = presentW > 0 && driver >= 0 ? presentW : pointerW;
       chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
+      // Toward the body: the swing about the root that brings this arm's tip toward the body's axis
+      // (from where it was last frame). The startle draws the arms in; the arrival wiggle fans them out and back.
+      const inward = Math.sign((config.head.centerX - chain.tipX) * (chain.py[0] - chain.tipY));
       chain.solve({
         time: t,
         sway: moving * personality.sway * (1 - 0.6 * w),
         curl: live * personality.curl,
-        droop: drift.vy * live * 2.2,
+        droop: drift.vy * live * 2.2 + liftSpeed * 0.4,
+        flare: moving * inward * (flinch.armsIn - wiggle.armWave),
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
         pitch,

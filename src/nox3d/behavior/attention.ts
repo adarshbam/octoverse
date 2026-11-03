@@ -1,7 +1,7 @@
 import type { Personality } from '../config/types';
+import { idleGlance, seededRng } from '../motion/micro';
 import { spring } from './ambient';
 
-const TRACKING_SECONDS = 3.5;
 /** Pointer y (NDC) of the face in the intro framing; gaze is measured from there. */
 const FACE_NDC_Y = -0.17;
 const clamp1 = (v: number) => Math.min(1, Math.max(-1, v));
@@ -20,14 +20,28 @@ export class Attention {
   private last: { x: number; y: number } | null = null;
   private lastMove = -Infinity;
   private glance = { x: 0, y: 0 };
-  private nextGlance = 2;
+  /**
+   * The idle spell the glances come from (motion/micro.ts idleGlance): when it began, how far into
+   * its schedule it began (a spell after following something starts on a glance at once, as the old
+   * overdue glance did), and its seed. The first spell starts with the page.
+   */
+  private idle = true;
+  private spellStart = 0;
+  private spellLead = 0;
+  private spellSeed: number;
   /** Tiny eye movements between glances (normalised gaze units), so the eyes never look frozen. */
   private micro = { x: 0, y: 0 };
-  private nextMicro = 0.4;
+  private nextMicro: number;
 
   constructor(personality: Personality, rng: () => number = Math.random) {
     this.personality = personality;
     this.rng = rng;
+    this.spellSeed = this.seed();
+    this.nextMicro = personality.micro.saccade.first;
+  }
+
+  private seed() {
+    return Math.floor(this.rng() * 4294967296);
   }
 
   /**
@@ -44,20 +58,29 @@ export class Attention {
       this.lastMove = t;
     }
     if (!pointer) this.last = null;
-    const followed = fixed ?? (pointer && t - this.lastMove < TRACKING_SECONDS ? pointer : null);
+    const { tracking, saccade } = this.personality.micro;
+    const followed = fixed ?? (pointer && t - this.lastMove < tracking ? pointer : null);
     const look = followed ?? rest ?? null;
     const resting = !followed && look !== null;
-    if (!look && t > this.nextGlance) {
-      this.glance = { x: (this.rng() - 0.5) * 0.45, y: 0.05 + (this.rng() - 0.5) * 0.3 };
-      this.nextGlance = t + 2.0 + this.rng() * 2.5;
+    if (!look) {
+      if (!this.idle) {
+        this.idle = true;
+        this.spellStart = t;
+        this.spellLead = this.personality.micro.glance.first;
+        this.spellSeed = this.seed();
+      }
+      const glance = idleGlance(t - this.spellStart + this.spellLead, seededRng(this.spellSeed), this.personality.micro);
+      if (glance) this.glance = glance;
+    } else {
+      this.idle = false;
     }
     const originX = faceCenter ? faceCenter.x : 0;
     const originY = faceCenter ? faceCenter.y : FACE_NDC_Y;
     const tx = look ? clamp1((look.x - originX) * 1.6) : this.glance.x;
     const ty = look ? clamp1((look.y - originY) * 1.6) : this.glance.y;
     if (t > this.nextMicro) {
-      this.micro = { x: (this.rng() - 0.5) * 0.07, y: (this.rng() - 0.5) * 0.05 };
-      this.nextMicro = t + 0.35 + this.rng() * 0.9;
+      this.micro = { x: (this.rng() - 0.5) * saccade.x, y: (this.rng() - 0.5) * saccade.y };
+      this.nextMicro = t + saccade.wait[0] + this.rng() * (saccade.wait[1] - saccade.wait[0]);
     }
     spring(this.gazeX, tx, this.personality.gazeOmega, dt);
     spring(this.gazeY, ty, this.personality.gazeOmega, dt);
