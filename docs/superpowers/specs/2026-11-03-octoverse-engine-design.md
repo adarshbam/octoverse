@@ -546,9 +546,9 @@ Not raised by Veyra and added by this contract: instance isolation (section 8), 
 7. **Preview instances take no input, URL or storage.** This is the isolation story for the platform's mini octopuses.
 8. **Arm physics is gone from the engine**, per the orchestrator; the 2026-10-26 section 9.3 is not implemented by this work.
 
-## 18. Amendment A1: gaps found by the world plans (all items firm; pending the owner's combined approval)
+## 18. Amendment A1: gaps found by the world plans (approved by the owner, 2026-11-03)
 
-Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found five gaps against this contract and left the contract unedited. Each is answered below as data or a closed variant. Flux and Aether added their own gaps (18.1, 18.2); all items are now firm, and the owner approves one combined amendment. Sections 6.3, 6.4 and 14.1 carry the matching in-line edits, marked *(A1)*.
+Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found five gaps against this contract and left the contract unedited. Each is answered below as data or a closed variant. Flux and Aether added their own gaps (18.1, 18.2); all items are firm and the owner approved the combined amendment. Sections 6.3, 6.4 and 14.1 carry the matching in-line edits, marked *(A1)*.
 
 | Gap | Need | Decision |
 |---|---|---|
