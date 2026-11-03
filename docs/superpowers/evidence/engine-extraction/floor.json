@@ -4,32 +4,32 @@
     "frac": 0.0005
   },
   "detail.png": {
-    "mean": 0.25796,
-    "frac": 0.007673
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "entering-t2-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "entering-t2.png": {
-    "mean": 0.21088,
-    "frac": 0.006431
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "entering-t4-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "entering-t4.png": {
-    "mean": 0.18263,
-    "frac": 0.005586
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-390x844-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "intro-390x844.png": {
-    "mean": 0.11812,
-    "frac": 0.004186
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-blow025-mask.png": {
     "mean": 0.05,
@@ -40,8 +40,8 @@
       "mean": 0.05,
       "frac": 0.0005
     },
-    "mean": 0.14802,
-    "frac": 0.004843
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-blow05-mask.png": {
     "mean": 0.05,
@@ -52,8 +52,8 @@
       "mean": 0.05,
       "frac": 0.0005
     },
-    "mean": 0.13727,
-    "frac": 0.004613
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-hold500-kali-mask.png": {
     "mean": 0.05,
@@ -64,8 +64,8 @@
       "mean": 0.05,
       "frac": 0.0005
     },
-    "mean": 0.13767,
-    "frac": 0.00478
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-mask.png": {
     "mean": 0.05,
@@ -80,40 +80,40 @@
       "mean": 0.05,
       "frac": 0.0005
     },
-    "mean": 0.12558,
-    "frac": 0.00486
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-swim-open-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "intro-swim-open.png": {
-    "mean": 0.16641,
-    "frac": 0.005415
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-swim-trail-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "intro-swim-trail.png": {
-    "mean": 0.19093,
-    "frac": 0.005888
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro-yaw180-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "intro-yaw180.png": {
-    "mean": 0.11992,
-    "frac": 0.004127
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "intro.png": {
     "box": {
       "mean": 0.05,
       "frac": 0.0005
     },
-    "mean": 0.13954,
-    "frac": 0.004843
+    "mean": 0.05,
+    "frac": 0.0005
   },
   "overview-mask.png": {
     "mean": 0.05,
@@ -125,7 +125,7 @@
       "frac": 0.0005
     },
     "mean": 0.05,
-    "frac": 0.001051
+    "frac": 0.0005
   },
   "techFocus-mask.png": {
     "mean": 0.05,
@@ -133,18 +133,18 @@
   },
   "techFocus.png": {
     "box": {
-      "mean": 0.059,
-      "frac": 0.000708
+      "mean": 0.05,
+      "frac": 0.0005
     },
-    "mean": 0.17411,
-    "frac": 0.006256
+    "mean": 0.05,
+    "frac": 0.000618
   },
   "world-intro-mask.png": {
     "mean": 0.05,
     "frac": 0.0005
   },
   "world-intro.png": {
-    "mean": 0.37948,
-    "frac": 0.010749
+    "mean": 0.05,
+    "frac": 0.0005
   }
 }
