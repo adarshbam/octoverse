@@ -1,6 +1,9 @@
 import type { ExpressionId } from '../behavior/expressions';
 import { NOX } from '../config/nox.character';
-import { strokeAt } from '../motion/stroke';
+import type { ArmRest } from '../character/armChain';
+import type { ArmId } from '../config/types';
+import { type StrokeFrame, strokeAt, swimDrive } from '../motion/stroke';
+import { type SwimShapes, swimRests } from '../motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
 import { ENTRANCE_SPIRAL } from './keys';
 import type { Sequences } from './theatre';
@@ -196,6 +199,20 @@ export function armHalfSpan(frame: EntranceFrame) {
   const { spread, sweep } = strokeAt(frame.stroke, NOX.personality.swim);
   const open = Math.max(spread * (1 - sweep), frame.open);
   return ARM_HALF_SPAN.closed + (ARM_HALF_SPAN.open - ARM_HALF_SPAN.closed) * Math.min(1, Math.max(0, open));
+}
+
+/**
+ * The arm drive the stage gives in `frame` (swing back, tip straightening): the stroke's, given
+ * way as the arms swing forward (`forward`), before they spread. Octopus and the tests both call
+ * this, so the arms cannot go back to following `settle` without a test failing.
+ */
+export function entranceDrive(frame: EntranceFrame, stroke: StrokeFrame) {
+  return swimDrive(stroke, frame.forward);
+}
+
+/** The arm rests the stage draws in `frame`, written into `out`: the stroke's, carried to the intro pose as the arms spread (`open`). */
+export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes: SwimShapes, out: Record<ArmId, ArmRest>) {
+  return swimRests(shapes, stroke, frame.open, out);
 }
 
 /**

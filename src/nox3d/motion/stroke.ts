@@ -93,9 +93,9 @@ export const SWIM_PITCH = { base: 0.9, sweep: 0.4 } as const;
 
 /**
  * The arm drive a stroke gives: the swing back (ArmDrive.pitch) and the tips' straightening
- * (ArmDrive.straighten). `settle` (0 to 1) is how far Nox has arrived in his stage pose: both ease
- * to nothing as he settles, so he lands with his arms exactly as they are at rest, wherever the
- * stroke stopped.
+ * (ArmDrive.straighten). `settle` (0 to 1) is how far Nox has arrived in his stage pose (the
+ * entrance passes its `forward`, which comes before the arms spread): both ease to nothing as he
+ * settles, so he lands with his arms exactly as they are at rest, wherever the stroke stopped.
  */
 export function swimDrive(frame: Pick<StrokeFrame, 'sweep' | 'straighten'>, settle = 0) {
   const swimming = 1 - Math.min(1, Math.max(0, settle));

@@ -11,11 +11,11 @@ import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
 import { bubblePointer } from '../world/cameraHover';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
-import { strokeAt, swimDrive } from '../motion/stroke';
-import { createSwimRests, swimArmPitch, swimRests } from '../motion/swimArms';
+import { strokeAt } from '../motion/stroke';
+import { createSwimRests, swimArmPitch } from '../motion/swimArms';
 import { BODY_X } from '../poses/nox.poses';
 import { swimShapes } from '../poses/nox.swim';
-import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, revealParts } from '../sequences/entrance';
+import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
@@ -372,7 +372,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
     // The drive gives way as the arms swing forward (`forward`), before they spread (`open`).
     const stroke = swim ? strokeAt(swim.stroke, personality.swim) : null;
-    const drive = swim && stroke ? swimDrive(stroke, swim.forward) : null;
+    const drive = swim && stroke ? entranceDrive(swim, stroke) : null;
     const bodyX = pose.body.x + (swim ? swim.position[0] : 0);
     const bodyY = pose.body.y + (swim ? swim.position[1] : 0);
     const bodyZ = swim ? swim.position[2] : 0;
@@ -547,7 +547,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
-    const rests = swim && stroke ? swimRests(swimShapes(rig.arms[0].chain.segments), stroke, swim.open, rig.swimRests) : null;
+    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(rig.arms[0].chain.segments), rig.swimRests) : null;
     const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
     const straighten = drive ? drive.straighten : armDrive?.straighten;
     let offset = 0;

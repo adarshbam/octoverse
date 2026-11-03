@@ -2,11 +2,11 @@ import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
-import { strokeAt, swimDrive } from '../motion/stroke';
-import { createSwimRests, swimRests } from '../motion/swimArms';
+import { strokeAt } from '../motion/stroke';
+import { createSwimRests } from '../motion/swimArms';
 import { swimShapes } from '../poses/nox.swim';
 import { SECURITY_WORLD } from '../world/security/config';
-import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceFrame, pathClearance, revealParts, spiralOffset } from './entrance';
+import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
 import { type Sequences, loadSequences } from './theatre';
 
@@ -162,7 +162,7 @@ test('a second of hold between the end of the last stroke and the opening of the
 // Owner request (live review): the spin waits for the arms. After the hold they come forward out of
 // the trail as he rights himself, then spread to the intro pose's full reach, and only then does he
 // turn, fully open all the way round. Checked on what the stage draws: the arm rests and the arm
-// drive Octopus makes from the frame (swimRests, swimDrive).
+// drive Octopus makes from the frame (entranceRests, entranceDrive).
 test('the arms open fully after the hold, before the spin, and stay fully open through it', () => {
   const rests = swimShapes(ArmChain.SEGMENTS).rest;
   const spinStart = 4.5 + ENTRANCE_HOLD + ENTRANCE_OPEN;
@@ -193,10 +193,10 @@ test('the arms open fully after the hold, before the spin, and stay fully open t
     expect(f.open, `${s} s`).toBe(1);
     expect(Math.abs(armHalfSpan(f) - ARM_HALF_SPAN.open), `${s} s`).toBeLessThan(1e-9);
     const stroke = strokeAt(f.stroke, timing);
-    const drawn = swimRests(swimShapes(ArmChain.SEGMENTS), stroke, f.open, createSwimRests(ArmChain.SEGMENTS));
+    const drawn = entranceRests(f, stroke, swimShapes(ArmChain.SEGMENTS), createSwimRests(ArmChain.SEGMENTS));
     for (const id of ARM_IDS) expect(Array.from(drawn[id].angles), `${id} at ${s} s`).toEqual(Array.from(rests[id].angles));
     // No swing back left either: the arms stand out as the intro pose has them.
-    expect(swimDrive(stroke, f.forward).pitch, `${s} s`).toBe(0);
+    expect(entranceDrive(f, stroke).pitch, `${s} s`).toBe(0);
     expect(f.pitch, `${s} s`).toBeCloseTo(0, 9);
   }
   // The rest of the settle comes after the spin, as before: the face and the intro's words.
