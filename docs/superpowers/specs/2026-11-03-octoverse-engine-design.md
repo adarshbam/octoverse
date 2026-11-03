@@ -315,17 +315,17 @@ The shared parts do not vary: orb glass look, logo textures, HTML buttons that f
 ```ts
 export type PlacementConfig =
   | { kind: 'orbit'; shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; centreY: number; halfHeight: number; squareness: number; swellPush: number }
-  | { kind: 'pendant'; slots: Record<'intro' | 'overview', readonly PendantSlot[]>; maxPerArm: 2; tether: TetherStyle };
+  | { kind: 'pendant'; slots: Record<'intro' | 'overview', readonly PendantSlot[]>; maxPerArm: 2; sizes: Record<'intro' | 'overview', number>; tether: TetherStyle /* length may be 0: a cap only */ };
 
 /** A glass orb hangs on a short tether from the arm at arc fraction `at` (0 root, 1 tip); `order` is the technology's rank for the slot. */
 export interface PendantSlot { arm: ArmId; at: number; order: number }
 
 export interface ArtifactConfig {
   placement: PlacementConfig;
-  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup). */
-  appear: AppearId;
-  /** How one is chosen: 'suctionHold' (Nox: the arm pulls it to its tip and lifts it) or 'armLift' (Veyra: its own arm lifts its orb toward the pointer). */
-  select: SelectId;
+  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup); each kind carries its own parameters (A1, F5). */
+  appear: { kind: AppearId };
+  /** How one is chosen: 'suctionHold' (Nox: the arm pulls it to its tip and lifts it) or 'armLift' (Veyra: its own arm lifts its orb toward the pointer; carries `liftMs`, `overshoot`, `expression`). */
+  select: { kind: SelectId };
 }
 ```
 
@@ -554,8 +554,23 @@ Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found f
 | G2 | The entrance spin is a fixed full golden-spiral turn; Veyra wants a 200-degree glide turn | **Accepted.** `SequenceSet` carries `entrance: EntranceShape = { turn: number; spiral: boolean }`. E02 reads `turn` and `spiral` from data with Nox's values (`2 pi`, `true`; the type admits only `spiral: true` until F01) and proves the outputs unchanged against fixtures. The non-spiral path is built in F01 with Veyra (the closed-variant rule: no user yet). |
 | G3 | `camera.hover` is an amount; Veyra wants a slower period too | **Accepted.** `camera.hover: { amount, pace }`; the drift's clock is `t * pace`. Nox `pace: 1`. Veyra's fallback (a lower amount) is no longer needed. |
 | G4 | `flourishRate` needs a shared idle-flourish ambient layer | **Accepted, built in F01.** A shared layer `engine/behavior/flourish.ts`, driven by `Personality.flourishRate` (events per minute; 0 is none, so Nox is unchanged). It joins the other deferred personality fields in 14.1. |
-| G5 | `SequenceId` is a closed union; Veyra's bloom needs its own sheet | **Accepted, derived rather than open.** `SequenceId` becomes `'entrance' \| 'headSwell' \| 'arrival' \| AppearSheet`, where `AppearSheet` is the `sheet` field of each entry in the appear table (`APPEARS.blow.sheet = 'bubbleBlow'`, `APPEARS.bloom.sheet = 'bloom'` in F01). A bundle must supply the sheets its own modules need; `validateBundle` checks it. Nox's Theatre sheet names do not change, so its JSON is untouched. |
+| G5 | `SequenceId` is a closed union; Veyra's bloom needs its own sheet | **Accepted, derived rather than open.** `SequenceId` becomes `'entrance' \| 'headSwell' \| 'arrival' \| AppearSheet`, where `AppearSheet` is the optional `sheet` field of each entry in the appear table (an entry with no sheet, such as a future `pulse`, adds none) (`APPEARS.blow.sheet = 'bubbleBlow'`, `APPEARS.bloom.sheet = 'bloom'` in F01). A bundle must supply the sheets its own modules need; `validateBundle` checks it. Nox's Theatre sheet names do not change, so its JSON is untouched. |
 
 Not changed: G6 (the first milestone's backdrop is an empty kit plus water colours, which the contract already allows) and G7 (tip spirals as authored pose points; Veyra raises it if ambient curl unrolls them).
 
 Everything here keeps Nox's output unchanged and the Nox migration map (section 11) intact: each new field has an absent or neutral default that reproduces today's behaviour.
+
+### 18.1 Flux's gaps (provisional; from `flux-engine-needs.md`, an early list)
+
+Flux is mostly data on this contract (cheeks kept, `jelly` skin with its own colours, `pendant` placement, `armLift` select, a `sand` floor, Veyra's `props` and `kitDrives` with the `emissive` drive, fish and bubbles). The gaps below stay **provisional** until Flux confirms them after the owner settles its signature motif; items F1 and F2 exist only if the owner accepts the "pulse" motif. All are built in Flux's own work (G01), not in E02.
+
+| Gap | Need | Decision |
+|---|---|---|
+| F1 (motif) | A travelling emissive pulse along each arm's cup row, with a per-arm one-shot trigger | **Accepted as a closed variant if the motif is accepted.** `suckers.pulse: { speed, wavelength, strength, colours }` in the character config; a term in the sucker material plus one uniform array of eight trigger times; no extra pass. `strength` defaults to 0, so Nox and Veyra are unchanged. The trigger is a function on the instance that appear and select modules and sequences call. |
+| F2 (motif) | An appear mode where the pulse runs down the arm and the orb grows at its slot | **Accepted with F1.** One entry in `APPEARS` (`pulse`), reusing `bloom`'s grow; one module, one entry, one test. |
+| F3 | A head effect: four linked light nodes fill in sequence, then a ripple opens the panel | **Accepted.** `HEAD_EFFECTS.pipelineRun`; it fits `HeadEffectModule` as written (9.1). |
+| F4a | A live element of light pulses travelling along spline paths named in the world layout | **Accepted as a closed variant.** A `packets` entry in the live-element table (instanced). The paths are layout data, so it rides on the generalised layout that Veyra's work builds first. |
+| F4b | Kit LEDs that blink | **Decided: a kit-material variant, not a live element.** A closed `KIT_MATERIAL_VARIANTS` table with `led` (emissive, with a per-vertex phase baked into the glTF by the world's Blender script). Chosen because the phase is authored in Blender and a prop per LED would not scale. Flux confirms. |
+| F5 | `armLift` timing and expression come from the character, not module constants | **Accepted; changes the artifact config shape.** `appear` and `select` become small configs: `appear: { kind: AppearId; ...params }`, `select: { kind: SelectId; ...params }`. `armLift` carries `{ liftMs, overshoot, expression }`; Veyra sets about 450 ms ease-out, Flux about 300 ms with overshoot and a slightly open mouth (an expression override, A1 G1). Nox's `{ kind: 'blow' }` and `{ kind: 'suctionHold' }` keep their module constants. |
+| F6 | `jelly` colour stops hue-free | **Accepted as a build constraint on Veyra's `jelly` work.** Crown, depth and warm-core colours are all config (`skin.jelly: { crown, depth, core }`); no hue constant in the shader. |
+| F7 | Tether length down to about 0; orb size as data | **Accepted.** `pendant.tether.length` admits 0 (a cap only), and `pendant.sizes: Record<'intro' \| 'overview', number>` joins the placement config (9.2). |
