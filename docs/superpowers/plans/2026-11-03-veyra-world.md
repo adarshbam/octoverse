@@ -334,7 +334,9 @@ Raise this with the engine owner before starting. These are contract 14.1 deferr
 **Interfaces:**
 - Produces:
   - `assignPendants(techCount: number, slots: readonly PendantSlot[]): { placed: { techIndex: number; slot: PendantSlot }[]; tray: number[] }`: placed by `order`, at most 2 per arm, the rest to the tray.
-  - `pendantSwing(attachVelocity: Vec3, t: number, state: SwingState, reducedMotion: boolean): { angle: number; state: SwingState }`: a driven sine on the attach point's horizontal velocity with an exponential decay envelope (contract 9.2; no physics). `|angle| <= 25°`, and the swing settles to idle within 1.2 s after the arm stops.
+  - `pendantSwing(attachVelocity: Vec3, t: number, state: SwingState, limits: SwingLimits, reducedMotion: boolean): { angle: number; state: SwingState }`: a driven sine on the attach point's horizontal velocity with an exponential decay envelope (contract 9.2; no physics). `|angle| <= limits.maxAngle`, and the swing settles to idle within `limits.settle` after the arm stops.
+  - **A2 (X2):** `SwingLimits = { maxAngle: number /* radians */; settle: number /* s */ }`, read from `PlacementConfig.pendant.swing?`. When absent it defaults to 25° and 1.2 s (Veyra).
+  - **A2 (X3):** `PlacementConfig.pendant.reveal?: { start: number; span: number; step: number }` (seconds: when the first pendant begins, how long one takes, and the delay between pendants in `order`). Task 19's `bloom` reads it; Flux's `pulse` reads it too. When absent, `bloom` keeps Veyra's own timing (spec 7.5).
   - `TetherStyle = { length: number; color: string; width: number; sag: number; cap: string }`.
   - `threadClearance(pose, slots, faceRect): number`: the minimum distance from any thread or orb to another arm or the face.
   - `tetherCurve(attach: Vec3, angle: number, style: TetherStyle): { points: Vec3[]; orbCentre: Vec3 }`: the thread's sagging curve and the orb's position.
@@ -343,7 +345,9 @@ Raise this with the engine owner before starting. These are contract 14.1 deferr
   - `assignPendants(3, slots)` places 3 on the slots with `order` 0 to 2.
   - `assignPendants(20, slots16)` places 16 and trays 4.
   - No arm has more than 2 in any result.
-  - `pendantSwing` stays within 25 degrees for a velocity step of 3 units/s, and is within 1 degree of idle sway 1.2 s after the velocity returns to 0.
+  - `pendantSwing` with the default limits stays within 25 degrees for a velocity step of 3 units/s, and is within 1 degree of idle sway 1.2 s after the velocity returns to 0.
+  - **A2:** with Flux's limits (18 degrees, 0.8 s), the same step stays within 18 degrees and is within 1 degree of idle sway 0.8 s after the velocity returns to 0.
+  - **A2:** a pendant config without `swing` gives the same angles as one with `{ maxAngle: 25°, settle: 1.2 }`.
   - With `reducedMotion` the angle is 0.
   - `threadClearance(VEYRA_POSES.intro, VEYRA_ARTIFACTS.placement.slots.intro, face)` and the same for overview are both above 0.05.
 - [ ] **Step 2: Run**; expected FAIL. **Step 3: Implement.** Threads are one instanced thin tube batch for all pendants. Orbs reuse the shared orb glass material and logo cache. Pendant positions are written to the instance's `bubbleLive`, so the buttons, tooltip and tray work unchanged. **Step 4: Run**; Nox regression. **Step 5: Commit** `feat(engine): pendant placement and tethers (for Veyra)`.
@@ -380,6 +384,7 @@ Raise this with the engine owner before starting (contract 14.1 deferred; gap G4
   - `glideBias` (scale on glide length; Nox 1);
   - `flourishRate` (flourishes per minute; Nox 0);
   - `flourishCurve(t: number, start: number): number`: 0 to 1 to 0 over 3 s. It unrolls one arm's tip curl toward straight by at most 40% and rolls it back.
+  - **A2 (X1):** each flourish start is emitted as an event on the instance. `instance.flourish.subscribe(cb: (e: { arm: ArmId; start: number }) => void): () => void` returns an unsubscribe function. Flux's own work owns `Personality.flourishPulse` and the cup-pulse subscription; Veyra subscribes to nothing. Test: one event per flourish start with the right arm; after unsubscribing, no more calls; two instances do not see each other's events.
 - [ ] **Step 1: Failing tests.**
   - With Nox's values, ambient and stroke outputs equal the pre-change fixtures.
   - With `flourishRate: 4`, over 60 s of simulated time between 2 and 6 flourishes start, never two at once, never on an arm holding a pendant lift.
@@ -424,7 +429,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 
 **Interfaces:**
 - Produces:
-  - `bloomState(t: number, index: number, count: number): { cupGlow: number; pearl: number; thread: number; orb: number; wobble: number }`. It runs over 1.2 s in all, rippling from `order` 0 down.
+  - `bloomState(t: number, index: number, count: number): { cupGlow: number; pearl: number; thread: number; orb: number; wobble: number }`. It runs over 1.2 s in all, rippling from `order` 0 down. **A2 (X3):** when `placement.reveal` is set, `start`, `span` and `step` come from it; when absent, the 1.2 s ripple above applies. Test both cases.
   - `armLiftTarget(slot, pointer: Vec3 | null, rest: StagePose): ArmTarget`. It eases out over 450 ms, root first and tip last; a keyboard or touch selection lifts up and forward.
   - The chosen orb scales 1.25x, its glow rises, and its thread shortens by 30%.
 - [ ] **Step 1: Failing tests.**
