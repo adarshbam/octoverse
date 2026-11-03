@@ -16,6 +16,14 @@ export function cameraHover(t: number, amount: number): { offset: Vec3; look: Ve
   };
 }
 
+/**
+ * The drift for a world's `camera.hover`: the clock runs at its `pace` and the stage's eased
+ * `amount` is multiplied by its `amount` (Nox: both 1, so this is `cameraHover(t, amount)`).
+ */
+export function worldHover(t: number, amount: number, hover: { amount: number; pace: number }): { offset: Vec3; look: Vec3 } {
+  return cameraHover(t * hover.pace, amount * hover.amount);
+}
+
 /** The hover a pinned offset (`?hover=x,y,z`) stands for: the position offset, with the look following as the drift's does. */
 export function pinnedHover(offset: Vec3): { offset: Vec3; look: Vec3 } {
   const moved = offset[0] !== 0 || offset[1] !== 0 || offset[2] !== 0;

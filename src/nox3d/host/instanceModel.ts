@@ -3,7 +3,8 @@ import type { EntranceSheet } from '../character/Octopus';
 import type { Project, Technology } from '../content/projectTypes';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SwellSheet } from '../sequences/headSwell';
-import { type Sequences, loadSequences } from '../sequences/theatre';
+import type { Sequences } from '../sequences/theatre';
+import { loadNoxSequences } from '../sequences/nox.sequences';
 
 /** How many bubbles orbit the octopus; the rest of the project's technologies go to the tray. */
 export const BUBBLE_COUNT = 15;
@@ -62,7 +63,7 @@ export interface SheetWants {
 export function startSheetLoaders(sheets: InstanceSheets, wants: SheetWants, onEntrance: (sequences: Sequences) => void): () => void {
   let live = true;
   if (wants.entrance) {
-    loadSequences().then(
+    loadNoxSequences().then(
       sequences => {
         if (!live) return;
         onEntrance(sequences);
@@ -77,7 +78,7 @@ export function startSheetLoaders(sheets: InstanceSheets, wants: SheetWants, onE
   }
   for (const [wanted, sheet] of [[wants.blow, sheets.blow], [wants.swell, sheets.swell]] as const) {
     if (!wanted) continue;
-    loadSequences().then(
+    loadNoxSequences().then(
       sequences => {
         if (live) sheet.sequences = sequences;
       },

@@ -31,5 +31,9 @@ export const DUMMY_WORLD: WorldConfig = {
     fill: { color: '#6fd0c0', intensity: 1.0, position: [1.5, 10, 2] },
     points: SECURITY_WORLD.lights.points.filter(l => l.kind === 'lava').map((l, i) => ({ ...l, color: palette.lava, position: layout.coralLights[i] })),
   },
-  water: { fogDensity: 0.05, surfaceDir: [-0.03, 0.45, -0.89], environmentIntensity: 0.08 },
+  water: { fogDensity: 0.05, surfaceDir: [-0.03, 0.45, -0.89], environmentIntensity: 0.08, causticStrength: 0.006 },
+  // A cooler skin accent, a slower and gentler drift, and a heavier vignette: all configuration.
+  skinAccent: '#2c6a60',
+  camera: { tilt: 0.05, hover: { amount: 0.6, pace: 0.5 } },
+  post: { ...SECURITY_WORLD.post, vignette: { offset: 0.25, darkness: 1.0 } },
 };

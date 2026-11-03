@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import type { Personality } from '../config/types';
-import { loadSequences, type Sequences } from '../sequences/theatre';
+import { loadNoxSequences } from '../sequences/nox.sequences';
+import type { Sequences } from '../sequences/theatre';
 import { arrivalWiggle, idleGlance, seededRng, settleOvershoot, startle } from './micro';
 
 /** Samples across each window, and the time a sampling test may take on a busy machine. */
@@ -53,7 +54,7 @@ const spans = (p: Micro) => ({
 }) as const;
 
 test('each micro-animation is zero outside its window and peaks inside it', async () => {
-  const seq = await loadSequences();
+  const seq = await loadNoxSequences();
   const span = spans(MICRO);
   for (const [name, f] of Object.entries(channels(seq))) {
     const [duration, strength] = span[name as keyof typeof span];
@@ -83,7 +84,7 @@ test('each micro-animation is zero outside its window and peaks inside it', asyn
 }, HEAVY);
 
 test('timings come from the personality: a doubled duration doubles the window', async () => {
-  const seq = await loadSequences();
+  const seq = await loadNoxSequences();
   const doubled: Micro = {
     ...MICRO,
     startle: { ...MICRO.startle, duration: MICRO.startle.duration * 2 },

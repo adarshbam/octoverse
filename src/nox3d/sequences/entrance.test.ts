@@ -8,13 +8,14 @@ import { swimShapes } from '../poses/nox.swim';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
-import { type Sequences, loadSequences } from './theatre';
+import { NOX_ENTRANCE_GEOMETRY, loadNoxSequences } from './nox.sequences';
+import type { Sequences } from './theatre';
 
 let seq: Sequences;
 beforeAll(async () => {
-  seq = await loadSequences();
+  seq = await loadNoxSequences();
 });
-const at = (s: number) => entranceFrame(seq, s);
+const at = (s: number) => entranceFrame(seq, s, NOX_ENTRANCE_GEOMETRY);
 const times = (from: number, to: number, step: number) => Array.from({ length: Math.round((to - from) / step) + 1 }, (_, i) => from + i * step);
 const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const speed = (s: number, h = 0.005) => dist(at(s + h).position, at(s - h).position) / (2 * h);
@@ -174,7 +175,7 @@ test('the arms open fully after the hold, before the spin, and stay fully open t
   for (const s of [4.5, 5, 4.5 + ENTRANCE_HOLD - 0.001]) {
     expect(at(s).forward, `${s} s`).toBe(0);
     expect(at(s).open, `${s} s`).toBe(0);
-    expect(armHalfSpan(at(s)), `${s} s`).toBeLessThan(ARM_HALF_SPAN.open - 0.5);
+    expect(armHalfSpan(at(s), NOX_ENTRANCE_GEOMETRY), `${s} s`).toBeLessThan(ARM_HALF_SPAN.open - 0.5);
   }
   // They come forward first: they spread only once the swing back has mostly gone, and they are
   // forward and upright before they are fully spread.
@@ -191,7 +192,7 @@ test('the arms open fully after the hold, before the spin, and stay fully open t
   for (const s of [spinStart, ...times(spinStart + 0.001, spinEnd, 0.005)]) {
     const f = at(s);
     expect(f.open, `${s} s`).toBe(1);
-    expect(Math.abs(armHalfSpan(f) - ARM_HALF_SPAN.open), `${s} s`).toBeLessThan(1e-9);
+    expect(Math.abs(armHalfSpan(f, NOX_ENTRANCE_GEOMETRY) - ARM_HALF_SPAN.open), `${s} s`).toBeLessThan(1e-9);
     const stroke = strokeAt(f.stroke, timing);
     const drawn = entranceRests(f, stroke, swimShapes(ArmChain.SEGMENTS), createSwimRests(ArmChain.SEGMENTS));
     for (const id of ARM_IDS) expect(Array.from(drawn[id].angles), `${id} at ${s} s`).toEqual(Array.from(rests[id].angles));
@@ -210,7 +211,7 @@ test('the arms open fully after the hold, before the spin, and stay fully open t
 // the open intro pose is flat, side to side, and would count it reaching back into the near left
 // pillar as far as it reaches sideways.
 test('the swim clears every pillar', () => {
-  expect(pathClearance(at, SECURITY_WORLD.layout, 651, 4.5 + ENTRANCE_HOLD)).toBeGreaterThan(0.1);
+  expect(pathClearance(at, SECURITY_WORLD.layout, NOX_ENTRANCE_GEOMETRY, 651, 4.5 + ENTRANCE_HOLD)).toBeGreaterThan(0.1);
 });
 
 test('murk first: reveal is 0 at the start', () => {
@@ -246,4 +247,61 @@ test('out of the murk: the glow and aura first, then the shape', () => {
   // The sheet reveals him over the first second.
   expect(at(0).reveal).toBe(0);
   expect(at(1).reveal).toBe(1);
+});
+
+// Fixtures hard-coded from the implementation before the entrance took its stroke timing and turn
+// as data (Task 5): Nox's frames must not move by a bit.
+const NOX_FRAMES: Record<number, Pick<EntranceFrame, 'position' | 'yaw' | 'pitch' | 'stroke' | 'spin' | 'forward' | 'open' | 'settle' | 'reveal' | 'expression'>> = {
+  0: { position: [-1, 1.3, -34], yaw: 0, pitch: 0.45, stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, expression: 'happy' },
+  2: { position: [-0.39899962943466727, 0.6302685719771122, -10.080096640597288], yaw: 0, pitch: 0.45, stroke: 1.1203007518796992, spin: 0, forward: 0, open: 0, settle: 0, reveal: 1, expression: 'happy' },
+  4: { position: [-0.7733164847853181, 0.036884449382877604, -0.5777967102000803], yaw: 0, pitch: 0.45, stroke: 2.6240601503759398, spin: 0, forward: 0, open: 0, settle: 0, reveal: 1, expression: 'happy' },
+  5: { position: [-0.8471545771301882, 0, -0.30385707569081233], yaw: 0, pitch: 0.45, stroke: 3, spin: 0, forward: 0, open: 0, settle: 0, reveal: 1, expression: 'happy' },
+  5.5: { position: [-0.8471545771301882, 0, -0.30385707569081233], yaw: 0, pitch: 0.45, stroke: 3, spin: 0, forward: 0, open: 0, settle: 0, reveal: 1, expression: 'happy' },
+  6.5: { position: [-0.843142256351925, 0, -0.21755048929299703], yaw: 0.09187040040147344, pitch: 0, stroke: 3, spin: 0.014621628347726144, forward: 1, open: 1, settle: 0, reveal: 1, expression: 'happy' },
+  7: { position: [0.08178893750396721, 0, -0.09434244540051717], yaw: -1.9406550764402604, pitch: 0, stroke: 3, spin: 0.6911351517481525, forward: 1, open: 1, settle: 0, reveal: 1, expression: 'happy' },
+};
+
+test('Nox\'s entrance frames equal the ones the fixed-Nox implementation gave', () => {
+  for (const [s, want] of Object.entries(NOX_FRAMES)) {
+    const got = at(Number(s));
+    expect(got.position, `${s} s position`).toEqual(want.position.map(v => expect.closeTo(v, 12)));
+    for (const key of ['yaw', 'pitch', 'stroke', 'spin', 'forward', 'open', 'settle', 'reveal'] as const) expect(got[key], `${s} s ${key}`).toBeCloseTo(want[key], 12);
+    expect(got.expression, `${s} s`).toBe(want.expression);
+  }
+  // The end is the intro spot, facing the visitor.
+  expect(at(ENTRANCE_SECONDS).position).toEqual([0, 0, 0]);
+  expect(at(ENTRANCE_SECONDS).yaw).toBe(0);
+});
+
+test('the stroke timing comes in as an argument: another timing carries the swimmer a different distance ahead', () => {
+  const slower = { swim: { ...timing, glide: timing.glide * 2 } };
+  // Mid-surge (2 s): the lead along the keyed path differs; the sheet's own stroke clock does not.
+  const mine = entranceFrame(seq, 2, NOX_ENTRANCE_GEOMETRY);
+  const other = entranceFrame(seq, 2, slower);
+  expect(other.stroke).toBe(mine.stroke);
+  expect(dist(other.position, mine.position)).toBeGreaterThan(1e-3);
+  // At a whole stroke the lead is zero for any timing: both stand on the keyed path.
+  expect(dist(entranceFrame(seq, 5, slower).position, entranceFrame(seq, 5, NOX_ENTRANCE_GEOMETRY).position)).toBeLessThan(1e-9);
+});
+
+test('the clearance check takes the arm reach and pillar footprint as arguments', () => {
+  const swim = (s: number) => entranceFrame(seq, s, NOX_ENTRANCE_GEOMETRY);
+  const base = pathClearance(swim, SECURITY_WORLD.layout, NOX_ENTRANCE_GEOMETRY, 101, 4.5 + ENTRANCE_HOLD);
+  const wider = pathClearance(swim, SECURITY_WORLD.layout, { ...NOX_ENTRANCE_GEOMETRY, armHalfSpan: { open: 3.15, closed: 2.2 } }, 101, 4.5 + ENTRANCE_HOLD);
+  expect(wider).toBeCloseTo(base - 1, 9);
+  const fatter = pathClearance(swim, SECURITY_WORLD.layout, { ...NOX_ENTRANCE_GEOMETRY, pillarHalf: { x: 1.55, z: 1.5 } }, 101, 4.5 + ENTRANCE_HOLD);
+  expect(fatter).toBeLessThan(base);
+});
+
+test('the entrance turn is data: a half turn has half the yaw all the way round', () => {
+  const half: Sequences = { ...seq, entrance: { turn: Math.PI, spiral: true } };
+  for (const s of [6.6, 6.9, 7.1, 7.3]) {
+    const full = entranceFrame(seq, s, NOX_ENTRANCE_GEOMETRY).yaw;
+    expect(full, `${s} s`).not.toBe(0);
+    expect(entranceFrame(half, s, NOX_ENTRANCE_GEOMETRY).yaw, `${s} s`).toBeCloseTo(full / 2, 12);
+  }
+  // It still ends on the spot, facing the visitor, and starts where the swim ends.
+  expect(entranceFrame(half, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY).position).toEqual([0, 0, 0]);
+  expect(entranceFrame(half, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY).yaw).toBe(0);
+  expect(entranceFrame(half, 6.4, NOX_ENTRANCE_GEOMETRY).position).toEqual(entranceFrame(seq, 6.4, NOX_ENTRANCE_GEOMETRY).position);
 });

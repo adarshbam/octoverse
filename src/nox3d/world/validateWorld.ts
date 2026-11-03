@@ -1,3 +1,4 @@
+import { isWorldColour } from './colour';
 import type { Placement, Vec3, WorldConfig, WorldLayout } from './types';
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
@@ -66,7 +67,7 @@ export function asWorldLayout(data: unknown): WorldLayout {
 /** What is wrong with a world, in words; an empty list means it is valid. */
 export function validateWorld(world: WorldConfig): string[] {
   const problems: string[] = [];
-  const { layout, lights, palette, water, live } = world;
+  const { layout, lights, palette, water, live, camera, post } = world;
   const pieces = new Set(world.kit.pieces);
 
   const placements = (group: string, list: readonly Placement[]) =>
@@ -87,6 +88,7 @@ export function validateWorld(world: WorldConfig): string[] {
 
   lights.points.forEach((light, i) => {
     const name = `light ${i} (${light.kind})`;
+    if (typeof light.kind !== 'string' || light.kind === '') problems.push(`light ${i} has no kind`);
     if (!finite(light.skinRange) || light.skinRange <= 0) problems.push(`${name} has no skinRange`);
     if (!vec3(light.position)) problems.push(`${name} has no valid position`);
     if (!finite(light.intensity) || light.intensity < 0) problems.push(`${name} has no valid intensity`);
@@ -107,6 +109,18 @@ export function validateWorld(world: WorldConfig): string[] {
   if (!vec3(water.surfaceDir) || water.surfaceDir.every(n => n === 0)) problems.push('water.surfaceDir needs a direction');
   if (!finite(water.fogDensity) || water.fogDensity < 0) problems.push('water.fogDensity must be 0 or more');
   if (!finite(water.environmentIntensity) || water.environmentIntensity < 0) problems.push('water.environmentIntensity must be 0 or more');
+  if (!finite(water.causticStrength) || water.causticStrength < 0) problems.push('water.causticStrength must be 0 or more');
+  if (!isWorldColour(world.skinAccent)) problems.push('skinAccent is not a colour (#rrggbb, or color(srgb-linear r g b))');
+  if (!finite(camera.tilt)) problems.push('camera.tilt is not a number');
+  if (!finite(camera.hover.amount) || camera.hover.amount < 0) problems.push('camera.hover.amount must be 0 or more');
+  if (!finite(camera.hover.pace) || camera.hover.pace < 0) problems.push('camera.hover.pace must be 0 or more');
+  const { contactShadow, bloom, vignette } = post;
+  for (const name of ['reach', 'minGap', 'maxGap', 'near', 'far'] as const) if (!finite(contactShadow[name])) problems.push(`post.contactShadow.${name} is not a number`);
+  if (!colour(contactShadow.color)) problems.push('post.contactShadow.color is not a #rrggbb colour');
+  if (!finite(contactShadow.strength) || contactShadow.strength < 0 || contactShadow.strength > 1) problems.push('post.contactShadow.strength must be between 0 and 1');
+  if (finite(contactShadow.near) && finite(contactShadow.far) && contactShadow.near >= contactShadow.far) problems.push('post.contactShadow.near must be before far');
+  for (const [name, value] of Object.entries(bloom)) if (!finite(value) || value < 0) problems.push(`post.bloom.${name} must be 0 or more`);
+  for (const [name, value] of Object.entries(vignette)) if (!finite(value) || value < 0) problems.push(`post.vignette.${name} must be 0 or more`);
   for (const [name, share] of Object.entries(live)) if (!finite(share) || share < 0 || share > 1) problems.push(`live.${name} must be between 0 and 1`);
   return problems;
 }

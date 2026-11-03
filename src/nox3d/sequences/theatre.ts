@@ -1,49 +1,67 @@
 import type { ISheet } from '@theatre/core';
-import { SEQUENCE_DEFAULTS, type SequenceId } from './keys';
+import { type EntranceShape, type SequenceDefaults, type SequenceId, type SequenceSet } from './keys';
 
-export type { SequenceId } from './keys';
-export { SEQUENCE_DEFAULTS } from './keys';
-
-export const PROJECT_ID = 'OctoVerse';
+export type { SequenceId, SequenceSet } from './keys';
 
 export interface Sequences {
   sheet(id: SequenceId): ISheet;
-  /** The object's props at `seconds` (clamped to the sequence: past the end holds the last value). */
+  /**
+   * The object's props at `seconds` (clamped to the sequence: past the end holds the last value).
+   * Synchronous: it sets the sheet's position, then reads the object, so the value is the one at
+   * `seconds` and nothing else. The sheet is shared, so the next sample moves it: copy what you
+   * keep before sampling again.
+   */
   sample<T>(id: SequenceId, objectKey: string, seconds: number): T;
+  /** How the entrance's final turn runs (`SequenceSet.entrance`). */
+  readonly entrance: EntranceShape;
 }
 
-let loading: Promise<Sequences> | null = null;
+/** What the loader needs of a world's sequence set: its `entrance` shape is optional (a full turn on the spiral when absent). */
+export type SequenceSpec = Pick<SequenceSet, 'projectId' | 'state' | 'defaults'> & { entrance?: EntranceShape };
+
+/** Nox's turn, used when a spec names none: once round. */
+const FULL_TURN: EntranceShape = { turn: 2 * Math.PI, spiral: true };
+
+/** One load per Theatre project id: `getProject` throws when an id is made twice. */
+const loading = new Map<string, Promise<Sequences>>();
 
 /**
- * Loads the project from the repo state (`state/octoverse.theatre.json`); resolves when ready.
- * Works in Node and in the browser. Theatre and the state load on the first call only, so
- * nothing here costs startup until a sequence is first needed; every later call gets the same
- * promise (a failed load is forgotten, so the next call tries again). The app drives
- * `sheet.sequence.position` from its own clock and never uses Theatre's playback.
+ * Loads a project from a world's saved state; resolves when ready. Works in Node and in the
+ * browser. Theatre loads on the first call for a `projectId` only, so nothing here costs startup
+ * until a sequence is first needed; every later call for that id gets the same promise (so a
+ * second instance of the world, or one mounted twice by StrictMode, makes no second project; a
+ * failed load is forgotten, so the next call tries again). A different `projectId` is a project of
+ * its own. The app drives `sheet.sequence.position` from its own clock and never uses Theatre's
+ * playback.
  */
-export function loadSequences(): Promise<Sequences> {
-  loading ??= load().catch((error: unknown) => {
-    loading = null;
+export function loadSequences(spec: SequenceSpec): Promise<Sequences> {
+  const known = loading.get(spec.projectId);
+  if (known) return known;
+  const started = load(spec).catch((error: unknown) => {
+    loading.delete(spec.projectId);
     throw error;
   });
-  return loading;
+  loading.set(spec.projectId, started);
+  return started;
 }
 
-async function load(): Promise<Sequences> {
-  const [{ getProject, types }, state] = await Promise.all([
-    import('@theatre/core'),
-    import('./state/octoverse.theatre.json').then((m) => m.default),
-  ]);
-  const project = getProject(PROJECT_ID, { state: state as never });
+async function load({ projectId, state, defaults, entrance = FULL_TURN }: SequenceSpec): Promise<Sequences> {
+  const { getProject, types } = await import('@theatre/core');
+  const project = getProject(projectId, { state: state as never });
   await project.ready;
 
+  const defaultsOf = (id: SequenceId): SequenceDefaults => {
+    const found = defaults[id];
+    if (!found) throw new Error(`No sequence "${id}" in the sequences of project "${projectId}"`);
+    return found;
+  };
   const objects = new Map<string, ReturnType<ISheet['object']>>();
   const sheet = (id: SequenceId) => project.sheet(id);
   const objectOf = (id: SequenceId, key: string) => {
     const cacheKey = `${id}/${key}`;
     let obj = objects.get(cacheKey);
     if (!obj) {
-      const def = SEQUENCE_DEFAULTS[id].objects[key];
+      const def = defaultsOf(id).objects[key];
       if (!def) throw new Error(`No object "${key}" in sequence "${id}"`);
       const props = Object.fromEntries(Object.entries(def.props).map(([k, v]) => [k, types.number(v)]));
       obj = sheet(id).object(key, props);
@@ -52,10 +70,11 @@ async function load(): Promise<Sequences> {
     return obj;
   };
   return {
+    entrance,
     sheet,
     sample<T>(id: SequenceId, objectKey: string, seconds: number): T {
       const obj = objectOf(id, objectKey);
-      const length = SEQUENCE_DEFAULTS[id].length;
+      const length = defaultsOf(id).length;
       sheet(id).sequence.position = Math.min(length, Math.max(0, seconds));
       return obj.value as T;
     },

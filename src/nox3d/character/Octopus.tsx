@@ -18,7 +18,7 @@ import { BODY_X } from '../poses/nox.poses';
 import { swimShapes } from '../poses/nox.swim';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
-import type { BlowSheet } from '../sequences/bubbleBlow';
+import { type BlowSheet, blowMouth } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
@@ -169,6 +169,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const dome = useRef<THREE.Mesh>(null);
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
+  // Where the bubbles come out: this character's mouth, worked out once from its head and face.
+  const mouth = useMemo(() => blowMouth(config.head, config.face), [config.head, config.face]);
+  // The entrance's stroke timing (the arguments entranceFrame takes of the character).
+  const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
   const swell = useMemo(() => ({ run: new SwellRun(), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), []);
   const bubbleState = useMemo<BubbleState>(() => ({
@@ -403,7 +407,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       } else {
         e.seconds = e.seconds === null ? 0 : e.seconds + (entranceHold?.() ? 0 : step);
         const seconds = freeze ? entranceSeconds : e.seconds;
-        swim = entranceFrame(sheet, seconds);
+        swim = entranceFrame(sheet, seconds, entranceSwim);
         onEntranceFrame?.(swim, seconds);
         if (!freeze) {
           if (!e.settling && swim.settle > 0) {
@@ -763,7 +767,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} mouth={mouth} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

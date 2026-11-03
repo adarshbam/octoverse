@@ -1,7 +1,6 @@
 import type * as THREE from 'three';
 import { mantleRadius } from '../character/headGeometry';
-import { NOX } from '../config/nox.character';
-import type { StageId } from '../config/types';
+import type { FaceLayout, HeadShape, StageId } from '../config/types';
 import type { Vec3 } from '../world/types';
 import { BLOW_STAGGER, SEQUENCE_DEFAULTS } from './keys';
 import type { Sequences } from './theatre';
@@ -65,25 +64,27 @@ export function bubblesExist(stage: StageId) {
 }
 
 /**
- * Where the bubbles come out, in the bubbles' space (Nox's body space, the head unturned): his
- * mouth, on the front of the face. The face is drawn about the head's faceOrigin, so the mouth
- * there is faceOrigin + mouth.center; the front of the mantle at that height is its radius times
- * its depth.
+ * Where the bubbles come out, in the bubbles' space (the body space, the head unturned): the
+ * character's mouth, on the front of the face. The face is drawn about the head's faceOrigin, so
+ * the mouth there is faceOrigin + mouth.center; the front of the mantle at that height is its
+ * radius times its depth. Worked out once per instance, from its character's head and face.
  */
-const MOUTH_Y = NOX.head.faceOrigin[1] + NOX.face.mouth.center[1];
-export const BLOW_MOUTH: Vec3 = [NOX.head.faceOrigin[0] + NOX.face.mouth.center[0], MOUTH_Y, mantleRadius(NOX.head, MOUTH_Y) * NOX.head.depth + 0.04];
+export function blowMouth(head: HeadShape, face: FaceLayout): Vec3 {
+  const y = head.faceOrigin[1] + face.mouth.center[1];
+  return [head.faceOrigin[0] + face.mouth.center[0], y, mantleRadius(head, y) * head.depth + 0.04];
+}
 
 /** How far in front of the mouth (and of the orbit, if that is nearer) the way bows out, in world units. */
 const BOW = 0.8;
 
 /**
- * The bubble's place `emerged` (0 to 1, eased in the sheet) along its way from the mouth to its
- * orbit point `orbit`: a curve that bows out toward the visitor, so even a place behind the head is
- * reached round the front of it, never through it. Written into `out`.
+ * The bubble's place `emerged` (0 to 1, eased in the sheet) along its way from the `mouth`
+ * (`blowMouth`) to its orbit point `orbit`: a curve that bows out toward the visitor, so even a
+ * place behind the head is reached round the front of it, never through it. Written into `out`.
  */
-export function blowPosition(orbit: THREE.Vector3, emerged: number, out: THREE.Vector3): THREE.Vector3 {
+export function blowPosition(mouth: Vec3, orbit: THREE.Vector3, emerged: number, out: THREE.Vector3): THREE.Vector3 {
   const s = Math.min(1, Math.max(0, emerged));
-  const [mx, my, mz] = BLOW_MOUTH;
+  const [mx, my, mz] = mouth;
   if (s === 0) return out.set(mx, my, mz);
   if (s === 1) return out.copy(orbit);
   // A quadratic Bezier through a control point half way across and BOW in front.

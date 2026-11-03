@@ -1,15 +1,29 @@
 import * as THREE from 'three';
 import { beforeAll, expect, test } from 'vitest';
-import { BLOW_MOUTH, BLOW_SHEET_WAIT, type BlowFrame, BlowRun, blowFrame, blowLength, blowPosition, bubblesExist } from './bubbleBlow';
+import { NOX } from '../config/nox.character';
+import { BLOW_SHEET_WAIT, type BlowFrame, BlowRun, blowFrame, blowLength, blowMouth, blowPosition, bubblesExist } from './bubbleBlow';
 import { BLOW_STAGGER, SEQUENCE_DEFAULTS } from './keys';
-import { type Sequences, loadSequences } from './theatre';
+import { loadNoxSequences } from './nox.sequences';
+import type { Sequences } from './theatre';
 
 let seq: Sequences;
 beforeAll(async () => {
-  seq = await loadSequences();
+  seq = await loadNoxSequences();
 });
 const at = (i: number, s: number) => blowFrame(seq, i, s);
 const COUNT = 15;
+const BLOW_MOUTH = blowMouth(NOX.head, NOX.face);
+
+test('the mouth is worked out from the head and face: Nox\'s is where the module constant put it', () => {
+  // Hard-coded from the module constant BLOW_MOUTH this function replaced (Task 5).
+  expect(BLOW_MOUTH[0]).toBeCloseTo(0.058, 12);
+  expect(BLOW_MOUTH[1]).toBeCloseTo(-0.84, 12);
+  expect(BLOW_MOUTH[2]).toBeCloseTo(0.5397649575610644, 12);
+  // Another head and mouth moves it with them.
+  const moved = blowMouth({ ...NOX.head, faceOrigin: [0.5, NOX.head.faceOrigin[1] + 0.1] }, NOX.face);
+  expect(moved[0]).toBeCloseTo(BLOW_MOUTH[0] + 0.5 - NOX.head.faceOrigin[0], 12);
+  expect(moved[1]).toBeCloseTo(BLOW_MOUTH[1] + 0.1, 12);
+});
 
 test('no bubble exists before the entrance settles', () => {
   // The bubbles belong to the intro, the overview and a technology focus: never the entrance.
@@ -108,11 +122,11 @@ test('each bubble emerges from the mouth and grows with a wobble to full size', 
 test('the path runs from the mouth to the orbit, round the front of the head', () => {
   const orbit = new THREE.Vector3(0, 1.8, -0.5);
   const out = new THREE.Vector3();
-  expect(blowPosition(orbit, 0, out).toArray()).toEqual([...BLOW_MOUTH]);
-  expect(blowPosition(orbit, 1, out).distanceTo(orbit)).toBeLessThan(1e-9);
+  expect(blowPosition(BLOW_MOUTH, orbit, 0, out).toArray()).toEqual([...BLOW_MOUTH]);
+  expect(blowPosition(BLOW_MOUTH, orbit, 1, out).distanceTo(orbit)).toBeLessThan(1e-9);
   // Even to a place behind the head it never passes through it: in front of the face all the way up.
   for (let k = 1; k < 20; k++) {
-    const p = blowPosition(orbit, k / 20, out);
+    const p = blowPosition(BLOW_MOUTH, orbit, k / 20, out);
     if (p.y < 0.3) expect(p.z).toBeGreaterThan(BLOW_MOUTH[2]);
   }
   // The mouth is on the front of the face, below its middle.

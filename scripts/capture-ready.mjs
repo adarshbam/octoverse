@@ -38,7 +38,7 @@ export async function waitForReady(page, { mask = false, label = '' } = {}) {
   // `__noxReady` does not wait for the Theatre sequence sheet (entrance, blow, swell): it loads on its
   // own promise, shared by all three. The dev server serves the module at this path; it is the app's instance.
   try {
-    await page.evaluate(async () => { await (await import('/src/nox3d/sequences/theatre.ts')).loadSequences(); });
+    await page.evaluate(async () => { await (await import('/src/nox3d/sequences/nox.sequences.ts')).loadNoxSequences(); });
   } catch (error) {
     fail('sequence sheet', error);
   }

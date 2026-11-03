@@ -5,6 +5,7 @@ import { type AccentLink, pickAccentLights, writeAccentLights } from '../charact
 import { useInstance } from '../host/instanceContext';
 import { setReliefGate, stoneLights } from './bakedLight';
 import { FarCards } from './FarCards';
+import { setWorldColour } from './colour';
 import { Floor } from './Floor';
 import { Kit } from './Kit';
 import { KitBoundary } from './WorldBoundary';
@@ -94,18 +95,8 @@ function KitLayer({ world, level, tier, onSettled }: { world: WorldConfig; level
 }
 
 /**
- * How Nox's skin takes the world's light: warm and pink, through the flesh (the test scene's
- * balance at 0.2 of its strength). Task 5: four times Task 3's start, so the warmth reads on the
- * arms' undersides (panel 2's red band); the cap bounds the brightest patches, and the light still
- * falls off from the lava corners.
- */
-const SKIN_WARMTH = new THREE.Color(0.052, 0.0252, 0.06);
-/** The caustics' share of the surface light on Nox's skin: the bright lines reach their cap, the gaps stay well under it. */
-const CAUSTIC_STRENGTH = 0.005;
-
-/**
  * Feeds the world's light to Nox's skin as accents: the world lights nearest his face glow each
- * frame, the surface light's caustics, and the far haze: the water's colour and its fog density,
+ * frame, its warmth (`skinAccent`), the surface light's caustics (`water.causticStrength`), and the far haze: the water's colour and its fog density,
  * so beyond HAZE_FROM (18 units, only ever reached in the entrance) he fades into the water as the
  * corridor does, from his own shading. On unmount the skin goes back to no accents.
  */
@@ -114,12 +105,12 @@ function useNoxAccents(world: WorldConfig, { spot, caustics }: ReturnType<typeof
     if (!accents) return;
     const u = accents.uniforms;
     const { surface } = world.lights;
-    u.uAccentWarmth.value.copy(SKIN_WARMTH);
+    setWorldColour(u.uAccentWarmth.value, world.skinAccent);
     u.uCausticMap.value = caustics.texture;
     // Three keeps the shadow matrix up to date: it projects the light's cookie, as for the stone.
     u.uCausticMatrix.value = spot.shadow.matrix;
     u.uSurfaceDir.value.set(...surface.position).sub(new THREE.Vector3(...surface.target)).normalize();
-    u.uCausticLight.value.set(surface.color).multiplyScalar(CAUSTIC_STRENGTH);
+    u.uCausticLight.value.set(surface.color).multiplyScalar(world.water.causticStrength);
     u.uFarHazeColor.value.set(world.palette.waterFar);
     u.uFarHaze.value = world.water.fogDensity;
     return () => {

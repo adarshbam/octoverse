@@ -23,7 +23,6 @@ import { NOX_POSES } from './poses/nox.poses';
 import { SWIM_POSES, swimShapes } from './poses/nox.swim';
 import type { StagePose } from './poses/types';
 import type { EntranceFrame } from './sequences/entrance';
-import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { noxFaceAnchor } from './stage/liveAnchors';
 import { EngineInstance } from './host/EngineInstance';
@@ -32,7 +31,7 @@ import { debugWindow, entranceDebug, markReady, reportWorld } from './host/debug
 import { useInstance } from './host/instanceContext';
 import { createProjectModel, createSheets, startSheetLoaders } from './host/instanceModel';
 import { useWindowListeners } from './host/listeners';
-import { cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
+import { easeHover, hoverTarget, pinnedHover, worldHover } from './world/cameraHover';
 import { leanCamera } from './world/lensShift';
 import type { Vec3 } from './world/types';
 import { QualityProbe, startingTier, usePageVisible, useQuality } from './stage/useQuality';
@@ -120,7 +119,7 @@ function placeCamera(camera: THREE.PerspectiveCamera, rest: THREE.PerspectiveCam
  * Fits the stage's frame (easing to a new stage's frame), or the `?view` box, and optionally adds
  * an orbit camera.
  */
-function StageCamera({ stage, reducedMotion, options }: { stage: StageId; reducedMotion: boolean; options: ReviewOptions }) {
+function StageCamera({ stage, reducedMotion, options, world }: { stage: StageId; reducedMotion: boolean; options: ReviewOptions; world: WorldConfig }) {
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const size = useThree(s => s.size);
   const gl = useThree(s => s.gl);
@@ -128,7 +127,7 @@ function StageCamera({ stage, reducedMotion, options }: { stage: StageId; reduce
   const { liveAnchors } = instance;
   const framed = !options.view && !options.orbit;
   // The world's camera lean (its pillars converge toward the top, as in panel 2); `?tilt=<rad>` tries another.
-  const tilt = options.tilt ?? SECURITY_WORLD.camera.tilt;
+  const tilt = options.tilt ?? world.camera.tilt;
   const target = fovFor(STAGE_FRAMES[stage], size);
   // The stage camera at rest, which the page's overlays are laid out for; and the hover's state.
   const rest = useMemo(() => new THREE.PerspectiveCamera(24, 1, 0.1, 60), []);
@@ -145,7 +144,7 @@ function StageCamera({ stage, reducedMotion, options }: { stage: StageId; reduce
     // hover, choice or hold does not touch it; `freeze` has none unless `?hover` gives the offset).
     const pinned = options.hover ? pinnedHover(options.hover) : null;
     hover.current = reducedMotion ? 0 : easeHover(hover.current, options.freeze ? 0 : hoverTarget(stage, false), Math.min(delta, 0.05));
-    const moved = pinned ?? (hover.current > 0 ? cameraHover(state.clock.elapsedTime, hover.current) : null);
+    const moved = pinned ?? (hover.current > 0 ? worldHover(state.clock.elapsedTime, hover.current, world.camera.hover) : null);
     placeCamera(camera, rest, lookAt, moved);
     leanCamera(camera, tilt, faceOf(stage), REST, { fullWidth: size.width, fullHeight: size.height, x: 0, y: 0, width: size.width, height: size.height });
     liveAnchors.set(camera, rest, size);
@@ -505,7 +504,7 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
         camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 140 }}
       >
         <color attach="background" args={[mask ? '#000000' : world.palette.waterFar]} />
-        <StageCamera stage={shown} reducedMotion={reducedMotion} options={options} />
+        <StageCamera stage={shown} reducedMotion={reducedMotion} options={options} world={world} />
         {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
         {mask ? (
           <>
@@ -521,9 +520,9 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
             <ReadyFlag wait={!plateReady || !kitDone} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
             <EffectComposer multisampling={0}>
-              {quality.settings.contactShadows ? <ContactShadows settings={POST.contactShadows} /> : <></>}
-              <Bloom mipmapBlur {...POST.bloom} resolutionScale={0.5 * quality.settings.bloomScale} />
-              <Vignette {...POST.worldVignette} />
+              {quality.settings.contactShadows ? <ContactShadows settings={world.post.contactShadow} /> : <></>}
+              <Bloom mipmapBlur {...world.post.bloom} resolutionScale={0.5 * quality.settings.bloomScale} />
+              <Vignette {...world.post.vignette} />
               <SMAA />
             </EffectComposer>
           </>

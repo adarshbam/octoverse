@@ -12,7 +12,8 @@ import type { Placement } from '../world/types';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ENTRANCE_SECONDS, entranceDrive, entranceFrame, entranceRests } from './entrance';
 import { ENTRANCE_HOLD } from './keys';
-import { type Sequences, loadSequences } from './theatre';
+import { NOX_ENTRANCE_GEOMETRY, loadNoxSequences } from './nox.sequences';
+import type { Sequences } from './theatre';
 
 // Ruling C6 (Task 19c): Nox opens his arms beside the near left pillar, before the spin. The
 // circle of reach in pathClearance cannot see the open pose's shape, so here the real arms are
@@ -23,7 +24,7 @@ import { type Sequences, loadSequences } from './theatre';
 
 let seq: Sequences;
 beforeAll(async () => {
-  seq = await loadSequences();
+  seq = await loadNoxSequences();
 });
 
 /** Octopus's PIVOT_Y: the height the body leans and turns about (its swimTurn group). */
@@ -60,7 +61,7 @@ test('the real arms stay clear of every pillar as they open and all through the 
   let where = '';
   for (let i = 0; i <= Math.round((to - from) / 0.01); i++) {
     const s = from + i * 0.01;
-    const f = entranceFrame(seq, s);
+    const f = entranceFrame(seq, s, NOX_ENTRANCE_GEOMETRY);
     const stroke = strokeAt(f.stroke, swim);
     entranceRests(f, stroke, shapes, rests);
     const drive = entranceDrive(f, stroke);

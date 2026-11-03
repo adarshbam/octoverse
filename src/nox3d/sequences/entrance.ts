@@ -1,8 +1,7 @@
 import type { ExpressionId } from '../behavior/expressions';
-import { NOX } from '../config/nox.character';
 import type { ArmRest } from '../character/armChain';
 import type { ArmId } from '../config/types';
-import { type StrokeFrame, strokeAt, swimDrive } from '../motion/stroke';
+import { type StrokeFrame, type StrokeTiming, strokeAt, swimDrive } from '../motion/stroke';
 import { type SwimShapes, swimRests } from '../motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
 import { ENTRANCE_SPIRAL } from './keys';
@@ -15,6 +14,8 @@ import type { Sequences } from './theatre';
 // The keys live in the Theatre sheet `entrance` (defaults in keys.ts); this file reads them and
 // adds what is computed: the surges, the arc and the facing. No arm physics (ruling R48): the
 // follow-through is in the stroke drives, which the stage takes from `stroke`, `forward` and `open`.
+// Nothing here names a world: the stroke's timing, how far the arms and the pillars reach, and the
+// turn's size (`EntranceShape`, on the sequences) come in as arguments (Nox's: nox.sequences.ts).
 
 /** The entrance's length in seconds: the sheet's length. */
 export const ENTRANCE_SECONDS = 8.4;
@@ -95,31 +96,41 @@ const PHI_END = PHI ** -4;
  * the turn completes. It starts at ENTRANCE_SPIRAL.phase, heading for the visitor, and runs the
  * way `yaw` turns, so its own heading at θ stays within 8 degrees of θ while it is more than a
  * quarter of r0 from the spot: Nox faces along the arc. Inside that it turns in to close on the spot.
+ * `turn` (radians, `EntranceShape.turn`; a full turn by default) is how far round the angle goes by
+ * the end of the spin; the radius still closes on the spot as the spin completes.
  */
-export function spiralOffset(spin: number, r0: number): Vec3 {
+export function spiralOffset(spin: number, r0: number, turn: number = 2 * Math.PI): Vec3 {
   const s = Math.min(1, Math.max(0, spin));
   if (s === 1) return [0, 0, 0];
   const theta = 2 * Math.PI * s;
   const r = (r0 * (PHI ** ((-2 * theta) / Math.PI) - PHI_END)) / (1 - PHI_END);
-  const angle = ENTRANCE_SPIRAL.phase + theta;
+  const angle = ENTRANCE_SPIRAL.phase + turn * s;
   return [r * Math.sin(angle), 0, r * Math.cos(angle)];
 }
 
+/** What the entrance needs of the character: the timing of its stroke. */
+export interface EntranceSwim {
+  swim: StrokeTiming;
+}
+
 /**
- * How far ahead of the keyed path (seconds) the strokes carry Nox, as a function of the stroke
- * clock: the path's own speed times thrust / mean thrust, integrated. It is zero at every whole
- * stroke, so a swim of whole strokes keeps the keyed times at its ends. Built once from Nox's timing.
+ * How far ahead of the keyed path (seconds) the strokes carry the swimmer, as a function of the
+ * stroke clock: the path's own speed times thrust / mean thrust, integrated. It is zero at every
+ * whole stroke, so a swim of whole strokes keeps the keyed times at its ends. Built once per stroke
+ * timing (a pure memo of the timing's values, so instances may share it).
  */
-let leadTable: Float64Array | null = null;
+const leadTables = new Map<string, Float64Array>();
 const LEAD_STEPS = 512;
-function strokeLead(clock: number) {
-  const timing = NOX.personality.swim;
+function strokeLead(clock: number, timing: StrokeTiming) {
+  const tableKey = `${timing.recovery}/${timing.power}/${timing.glide}`;
+  let leadTable = leadTables.get(tableKey);
   if (!leadTable) {
     const thrust = Array.from({ length: LEAD_STEPS + 1 }, (_, i) => strokeAt(Math.min(i / LEAD_STEPS, 1 - 1e-9), timing).thrust);
     let mean = 0;
     for (let i = 0; i < LEAD_STEPS; i++) mean += (thrust[i] + thrust[i + 1]) / 2 / LEAD_STEPS;
     leadTable = new Float64Array(LEAD_STEPS + 1);
     for (let i = 0; i < LEAD_STEPS; i++) leadTable[i + 1] = leadTable[i] + ((thrust[i] + thrust[i + 1]) / 2 / mean - 1) / LEAD_STEPS;
+    leadTables.set(tableKey, leadTable);
   }
   const period = timing.recovery + timing.power + timing.glide;
   const f = (clock - Math.floor(clock)) * LEAD_STEPS;
@@ -131,20 +142,22 @@ function strokeLead(clock: number) {
  * The entrance at `seconds` (clamped to 0 to ENTRANCE_SECONDS), from the sheet. The keyed x, y, z
  * are the swim to the arc's start; the strokes pull the swim along that path in surges (the
  * `surge` prop, 0 none, 1 the speed in step with the thrust), and the arc adds
- * spiralOffset(spin) - spiralOffset(0), which ends at the spot.
+ * spiralOffset(spin) - spiralOffset(0), which ends at the spot. The turn's size is the sequences'
+ * `entrance.turn` (the yaw and the arc's angle read it); the stroke's timing is `swim`.
  */
-export function entranceFrame(seq: Sequences, seconds: number): EntranceFrame {
+export function entranceFrame(seq: Sequences, seconds: number, { swim }: EntranceSwim): EntranceFrame {
   const t = Math.min(ENTRANCE_SECONDS, Math.max(0, Number.isFinite(seconds) ? seconds : 0));
   // Copy at once: the next sample moves the same sheet.
   const k = { ...seq.sample<EntranceProps>('entrance', 'main', t) };
-  const lead = k.surge * strokeLead(k.stroke);
+  const lead = k.surge * strokeLead(k.stroke, swim);
   const path = lead === 0 ? k : seq.sample<EntranceProps>('entrance', 'main', t + lead);
-  const arc = spiralOffset(k.spin, ENTRANCE_SPIRAL.r0);
-  const arcStart = spiralOffset(0, ENTRANCE_SPIRAL.r0);
-  const turn = k.spin - Math.round(k.spin);
+  const { turn } = seq.entrance;
+  const arc = spiralOffset(k.spin, ENTRANCE_SPIRAL.r0, turn);
+  const arcStart = spiralOffset(0, ENTRANCE_SPIRAL.r0, turn);
+  const round = k.spin - Math.round(k.spin);
   return {
     position: [path.x + arc[0] - arcStart[0], path.y, path.z + arc[2] - arcStart[2]],
-    yaw: k.yaw + 2 * Math.PI * turn,
+    yaw: k.yaw + turn * round,
     pitch: k.pitch,
     stroke: k.stroke,
     spin: k.spin,
@@ -169,10 +182,16 @@ export const ARM_HALF_SPAN = { open: 2.15, closed: 1.2 } as const;
  * A pillar's footprint: half its shaft's width and depth (blender/security/build_kit.py PILLAR_W,
  * PILLAR_D), before its rotY and scale. The plinth, 0.46 high, is below the arms along the path.
  */
-const PILLAR_HALF = { x: 0.55, z: 0.5 } as const;
+export const PILLAR_HALF = { x: 0.55, z: 0.5 } as const;
+
+/** What the clearance check measures with: the character's stroke and arm reach, and the kit's pillar footprint. */
+export interface EntranceGeometry extends EntranceSwim {
+  armHalfSpan: { readonly open: number; readonly closed: number };
+  pillarHalf: { readonly x: number; readonly z: number };
+}
 
 /** Distance in the x-z plane from `p` to a pillar's footprint (0 inside it). */
-function pillarDistance(p: Vec3, pillar: Placement) {
+function pillarDistance(p: Vec3, pillar: Placement, pillarHalf: EntranceGeometry['pillarHalf']) {
   const dx = p[0] - pillar.position[0];
   const dz = p[2] - pillar.position[2];
   const rot = pillar.rotY ?? 0;
@@ -183,8 +202,8 @@ function pillarDistance(p: Vec3, pillar: Placement) {
   const lz = dx * s + dz * c;
   const scale = pillar.scale ?? 1;
   const [sx, sz] = typeof scale === 'number' ? [scale, scale] : [scale[0], scale[2]];
-  const ox = Math.max(0, Math.abs(lx) - PILLAR_HALF.x * sx);
-  const oz = Math.max(0, Math.abs(lz) - PILLAR_HALF.z * sz);
+  const ox = Math.max(0, Math.abs(lx) - pillarHalf.x * sx);
+  const oz = Math.max(0, Math.abs(lz) - pillarHalf.z * sz);
   return Math.hypot(ox, oz);
 }
 
@@ -195,10 +214,10 @@ function pillarDistance(p: Vec3, pillar: Placement) {
  * (motion/stroke.ts), so they are open by spread (1 - sweep); that much open counts as the intro's
  * full reach.
  */
-export function armHalfSpan(frame: EntranceFrame) {
-  const { spread, sweep } = strokeAt(frame.stroke, NOX.personality.swim);
+export function armHalfSpan(frame: EntranceFrame, { swim, armHalfSpan: span }: Pick<EntranceGeometry, 'swim' | 'armHalfSpan'>) {
+  const { spread, sweep } = strokeAt(frame.stroke, swim);
   const open = Math.max(spread * (1 - sweep), frame.open);
-  return ARM_HALF_SPAN.closed + (ARM_HALF_SPAN.open - ARM_HALF_SPAN.closed) * Math.min(1, Math.max(0, open));
+  return span.closed + (span.open - span.closed) * Math.min(1, Math.max(0, open));
 }
 
 /**
@@ -222,12 +241,12 @@ export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes:
  * the arms back as far as they reach sideways, but blind to the open intro pose's shape (flat, side
  * to side). Past the swim, sequences/armClearance.test.ts checks the real arms instead.
  */
-export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, samples = 651, until = ENTRANCE_SECONDS): number {
+export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, geometry: EntranceGeometry, samples = 651, until = ENTRANCE_SECONDS): number {
   let least = Infinity;
   for (let i = 0; i < samples; i++) {
     const f = frame((i / Math.max(1, samples - 1)) * until);
-    const reach = armHalfSpan(f);
-    for (const pillar of layout.pillars) least = Math.min(least, pillarDistance(f.position, pillar) - reach);
+    const reach = armHalfSpan(f, geometry);
+    for (const pillar of layout.pillars) least = Math.min(least, pillarDistance(f.position, pillar, geometry.pillarHalf) - reach);
   }
   return least;
 }

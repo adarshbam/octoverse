@@ -1,5 +1,11 @@
+/**
+ * The sheet an artifact's appear kind plays (amendment A1, G5): 'bubbleBlow' is the blow's, Nox's
+ * only. Task 7 derives it from the appear table (`APPEARS.blow.sheet`) and changes it there.
+ */
+export type AppearSheet = 'bubbleBlow';
+
 /** Sequence ids: one Theatre sheet each (the big sequences of the design's section 9.11). */
-export type SequenceId = 'entrance' | 'bubbleBlow' | 'headSwell' | 'arrival';
+export type SequenceId = 'entrance' | 'headSwell' | 'arrival' | AppearSheet;
 
 /**
  * A keyframe's Bezier handles, as Theatre stores them: [left x, left y, right x, right y], each
@@ -22,6 +28,30 @@ export interface SequenceDefaults {
   /** Seconds. */
   length: number;
   objects: Record<string, SequenceObjectDefaults>;
+}
+
+/**
+ * How the entrance's final turn runs (amendment A1, G2): `turn` radians about the vertical axis,
+ * in the arc's spin; `spiral` is whether the swim ends on a golden-spiral arc (only `true` until
+ * F01 builds the other path, then it widens to `boolean`). The entrance's yaw and arc read it
+ * (sequences/entrance.ts). Nox turns once round, on the spiral.
+ */
+export interface EntranceShape {
+  turn: number;
+  spiral: true;
+}
+
+/**
+ * What a world gives the sequence loader (sequences/theatre.ts): its Theatre project's id and
+ * saved state, the keys each sheet it uses starts from, and the entrance's shape. A world with
+ * no entrance sheet of its own still gives the shape, since the sheets are the engine's.
+ */
+export interface SequenceSet {
+  projectId: string;
+  /** The saved Theatre state (the studio's export); `undefined` starts the project empty. */
+  state: unknown;
+  defaults: Partial<Record<SequenceId, SequenceDefaults>>;
+  entrance: EntranceShape;
 }
 
 /** Straight-line handles: the value runs at an even rate between two keys. */
@@ -62,6 +92,9 @@ export const NOX_STROKE_SECONDS = 1.33;
 const GOLDEN = (1 + Math.sqrt(5)) / 2;
 const SPIRAL_RATE = (2 * Math.log(GOLDEN)) / Math.PI;
 export const ENTRANCE_SPIRAL = { r0: 0.9, phase: Math.PI + Math.atan((1 - GOLDEN ** -4) / SPIRAL_RATE) } as const;
+
+/** Nox's entrance turn: once round (2 pi), on the golden spiral above. */
+export const NOX_ENTRANCE: EntranceShape = { turn: 2 * Math.PI, spiral: true };
 
 /** Where the swim ends and the arc begins: the spot plus the spiral's start. */
 const ARC_START = [ENTRANCE_SPIRAL.r0 * Math.sin(ENTRANCE_SPIRAL.phase), 0, ENTRANCE_SPIRAL.r0 * Math.cos(ENTRANCE_SPIRAL.phase)] as const;

@@ -325,3 +325,26 @@ test('the layout carries the test scene: 14 pillars, 16 rocks, 11 corals, 4 chai
   expect([layout.pillars.length, layout.rocks.length, layout.corals.length, layout.chains.length, layout.coralLights.length]).toEqual([14, 16, 11, 4, 4]);
   expect(layout.floorY).toBe(-2.45);
 });
+
+test('a light of another kind validates: the kind is a name a world chooses', () => {
+  const portal: WorldConfig = { ...SECURITY_WORLD, lights: { ...SECURITY_WORLD.lights, points: [...SECURITY_WORLD.lights.points, { ...SECURITY_WORLD.lights.points[0], kind: 'portal' }] } };
+  expect(validateWorld(portal)).toEqual([]);
+  const nameless: WorldConfig = { ...SECURITY_WORLD, lights: { ...SECURITY_WORLD.lights, points: [{ ...SECURITY_WORLD.lights.points[0], kind: '' }, ...SECURITY_WORLD.lights.points.slice(1)] } };
+  expect(validateWorld(nameless).join('\n')).toContain('no kind');
+});
+
+test('the world values that moved out of the code are checked: skin accent, caustics, camera hover and post', () => {
+  const bad = (change: Partial<WorldConfig>) => validateWorld({ ...SECURITY_WORLD, ...change }).join('\n');
+  expect(bad({ skinAccent: 'pink' })).toContain('skinAccent');
+  expect(bad({ skinAccent: '#ff8899' })).toBe('');
+  expect(bad({ water: { ...SECURITY_WORLD.water, causticStrength: Number.NaN } })).toContain('causticStrength');
+  expect(bad({ water: { ...SECURITY_WORLD.water, causticStrength: -1 } })).toContain('causticStrength');
+  expect(bad({ camera: { ...SECURITY_WORLD.camera, hover: { amount: 1, pace: Number.POSITIVE_INFINITY } } })).toContain('hover.pace');
+  expect(bad({ camera: { ...SECURITY_WORLD.camera, hover: { amount: -1, pace: 1 } } })).toContain('hover.amount');
+  expect(bad({ camera: { tilt: Number.NaN, hover: SECURITY_WORLD.camera.hover } })).toContain('camera.tilt');
+  const { post } = SECURITY_WORLD;
+  expect(bad({ post: { ...post, contactShadow: { ...post.contactShadow, color: 'dark' } } })).toContain('contactShadow.color');
+  expect(bad({ post: { ...post, contactShadow: { ...post.contactShadow, near: 20 } } })).toContain('near must be before far');
+  expect(bad({ post: { ...post, bloom: { ...post.bloom, intensity: Number.NaN } } })).toContain('post.bloom.intensity');
+  expect(bad({ post: { ...post, vignette: { ...post.vignette, darkness: -1 } } })).toContain('post.vignette.darkness');
+});

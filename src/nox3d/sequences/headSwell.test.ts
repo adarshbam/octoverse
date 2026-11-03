@@ -8,11 +8,12 @@ import { NOX } from '../config/nox.character';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from './keys';
 import { type HeadDraw, SWELL_SECONDS, type SwellFrame, SwellRun, headDraw, restingSwell, swellFrame } from './headSwell';
-import { type Sequences, loadSequences } from './theatre';
+import { loadNoxSequences } from './nox.sequences';
+import type { Sequences } from './theatre';
 
 let seq: Sequences;
 beforeAll(async () => {
-  seq = await loadSequences();
+  seq = await loadNoxSequences();
 });
 
 const STEP = 1 / 120;

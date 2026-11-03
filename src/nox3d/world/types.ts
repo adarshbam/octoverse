@@ -1,6 +1,8 @@
 // A world is data: the kit it is built from, where the pieces stand, its colours and lights,
 // and how much of each live element it carries. A new world is a new config, not new rendering.
 
+import type { ContactShadowSettings } from './contactShadowEffect';
+
 /** x, y, z in stage units. The camera looks down -z, so z < 0 is beyond Nox. */
 export type Vec3 = readonly [number, number, number];
 
@@ -18,9 +20,13 @@ export interface Placement {
   light?: boolean;
 }
 
-/** A point light in world space. The patch it makes on Nox's skin reaches `skinRange`, further than on stone. */
+/**
+ * A point light in world space. The patch it makes on Nox's skin reaches `skinRange`, further than on stone.
+ * `kind` names what the light is, as a string a world may choose (`validateWorld` still knows
+ * 'glyph' and 'lava': it counts those against the lit pillars and the coral lights).
+ */
 export interface WorldLight {
-  kind: 'glyph' | 'coral' | 'lava';
+  kind: string;
   position: Vec3;
   color: string;
   intensity: number;
@@ -64,9 +70,26 @@ export interface WorldConfig {
   /**
    * The camera's lean: it pitches up by `tilt` radians (a low camera looking up, so the pillars
    * converge toward the top as in panel 2) and shifts its frame down by the matching lens shift
-   * (lensShift.ts), so Nox's face stays where the unleaned camera had it.
+   * (lensShift.ts), so Nox's face stays where the unleaned camera had it. `hover` is the drift
+   * (cameraHover.ts): `amount` multiplies the stage's hover amount (1 is the test scene's drift)
+   * and `pace` the drift's clock (1 is Nox's; 0.5 drifts half as fast).
    */
-  camera: { tilt: number };
+  camera: { tilt: number; hover: { amount: number; pace: number } };
+  /**
+   * The colour the world's light puts on the skin of the character: warm and pink through the
+   * flesh, as `uAccentWarmth` takes it. A CSS colour, or `color(srgb-linear r g b)` for one that
+   * 8-bit hex cannot say (colour.ts).
+   */
+  skinAccent: string;
+  /** Post-processing for the world: contact shadows, then bloom, then a vignette. There is deliberately no tone-mapping pass. */
+  post: {
+    /** Soft shadows where arms cross each other and pass under the head, within `near` to `far` of the camera. */
+    contactShadow: ContactShadowSettings;
+    /** Threshold-based bloom. */
+    bloom: { luminanceThreshold: number; luminanceSmoothing: number; intensity: number; radius: number };
+    /** Darker corners in the 3D world. */
+    vignette: { offset: number; darkness: number };
+  };
   /**
    * How the relics (glyph panels and glowing coral) glow: `glyph` multiplies a panel's white before
    * its own brightness, `coral` the coral's red, and `spill` the glyph light that the bake lays on
@@ -89,8 +112,12 @@ export interface WorldConfig {
    * embers drift, `top` the cyan opening at the surface and `rays` how many light shafts fan down.
    */
   glow: { lava: number; back: number; crevice: number; floor: number; embers: number; top: number; rays: number };
-  /** `surfaceDir` points at the brightest patch of surface; the sky, the water's reflections and its rays follow it. */
-  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number };
+  /**
+   * `surfaceDir` points at the brightest patch of surface; the sky, the water's reflections and its
+   * rays follow it. `causticStrength` is the caustics' share of the surface light on the character's
+   * skin: the bright lines reach their cap, the gaps stay well under it.
+   */
+  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number };
   /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */
   live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number };
 }

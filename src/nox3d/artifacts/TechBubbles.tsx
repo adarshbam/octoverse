@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
 import { NOX } from '../config/nox.character';
 import { type BlowSheet, BlowRun, blowFrame, blowPosition } from '../sequences/bubbleBlow';
+import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
 import type { BubbleLive } from './bubbleLive';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
@@ -72,7 +73,7 @@ function hideSpots(live: BubbleLive) {
  * each frame the bubbles' places on the page are written to `bubbleLive`. Lives in body space, so
  * the bubbles go with Nox.
  */
-export function TechBubbles({ bubbles, state, focusColour }: { bubbles: readonly PlacedBubble[]; state: () => BubbleState; focusColour: string }) {
+export function TechBubbles({ bubbles, state, focusColour, mouth }: { bubbles: readonly PlacedBubble[]; state: () => BubbleState; focusColour: string; mouth: Vec3 }) {
   const { bubbleLive } = useInstance();
   const group = useRef<THREE.Group>(null);
   const parts = useMemo(() => {
@@ -161,7 +162,7 @@ export function TechBubbles({ bubbles, state, focusColour }: { bubbles: readonly
         puff = Math.max(puff, b.puff);
         mouthRound = Math.max(mouthRound, b.mouthRound);
         radius *= b.scale;
-        blowPosition(target, b.emerged, node.position);
+        blowPosition(mouth, target, b.emerged, node.position);
         node.scale.set(radius * (1 + b.wobble), radius * (1 - b.wobble), radius);
         node.visible = b.scale > 0;
       } else {

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { POST } from '../post';
 import { ContactShadowEffect } from './contactShadowEffect';
+import { SECURITY_WORLD } from './security/config';
+
+const POST = { contactShadows: SECURITY_WORLD.post.contactShadow };
 
 test('contact shadows take their reach, gaps and depth range from the settings', () => {
   const s = POST.contactShadows;
