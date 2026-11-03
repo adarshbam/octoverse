@@ -166,8 +166,6 @@
   height: 22px;
 }
 
-/* On a phone the tray holds every technology, in 48 px buttons, along the bottom; with the overview's
-   sheet up it rides above it. Tapping a button focuses that technology (its tooltip comes up above the tray). */
 /* With the overview's sheet up (a phone, or no WebGL) the tray rides above it. */
 .orb-tray.is-lifted {
   bottom: calc(var(--sheet-height) + 12px);

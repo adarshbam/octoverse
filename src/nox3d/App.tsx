@@ -366,7 +366,7 @@ export function App() {
   const others = useMemo(() => orbSpots(ORBS).filter((_, i) => ORBS[i].techId !== focusedTech), [focusedTech, viewport]);
   const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech, viewport]);
   // A technology with no orb (the tray's) is described beside the tray's button, as a sheet: it stands in for the orb just under Nox's face.
-  const trayOrb = useMemo(() => ({ x: face.x, y: ('bounds' in face ? face.bounds.bottom : face.y) + 30, size: 44 }), [face]);
+  const trayOrb = useMemo(() => ({ x: face.x, y: ((face as { bounds?: { bottom: number } }).bounds?.bottom ?? face.y) + 30, size: 44 }), [face]);
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: typeof presented; leaving: boolean }[]>([]);
   useEffect(() => {

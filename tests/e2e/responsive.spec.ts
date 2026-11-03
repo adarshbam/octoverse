@@ -59,26 +59,13 @@ test.describe('phone', () => {
       await expect(tip).toContainText(name);
       await expect(item).toHaveAttribute('aria-describedby', 'tech-tooltip');
       // The tooltip does not cover the buttons (the tray drops as the sheet leaves): the same one can be tapped again.
-      let seen = '';
       await expect
         .poll(async () => {
-          const info = await page.evaluate(label => {
-            const rect = (el: Element | null) => el?.getBoundingClientRect().toJSON() as { y: number; height: number } | undefined;
-            return {
-              tips: [...document.querySelectorAll('.tech-tooltip')].map(el => ({ cls: el.className, ...rect(el) })),
-              item: rect(document.querySelector(`.orb-tray-item[aria-label="${label}"]`)),
-              stage: document.querySelector('.orb-tray')?.className,
-            };
-          }, name);
-          seen = `${name}: ${JSON.stringify(info)}`;
-          const shown = info.tips.find(t => !t.cls.includes('is-leaving'));
-          return Boolean(shown && info.item && (shown.y! >= info.item.y + info.item.height || shown.y! + shown.height! <= info.item.y));
+          const tipBox = await tip.boundingBox();
+          const itemBox = await item.boundingBox();
+          return Boolean(tipBox && itemBox && (tipBox.y >= itemBox.y + itemBox.height || tipBox.y + tipBox.height <= itemBox.y));
         })
-        .toBe(true)
-        .catch(error => {
-          throw new Error(`${seen}
-${error}`);
-        });
+        .toBe(true);
       await item.tap();
       await expect(tip).toBeHidden();
     }

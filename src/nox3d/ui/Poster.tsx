@@ -6,5 +6,5 @@ import './poster.css';
  * overlays. The overview and the project view stay reachable over it.
  */
 export function Poster() {
-  return <img className="poster" src="/nox/poster-intro.webp" alt="Nox, the octopus guide to Security Lab, in the dark water of his lab" width={1536} height={1024} decoding="async" />;
+  return <img className="poster" src={`${import.meta.env.BASE_URL}nox/poster-intro.webp`} alt="Nox, the octopus guide to Security Lab, in the dark water of his lab" width={1536} height={1024} decoding="async" />;
 }
