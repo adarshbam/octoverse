@@ -263,11 +263,6 @@ const ARRIVAL: SequenceDefaults = {
  * the state JSON the first time; exports from the studio replace that file afterwards.
  * Erasable TypeScript only, no imports: the seed script runs this file directly under Node.
  */
-const placeholder = (): SequenceDefaults => ({
-  length: 1,
-  objects: { main: { props: { value: 0 }, keys: { value: [[0, 0], [1, 1]] } } },
-});
-
 export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
