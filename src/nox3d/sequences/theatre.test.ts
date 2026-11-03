@@ -17,16 +17,17 @@ test('the repo state loads in Node and samples the defaults', async () => {
       }
     }
   }
-  const mid = seq.sample<{ value: number }>('arrival', 'main', 0.5).value;
-  expect(mid).toBeGreaterThan(0);
-  expect(mid).toBeLessThan(1);
+  const mid = seq.sample<{ roll: number }>('arrival', 'main', 0.18).roll;
+  expect(mid).toBeGreaterThan(0.9);
 });
 
 test('sampling past the end holds the last value', async () => {
   const seq = await loadSequences();
-  const last = SEQUENCE_DEFAULTS.arrival.objects.main.keys.value.at(-1)![1];
-  expect(seq.sample<{ value: number }>('arrival', 'main', 99).value).toBeCloseTo(last, 6);
-  expect(seq.sample<{ value: number }>('arrival', 'main', -5).value).toBeCloseTo(0, 6);
+  const { keys } = SEQUENCE_DEFAULTS.arrival.objects.main;
+  for (const [prop, track] of Object.entries(keys)) {
+    expect(seq.sample<Record<string, number>>('arrival', 'main', 99)[prop], prop).toBeCloseTo(track.at(-1)![1], 6);
+    expect(seq.sample<Record<string, number>>('arrival', 'main', -5)[prop], prop).toBeCloseTo(0, 6);
+  }
 });
 
 test('the real keys hold too: the entrance holds its last values past the end and its first before the start', async () => {
