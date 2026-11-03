@@ -68,12 +68,28 @@ const ARC_START = [ENTRANCE_SPIRAL.r0 * Math.sin(ENTRANCE_SPIRAL.phase), 0, ENTR
 
 /**
  * The swim runs from 0 to 4.5 s (the last stroke's glide ends there); Nox holds for ENTRANCE_HOLD
- * s, then the spin runs 5.5 to 6.5 s and the settle to 7.5 s.
+ * s in the trail, opens his arms 5.5 to 6.4 s, then the spin runs 6.4 to 7.4 s and the settle to 8.4 s.
  */
 const SWIM_END = 4.5;
-/** Seconds between the end of the last stroke and the start of the spin (owner request, Task 19b). */
+/** Seconds between the end of the last stroke and the opening of the arms (owner request, Task 19b). */
 export const ENTRANCE_HOLD = 1.0;
-const SPIN_START = SWIM_END + ENTRANCE_HOLD;
+/**
+ * Seconds the arms take to open from the trail into the intro pose before the spin (owner request:
+ * he turns only once they are fully out). Near twice a stroke's recovery (0.52 s), its own umbrella
+ * opening, so it reads as a deliberate unfurl and not one more stroke; much longer and the hold
+ * and the opening run together into a stall before the spin.
+ *
+ * It runs in two overlapping beats: first the arms swing forward out of the trail (the stroke
+ * drives fade) and he rights himself, over ENTRANCE_FORWARD s; then, from ENTRANCE_SPREAD_FROM s in,
+ * they spread to the intro pose. Spread while still swung back and leaning, the tips point behind
+ * him, at the near left pillar just behind the arc's start (Task 19c, ruling C6).
+ */
+export const ENTRANCE_OPEN = 0.9;
+export const ENTRANCE_FORWARD = 0.5;
+export const ENTRANCE_SPREAD_FROM = 0.3;
+const OPEN_START = SWIM_END + ENTRANCE_HOLD;
+const FORWARD_END = OPEN_START + ENTRANCE_FORWARD;
+const SPIN_START = OPEN_START + ENTRANCE_OPEN;
 const SPIN_END = SPIN_START + 1;
 const SETTLE_END = SPIN_END + 1;
 /**
@@ -125,7 +141,7 @@ function swimKeys() {
  * are "to be tuned live". So the stroke runs at Nox's own rate and the window opens a little
  * early: three whole strokes from 0.51 to 4.5 s (the first recovery as he comes out of the murk),
  * surges at about 1.0, 2.4 and 3.7 s. It ends on a whole stroke, the arms trailing with the tips
- * curled, so he holds a second in the trail, then turns and settles. The reveal keeps its beat.
+ * curled, so he holds a second in the trail, opens his arms, then turns and settles. The reveal keeps its beat.
  */
 const STROKES = 3;
 
@@ -133,19 +149,23 @@ const ENTRANCE: SequenceDefaults = {
   length: SETTLE_END,
   objects: {
     main: {
-      props: { x: WAYPOINTS[0][0], y: WAYPOINTS[0][1], z: WAYPOINTS[0][2], stroke: 0, spin: 0, settle: 0, reveal: 0, pitch: 0.45, yaw: 0, surge: 0.6 },
+      props: { x: WAYPOINTS[0][0], y: WAYPOINTS[0][1], z: WAYPOINTS[0][2], stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, pitch: 0.45, yaw: 0, surge: 0.6 },
       keys: {
         ...swimKeys(),
         // Stroke clock: whole strokes, at an even rate of one per NOX_STROKE_SECONDS.
         stroke: [[SWIM_END - STROKES * NOX_STROKE_SECONDS, 0, LINEAR], [SWIM_END, STROKES, LINEAR]],
+        // After the hold the arms swing forward out of the trail, then unfurl into the intro pose,
+        // eased in and out, fully open before the turn begins.
+        forward: [[OPEN_START, 0], [FORWARD_END, 1]],
+        open: [[OPEN_START + ENTRANCE_SPREAD_FROM, 0], [SPIN_START, 1]],
         // One full turn along the spiral arc into the spot.
         spin: [[SPIN_START, 0], [SPIN_END, 1]],
-        // The arms open into the intro pose, the face lands on the gentle smile.
+        // The face lands on the gentle smile, the intro's words come in.
         settle: [[SPIN_END, 0], [SETTLE_END, 1]],
         // Out of the murk: the glow and aura first, then the shape.
         reveal: [[0, 0], [1, 1]],
-        // Leaning head first while swimming, upright by the end of the spin.
-        pitch: [[0, 0.45], [SPIN_START, 0.45], [SPIN_END, 0]],
+        // Leaning head first while swimming and in the hold, upright as the arms come forward.
+        pitch: [[0, 0.45], [OPEN_START, 0.45], [FORWARD_END, 0]],
       },
     },
   },

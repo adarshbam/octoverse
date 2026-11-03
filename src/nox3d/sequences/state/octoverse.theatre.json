@@ -6,7 +6,7 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 7.5,
+        "length": 8.4,
         "type": "PositionalSequence",
         "tracksByObject": {
           "main": {
@@ -224,7 +224,7 @@
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "spin"
+                  "forward"
                 ],
                 "keyframes": [
                   {
@@ -241,7 +241,7 @@
                   },
                   {
                     "id": "entrance-000l",
-                    "position": 6.5,
+                    "position": 6,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -258,12 +258,12 @@
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "settle"
+                  "open"
                 ],
                 "keyframes": [
                   {
                     "id": "entrance-000n",
-                    "position": 6.5,
+                    "position": 5.8,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -275,7 +275,7 @@
                   },
                   {
                     "id": "entrance-000o",
-                    "position": 7.5,
+                    "position": 6.4,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -292,12 +292,12 @@
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "reveal"
+                  "spin"
                 ],
                 "keyframes": [
                   {
                     "id": "entrance-000q",
-                    "position": 0,
+                    "position": 6.4,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -309,7 +309,7 @@
                   },
                   {
                     "id": "entrance-000r",
-                    "position": 1,
+                    "position": 7.4,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -326,11 +326,79 @@
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "pitch"
+                  "settle"
                 ],
                 "keyframes": [
                   {
                     "id": "entrance-000t",
+                    "position": 7.4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-000u",
+                    "position": 8.4,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-000v": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "reveal"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000w",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-000x",
+                    "position": 1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-000y": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "pitch"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000z",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -342,7 +410,7 @@
                     "value": 0.45
                   },
                   {
-                    "id": "entrance-000u",
+                    "id": "entrance-0010",
                     "position": 5.5,
                     "connectedRight": true,
                     "handles": [
@@ -354,8 +422,8 @@
                     "value": 0.45
                   },
                   {
-                    "id": "entrance-000v",
-                    "position": 6.5,
+                    "id": "entrance-0011",
+                    "position": 6,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -373,10 +441,12 @@
               "[\"y\"]": "entrance-0006",
               "[\"z\"]": "entrance-000b",
               "[\"stroke\"]": "entrance-000g",
-              "[\"spin\"]": "entrance-000j",
-              "[\"settle\"]": "entrance-000m",
-              "[\"reveal\"]": "entrance-000p",
-              "[\"pitch\"]": "entrance-000s"
+              "[\"forward\"]": "entrance-000j",
+              "[\"open\"]": "entrance-000m",
+              "[\"spin\"]": "entrance-000p",
+              "[\"settle\"]": "entrance-000s",
+              "[\"reveal\"]": "entrance-000v",
+              "[\"pitch\"]": "entrance-000y"
             }
           }
         }

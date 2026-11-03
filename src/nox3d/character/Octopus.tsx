@@ -97,7 +97,7 @@ export interface OctopusProps {
   entranceSheet?: EntranceSheet;
   /** With `freeze`: the moment of the entrance shown, in seconds. */
   entranceSeconds?: number;
-  /** The settle has begun (6.5 s): the intro's words come in. */
+  /** The settle has begun (7.4 s, after the spin): the intro's words come in. */
   onEntranceSettling?: () => void;
   /** The entrance has run its course: Nox faces the visitor in the intro pose. */
   onEntranceDone?: () => void;
@@ -370,8 +370,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       }
     }
     // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
+    // The drive gives way as the arms swing forward (`forward`), before they spread (`open`).
     const stroke = swim ? strokeAt(swim.stroke, personality.swim) : null;
-    const drive = swim && stroke ? swimDrive(stroke, swim.settle) : null;
+    const drive = swim && stroke ? swimDrive(stroke, swim.forward) : null;
     const bodyX = pose.body.x + (swim ? swim.position[0] : 0);
     const bodyY = pose.body.y + (swim ? swim.position[1] : 0);
     const bodyZ = swim ? swim.position[2] : 0;
@@ -546,7 +547,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
-    const rests = swim && stroke ? swimRests(swimShapes(rig.arms[0].chain.segments), stroke, swim.settle, rig.swimRests) : null;
+    const rests = swim && stroke ? swimRests(swimShapes(rig.arms[0].chain.segments), stroke, swim.open, rig.swimRests) : null;
     const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
     const straighten = drive ? drive.straighten : armDrive?.straighten;
     let offset = 0;
