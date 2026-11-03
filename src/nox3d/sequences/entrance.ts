@@ -25,7 +25,7 @@ export interface EntranceFrame {
   position: Vec3;
   /**
    * Turn about +y (radians), facing along (sin yaw, 0, cos yaw); 0 faces the visitor. It is the
-   * `yaw` key plus 2 pi spin, the turn wrapped to [-pi, pi), so it is 0 while he swims in and
+   * `yaw` key plus the spin times the entrance turn (`EntranceShape.turn`: 2 pi for Nox), the spin wrapped to [-0.5, 0.5], so it is 0 while he swims in and
    * exactly 0 at the end; it jumps by 2 pi half way round the spin, so set a rotation with it
    * directly and do not blend it from frame to frame (use `spin` for that).
    */
