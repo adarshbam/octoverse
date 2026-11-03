@@ -37,6 +37,7 @@ import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { ProjectDetail } from './ui/ProjectDetail';
 import { SkipEntrance } from './ui/SkipEntrance';
+import { bubbleLive } from './artifacts/bubbleLive';
 import { OrbButtons, bubbleDisc, faceSpot } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
 import type { Disc } from './ui/tooltipPlacement';
@@ -416,11 +417,13 @@ export function App() {
   const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: ReturnType<typeof faceSpot>; leaving: boolean }[]>([]);
   useEffect(() => {
     const here = focusedTech ? ORBS.findIndex(o => o.techId === focusedTech) : -1;
+    const live = () => !trayAll && here >= 0 && !!bubbleLive.spots[here]?.size;
     const place = () => {
       if (!focusedTech) return null;
-      // A technology with no orb (the tray's) is described beside the tray's button, as a sheet: it stands in for the orb just under Nox's face.
-      if (here < 0) {
-        if (!trayAll) return null;
+      // No bubble to stand beside (the tray's technology, a phone in portrait, no WebGL, or the first frame not yet drawn): the tooltip
+      // is described beside the tray's button, as a sheet, and a disc just under Nox's face stands in for the orb.
+      if (!live()) {
+        if (WEBGL && !trayAll && here >= 0) return null;
         const f = faceSpot('overview');
         const bottom = (f as { bounds?: { bottom: number } }).bounds?.bottom ?? f.y;
         return { techId: focusedTech, orb: { x: f.x, y: bottom + 30, size: 44 } as Disc, others: [] as Disc[], face: f, leaving: false };
@@ -433,14 +436,22 @@ export function App() {
         leaving: false,
       };
     };
-    const timer = window.setTimeout(() => {
+    let unsub = () => {};
+    const show = () => {
       const tip = place();
+      // The bubbles are not drawn yet: wait for their first frame.
+      if (!tip && focusedTech && WEBGL && !trayAll) {
+        unsub = bubbleLive.subscribe(() => { if (live()) { unsub(); show(); } });
+        return;
+      }
       setTips(list => [...list.filter(t => t.techId !== focusedTech).map(t => ({ ...t, leaving: true })), ...(tip ? [tip] : [])]);
-    }, settle);
+    };
+    const timer = window.setTimeout(show, settle);
     // Letting go (or moving on) starts the old tooltip fading out at once.
     setTips(list => list.some(t => t.techId !== focusedTech && !t.leaving) ? list.map(t => (t.techId === focusedTech ? t : { ...t, leaving: true })) : list);
     const gone = window.setTimeout(() => setTips(list => list.filter(tip => !tip.leaving)), 240 + settle);
     return () => {
+      unsub();
       window.clearTimeout(timer);
       window.clearTimeout(gone);
     };
@@ -542,7 +553,7 @@ export function App() {
                 orb={tip.orb}
                 face={tip.face}
                 others={tip.others}
-                follow={ORBS.findIndex(o => o.techId === tip.techId)}
+                follow={trayAll ? -1 : ORBS.findIndex(o => o.techId === tip.techId)}
                 delayMs={Math.max(0, FOCUS_BEATS.tooltip - settle)}
                 leaving={tip.leaving}
               />

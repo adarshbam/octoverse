@@ -75,7 +75,8 @@ test.describe('phone', () => {
 test('resize from desktop to phone keeps the focused technology', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/?stage=techFocus&tech=kali&freeze');
-  await expect(page.getByRole('tooltip')).toContainText('Used for penetration testing');
+  // The tooltip waits for the bubbles' first frame, which comes after the world's kit on a loaded machine.
+  await expect(page.getByRole('tooltip')).toContainText('Used for penetration testing', { timeout: 30_000 });
   await page.setViewportSize(PHONE);
   await expect(page.getByRole('tooltip')).toContainText('Used for penetration testing');
   const item = page.locator(`${TRAY}[aria-label="Kali Linux"]`);
