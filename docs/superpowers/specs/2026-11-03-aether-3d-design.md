@@ -1,7 +1,7 @@
 # Aether in 3D: Character, Cosmic Realm and Motion Design
 
 Date: 2026-11-03
-Status: draft for the owner's approval.
+Status: approved by the owner, 2026-11-03.
 Branch: `aether-design`, cut from `claude/engine-contract-9ac935` (docs only).
 Packets: master plan H01 (Aether static) and H02 (Aether behaviour).
 References (read-only, main checkout):
@@ -539,3 +539,4 @@ Each milestone ends with the owner's live review, then a commit. H01 covers mile
 12. **Personality starting values** are the table in 7.8, tuned live. The curious tilt and gaze wander are new engine fields (section 8, item 12).
 13. **Floating rubble bobs** only if the engine accepts a `'bob'` prop drive; otherwise it is still.
 14. **Engine items have fallbacks** (section 8), except the curious tilt and gaze wander. If those are refused, the question comes to you.
+15. **The five unnamed P3/P4 icons** are not shipped; the owner names them later (not answered at approval).
