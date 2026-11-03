@@ -1075,3 +1075,11 @@ Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64
 **Owner verdict, first look (2026-11-03):** "Motion is good enough, we don't need to add physics. But let him finish swimming. He is almost making the last stroke and then he is spinning. Make him finish his spinning, and after 1 second of him finishing, he will then turn." Read as "finish his swimming" (R53); fixed in e431b0a with a 1.0 s hold.
 
 **Owner verdict, re-check (2026-11-03):** "Approve M5". Arm physics is dropped for good (R52): Milestone 3 is cancelled.
+
+## Lane B: micro-animations and phone fallback (branch claude/nox-lane-b-91f689)
+
+Task 25 (`feat(nox3d): shared micro-animations from personality`, 2667582, fix round 2302942): `startle`, `arrivalWiggle`, `settleOvershoot`, `idleGlance` and `Personality.micro`; no arm physics (B1). Strengths are first guesses and may read stiff.
+
+Task 27 (phone tray of 15 buttons at 48 px, bottom sheets, phone world tier, skip link, no-WebGL poster): 9 Playwright specs pass on port 5192; npm test 388. Known: `keyboard.spec.ts` fails identically before and after (kit load 15 s under load); tray technologies without an orb get no tooltip on desktop (lane A's `TechTooltip.tsx`); on a portrait phone the tray and overview sheet overlap Nox's lower arms. Phone fps not reported by the owner.
+
+**Owner verdict, phone check (2026-11-03):** "Approved"
