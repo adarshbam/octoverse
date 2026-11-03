@@ -141,6 +141,8 @@ export const NOX: CharacterConfig = {
   // Traced from the high-quality panel 3 (scripts/hq3.py): the dome spans x -1.38..1.51 and
   // y 0.0..1.25 in world units, over the body placed at (0.03, 0.353).
   dome: { center: [0.035, 0.272], halfWidth: 1.445, halfHeight: 0.625, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The owner's choice for the head swell (ledger R57): "Glowing red glyphs", runes like the world's glyph panels.
+  headEffect: 'glyphs',
   suckers: { size: 0.235, sizePower: 0.7, spacing: 2.35, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.85 },
   // Skin detail traced from the high-quality panel 2: droplet bumps 0.01 to 0.035 across, dark
   // blotches, bluish and reddish drift, sharp wet highlights and warm light through the underside.

@@ -334,6 +334,12 @@ export interface DomeShape {
   mantleTop: number;
 }
 
+/**
+ * The special effect a character's head swell carries (design 9.9), inside or round the dome:
+ * `'none'` draws the dome alone, as approved; Nox's is `'glyphs'`, glowing red runes.
+ */
+export type HeadEffectId = 'none' | 'glyphs';
+
 export interface CharacterConfig {
   id: string;
   head: HeadShape;
@@ -351,6 +357,8 @@ export interface CharacterConfig {
   armFlatten: number;
   suckers: SuckerSettings;
   dome: DomeShape;
+  /** The head swell's special effect; null draws none, as `'none'` does. */
+  headEffect: HeadEffectId | null;
   skin: SkinDetail;
   personality: Personality;
 }

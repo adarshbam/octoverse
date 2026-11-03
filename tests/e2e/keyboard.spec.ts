@@ -40,3 +40,31 @@ test('keyboard reaches every bubble from the intro', async ({ page }) => {
   // Letting go returns to the intro: its title is still there and its nameplate is the way on.
   await expect(page.getByRole('button', { name: /Explore/ })).toBeVisible();
 });
+
+// The head swell (Task 24): the nameplate is the head's button. A keyboard-only visitor tabs to it
+// and presses Enter: the head squeezes, swells past full and settles open with its glyphs; Escape
+// plays it back to closed.
+test('keyboard opens the head swell from the intro, and Escape closes it', async ({ page }) => {
+  // The swell runs on frame time: slow on a busy machine.
+  test.setTimeout(120_000);
+  await page.goto('/?stage=intro');
+  const explore = page.getByRole('button', { name: /Explore/ });
+  for (let i = 0; i < 40 && !(await explore.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+  await expect(explore).toBeFocused();
+  type Swell = { open: boolean; moving: boolean; morph: number; effect: number; push: number };
+  const swell = () => page.evaluate(() => (window as unknown as { __noxSwell?: Swell }).__noxSwell ?? null);
+  await expect.poll(swell).toMatchObject({ open: false, morph: 0 });
+  await page.keyboard.press('Enter');
+  // It runs past full on the way (the overshoot), then settles open with the glyphs and the bubbles pushed out.
+  let peak = 0;
+  await expect.poll(async () => {
+    const s = await swell();
+    peak = Math.max(peak, s?.morph ?? 0);
+    return s;
+  }, { intervals: [30], timeout: 45_000 }).toMatchObject({ open: true, moving: false, morph: 1, effect: 1 });
+  expect(peak).toBeGreaterThan(1);
+  expect((await swell())!.push).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+  await expect.poll(swell, { timeout: 45_000 }).toMatchObject({ open: false, moving: false, morph: 0, effect: 0, push: 0 });
+  await expect(page.getByRole('button', { name: /Explore/ })).toBeVisible();
+});

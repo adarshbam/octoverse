@@ -18,6 +18,7 @@ import { swimShapes } from '../poses/nox.swim';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
 import type { BlowSheet } from '../sequences/bubbleBlow';
+import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
 import { bubbleLive } from '../artifacts/bubbleLive';
@@ -32,8 +33,9 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createHeadSilhouetteMaterial } from './headMorph';
+import { createHeadGlyphs, drawsGlyphs } from './headGlyphs';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
-import { createDomeMaterial, domeState } from './domeMaterial';
+import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
 import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
@@ -121,6 +123,13 @@ export interface OctopusProps {
   armDrive?: { pitch: number; straighten: number };
   /** With `freeze`: the moment of the suction hold shown, in ms from the choice (review stills); otherwise a still shows it held. */
   holdAt?: number;
+  /**
+   * Whether the head is swollen open (the overview, and a technology focus from it): each change
+   * plays the head swell (sequences/headSwell.ts). Without it, the stage blend's headMorph decides.
+   */
+  headOpen?: boolean;
+  /** The head swell's sheet; until it is in (or if it fails), the stage blend opens the head as before. */
+  swellSheet?: SwellSheet;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -140,7 +149,7 @@ const HOLD_LIFT = 0.16;
 const HOLD_BOB = 0.04;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
@@ -154,6 +163,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const dome = useRef<THREE.Mesh>(null);
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
+  // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
+  const swell = useMemo(() => ({ run: new SwellRun(), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), []);
   const bubbleState = useMemo<BubbleState>(() => ({
     show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
     orbit: orbs.map(() => new THREE.Vector3()),
@@ -248,6 +259,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   // open head the overview shows, not the closed one.
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
+  // The head swell's effect (Nox's: glowing red glyphs over the dome); 'none' draws the dome alone.
+  const glyphs = useMemo(() => (drawsGlyphs(config.headEffect) && !silhouette ? createHeadGlyphs(config.dome) : null), [config, silhouette]);
+  useEffect(() => () => glyphs?.dispose(), [glyphs]);
 
   const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
 
@@ -259,10 +273,13 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const mesh = dome.current;
     if (!mesh) return;
     const was = mesh.visible;
+    const glyphsWere = glyphs?.mesh.visible ?? false;
     mesh.visible = true;
+    if (glyphs) glyphs.mesh.visible = true;
     gl.compile(scene, camera);
     mesh.visible = was;
-  }, [gl, scene, camera, rig]);
+    if (glyphs) glyphs.mesh.visible = glyphsWere;
+  }, [gl, scene, camera, rig, glyphs]);
 
   // A rebuilt rig (a lower tier) frees the old one's GPU buffers.
   useEffect(() => () => {
@@ -493,7 +510,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const b = live * Math.sin(m.breathPhase * Math.PI * 2);
     // Swimming, the mantle fills in each recovery and squeezes in each power stroke, less as he settles.
     const mantle = swim && stroke ? 1 + stroke.mantle * (1 - swim.settle) : 1;
-    head.current!.scale.set((1 + b * 0.016) * mantle, (1 + b * 0.011) * mantle, (1 + b * 0.016) * mantle);
+    // The head swell (sequences/headSwell.ts): opening or closing plays its sheet on frame time; with
+    // motion off it is at its end at once (a review still, `?freeze&swell=<s>`, holds that moment).
+    swell.run.step({ open: headOpen ?? pose.headMorph >= 0.5, still: freeze || reducedMotion, dt: Math.min(delta, ENTRANCE_MAX_STEP), at: swellSheet?.at });
+    const sf = swell.run.frame(swellSheet?.sequences ?? null, pose.headMorph, swell.frame);
+    const hd = headDraw(sf, swell.draw);
+    // The swell as the development build reports it, for the end-to-end tests (`window.__noxSwell`).
+    if (import.meta.env.DEV) Object.assign(((window as unknown as { __noxSwell?: object }).__noxSwell ??= {}), { open: swell.run.open, moving: swell.run.moving, morph: sf.morph, effect: sf.effect, push: sf.push });
+    // Before it swells the head squeezes a little: the anticipation.
+    head.current!.scale.set((1 + b * 0.016) * mantle * hd.across, (1 + b * 0.011) * mantle * hd.up, (1 + b * 0.016) * mantle * hd.across);
 
     // Pointer on the z = 0 plane, in the space the arms are authored in.
     content.current!.updateWorldMatrix(true, false);
@@ -509,6 +534,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = bubblePointer.hovered || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
+    // The swollen head pushes the orbits out.
+    bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
@@ -605,15 +632,22 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // The head opens into the glass dome: the dome stays whole and in place while its glass is
     // revealed outward from where it sits on the head, and the mantle top sinks inside it in step;
     // closing folds the glass back into the head. The mantle's own halo gives way to the dome's rim.
-    // headMorph is already eased by the blender; easing it again would rush the middle.
-    const ease = THREE.MathUtils.clamp(pose.headMorph, 0, 1);
+    // The swell's morph is eased in its sheet (or by the blender without it); easing it again would
+    // rush the middle. Past full (the overshoot) the glass swells about its seat, which stays put.
+    const ease = hd.morph;
     rig.uniforms.uMorph.value = ease;
-    const glass = domeState(ease);
-    dome.current!.visible = glass.visible && !silhouette && !solo;
-    dome.current!.scale.setScalar(glass.scale);
-    dome.current!.position.set(config.dome.center[0], config.dome.center[1], 0);
-    rig.domeMaterial.uniforms.uOpacity.value = glass.opacity;
-    rig.domeMaterial.uniforms.uReveal.value = glass.reveal;
+    dome.current!.visible = hd.visible && !silhouette && !solo;
+    dome.current!.scale.setScalar(hd.scale);
+    dome.current!.position.set(config.dome.center[0], config.dome.center[1] + config.dome.halfHeight * hd.lift, 0);
+    rig.domeMaterial.uniforms.uOpacity.value = hd.opacity;
+    rig.domeMaterial.uniforms.uReveal.value = hd.reveal;
+    if (glyphs) {
+      // The glyphs ride the glass's swell; with motion off they stand still.
+      glyphs.mesh.visible = sf.effect > 0.001 && !solo;
+      glyphs.mesh.scale.setScalar(hd.scale);
+      glyphs.uniforms.uEffect.value = sf.effect;
+      glyphs.uniforms.uTime.value = reducedMotion ? 0 : t;
+    }
     rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease) * (1 - cupVeil), config.glow.halo.bandStrength * (1 - ease) * (1 - cupVeil));
   });
 
@@ -646,6 +680,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
               <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
+              {glyphs && <primitive object={glyphs.mesh} position={[config.dome.center[0], config.dome.center[1] - config.dome.halfHeight, 0]} />}
               <mesh
                 ref={head}
                 geometry={rig.headGeometry}

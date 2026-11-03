@@ -8,12 +8,15 @@ import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
+import { SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from '../sequences/keys';
 
 type Stage = 'intro' | 'overview';
 type Box = readonly [number, number, number, number];
 const STAGES: Stage[] = ['intro', 'overview'];
 const VIEWPORTS = [{ width: 1536, height: 1024 }, { width: 1280, height: 720 }];
 const ORIGIN = new THREE.Vector3();
+/** How far the orbits are pushed out in each stage: the overview's head swell pushes them (sequences/headSwell.ts), settled and at its peak. */
+const SWELLS: Record<Stage, number[]> = { intro: [0], overview: [0, SWELL_PUSH_SETTLED, SWELL_PUSH_PEAK] };
 
 test('fifteen bubbles on two or three shells', () => {
   expect(NOX_SHELLS.length).toBeGreaterThanOrEqual(2);
@@ -80,9 +83,9 @@ test('bubbles never cover the face, the title or the nameplate', () => {
       const px = (v: THREE.Vector3) => ({ x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height });
       // A full lap of the slowest shell; the least gap between a bubble's edge and a box is checked once.
       let least = { gap: Infinity, at: '' };
-      for (let t = 0; t < 32; t += 0.1) {
+      for (const swell of SWELLS[stage]) for (let t = 0; t < 32; t += 0.1) {
         for (const o of orbits) {
-          orbitPoint(o, t, 0, at);
+          orbitPoint(o, t, swell, at);
           at.x += body.x;
           at.y += body.y;
           // The grown bubble in focus is the widest it gets.
@@ -93,7 +96,7 @@ test('bubbles never cover the face, the title or the nameplate', () => {
             const dx = Math.max(box.left - c.x, 0, c.x - (box.left + box.width));
             const dy = Math.max(box.top - c.y, 0, c.y - (box.top + box.height));
             const gap = Math.hypot(dx, dy) - radius;
-            if (gap < least.gap) least = { gap, at: `${stage} ${size.width}x${size.height} t=${t.toFixed(2)} ${name}` };
+            if (gap < least.gap) least = { gap, at: `${stage} ${size.width}x${size.height} swell=${swell} t=${t.toFixed(2)} ${name}` };
           }
         }
       }
@@ -108,8 +111,8 @@ test('the bubbles stay inside the stage frame', () => {
     const { body } = NOX_POSES[stage];
     const frame = STAGE_FRAMES[stage];
     for (const o of layoutOrbits(15, NOX_SHELLS, stage)) {
-      for (let t = 0; t < 32; t += 0.1) {
-        orbitPoint(o, t, 0, at);
+      for (const swell of SWELLS[stage]) for (let t = 0; t < 32; t += 0.1) {
+        orbitPoint(o, t, swell, at);
         const scale = CAMERA_Z / (CAMERA_Z - at.z);
         expect(Math.abs((at.x + body.x) * scale) + o.size).toBeLessThan(frame.width / 2);
         expect(Math.abs((at.y + body.y) * scale) + o.size).toBeLessThan(frame.height / 2);

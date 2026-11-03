@@ -184,6 +184,38 @@ const BUBBLE_BLOW: SequenceDefaults = {
   },
 };
 
+// --- The head swell (design 9.9) -------------------------------------------------------------
+
+/**
+ * How far the bubbles' orbits are pushed out (orbitPoint's `swell`) once the head has swollen, and
+ * at the overshoot's peak. The overview's rings are framed close to the stage's edge: these keep
+ * every bubble inside the frame and clear of the face and the dome's panel (headSwell.test.ts).
+ */
+export const SWELL_PUSH_SETTLED = 0.1;
+export const SWELL_PUSH_PEAK = 0.14;
+
+/**
+ * The head swelling into the dome like a thought, from the click: a small squeeze first (the
+ * anticipation, 0 to 0.4 s), then the swell (`morph`, the head's change into the dome, 0 closed, 1
+ * open) running past full to 1.07 at 0.85 s and settling at 1 by 1.3 s. The bubbles are pushed out
+ * with it (`push`, past and back like the swell), and the head's effect (`effect`, 0 to 1) fades in
+ * as it settles. Closing plays this backwards (sequences/headSwell.ts).
+ */
+const HEAD_SWELL: SequenceDefaults = {
+  length: 1.5,
+  objects: {
+    main: {
+      props: { squeeze: 0, morph: 0, push: 0, effect: 0 },
+      keys: {
+        squeeze: [[0, 0], [0.2, 1], [0.4, 0]],
+        morph: [[0.18, 0], [0.85, 1.07], [1.3, 1]],
+        push: [[0.3, 0], [0.9, SWELL_PUSH_PEAK], [1.35, SWELL_PUSH_SETTLED]],
+        effect: [[0.65, 0], [1.5, 1]],
+      },
+    },
+  },
+};
+
 /**
  * Code defaults for each sheet's props and keyframes. `scripts/theatre-seed.mjs` writes them into
  * the state JSON the first time; exports from the studio replace that file afterwards.
@@ -197,6 +229,6 @@ const placeholder = (): SequenceDefaults => ({
 export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
-  headSwell: placeholder(),
+  headSwell: HEAD_SWELL,
   arrival: placeholder(),
 };

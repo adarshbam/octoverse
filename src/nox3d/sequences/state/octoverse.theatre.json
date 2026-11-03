@@ -701,21 +701,21 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 1,
+        "length": 1.5,
         "type": "PositionalSequence",
         "tracksByObject": {
           "main": {
             "trackData": {
-              "seed000007": {
+              "headSwell-0001": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "headSwell",
                   "main",
-                  "value"
+                  "squeeze"
                 ],
                 "keyframes": [
                   {
-                    "id": "seed000008",
+                    "id": "headSwell-0002",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -727,8 +727,146 @@
                     "value": 0
                   },
                   {
-                    "id": "seed000009",
-                    "position": 1,
+                    "id": "headSwell-0003",
+                    "position": 0.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "headSwell-0004",
+                    "position": 0.4,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "headSwell-0005": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "morph"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-0006",
+                    "position": 0.18,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-0007",
+                    "position": 0.85,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1.07
+                  },
+                  {
+                    "id": "headSwell-0008",
+                    "position": 1.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "headSwell-0009": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "push"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-000a",
+                    "position": 0.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-000b",
+                    "position": 0.9,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.14
+                  },
+                  {
+                    "id": "headSwell-000c",
+                    "position": 1.35,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.1
+                  }
+                ]
+              },
+              "headSwell-000d": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "effect"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-000e",
+                    "position": 0.65,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-000f",
+                    "position": 1.5,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -742,7 +880,10 @@
               }
             },
             "trackIdByPropPath": {
-              "[\"value\"]": "seed000007"
+              "[\"squeeze\"]": "headSwell-0001",
+              "[\"morph\"]": "headSwell-0005",
+              "[\"push\"]": "headSwell-0009",
+              "[\"effect\"]": "headSwell-000d"
             }
           }
         }

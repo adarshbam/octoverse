@@ -160,7 +160,7 @@ export function makeCrackMap(size = 1024, cells = 12, seed = 5) {
 
 type Stroke = readonly (readonly [number, number])[];
 /** Runes as polylines in a unit box (-1..1), drawn as glowing strokes. */
-const RUNES: Record<string, { lines: Stroke[]; rings?: readonly [number, number, number][] }> = {
+export const RUNES: Record<string, { lines: Stroke[]; rings?: readonly [number, number, number][] }> = {
   arrow: { lines: [[[0, 1], [0, -1]], [[-0.62, 0.38], [0, 1], [0.62, 0.38]], [[-0.5, -0.38], [0.5, -0.38]]] },
   diamond: { lines: [[[0, 1], [0.66, 0], [0, -1], [-0.66, 0], [0, 1]]], rings: [[0, 0, 0.16]] },
   eye: { lines: [[[0, 1], [0, 0.72]], [[0, -0.72], [0, -1]]], rings: [[0, 0, 0.62], [0, 0, 0.2]] },

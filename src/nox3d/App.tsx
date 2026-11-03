@@ -23,6 +23,7 @@ import { SWIM_POSES, swimShapes } from './poses/nox.swim';
 import type { StagePose } from './poses/types';
 import type { EntranceFrame } from './sequences/entrance';
 import type { BlowSheet } from './sequences/bubbleBlow';
+import type { SwellSheet } from './sequences/headSwell';
 import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
@@ -108,6 +109,20 @@ if (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion())) {
   loadSequences().then(
     sequences => void (BLOW_SHEET.sequences = sequences),
     () => void (BLOW_SHEET.failed = true),
+  );
+}
+
+/**
+ * The head swell's sheet (the same Theatre state): clicking the head swells it into the overview's
+ * dome. It loads from the start unless motion is off; `?freeze&swell=<s>` is a still of the opening
+ * at that moment, for review.
+ */
+const SWELL_STILL = url.freeze && new URLSearchParams(location.search).has('swell') ? Number(new URLSearchParams(location.search).get('swell')) || 0 : undefined;
+const SWELL_SHEET: SwellSheet = { sequences: null, failed: false, at: SWELL_STILL };
+if (SWELL_STILL !== undefined || !(url.freeze || readReducedMotion())) {
+  loadSequences().then(
+    sequences => void (SWELL_SHEET.sequences = sequences),
+    () => void (SWELL_SHEET.failed = true),
   );
 }
 
@@ -406,7 +421,10 @@ export function App() {
       reducedMotion={reducedMotion}
       silhouette={MASK}
       quality={quality.settings}
-      onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
+      // Clicking the head swells it open; clicking it again closes it.
+      onSelect={() => dispatch({ type: state.stage === 'overview' ? 'CLOSE' : 'OPEN_OVERVIEW' })}
+      headOpen={stagePose(shown).headMorph >= 0.5}
+      swellSheet={SWELL_SHEET}
       orbs={ORBS}
       focusTechId={focusedTech}
       blowSheet={BLOW_SHEET}
