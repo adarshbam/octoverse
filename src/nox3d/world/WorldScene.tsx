@@ -30,11 +30,11 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * `time` says whether the world's clock runs or holds one moment. `tier` is what the quality tier draws (worldTiers.ts): fewer bubbles, embers and light shafts, a smaller
  * shadow map cast by Nox alone, no fish or motes on the lower ones. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
- * measurement captures only, leaves out the bubbles. `onPlateSettled` is called once the far plate's layers have loaded or failed. `reducedMotion` holds the world's own motion
+ * measurement captures only, leaves out the bubbles. `onPlateSettled` is called once the far plate's layers have loaded or failed (with whether all loaded). `reducedMotion` holds the world's own motion
  * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
  * plane past the sky sphere (100 units).
  */
-export function WorldScene({ world: configured, level, onFail, onKitSettled, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false, onPlateSettled }: { world: WorldConfig; level: WorldLevel; onFail: (error: unknown, level: WorldLevel) => void; onKitSettled?: (level: WorldLevel) => void; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean; onPlateSettled?: () => void }) {
+export function WorldScene({ world: configured, level, onFail, onKitSettled, time, tier = WORLD_TIERS.high, accents, solo = false, reducedMotion = false, onPlateSettled }: { world: WorldConfig; level: WorldLevel; onFail: (error: unknown, level: WorldLevel) => void; onKitSettled?: (level: WorldLevel) => void; time: WorldTimeFlags; tier?: WorldTier; accents?: AccentLink; solo?: boolean; reducedMotion?: boolean; onPlateSettled?: (loaded: boolean) => void }) {
   const world = useMemo(() => worldAtLevel(configured, level), [configured, level]);
   const surface = useSurfaceLight(world, tier.shadowMap);
   useNoxAccents(world, surface, accents);
@@ -45,7 +45,7 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
   const bubbleTime = useMemo(() => (state: { clock: { elapsedTime: number } }) => ambientTime(state.clock.elapsedTime, time, reducedMotion), [time, reducedMotion]);
   // A world without a far plate has nothing to wait for.
   useEffect(() => {
-    if (!world.farPlate) onPlateSettled?.();
+    if (!world.farPlate) onPlateSettled?.(true);
   }, [world, onPlateSettled]);
   // The stone's and seabed's relief is a uniform branch in their shaders: no rebuild on a tier change.
   const relief = reliefShown(tier);

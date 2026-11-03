@@ -15,6 +15,14 @@ export interface OctoverseDebug {
   entrance?: EntranceDebug;
 }
 
+/** Whether the world's files really arrived (development builds only), as opposed to `ready`, which is also set once a wait was given up. */
+export interface WorldLoaded {
+  /** The full kit (kit.glb and the baked near.glb: level 0) loaded, and the world did not step down. */
+  kit: boolean;
+  /** Every layer of the far plate loaded (a world with no far plate has none to wait for: true). */
+  plate: boolean;
+}
+
 /**
  * The globals the end-to-end specs and scripts/perf.mjs read. `__noxReady` and `__noxEntrance` are the
  * legacy names of `__octoverse.ready` and `.entrance`, kept for the Nox world. The rest are
@@ -26,6 +34,7 @@ export interface DebugWindow {
   __noxEntrance?: EntranceDebug;
   __noxCamera?: unknown;
   __noxWorldTier?: unknown;
+  __noxWorld?: WorldLoaded;
   __noxSwell?: object;
   __noxHold?: { techId: string; pull: number; release: number }[];
   __noxSetTier?: (tier: 'high' | 'medium' | 'low') => void;
@@ -37,6 +46,12 @@ export interface DebugWindow {
  */
 export function debugWindow(instance: InstanceState): DebugWindow | null {
   return instance.mode === 'page' ? (window as unknown as DebugWindow) : null;
+}
+
+/** Reports which of the world's files really loaded: `window.__noxWorld` (the page instance only; the caller guards it with `import.meta.env.DEV`). */
+export function reportWorld(instance: InstanceState, loaded: WorldLoaded) {
+  const w = debugWindow(instance);
+  if (w) w.__noxWorld = loaded;
 }
 
 /** The world is drawn and settled (the ready flag). */

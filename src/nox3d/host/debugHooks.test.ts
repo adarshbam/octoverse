@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { type DebugWindow, debugWindow, entranceDebug, markReady } from './debugHooks';
+import { type DebugWindow, debugWindow, entranceDebug, markReady, reportWorld } from './debugHooks';
 import { createInstanceState } from './instance';
 
 let win: DebugWindow;
@@ -37,9 +37,15 @@ test("another world's page instance writes only the new hook", () => {
   expect(win.__noxEntrance).toBeUndefined();
 });
 
+test('the page instance reports which of the world files really loaded', () => {
+  reportWorld(createInstanceState('nox', 'page'), { kit: true, plate: false });
+  expect(win.__noxWorld).toEqual({ kit: true, plate: false });
+});
+
 test('a preview instance writes nothing on the window', () => {
   const preview = createInstanceState('nox', 'preview');
   markReady(preview);
+  reportWorld(preview, { kit: true, plate: true });
   entranceDebug(preview).loaded = true;
   expect(debugWindow(preview)).toBeNull();
   expect(win).toEqual({});

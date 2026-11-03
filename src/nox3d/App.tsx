@@ -27,7 +27,7 @@ import { STAGE_FRAMES, fovFor } from './stage/framing';
 import { noxFaceAnchor } from './stage/liveAnchors';
 import { EngineInstance } from './host/EngineInstance';
 import type { InstanceState } from './host/instance';
-import { debugWindow, entranceDebug, markReady } from './host/debugHooks';
+import { debugWindow, entranceDebug, markReady, reportWorld } from './host/debugHooks';
 import { useInstance } from './host/instanceContext';
 import { createProjectModel, createSheets, startSheetLoaders } from './host/instanceModel';
 import { useWindowListeners } from './host/listeners';
@@ -310,7 +310,11 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   }, [entering, reducedMotion, page, webgl, mask, options.freeze]);
   // The far plate's layers load outside Suspense; `__noxReady` waits for them.
   const [plateReady, setPlateReady] = useState(false);
-  const settlePlate = useCallback(() => setPlateReady(true), []);
+  const [plateLoaded, setPlateLoaded] = useState(false);
+  const settlePlate = useCallback((loaded: boolean) => {
+    setPlateLoaded(loaded);
+    setPlateReady(true);
+  }, []);
   // A world file that will not load steps the world down (WorldBoundary) rather than blanking the stage.
   const [worldLevel, setWorldLevel] = useState<WorldLevel>(0);
   // Each failure names the level it came from, so one reported twice steps once (stepFrom).
@@ -331,9 +335,14 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   // A layer that neither loads nor fails (a request left hanging) must not hold the flag for good.
   useEffect(() => {
     if (plateReady) return;
-    const timer = setTimeout(settlePlate, PLATE_WAIT_MS);
+    const timer = setTimeout(() => settlePlate(false), PLATE_WAIT_MS);
     return () => clearTimeout(timer);
   }, [plateReady, settlePlate]);
+  // Development builds say whether the world's files really arrived: `__noxReady` is also set once a wait was given up,
+  // and a still taken then would lack the kit or the plate (scripts/capture-ready.mjs refuses it).
+  useEffect(() => {
+    if (import.meta.env.DEV) reportWorld(instance, { kit: kitLevel === 0 && worldLevel === 0, plate: plateReady && plateLoaded });
+  }, [instance, kitLevel, worldLevel, plateReady, plateLoaded]);
   const visible = usePageVisible();
   // The pixels drawn per CSS pixel: the device's, up to the tier's cap, times the tier's render scale.
   const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio, quality.settings.dpr)) * quality.settings.renderScale;
