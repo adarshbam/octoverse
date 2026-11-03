@@ -171,8 +171,8 @@ export interface WorldBundle {
   sequences: SequenceSet;
   /** The place: kit, layout, palette, lights, far plate, live elements, post. */
   place: WorldConfig;
-  /** Per-stage framing and the face anchor the overlays and lens shift register on. */
-  stage: { frames: Record<StageId, StageFrame>; faceAnchor: Record<'intro' | 'overview' | 'detail', Vec3> };
+  /** Per-stage framing. The face anchor the overlays and lens shift register on is derived: `faceAnchor(bundle, stage)` from `character.head` and `poses[stage].body`. */
+  stage: { frames: Record<StageId, StageFrame> };
   /** Project data. No coordinates. */
   content: { project: Project; technologies: readonly Technology[] };
   /** UI tokens: accents, title icon, nameplate, surface tint, focus ring. */
@@ -404,13 +404,13 @@ Every existing effect and authored pose, where it goes, and how its preservation
 | Existing | Destination | Preserved by |
 |---|---|---|
 | `STAGE_FRAMES`, `framing`, `config/stage.ts`, `viewWindow` | Frames from the bundle; maths in `engine/stage/` | `framing.test`, `stage.test` |
-| `noxFaceAnchor`, `OrbButtons` anchor maths | One shared function reading `bundle.stage.faceAnchor`; the duplicated code is removed | Both consumers' tests; tooltip stills |
+| `noxFaceAnchor`, `OrbButtons` anchor maths | One shared `faceAnchor(bundle, stage)` derived from the head and poses; the duplicated code is removed | Both consumers' tests; tooltip stills |
 | `stageMachine`, `useStage`, `urlState` | `engine/behavior/`, per instance; URL parsed in the host | `stageMachine.test`, `urlState.test` |
 | UI components and CSS (`IntroOverlay`, `OverviewPanel`, `ProjectDetail`, `OrbButtons`, `OrbTray`, `TechTooltip`, `SkipEntrance`, `ExploreNameplate`) | `engine/ui/`; colours and the title icon from `bundle.theme`; Nox's theme reproduces the current CSS values | UI tests (`detailContent`, `tooltipContent`, `tooltipPlacement`, `hoverIntent`); e2e `detail`, `keyboard`; stills |
 | Content: `nox.ts`, `noxProject.ts`, `noxTechnologies.ts`, `placeholders.ts` | `worlds/nox/content/` | `content.test` |
 | `projectTypes.ts`, `validateProject.ts` | `engine/content/`, minus `placements` | `content.test` updated only for the removed field |
 | Review page (`review/`) | `engine/review/` and `worlds/nox/review.ts` | The review page builds and loads |
-| Scripts: `check_stage.py`, `perf.mjs`, `world-capture.mjs`, `stage_samples.json`, `world_samples.json` | Stay; take a `--world <id>` (default `nox`) and read the world's samples | Same numbers for Nox |
+| Scripts: `check_stage.py`, `perf.mjs`, `world-capture.mjs`, `stage_samples.json`, `world_samples.json` | Stay; take `--world-id <id>` (default `nox`; the existing `check_stage.py --world` flag already means "the world scene" and keeps that meaning) and read the world's samples. `perf.mjs` and the capture scripts already take query strings, so `world=<id>` rides in them. | Same numbers for Nox |
 
 Anything not listed that a later grep finds in `src/nox3d/` gets a row in the extraction plan before it moves. Nothing is deleted without a row.
 
@@ -478,6 +478,16 @@ Measure with `scripts/perf.mjs` only (pane closed, back to back, 1536 x 1024, pi
 - E01 (this) -> owner approval -> E02 plan (written now, not executed).
 - **Extraction begins only after** Nox's final verification lands on `feat/nox-3d`. The plan's first task re-reads this contract against that tip and records any drift (new files, new singletons) as additional migration-map rows.
 - F01 (Veyra static) starts after E02 lands and is approved.
+
+### 14.1 What E02 builds and what waits for F01
+
+The closed-variant rule (section 9) applies to the extraction itself: E02 builds the **boundary, the isolation and every move that Nox already exercises**, and defers each variant that has no user yet to the world that needs it, built against that world's reference.
+
+- **E02 builds:** the layout (6.1); the bundle and host; instance isolation (8); `?world=` and full-remount switching; nullable `head.cheeks` (proved with a test geometry, since Veyra needs it and Nox does not); `lighting` into the character; `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus` and the head-effect colours moved from literals into config at Nox's values; `skinAccent`, `causticStrength`, `post` and `camera.hover` into the world; open `WorldLight.kind` strings; the `HEAD_EFFECTS` and `ARTIFACT_STRATEGIES` tables with their derived id unions (Nox's `glyphs` and `orbit` only); the content-contract cleanup; theme tokens; `--world-id` tooling.
+- **Deferred to F01, with the Veyra work that needs each:** `skin.mode: 'jelly'` and `skin.sparkle`; cup-frill style fields (`suckers.style`); `vaultDial`; `pendant`, `bloom` and `armLift`; `place.props` and `SequenceSet.kitDrives` (the gate's ring); the generalised layout categories, relic and palette keys (`WorldLayout` is still `pillars / rocks / corals / chains / coralLights`, which only Veyra's real kit can shape correctly); `floor.material` and extra live elements; personality `settle`, `glideBias` and `flourishRate`.
+- **Dropped unless F01 finds a need:** `armCurl.tightness` and new face fields. Tip spirals are authored pose points, and lash count, lash shape and brow thickness are already config (`EyeLayout.lashes`, `FaceLayout.brow.thickness`).
+
+The contract types for the deferred items stay in this document as the agreed shape; the extraction plan does not add them to code.
 - Master plan packet E02 asks for human approval of the engine foundation; second-world validation (F02) follows.
 
 ## 15. Veyra reconciliation
@@ -492,7 +502,7 @@ Source: Veyra's full answers, relayed 2026-11-03 (they supersede its first list)
 | 4 | `HeadEffectId` an open registry; `vaultDial`; the effect gets swell progress and the dome frame | **Modified.** A `HEAD_EFFECTS` table in the engine with the id union derived from it, so adding `vaultDial` is one module and one entry with no other shared-code edit. No runtime registration. The module receives the swell progress and dome frame (9.1). |
 | 5 | Tech artifact strategy per world (layout strategy as data); Nox `orbit`, Veyra `pendant` or reuse of the Nox shells; appear (bloom from a cup) and select (arm lifts its orb) per world | **Provisional (owner deciding).** The type carries both (9.2); only `orbit` is built. If the owner picks the shells for Veyra, no new strategy is needed. `pendant`, `bloom` and `armLift` are built in F01 if the owner picks them. Blow and suction hold stay shared modules either way. |
 | 5b | The entrance's gate with an animatable part (padlock ring turns and clicks), tested against Veyra's layout | Accepted, new since the first list: `place.props` and `SequenceSet.kitDrives` (6.4). |
-| 5c | Face anchor per character (the face sits lower on a taller dome) | Already in the contract: `stage.faceAnchor` is bundle data, and the two duplicated anchor computations collapse into one function that reads it (11.6). |
+| 5c | Face anchor per character (the face sits lower on a taller dome) | Already in the contract: the anchor is derived per character from its head and poses by one shared function, and the two duplicated anchor computations collapse into it (11.6). |
 | 6 | Poses owned by the character; blender shared | Accepted (6.2, 7). |
 | 7 | World config: per-world kit and Blender script; open light and relic enums; live-element set; floor material; fog; camera tilt and hover | Accepted with closed tables for floor materials and extra live elements (6.4, 9). |
 | 8 | Personality: settle overshoot, glide/stroke bias, flourish rate; Theatre sequences and entrance clearance per world; no physics | Accepted; physics is out of the engine entirely. |
