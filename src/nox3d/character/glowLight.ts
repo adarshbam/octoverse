@@ -7,13 +7,16 @@ import type { RGB } from './worldAccent';
 // lights, so their shaders take the same light as a tint, with three's falloff and a cap. Outside
 // a world the tint is black.
 
+/** The reach and decay of a face glow's light: the two numbers the particles' shaders are compiled with. */
+export type GlowReach = Pick<GlowLightSettings, 'distance' | 'decay'>;
+
 /**
- * The reach and decay the particles' shaders are compiled with (`GLOW_LIGHT_GLSL`): the same as
- * Nox's `glow.light.distance` and `decay` (a test holds them equal). The light's colour and
- * intensity come from the character's config; threading these two through the world's particle
- * materials is the world config's job (Task 5).
+ * The reach and decay the particle materials are compiled with when none is given (outside a
+ * world, where their tint is black anyway): Nox's `glow.light.distance` and `decay` (a test holds
+ * them equal). In a world each material is made with the character's own, from the accent link
+ * (`AccentLink.reach`), so another character's light moves the particles with it.
  */
-export const PARTICLE_REACH = { distance: 6, decay: 2 } as const;
+export const PARTICLE_REACH: GlowReach = { distance: 6, decay: 2 };
 /** Where that light sits from the face glow (world units): below and in front, so it reaches the seabed. */
 export const GLOW_LIGHT_OFFSET = new THREE.Vector3(0, -0.42, 0.5);
 /**
@@ -61,10 +64,14 @@ export function lightParticles(uniforms: GlowLightUniforms, light: GlowLightSett
   uniforms.uNoxLight.value.set(light.color).multiplyScalar(light.intensity * PARTICLE_GLOW * strength);
 }
 
-/** Declarations and `noxGlow(at)`, the tint on a particle at world position `at`, for a particle's vertex shader. */
-export const GLOW_LIGHT_GLSL = /* glsl */ `
-  #define NOX_GLOW_REACH ${PARTICLE_REACH.distance.toFixed(4)}
-  #define NOX_GLOW_DECAY ${PARTICLE_REACH.decay.toFixed(4)}
+/**
+ * Declarations and `noxGlow(at)`, the tint on a particle at world position `at`, for a particle's
+ * vertex shader, with `reach` compiled in as constants (a uniform would change the shader's maths
+ * and the pixels; the material is made again when the character's light changes).
+ */
+export const glowLightGlsl = (reach: GlowReach) => /* glsl */ `
+  #define NOX_GLOW_REACH ${reach.distance.toFixed(4)}
+  #define NOX_GLOW_DECAY ${reach.decay.toFixed(4)}
   #define NOX_GLOW_CAP ${PARTICLE_GLOW_CAP.toFixed(4)}
   uniform vec3 uNoxLightPos;
   uniform vec3 uNoxLight;

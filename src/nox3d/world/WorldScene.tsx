@@ -67,11 +67,11 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
       )}
       {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} onSettled={onPlateSettled} />}
       <GodRays amount={live.rays * tier.rays} spread={world.glow.rays} />
-      <MarineSnow amount={live.snow} glow={accents?.light} />
+      <MarineSnow amount={live.snow} glow={accents?.light} reach={accents?.reach} />
       {tier.fish && <FarFish amount={live.fish} />}
-      {tier.motes && <Motes amount={live.motes} glow={accents?.light} />}
-      {!solo && <Bubbles density={live.bubbles * tier.particles} glow={accents?.light} field={WORLD_BUBBLES} time={bubbleTime} />}
-      <Embers density={live.embers * tier.particles} glow={accents?.light} scale={world.glow.embers} />
+      {tier.motes && <Motes amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
+      {!solo && <Bubbles density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
+      <Embers density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>
   );

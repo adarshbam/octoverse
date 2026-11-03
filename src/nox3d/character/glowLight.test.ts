@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { GLOW_LIGHT_GLSL, NO_NOX_LIGHT, PARTICLE_GLOW, PARTICLE_GLOW_CAP, PARTICLE_REACH, createGlowLightUniforms, glowFalloff, lightParticles, particleGlow } from './glowLight';
+import { NO_NOX_LIGHT, PARTICLE_GLOW, PARTICLE_GLOW_CAP, PARTICLE_REACH, createGlowLightUniforms, glowFalloff, glowLightGlsl, lightParticles, particleGlow } from './glowLight';
 
 const GLOW_LIGHT = NOX.glow.light;
 
@@ -77,6 +77,7 @@ describe('the face glow light on the particles', () => {
   });
 
   it('carries the same reach, decay and cap into the GLSL', () => {
+    const GLOW_LIGHT_GLSL = glowLightGlsl(PARTICLE_REACH);
     expect(GLOW_LIGHT_GLSL).toContain('uniform vec3 uNoxLightPos;');
     expect(GLOW_LIGHT_GLSL).toContain('uniform vec3 uNoxLight;');
     expect(GLOW_LIGHT_GLSL).toMatch(/#define NOX_GLOW_REACH 6\.0+\b/);

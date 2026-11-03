@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import { GLOW_LIGHT_GLSL, type GlowLightUniforms, NO_NOX_LIGHT } from '../character/glowLight';
+import { type GlowLightUniforms, type GlowReach, NO_NOX_LIGHT, PARTICLE_REACH, glowLightGlsl } from '../character/glowLight';
 
 // The particles' materials. Each takes Nox's face glow as a tint worked out per particle from the
 // shared glow uniforms (passed by reference, never copied), and adds it to its own colour; outside
 // a world the tint is black and each draws exactly as before.
 
 /** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. The glow lights them as it does their tint. */
-export function createBubbleMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
+export function createBubbleMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     uniforms: { uRim: { value: new THREE.Color('#ff6a9a') }, uTint: { value: new THREE.Color('#7a4aa8') }, ...glow },
     vertexShader: /* glsl */ `
-      ${GLOW_LIGHT_GLSL}
+      ${glowLightGlsl(reach)}
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vGlow;
@@ -43,14 +43,14 @@ export function createBubbleMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
 }
 
 /** Drifting crimson motes, each taking the glow by its own brightness. */
-export function createEmberMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
+export function createEmberMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#ff2c3c') }, uHot: { value: new THREE.Color('#ff8a5a') }, ...glow },
     vertexShader: /* glsl */ `
-      ${GLOW_LIGHT_GLSL}
+      ${glowLightGlsl(reach)}
       attribute float aPhase;
       attribute float aSize;
       uniform float uTime;
@@ -85,7 +85,7 @@ export function createEmberMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
 }
 
 /** Red motes rising off the seabed: the nearest blur into soft discs; each takes the glow by its own brightness. */
-export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
+export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -98,7 +98,7 @@ export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
       ...glow,
     },
     vertexShader: /* glsl */ `
-      ${GLOW_LIGHT_GLSL}
+      ${glowLightGlsl(reach)}
       attribute vec3 aSeed;
       uniform float uTime;
       uniform float uScale;
@@ -147,14 +147,14 @@ export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
 }
 
 /** Marine snow: fine flecks drifting down, catching the light from above, fading with distance; each takes the glow by its own brightness. */
-export function createSnowMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT) {
+export function createSnowMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#a8c0ff') }, ...glow },
     vertexShader: /* glsl */ `
-      ${GLOW_LIGHT_GLSL}
+      ${glowLightGlsl(reach)}
       attribute vec2 aSeed;
       uniform float uTime;
       uniform float uScale;

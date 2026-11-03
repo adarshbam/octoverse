@@ -354,7 +354,9 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   const shown: StageId = state.stage === 'techFocus' ? state.returnTo : state.stage;
   const blender = useMemo(() => new PoseBlender(stagePoseOf(reviewSwim, state.stage === 'entering' ? 'intro' : shown), segments, undefined, resolveExpressions(config)), [segments, config]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
-  const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
+  // The particles' reach is the character's own light distance and decay: another character's light moves them too.
+  const { distance: lightDistance, decay: lightDecay } = config.glow.light;
+  const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms(), reach: { distance: lightDistance, decay: lightDecay } }), [lightDistance, lightDecay]);
   const frame = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   const prevStage = useRef(state.stage);

@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import type { GlowLightUniforms } from '../character/glowLight';
+import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
 import { type BubbleField, STAGE_BUBBLES } from './bubbleField';
 import { createBubbleMaterial, createEmberMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';
@@ -16,7 +16,7 @@ function seeded(seed: number) {
 }
 
 /** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. In a world, `glow` tints them with Nox's face glow; `time` gives the clock they drift on. */
-export function Bubbles({ density = 1, glow, field = STAGE_BUBBLES, time }: { density?: number; glow?: GlowLightUniforms; field?: BubbleField; time?: (state: { clock: { elapsedTime: number } }) => number }) {
+export function Bubbles({ density = 1, glow, reach, field = STAGE_BUBBLES, time }: { density?: number; glow?: GlowLightUniforms; reach?: GlowReach; field?: BubbleField; time?: (state: { clock: { elapsedTime: number } }) => number }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const { bubbles, material, geometry, disposables } = useMemo(() => {
     const rand = seeded(11);
@@ -28,10 +28,10 @@ export function Bubbles({ density = 1, glow, field = STAGE_BUBBLES, time }: { de
       if (Math.abs(x) < 0.3 && z > -1.6 && z < 1) x += x < 0 ? -0.4 : 0.4;
       return { x, y: field.bottom + rand() * (field.top - field.bottom), z, r: (0.022 + Math.pow(rand(), 2.2) * 0.075) * field.size, speed: 0.06 + rand() * 0.1, phase: rand() * 10 };
     });
-    const material = createBubbleMaterial(glow);
+    const material = createBubbleMaterial(glow, reach);
     const geometry = new THREE.SphereGeometry(1, 20, 14);
     return { bubbles, material, geometry, disposables: [material, geometry] };
-  }, [glow, field]);
+  }, [glow, reach, field]);
   useDisposables(disposables);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -54,7 +54,7 @@ export function Bubbles({ density = 1, glow, field = STAGE_BUBBLES, time }: { de
 const EMBER_COUNT = 460;
 
 /** Drifting crimson motes, denser along the seabed like the reference. In a world, `glow` tints them with Nox's face glow, and they drift on the world's clock (held still by `?freeze`, like the rest of it). `scale` makes that many times as many (the first 460 are the same motes). */
-export function Embers({ density = 1, glow, scale = 1 }: { density?: number; glow?: GlowLightUniforms; scale?: number }) {
+export function Embers({ density = 1, glow, reach, scale = 1 }: { density?: number; glow?: GlowLightUniforms; reach?: GlowReach; scale?: number }) {
   const now = useWorldTime();
   const total = Math.round(EMBER_COUNT * Math.max(scale, 1));
   const { geometry, material, disposables } = useMemo(() => {
@@ -75,9 +75,9 @@ export function Embers({ density = 1, glow, scale = 1 }: { density?: number; glo
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aPhase', new THREE.BufferAttribute(phase, 1));
     geometry.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
-    const material = createEmberMaterial(glow);
+    const material = createEmberMaterial(glow, reach);
     return { geometry, material, disposables: [geometry, material] };
-  }, [glow, total]);
+  }, [glow, reach, total]);
   useDisposables(disposables);
   // Lower tiers draw only the first part of the motes, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(total * density)), [geometry, density, total]);

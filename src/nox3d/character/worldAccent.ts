@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Vec3, WorldLight } from '../world/types';
-import type { GlowLightUniforms } from './glowLight';
+import type { GlowLightUniforms, GlowReach } from './glowLight';
 import type { SkinKind } from './skinMaterial';
 
 // The world's light on Nox, as small accents on his own lighting, never in its place. Warmth from
@@ -123,6 +123,8 @@ export interface AccentLink {
   uniforms: AccentUniforms;
   at: THREE.Vector3;
   light: GlowLightUniforms;
+  /** The reach and decay of the character's `glow.light`, which the world's particle materials are compiled with. */
+  reach: GlowReach;
 }
 
 /**
