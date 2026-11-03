@@ -19,15 +19,18 @@ const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.
 // Times each animation-frame callback on the GPU. Installed before the page's scripts run.
 const TIMER = `(() => {
   window.__gpuMs = [];
-  let gl2 = null; const open = [];
+  // The page probes for WebGL 2 on a throwaway canvas (hasWebgl2) before the stage makes its own:
+  // time the context whose canvas is on the page, not the first one made.
+  const made = []; let gl2 = null; const open = [];
   const get = HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
     const c = get.call(this, type, ...rest);
-    if (c && type === 'webgl2' && !gl2) gl2 = c;
+    if (c && type === 'webgl2' && !made.includes(c)) made.push(c);
     return c;
   };
   const raf = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = cb => raf(t => {
+    if (!gl2 || gl2.isContextLost()) gl2 = made.find(c => c.canvas.isConnected && !c.isContextLost()) ?? null;
     const ext = gl2 && gl2.getExtension('EXT_disjoint_timer_query_webgl2');
     let q = null;
     if (ext && window.__gpuOn) { q = gl2.createQuery(); gl2.beginQuery(ext.TIME_ELAPSED_EXT, q); }
