@@ -36,6 +36,8 @@ export interface UrlState {
   kitWait?: number;
   /** Test content in place of the project's own (honoured in development builds only). */
   fixture?: 'nosections';
+  /** A second character and world, configuration only (honoured in development builds only). */
+  variant?: 'dummy';
   /**
    * For measurement captures only: hides the technology orbs, the dome glass and the world's
    * ambient bubbles. The world's embers stay.
@@ -76,5 +78,6 @@ export function parseUrlState(search: string): UrlState {
   const kitWait = Number(params.get('kitwait'));
   if (params.has('kitwait') && Number.isFinite(kitWait) && kitWait > 0) state.kitWait = kitWait;
   if (params.get('fixture') === 'nosections') state.fixture = 'nosections';
+  if (import.meta.env.DEV && params.get('variant') === 'dummy') state.variant = 'dummy';
   return state;
 }

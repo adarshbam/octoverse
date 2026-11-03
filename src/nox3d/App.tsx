@@ -14,7 +14,7 @@ import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
-import type { StageId } from './config/types';
+import type { CharacterConfig, StageId } from './config/types';
 import { clampCharacterConfig } from './config/validate';
 import { noxProject } from './content/noxProject';
 import { swimDrive } from './motion/stroke';
@@ -50,6 +50,7 @@ import { hasWebgl2, useViewport } from './ui/useViewport';
 
 import { ContactShadows } from './world/ContactShadows';
 import { SECURITY_WORLD } from './world/security/config';
+import type { WorldConfig } from './world/types';
 import { worldTierFor } from './world/worldTiers';
 import { LAST_LEVEL, type WorldLevel, stepFrom } from './world/worldLevel';
 import { WorldScene } from './world/WorldScene';
@@ -288,8 +289,24 @@ function SilhouetteOnly() {
   return null;
 }
 
+/**
+ * `?variant=dummy` (development only): the dummy character and world, config alone. The dynamic
+ * import sits behind the literal DEV check, so the production bundle holds neither fixture.
+ */
 export function App() {
-  const config = useMemo(() => clampCharacterConfig(NOX), []);
+  const [variant, setVariant] = useState<{ character: CharacterConfig; world: WorldConfig } | null>(null);
+  const wantsVariant = import.meta.env.DEV && url.variant === 'dummy';
+  useEffect(() => {
+    if (import.meta.env.DEV && url.variant === 'dummy') {
+      void Promise.all([import('./config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) => setVariant({ character: c.DUMMY, world: w.DUMMY_WORLD }));
+    }
+  }, []);
+  if (wantsVariant) return variant ? <NoxApp character={variant.character} world={variant.world} /> : null;
+  return <NoxApp character={NOX} world={SECURITY_WORLD} />;
+}
+
+function NoxApp({ character, world }: { character: CharacterConfig; world: WorldConfig }) {
+  const config = useMemo(() => clampCharacterConfig(character), [character]);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
   const quality = useQuality(url);
   // On a phone held upright the orbs are too small to pick out, so the tray lists every technology (as it does without WebGL).
@@ -501,7 +518,7 @@ export function App() {
         gl={{ antialias: false, powerPreference: 'high-performance' }}
         camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 140 }}
       >
-        <color attach="background" args={[MASK ? '#000000' : SECURITY_WORLD.palette.waterFar]} />
+        <color attach="background" args={[MASK ? '#000000' : world.palette.waterFar]} />
         <StageCamera stage={shown} reducedMotion={reducedMotion} />
         {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
         {MASK ? (
@@ -513,7 +530,7 @@ export function App() {
           <>
             {/* Nothing here waits on a file: the world's kit has a Suspense of its own, so Nox and the
                 water are drawn whatever the network does. */}
-            <WorldScene world={SECURITY_WORLD} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={worldTier} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
+            <WorldScene world={world} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={worldTier} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
             {octopus}
             <ReadyFlag wait={!plateReady || !kitDone} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
