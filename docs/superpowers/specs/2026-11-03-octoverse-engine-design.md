@@ -201,6 +201,7 @@ Master-plan names map as follows: `WorldDefinition` = `WorldBundle` (with `place
 | `armCurl: { tightness: number }` (spiral tip tightness) | Veyra's tight spirals | current constant |
 | `face.lashes: { count, style }`, `face.brow.thickness`, expression tuning table | per-character face | current values |
 | `personality.settle`, `personality.glideBias`, `personality.flourishRate` | Veyra's calm motion | values that reproduce today's behaviour |
+| `expressions?: Partial<Record<ExpressionId, Partial<ExpressionParams>>>`, per-character overrides merged over the engine's base table by `resolveExpressions(config)`; every reader goes through the resolved table *(A1, G1)* | Veyra's "interested" tech-focus face | absent (the base table) |
 | `headEffect: HeadEffectId \| null`, a closed union extended by editing the engine | `'none' \| 'glyphs'` today; `'vaultDial'` when Veyra builds it | `'glyphs'` |
 
 Validation (`clampCharacterConfig`) clamps every new field. A field absent from a legacy config reads its default, so Nox's existing config validates unchanged.
@@ -217,7 +218,7 @@ Validation (`clampCharacterConfig`) clamps every new field. A field absent from 
 - `floor.material` names a floor shader variant from a closed list (`'lava-cracks'`, `'sand'`, `'moss'`), added by the world that needs it.
 - `props: { id, node, drive }[]` names animatable parts of the kit (Veyra's gate: a padlock ring that turns and clicks). `node` is a named node in the kit glTF; `drive` is one of a small closed set (`'rotateZ'`, `'emissive'`). A sequence object in the world's Theatre state targets a prop by id (`SequenceSet.kitDrives`), so the entrance can turn the ring without engine code that knows about gates. A world with no props declares none; Nox declares none.
 - The entrance's gate, path and clearance inputs come from the bundle's layout and props, never from the security realm's constants.
-- `camera: { tilt, hover }` (hover amount per world).
+- `camera: { tilt, hover: { amount, pace } }`: hover amount and pace per world (`pace` scales the drift's clock; 1 is Nox's). *(A1)*
 
 ## 7. Ownership boundaries
 
@@ -496,7 +497,8 @@ The closed-variant rule (section 9) applies to the extraction itself: E02 builds
 
 - **E02 builds:** the layout (6.1); the bundle and host; instance isolation (8); `?world=` and full-remount switching; nullable `head.cheeks` (proved with a test geometry, since Veyra needs it and Nox does not); `lighting` into the character; `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus` and the head-effect colours moved from literals into config at Nox's values; `skinAccent`, `causticStrength`, `post` and `camera.hover` into the world; open `WorldLight.kind` strings; the `HEAD_EFFECTS` and `ARTIFACT_STRATEGIES` tables with their derived id unions (Nox's `glyphs` and `orbit` only); the content-contract cleanup; theme tokens; `--world-id` tooling.
 - **Deferred to F01, with the Veyra work that needs each:** `skin.mode: 'jelly'` and `skin.sparkle`; cup-frill style fields (`suckers.style`); `vaultDial`; `pendant`, `bloom` and `armLift`; `place.props` and `SequenceSet.kitDrives` (the gate's ring); the generalised layout categories, relic and palette keys (`WorldLayout` is still `pillars / rocks / corals / chains / coralLights`, which only Veyra's real kit can shape correctly); `floor.material` and extra live elements; personality `settle`, `glideBias` and `flourishRate`.
-- **Dropped unless F01 finds a need:** `armCurl.tightness` and new face fields. Tip spirals are authored pose points, and lash count, lash shape and brow thickness are already config (`EyeLayout.lashes`, `FaceLayout.brow.thickness`).
+- **Added by amendment A1 (section 18):** per-character `expressions` overrides, `EntranceShape`, `camera.hover.pace`, and sheet ids derived from the appear table: all plumbed in E02 at Nox's values. The flourish layer and the non-spiral entrance path are built in F01.
+- **Dropped unless F01 finds a need:** `armCurl.tightness` and new face fields other than `expressions`. Tip spirals are authored pose points, and lash count, lash shape and brow thickness are already config (`EyeLayout.lashes`, `FaceLayout.brow.thickness`).
 
 The contract types for the deferred items stay in this document as the agreed shape; the extraction plan does not add them to code.
 - Master plan packet E02 asks for human approval of the engine foundation; second-world validation (F02) follows.
@@ -541,3 +543,19 @@ Not raised by Veyra and added by this contract: instance isolation (section 8), 
 6. **A world switch is a full remount**, not a transition.
 7. **Preview instances take no input, URL or storage.** This is the isolation story for the platform's mini octopuses.
 8. **Arm physics is gone from the engine**, per the orchestrator; the 2026-10-26 section 9.3 is not implemented by this work.
+
+## 18. Amendment A1: gaps found by Veyra's plan (draft, pending the owner's combined approval)
+
+Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found five gaps against this contract and left the contract unedited. Each is answered below as data or a closed variant. Flux and Aether may add gaps; the owner approves one combined amendment, so this section may grow before approval. Sections 6.3, 6.4 and 14.1 carry the matching in-line edits, marked *(A1)*.
+
+| Gap | Need | Decision |
+|---|---|---|
+| G1 | `EXPRESSIONS` is an engine constant; Veyra needs a different tech-focus face | **Accepted, plumbed in E02.** `CharacterConfig.expressions` overrides merge over the base table through `resolveExpressions(config)`; `PoseBlender`, `Octopus` and the URL parser read the resolved table. No new `ExpressionId`: an override of an existing id. Nox has none, so its faces are unchanged. Veyra's values land in F01. |
+| G2 | The entrance spin is a fixed full golden-spiral turn; Veyra wants a 200-degree glide turn | **Accepted.** `SequenceSet` carries `entrance: EntranceShape = { turn: number; spiral: boolean }`. E02 reads `turn` and `spiral` from data with Nox's values (`2 pi`, `true`; the type admits only `spiral: true` until F01) and proves the outputs unchanged against fixtures. The non-spiral path is built in F01 with Veyra (the closed-variant rule: no user yet). |
+| G3 | `camera.hover` is an amount; Veyra wants a slower period too | **Accepted.** `camera.hover: { amount, pace }`; the drift's clock is `t * pace`. Nox `pace: 1`. Veyra's fallback (a lower amount) is no longer needed. |
+| G4 | `flourishRate` needs a shared idle-flourish ambient layer | **Accepted, built in F01.** A shared layer `engine/behavior/flourish.ts`, driven by `Personality.flourishRate` (events per minute; 0 is none, so Nox is unchanged). It joins the other deferred personality fields in 14.1. |
+| G5 | `SequenceId` is a closed union; Veyra's bloom needs its own sheet | **Accepted, derived rather than open.** `SequenceId` becomes `'entrance' \| 'headSwell' \| 'arrival' \| AppearSheet`, where `AppearSheet` is the `sheet` field of each entry in the appear table (`APPEARS.blow.sheet = 'bubbleBlow'`, `APPEARS.bloom.sheet = 'bloom'` in F01). A bundle must supply the sheets its own modules need; `validateBundle` checks it. Nox's Theatre sheet names do not change, so its JSON is untouched. |
+
+Not changed: G6 (the first milestone's backdrop is an empty kit plus water colours, which the contract already allows) and G7 (tip spirals as authored pose points; Veyra raises it if ambient curl unrolls them).
+
+Everything here keeps Nox's output unchanged and the Nox migration map (section 11) intact: each new field has an absent or neutral default that reproduces today's behaviour.
