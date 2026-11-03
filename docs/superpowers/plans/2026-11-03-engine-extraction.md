@@ -54,7 +54,7 @@ See spec 6.1 for the full tree. New files this plan creates:
 - `src/engine/host/WorldHost.tsx`: mounts a bundle; replaces `App.tsx`.
 - `src/engine/types/bundle.ts`: `WorldBundle` and its parts.
 - `src/engine/character/headEffects/index.ts`, `glyphs.ts`: `HEAD_EFFECTS`.
-- `src/engine/artifacts/strategies.ts`: `ARTIFACT_STRATEGIES` (`orbit`).
+- `src/engine/artifacts/strategies.ts`: the `PLACEMENTS`, `APPEARS` and `SELECTS` tables (Nox's `orbit`, `blow`, `suctionHold` only).
 - `src/engine/ui/theme.ts`: `UiTheme` to CSS custom properties.
 - `src/worlds/nox/bundle.ts` and the Nox files moved under `src/worlds/nox/`.
 - `src/worlds/index.ts`: `WORLDS: Record<WorldId, WorldBundle>`, `resolveWorld(search)`.
@@ -191,7 +191,7 @@ See spec 6.1 for the full tree. New files this plan creates:
 
 ---
 
-### Task 7: Head effect and artifact strategy tables
+### Task 7: Head effect and artifact strategy tables (placement, appear, select)
 
 **Files:**
 - Create: `src/nox3d/character/headEffects/index.ts`, `headEffects/glyphs.ts`, `artifacts/strategies.ts`, `artifacts/strategies.test.ts`, `character/headEffects/headEffects.test.ts`
@@ -200,11 +200,13 @@ See spec 6.1 for the full tree. New files this plan creates:
 **Interfaces:**
 - Produces:
   - `HEAD_EFFECTS = { none: noneEffect, glyphs: glyphsEffect } as const` and `type HeadEffectId = keyof typeof HEAD_EFFECTS` in `headEffects/index.ts`; `interface HeadEffectModule { create(dome: DomeShape, palette: Palette): HeadEffectRuntime }`; `interface HeadEffectRuntime { update(swell: number, frame: DomeFrame, clockSeconds: number): void; dispose(): void }`; `DomeFrame` is the dome placement the swell already computes (`HeadDraw`).
-  - `interface ArtifactConfig { strategy: 'orbit'; appear: 'blow'; select: 'suctionHold'; orbit: { shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; centreY: number; halfHeight: number; squareness: number; swellPush: number } }` and `ARTIFACT_STRATEGIES = { orbit: orbitStrategy } as const` in `strategies.ts`. `NOX_ARTIFACTS: ArtifactConfig` holds today's `NOX_SHELLS`, `SIZE`, `CENTRE_Y`, `HALF_HEIGHT`, `SQUARENESS`, `SWELL_PUSH` values.
+  - In `strategies.ts`: three tables, `PLACEMENTS = { orbit: orbitPlacement }`, `APPEARS = { blow: blowAppear }`, `SELECTS = { suctionHold: suctionSelect }`, each `as const`, with `type PlacementKind = keyof typeof PLACEMENTS`, `type AppearId = keyof typeof APPEARS`, `type SelectId = keyof typeof SELECTS`.
+  - `type PlacementConfig = { kind: 'orbit'; shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; centreY: number; halfHeight: number; squareness: number; swellPush: number }` (the union gains `pendant` in F01); `interface ArtifactConfig { placement: PlacementConfig; appear: AppearId; select: SelectId }`. `NOX_ARTIFACTS: ArtifactConfig` holds today's `NOX_SHELLS`, `SIZE`, `CENTRE_Y`, `HALF_HEIGHT`, `SQUARENESS`, `SWELL_PUSH` values with `appear: 'blow'`, `select: 'suctionHold'`.
+  - The blow (`sequences/bubbleBlow.ts`) and suction hold (`artifacts/suctionHold.ts`) stay shared modules; `TechBubbles` and `Octopus` call them through the tables, not by name.
 
-- [ ] **Step 1: Write failing tests.** `headEffects.test.ts`: `Object.keys(HEAD_EFFECTS)` equals `['none','glyphs']`; the glyph module's `create(NOX.dome, NOX.palette)` returns a runtime whose `update(0.5, frame, 1)` writes without throwing and whose draw output equals the pre-change `createHeadGlyphs` output for the same inputs (reuse the existing `headGlyphs` test's fixture); `dispose()` is idempotent. `strategies.test.ts`: `layoutOrbits(count, NOX_ARTIFACTS.orbit.shells, 'intro')` equals the old result (hard-code a 5-bubble fixture from the current output); an unknown strategy id is a type error (`// @ts-expect-error`).
+- [ ] **Step 1: Write failing tests.** `headEffects.test.ts`: `Object.keys(HEAD_EFFECTS)` equals `['none','glyphs']`; the glyph module's `create(NOX.dome, NOX.palette)` returns a runtime whose `update(0.5, frame, 1)` writes without throwing and whose draw output equals the pre-change `createHeadGlyphs` output for the same inputs (reuse the existing `headGlyphs` test's fixture); `dispose()` is idempotent. `strategies.test.ts`: `layoutOrbits(count, NOX_ARTIFACTS.placement.shells, 'intro')` equals the old result (hard-code a 5-bubble fixture from the current output); `Object.keys(PLACEMENTS)`, `Object.keys(APPEARS)` and `Object.keys(SELECTS)` equal `['orbit']`, `['blow']` and `['suctionHold']`; an artifact config naming `placement.kind: 'pendant'`, `appear: 'bloom'` or `select: 'armLift'` is a type error (`// @ts-expect-error`: they arrive in F01).
 - [ ] **Step 2: Run**; expected FAIL.
-- [ ] **Step 3: Implement.** Move the glyph code into the table module with colours from `palette.effect`; `Octopus` looks up `HEAD_EFFECTS[config.headEffect ?? 'none']`; `TechBubbles` reads orbit constants from the bundle's `ArtifactConfig` (passed as a prop) instead of importing `NOX_SHELLS` and `NOX.head`; `bubbleLive.sides` uses the face origin passed in.
+- [ ] **Step 3: Implement.** Move the glyph code into the table module with colours from `palette.effect`; `Octopus` looks up `HEAD_EFFECTS[config.headEffect ?? 'none']`; `TechBubbles` reads its placement constants from the bundle's `ArtifactConfig` (passed as a prop) instead of importing `NOX_SHELLS` and `NOX.head`, and picks the appear and select behaviours from `APPEARS[config.appear]` and `SELECTS[config.select]`; `bubbleLive.sides` uses the face origin passed in.
 - [ ] **Step 4: Run** the full suite and typecheck; expected pass.
 - [ ] **Step 5: Stills** including `swell=0.4`, `blow=0.25`, `hold=500`; expected exit 0.
 - [ ] **Step 6: Commit** `refactor(nox3d): head-effect and artifact-strategy tables`.

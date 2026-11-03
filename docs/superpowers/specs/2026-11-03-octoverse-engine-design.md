@@ -284,7 +284,7 @@ Closed variant sets, with who needs them:
 |---|---|---|
 | `HeadEffectId` | `'none'`, `'glyphs'` (Nox) | `'vaultDial'` (Veyra) in F01 |
 | `skin.mode` | `'skin'`, `'jelly'` | `'jelly'` in F01, built against Veyra |
-| `ArtifactConfig.strategy` | `'orbit'` (Nox) | `'pendant'` (Veyra) once the owner settles item 5 below |
+| `ArtifactConfig.placement`, `.appear`, `.select` | `'orbit'`, `'blow'`, `'suctionHold'` (Nox) | `'pendant'`, `'bloom'`, `'armLift'` (Veyra, owner decision 2026-11-03) in F01 |
 | `floor.material`, extra live elements | `'lava-cracks'` | with the world that needs each |
 
 `HEAD_EFFECTS`, `ARTIFACT_STRATEGIES` and the like are plain `Record<Id, Module>` tables in the engine, and the id unions are derived from them (`type HeadEffectId = keyof typeof HEAD_EFFECTS`). Adding a variant is therefore one module, one table entry and one test, with no other edit to shared code. That meets Veyra's real concern (a closed union scattered through shared code would force edits there) without runtime registration. It is the same weight as the master plan's "shared extension points" in F02.
@@ -305,23 +305,34 @@ export interface HeadEffectRuntime {
 
 Nox's glyph effect (`headGlyphs.ts`) becomes the `'glyphs'` module with its colours read from the palette, not literals.
 
-### 9.2 Artifact strategy (item 5: provisional)
+### 9.2 Artifact strategies (decided: per world)
 
-The shared parts do not vary: orb glass look, logo textures, HTML buttons that follow the artifact, tooltip, keyboard and touch access, phone tray, overflow tray. The strategy decides three things:
+The owner chose pendants for Veyra (2026-11-03). Placement, appear and select are three independent per-world strategies, each a closed table in the engine (`PLACEMENTS`, `APPEARS`, `SELECTS`; ids derived from the tables). Blow and suction hold stay shared modules that Nox uses.
+
+The shared parts do not vary: orb glass look, logo textures, HTML buttons that follow the artifact, tooltip, keyboard and touch access, phone tray, overflow tray (never extra arms).
 
 ```ts
+export type PlacementConfig =
+  | { kind: 'orbit'; shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; centreY: number; halfHeight: number; squareness: number; swellPush: number }
+  | { kind: 'pendant'; slots: Record<'intro' | 'overview', readonly PendantSlot[]>; maxPerArm: 2; tether: TetherStyle };
+
+/** A glass orb hangs on a short tether from the arm at arc fraction `at` (0 root, 1 tip); `order` is the technology's rank for the slot. */
+export interface PendantSlot { arm: ArmId; at: number; order: number }
+
 export interface ArtifactConfig {
-  strategy: 'orbit' | 'pendant';
-  /** How artifacts appear (Nox: blown from the mouth; Veyra: bloomed from a cup). */
-  appear: 'blow' | 'bloom';
-  /** How one is chosen (Nox: suction hold; Veyra: its arm lifts its own orb). */
-  select: 'suctionHold' | 'armLift';
-  orbit?: { shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; /* centre, squareness, swell push */ };
-  pendant?: { slots: Record<'intro' | 'overview', readonly { arm: ArmId; at: number; order: number }[]>; maxPerArm: number; tether: TetherStyle };
+  placement: PlacementConfig;
+  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup). */
+  appear: AppearId;
+  /** How one is chosen: 'suctionHold' (Nox: the arm pulls it to its tip and lifts it) or 'armLift' (Veyra: its own arm lifts its orb toward the pointer). */
+  select: SelectId;
 }
 ```
 
-For Nox, `strategy: 'orbit'`, `appear: 'blow'`, `select: 'suctionHold'` and `orbit` is today's `NOX_SHELLS` and constants. `pendant` is specified here so the type is honest but is **not built** until the owner approves it for Veyra; the engine ships `orbit` only. No physics: a pendant swings procedurally from the arm's own motion.
+- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: 'blow'`, `select: 'suctionHold'`.
+- **Veyra:** `placement.kind: 'pendant'`: orbs on short tethers at arm arc-length slots, at most two per arm, the tether swinging **procedurally** from the owning arm's motion (a driven sine on the arm's own velocity; no physics). `appear: 'bloom'`: each orb grows out of a cup on its arm. `select: 'armLift'`: on hover, focus or tap the owning arm lifts its orb toward the pointer, the orb grows and glows, and the tooltip shows (P4).
+- **Combinations are independent.** Nothing requires a placement to pair with one appear or select; a world may mix (for example, orbit placement with `armLift`). The tooltip, buttons and tray read positions from the instance's `bubbleLive` whichever strategy writes them.
+- **Slot rules.** The pendant slots map arms to technologies by `order` in the project's declared technology order. With more technologies than slots (at most 16 slots against the 15 primary technologies), the extras go to the tray, as today.
+- **Built in F01.** E02 ships the three tables with Nox's entries only and the `PlacementConfig` union with `orbit`; the `pendant`, `bloom` and `armLift` modules are added in F01 with Veyra (spec 14.1).
 
 ## 10. Coordinate conventions
 
@@ -430,13 +441,13 @@ Each new world is a directory with a bundle and its assets, and engine changes o
 
 ### 12.2 Veyra (the second-world proof)
 
-Reconciled with the Veyra session's list (section 15). Needs engine variants: no cheeks, jelly skin mode, sparkle term, `vaultDial` head effect, `pendant` artifacts if approved, a world-defined relic and light vocabulary, a floor material, kelp and seagrass live elements.
+Reconciled with the Veyra session's list (section 15). Needs engine variants: no cheeks, jelly skin mode, sparkle term, `vaultDial` head effect, `pendant` placement with `bloom` and `armLift`, a world-defined relic and light vocabulary, a floor material, kelp and seagrass live elements.
 
 ### 12.3 Flux and Aether (from the references; to be confirmed by their own design sessions)
 
 These are read from `Flux.jpeg` and `Aether.jpeg`, not from a design. They are closer to Nox in kind, which is the point of the order: engine owner approves anything beyond data.
 
-- **Flux:** blue-violet body, brighter and more energetic. A server-and-pipeline realm with a GitHub shield gate. Orbs hang at arm ends and arms spread wide; the references show the same pendant-style layout as Veyra, so Flux will likely reuse `pendant` if it exists. Likely needs: a floor and relic vocabulary for server racks, a gate prop.
+- **Flux:** blue-violet body, brighter and more energetic. A server-and-pipeline realm with a GitHub shield gate. Orbs hang at arm ends and arms spread wide; the references show the same pendant-style layout as Veyra, so Flux will likely reuse `pendant`, which Veyra's work builds. Likely needs: a floor and relic vocabulary for server racks, a gate prop.
 - **Aether:** indigo-pink, translucent jellyfish glow, a crown, floating particles, an AI-brain gate, jellyfish live elements. Likely needs: a translucent skin tint, a jellyfish live element, orbiting particle dots.
 - **Platform (O):** a different shape: a landing, an explore view of mini octopuses, a creator preview, a profile. Mini octopuses are **preview instances** of the same engine (section 8.4). That is the first place multi-instance isolation is exercised for real.
 
@@ -500,7 +511,7 @@ Source: Veyra's full answers, relayed 2026-11-03 (they supersede its first list)
 | 2 | "Jelly glass" mantle mode, single pass; sparkle term; no hue assumed by shaders | Accepted. `skin.mode`, `skin.sparkle`, the hard-coded hue list in 4.2 moves to config. The jelly shader is built against Veyra in F01, not speculatively now. |
 | 3 | Face fully from config; expression presets per character | Accepted. Lash count and style, brow thickness and an expression tuning table become config. |
 | 4 | `HeadEffectId` an open registry; `vaultDial`; the effect gets swell progress and the dome frame | **Modified.** A `HEAD_EFFECTS` table in the engine with the id union derived from it, so adding `vaultDial` is one module and one entry with no other shared-code edit. No runtime registration. The module receives the swell progress and dome frame (9.1). |
-| 5 | Tech artifact strategy per world (layout strategy as data); Nox `orbit`, Veyra `pendant` or reuse of the Nox shells; appear (bloom from a cup) and select (arm lifts its orb) per world | **Provisional (owner deciding).** The type carries both (9.2); only `orbit` is built. If the owner picks the shells for Veyra, no new strategy is needed. `pendant`, `bloom` and `armLift` are built in F01 if the owner picks them. Blow and suction hold stay shared modules either way. |
+| 5 | Tech placement, appear and select as per-world strategies; Nox `orbit`, `blow`, `suctionHold`; Veyra `pendant`, `bloom`, `armLift` | **Decided by the owner, 2026-11-03.** Three independent closed tables (9.2). E02 ships Nox's entries; F01 builds Veyra's three modules. Blow and suction hold stay shared modules. |
 | 5b | The entrance's gate with an animatable part (padlock ring turns and clicks), tested against Veyra's layout | Accepted, new since the first list: `place.props` and `SequenceSet.kitDrives` (6.4). |
 | 5c | Face anchor per character (the face sits lower on a taller dome) | Already in the contract: the anchor is derived per character from its head and poses by one shared function, and the two duplicated anchor computations collapse into it (11.6). |
 | 6 | Poses owned by the character; blender shared | Accepted (6.2, 7). |
@@ -524,7 +535,7 @@ Not raised by Veyra and added by this contract: instance isolation (section 8), 
 
 1. **Approach B** (engine and worlds split) over parameterizing in place or copying. The owner has not yet confirmed it; approving this document confirms it.
 2. **Variation by closed tables**, not open registries; this overrides Veyra's wording and keeps the "no speculative plugin systems" rule.
-3. **`pendant` specified, not built**, until item 5 is settled.
+3. **Pendants for Veyra are decided** (owner, 2026-11-03). Placement, appear and select are three independent closed tables; E02 builds Nox's entries and F01 builds `pendant`, `bloom` and `armLift`.
 4. **`StageId` is the only stage vocabulary**; the SVG-era `SCENE_STATES` and `Project.placements` are removed from the content contract.
 5. **Legacy `__nox*` globals stay** so the e2e suite passes untouched.
 6. **A world switch is a full remount**, not a transition.
