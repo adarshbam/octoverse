@@ -70,7 +70,7 @@ The owner asked to speed up by running unrelated tasks at the same time. Two lan
 
 ## Deferred owner fixes (do not start until the owner asks)
 
-- **Intro start (owner, 2026-11-02):** "It starts with a black screen and then octopus appears, so I'm not able to see anything properly." The owner wants the intro readable from the first frame and a better frame rate, later, not now. Likely causes: the world waits on the kit and plate while tier detection settles on tier low after about 8 s.
+- **Intro start (owner, 2026-11-02): done** (363cbca, ledger R72): boot veil with the title from the first paint, no white flash, the entrance plays after the world is ready. Remaining: the kit/plate load time itself.
 
 ## Token plan (owner-approved 2026-11-02, governs how the work runs)
 
