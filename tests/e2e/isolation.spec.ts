@@ -4,14 +4,14 @@ import { type Page, expect, test } from '@playwright/test';
 // timer, listener, id or storage. A is a page instance, B a preview unless a test says otherwise.
 // Each instance is in a cell, `[data-slot="a"]` and `[data-slot="b"]`.
 
-const multi = (query: { a?: string; b?: string; amode?: 'page' | 'preview'; bmode?: 'page' | 'preview'; showb?: '0' } = {}) => {
+const multi = (query: { a?: string; b?: string; amode?: 'page' | 'preview'; bmode?: 'page' | 'preview'; showb?: '0'; strict?: '0' } = {}) => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, value);
   return `/src/app/multi.html?${params}`;
 };
 const cell = (page: Page, slot: 'a' | 'b') => page.locator(`[data-slot="${slot}"]`);
 
-type Win = { __listenerCount?: (type: string) => number; __storageCalls?: string[]; __noxReady?: boolean; __noxEntrance?: { loaded: boolean }; __octoverse?: { ready: boolean; entrance?: unknown }; __noxCamera?: unknown; __noxHold?: unknown };
+type Win = { __listenerCount?: (type: string) => number; __listenerCalls?: (type: string) => { added: number; removed: number }; __storageCalls?: string[]; __noxReady?: boolean; __noxEntrance?: { loaded: boolean }; __octoverse?: { ready: boolean; entrance?: unknown }; __noxCamera?: unknown; __noxHold?: unknown };
 const listenerCount = (page: Page, type: string) => page.evaluate(t => (window as unknown as Win).__listenerCount!(t), type);
 
 const FOCUS_KALI = 'stage=techFocus&tech=kali&freeze';
@@ -181,4 +181,63 @@ test('(e) control: a page instance does record the entrance as seen and does rep
   expect(seen.flag).toBe('1');
   expect(seen.ready).toBe(true);
   expect(seen.sameEntrance).toBe(true);
+});
+
+// multi.html renders under StrictMode (`?strict=0` turns it off), which mounts every instance twice
+// over: mount, clean up, mount again. This is the real check that an instance undoes what it sets up,
+// registers its listeners once, and makes its Theatre project and loads its sheets once (`getProject`
+// throws on a second project with an id, and a failed sheet logs): the same page with and without
+// StrictMode ends with the same live listeners at every step, none leaked and none doubled.
+test('(f) under StrictMode a page instance mounted, unmounted and remounted registers its listeners once and loads its sheet once', async ({ page }) => {
+  const TYPES = ['keydown', 'pointerdown', 'pointermove', 'resize'];
+  const counts = () => Promise.all(TYPES.map(type => listenerCount(page, type)));
+  const calls = (type: string) => page.evaluate(t => (window as unknown as Win).__listenerCalls!(t), type);
+  const run = async (strict: boolean) => {
+    const problems: string[] = [];
+    page.removeAllListeners('pageerror');
+    page.removeAllListeners('console');
+    page.on('pageerror', error => problems.push(`pageerror: ${error.message}`));
+    page.on('console', message => {
+      // (A failed resource, such as the favicon, and the world's own slow kit are not the sheet's.)
+      const text = message.text();
+      if ((message.type() === 'error' && !/Failed to load resource/.test(text)) || /the entrance did not load|already exists|getProject|Theatre/i.test(text)) problems.push(`${message.type()}: ${text}`);
+    });
+    // Open in the intro with motion on: the blow's and the head swell's sheets load, as the entrance's does on a first visit.
+    await page.goto(multi({ a: 'stage=intro', b: 'stage=intro', bmode: 'page', showb: '0', ...(strict ? {} : { strict: '0' as const }) }));
+    await expect(cell(page, 'a').locator('.orb-button')).toHaveCount(15);
+    await page.waitForFunction(() => (window as unknown as Win).__noxReady === true, undefined, { timeout: 90_000 });
+    const steps: Record<string, number[]> = { mounted: await counts() };
+    const first = await calls('keydown');
+    // StrictMode really ran the page instance's first mount twice (added, removed, added again); without it, once.
+    if (strict) expect(first.removed, 'the StrictMode clean-up ran').toBeGreaterThanOrEqual(1);
+    else expect(first.removed).toBe(0);
+    expect(steps.mounted[0]).toBeGreaterThanOrEqual(2);
+    for (const round of ['first', 'second']) {
+      await page.getByRole('button', { name: 'Mount B' }).click();
+      await expect(cell(page, 'b').locator('.orb-button')).toHaveCount(15);
+      steps[`with B, ${round} mount`] = await counts();
+        await page.getByRole('button', { name: 'Unmount B' }).click();
+      await expect(cell(page, 'b')).toHaveCount(0);
+      steps[`B unmounted, ${round} time`] = await counts();
+      }
+    // One Theatre project, one load: the app's own promise is the loader's (a second call is that promise).
+    const shared = await page.evaluate(async () => {
+      const loader = await import('/src/nox3d/sequences/nox.sequences.ts');
+      return loader.loadNoxSequences() === loader.loadNoxSequences();
+    });
+    expect(shared).toBe(true);
+    return { steps, problems };
+  };
+
+  const strict = await run(true);
+  const plain = await run(false);
+  expect(strict.problems, 'no failed sheet, no duplicate project, no error').toEqual([]);
+  expect(plain.problems).toEqual([]);
+  // B mounted adds listeners, and unmounting it takes exactly those off again, as many times as it is done.
+  expect(strict.steps['with B, first mount'][0]).toBeGreaterThan(strict.steps.mounted[0]);
+  expect(strict.steps['B unmounted, first time']).toEqual(strict.steps.mounted);
+  expect(strict.steps['with B, second mount']).toEqual(strict.steps['with B, first mount']);
+  expect(strict.steps['B unmounted, second time']).toEqual(strict.steps.mounted);
+  // And StrictMode changes none of it.
+  expect(strict.steps).toEqual(plain.steps);
 });
