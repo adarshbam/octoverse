@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { GlowLightUniforms } from '../character/glowLight';
 import { seeded } from './noise';
+import { WATER_SKY_ORDER } from './drawOrder';
 import { createSnowMaterial } from './particleMaterials';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -73,7 +74,7 @@ export function WaterSky({ world, caustics, opening = 1 }: { world: WorldConfig;
     material.uniforms.uTime.value = now(state);
   });
   return (
-    <mesh material={material} frustumCulled={false} renderOrder={-10}>
+    <mesh material={material} frustumCulled={false} renderOrder={WATER_SKY_ORDER}>
       <sphereGeometry args={[100, 64, 32]} />
     </mesh>
   );

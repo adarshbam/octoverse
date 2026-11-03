@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLight';
+import { SEABED_ORDER } from './drawOrder';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
@@ -193,5 +194,5 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     time.value = now(state);
     motion.set(motionAmount, 0);
   });
-  return <mesh geometry={geometry} material={material} receiveShadow />;
+  return <mesh geometry={geometry} material={material} receiveShadow renderOrder={SEABED_ORDER} />;
 }
