@@ -99,3 +99,84 @@ test('clamps the new glow, lighting and expression fields into safe ranges', () 
   expect(c.glow.core).toBe(NOX.glow.core);
   expect(c.palette.effect).toEqual(NOX.palette.effect);
 });
+
+// Every number the validator clamps, with the value that replaces one that is not a number.
+const poison = <T>(value: T, bad: unknown): T => {
+  if (typeof value === 'number') return bad as T;
+  if (Array.isArray(value)) return value.map(v => poison(v, bad)) as T;
+  if (typeof value === 'object' && value !== null) return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, poison(v, bad)])) as T;
+  return value;
+};
+const clampedNumbers = (bad: unknown) => ({
+  lighting: poison(NOX.lighting, bad),
+  glow: {
+    ...NOX.glow,
+    light: poison(NOX.glow.light, bad),
+    underside: bad as number,
+    aura: poison(NOX.glow.aura, bad),
+    grade: poison(NOX.glow.grade, bad),
+  },
+  armBend: bad as number,
+  armFlatten: bad as number,
+  skin: poison(NOX.skin, bad),
+  personality: { ...NOX.personality, sway: bad as number, curl: bad as number, float: poison(NOX.personality.float, bad), breathPeriod: bad as number, blinkInterval: [bad, bad] as unknown as [number, number] },
+});
+
+test.each([['NaN', Number.NaN], ['Infinity', Number.POSITIVE_INFINITY], ['-Infinity', Number.NEGATIVE_INFINITY], ['a non-numeric string', 'abc'], ['undefined', undefined], ['null', null]])(
+  'a config whose every clamped number is %s reads the Nox default for each, and is finite',
+  (_name, bad) => {
+    const c = clampCharacterConfig({ ...NOX, ...clampedNumbers(bad) } as never);
+    // The defaults are Nox's own values (the table in validate.ts is held to the config).
+    expect(c.lighting).toEqual(NOX.lighting);
+    expect(c.glow).toEqual(NOX.glow);
+    expect(c.armBend).toBe(NOX.armBend);
+    expect(c.armFlatten).toBe(NOX.armFlatten);
+    expect(c.skin).toEqual(NOX.skin);
+    expect(c.personality).toEqual(NOX.personality);
+    const numbers: number[] = [];
+    const walk = (v: unknown) => (typeof v === 'number' ? numbers.push(v) : v && typeof v === 'object' ? Object.values(v).forEach(walk) : undefined);
+    walk([c.lighting, c.glow.light, c.glow.aura, c.glow.grade, c.glow.underside, c.skin, c.personality.float, c.personality.blinkInterval]);
+    expect(numbers.length).toBeGreaterThan(30);
+    for (const n of numbers) expect(Number.isFinite(n)).toBe(true);
+  },
+);
+
+test('a NaN reaches neither the aura shader\'s below-start nor the point light', () => {
+  const nan = Number.NaN;
+  const c = clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, aura: { ...NOX.glow.aura, belowStart: nan }, light: { ...NOX.glow.light, intensity: nan, distance: nan, decay: nan } } });
+  expect(c.glow.aura.belowStart).toBe(0.75);
+  expect(c.glow.light).toEqual({ color: NOX.glow.light.color, intensity: 5, distance: 6, decay: 2 });
+  expect(c.glow.aura.belowStart.toFixed(4)).toBe('0.7500');
+});
+
+test('a colour string that does not parse reads the Nox default for its field; ones that do pass as given', () => {
+  const bad = { ...NOX, lighting: { ...NOX.lighting, key: { ...NOX.lighting.key, color: 'violet' }, haze: { ...NOX.lighting.haze, color: '#12' } }, glow: { ...NOX.glow, core: 'not a colour', light: { ...NOX.glow.light, color: '' } }, palette: { ...NOX.palette, orbFocus: 12 as unknown as string, effect: { halo: 'rgba(1,2,3,0.5', stroke: '#gggggg', core: '#ffb49c' } } };
+  const c = clampCharacterConfig(bad);
+  expect(c.glow.core).toBe(NOX.glow.core);
+  expect(c.glow.light.color).toBe(NOX.glow.light.color);
+  expect(c.palette.orbFocus).toBe(NOX.palette.orbFocus);
+  expect(c.palette.effect).toEqual(NOX.palette.effect);
+  expect(c.lighting.key.color).toBe(NOX.lighting.key.color);
+  expect(c.lighting.haze.color).toBe(NOX.lighting.haze.color);
+  const fine = clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, core: '#abc', light: { ...NOX.glow.light, color: 'rgb(10, 20, 30)' } }, palette: { ...NOX.palette, effect: { halo: 'rgba(10,20,30,0.25)', stroke: 'hsl(120, 50%, 50%)', core: '#A1B2C3' } } });
+  expect(fine.glow.core).toBe('#abc');
+  expect(fine.glow.light.color).toBe('rgb(10, 20, 30)');
+  expect(fine.palette.effect).toEqual({ halo: 'rgba(10,20,30,0.25)', stroke: 'hsl(120, 50%, 50%)', core: '#A1B2C3' });
+});
+
+test('the light direction is copied, and a bad one reads the default', () => {
+  const c = clampCharacterConfig(NOX);
+  expect(c.lighting.key.direction).toEqual(NOX.lighting.key.direction);
+  expect(c.lighting.key.direction).not.toBe(NOX.lighting.key.direction);
+  const bad = clampCharacterConfig({ ...NOX, lighting: { ...NOX.lighting, key: { ...NOX.lighting.key, direction: [Number.NaN, 1, 0] } } });
+  expect(bad.lighting.key.direction).toEqual(NOX.lighting.key.direction);
+});
+
+test('an expression override keeps only the keys the face has', () => {
+  const c = clampCharacterConfig({
+    ...NOX,
+    expressions: { curious: { browLift: 0.5, nonsense: 3, puff: 0.5, mouthRound: 2, blush: Number.NaN } as never, gentle: { __proto__: null, lidRest: 0.1, extra: 1 } as never },
+  });
+  expect(c.expressions).toEqual({ curious: { browLift: 0.5, puff: 0.5, mouthRound: 1 }, gentle: { lidRest: 0.1 } });
+  expect(Object.keys(c.expressions!.curious!)).not.toContain('nonsense');
+});

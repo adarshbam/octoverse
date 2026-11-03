@@ -44,6 +44,9 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
 /** Every expression id, in the base table's order (the URL parser accepts these). */
 export const EXPRESSION_IDS = Object.keys(EXPRESSIONS) as readonly ExpressionId[];
 
+/** Every key of `ExpressionParams`, the optional ones included: the keys an override may set. */
+export const EXPRESSION_PARAM_KEYS = [...Object.keys(GENTLE), 'puff', 'mouthRound'] as readonly (keyof ExpressionParams)[];
+
 /**
  * The faces a character wears: the base table with the character's own overrides merged over it,
  * key by key (amendment A1, G1). No new ids: an override changes an existing face. A character
