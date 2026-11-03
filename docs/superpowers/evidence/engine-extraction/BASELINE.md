@@ -2,6 +2,8 @@
 
 Taken on the final Nox tip, branch `feat/nox-3d`, base commit `5045956` (docs only above the code tip `910bb11`). The baseline commit is the commit that adds this file (ruling R-E2): "unmodified" for the e2e specs means byte-identical to it. Every later task compares against what is here.
 
+**Recaptured at Task 1b (R-E7).** The stills, `floor.json` and `check_stage.txt` in this folder are a second capture of the same commit (`a8fc1b9`, taken from a detached worktree of it), made with a gate that waits for the page to be ready instead of a fixed 4.5 s. The first capture (in git history at `a8fc1b9`) raced the world kit under load: the same code gave stills with and without the pillars, and `techFocus` differed by 3 to 26 mean from one capture to the next. Section 3 and 4 below describe the new capture; everything else (tests, lint, perf, drift rows) is unchanged and still dated at `a8fc1b9`.
+
 Machine state: other Claude sessions were building on 5195 and 5196 the whole time, so everything below was taken "under load" (R-E3). CPU is the mean of five 1-second samples from `.superpowers/sdd/2026-11-03-nox-perf/cpu.ps1`.
 
 ## 1. Test count (vitest)
@@ -117,6 +119,8 @@ bash docs/superpowers/evidence/engine-extraction/capture-set.sh <outdir>
 python scripts/still_compare.py docs/superpowers/evidence/engine-extraction/baseline <outdir> --floor docs/superpowers/evidence/engine-extraction/floor.json --boxes docs/superpowers/evidence/engine-extraction/face-boxes.json
 ```
 
+How a capture waits (Task 1b): `scripts/stage-capture.mjs` and `scripts/world-capture.mjs` call `waitForReady` in `scripts/capture-ready.mjs`, which waits for `window.__noxReady === true` (set 40 frames after the world's kit and the far plate are in; confirmed set under `?freeze` and `?stage=entering&t=..`), then for the Theatre sequence sheet (`loadSequences()`, which `__noxReady` does not wait for: the entrance, blow and swell stills need it), then a fixed 700 ms settle. Timeout 120 s; a timeout throws and the script exits non-zero. A `?mask` page mounts no `ReadyFlag`, so it waits for the canvas, the sheet and 40 drawn page frames instead. Viewport, scale and query are unchanged. A capture takes about 8 s a page instead of 4.5 s.
+
 Exit 0 is the gate. Each still has its `-mask.png` (white silhouette); the masks are exact geometry and measure a difference of 0 between captures.
 
 | File | Command (`node scripts/stage-capture.mjs <stage> <out> [extra]`) | Size |
@@ -153,15 +157,19 @@ Fixed pixel regions, 240 x 200 = 48000 px (the size the perf work compared), in 
 
 ## 4. Noise floor
 
-Three captures of the same build under load: `baseline/`, then `baseline-b` and `baseline-c` (kept untracked in `.tmp/` to keep the committed set small). Mean absolute difference (0 to 255) and fraction of pixels over 8 between two captures of the same commit:
+Three captures of the same build (`a8fc1b9`) on the ready-waiting gate, taken one after another under load (CPU 12 to 20% from other sessions): `baseline/`, then `baseline-b` and `baseline-c` (untracked, `.tmp/`). Mean absolute difference (0 to 255) and fraction of pixels over 8 between two captures:
 
-- Masks: 0 (identical), except one mask pair of `techFocus` (mean 0.005).
-- Whole stills: mean 0.0005 to 0.18, fraction 0.003% to 0.62%. The noise has two levels: a pair either differs by about 0.25 to 0.4% of pixels (particles, bubbles and motes drift between two runs even under `?freeze`) or by about 0.05 to 0.15%. `techFocus`, `detail` and `world-intro` are the noisiest (0.4 to 0.6%).
-- Face box: mean 0.0000 to 0.004 with maximum 1 (20 in `intro-swell04` once), except `techFocus`, where a bubble in the box gives mean up to 0.22, fraction up to 0.6%, maximum up to 99.
+- Masks: 0 (identical), except one `techFocus` mask pair (mean 0.003).
+- Whole stills: mean 0.010 to 0.19, fraction 0.05% to 0.54%. Every pair of the three lands in the same band (the largest are `world-intro` 0.54%, `detail` 0.38%, `entering-t2` 0.32%, `techFocus` 0.31%; `overview` is 0.05%). The old gate had two noise levels and, worse, races: `intro` and `overview` 9.8 and 6.5 mean (kit drawn or not), `techFocus` 3 to 26.
+- Face box: mean 0.0002 to 0.0033, fraction 0, maximum 1, except `techFocus` (a bubble in the box): mean 0.012 to 0.030, fraction up to 0.035%.
 
-`floor.json` holds, per file (and per face box), `max(measured * 2, 0.05)` mean and `max(measured * 2, 0.0005)` fraction, where `measured` is the largest difference over all three pairs (`still_compare.py --make-floor baseline baseline-b baseline-c --boxes face-boxes.json`).
+What is left is not random: it is one cause. `Embers` (`src/nox3d/world/Particles.tsx`, `useFrame`) sets `uTime` from the real clock (`state.clock.elapsedTime`), not from the world's clock, so the embers sit at a different point of their drift in every capture even under `?freeze`; the bubbles and everything else in the world use `worldTime`. Checked on a scratch copy of the baseline source (not committed): with that one line pinned to a constant, two `intro` captures are bit-identical (mean 0, 0 pixels, max 0). The diff pixels cluster on the lower third (the seabed, where the low embers are). The app was not changed (Task 1b may not edit `src/`); the fix is one line, `uTime` from the `time` prop the way `Bubbles` does it, and would make every still repeatable exactly. Until then the floor below carries it.
 
-Ruling made here: the plan's step takes one pair (A to B). With two noise levels, that pair gave a floor of about 0.1% for files whose other pairs differ by 0.3%, so a correct build would fail the gate. Taking the worst of three pairs keeps the formula and the intent. Result: `baseline` against `baseline-b`, `baseline` against `baseline-c` and `baseline-b` against `baseline-c`, each with `--floor` and `--boxes`, all exit 0. Comparing `baseline` with itself exits 0 with all differences 0. A change of a few percent of pixels still fails.
+`floor.json` holds, per file (and per face box), `max(measured * 2, 0.05)` mean and `max(measured * 2, 0.0005)` fraction, where `measured` is the largest difference over the three pairs (`still_compare.py --make-floor baseline baseline-b baseline-c --boxes face-boxes.json`). Largest whole-still entries: `world-intro` frac 1.07%, `detail` 0.77%, `entering-t2` 0.64%, `techFocus` 0.63%; mean up to 0.38 (`world-intro`).
+
+Ruling kept from Task 1: the worst of three captures, not one pair (the formula is unchanged). Result: `baseline` against each of `baseline-b`, `baseline-c` and the pair b against c passes the floor, and the verification below (two captures of the Task 2 tip) passes it.
+
+Verification (Task 1b): two captures of the Task 2 tip (`bc3a646`, per-instance state) against this baseline, `still_compare.py baseline <set> --floor floor.json --boxes face-boxes.json`: both exit 0 (`PASS`), no retries, no swapped stills. Whole-still mean 0.0007 to 0.19, fraction 0.002% to 0.54%; face boxes within the floor; `check_stage.txt` identical but for the one hex digit named in section 3 (`#171237` or `#181237`). Three captures of this one build, taken before the baseline was cut (`.tmp/det-1..3`, same code as the verification), differ at the same level (mean 0.005 to 0.18, fraction 0.02% to 0.52%).
 
 ## 5. Perf (under load)
 
@@ -178,7 +186,7 @@ These are lower than the quiet-machine numbers of the perf work (about 23 at hig
 ## 6. Reference state
 
 - The six e2e specs, blob ids at this commit (`git diff <this commit> -- tests/e2e/<spec>` must stay empty): detail `72236c1f`, entrance `d5042b92`, keyboard `992b5b87`, world `56a09452`, worldMotion `15216d7b`, worldTiers `44f019d8`. Three more specs exist (`cameraDrift`, `fallback`, `responsive`), added by Job 1 and the lanes.
-- Dev server for stills and perf: `npx vite --config vite.perf.config.ts --port 5191 --strictPort`.
+- Dev server for stills and perf: `npx vite --config vite.perf.config.ts --port 5191 --strictPort`. The Task 1b baseline was captured from a detached worktree of `a8fc1b9` on a second port (5189; 5199 was in use by another session).
 
 ## Drift since 6009863
 
