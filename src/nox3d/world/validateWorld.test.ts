@@ -212,7 +212,7 @@ test('near.glb carries the kitâ€™s pieces, with a lightmap UV set on stone, rock
   expect(readBake().relief.scale).toBeGreaterThan(0);
 });
 
-test('the bake record carries the relief maps’ scale, and a record without it is refused', () => {
+test('the bake record carries the relief maps\' scale, and a record without it is refused', () => {
   const baked = readBake();
   expect(baked.relief.scale).toBeGreaterThan(0);
   expect(typeof baked.relief.encoding).toBe('string');
