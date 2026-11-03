@@ -33,9 +33,11 @@ Flux never forks shared code.
 |---|---|
 | 1 (P2 gate) | E02 Tasks 2 to 11 (`useInstance`, `InstanceState`, `strategies.ts`, `WORLDS`, `resolveWorld`, `--world-id`, `WORLD=` capture); Veyra Task 3 (`SurfaceLook`, `JellySettings`, sparkle), Task 4 (`SuckerStyle`), Task 5 (`resolveExpressions`) |
 | 2 (world) | Veyra Task 8 (`WorldLayout.groups`, `LIVE_ELEMENTS`, `props`), Task 10 (`KIT_MATERIAL_VARIANTS` with `membrane`, `place.materials`), the fish live element. Aether Task 7(d) `sand`, or Flux adds it (Task 7) |
-| 3 (statics) | Veyra Task 13 (`assignPendants`, `pendantSwing`, `tetherCurve`, `threadClearance`, `TetherStyle`, `sizes`); Aether Task 12 (`orbStyle`); E02 `choosableIn` (A1 A3) |
-| 5 (motion) | Veyra Task 16 (`settle`, `glideBias`, `flourishRate`, `flourish.ts`), Task 17 (`EntranceShape`, `spiral: false`), Task 18 (`kitDrives` on `'emissive'`) |
-| 6 (orbs live) | Veyra Task 19 (`bloomState`, `armLift`, `armLiftTarget`, `{ liftMs, overshoot, expression }`) |
+| 3 (statics) | Veyra Task 13 (`assignPendants`, `pendantSwing`, `tetherCurve`, `threadClearance`, `TetherStyle`, `sizes`, and from A2 `pendant.swing?: { maxAngle, settle }` and `pendant.reveal?: { start, span, step }`); Aether Task 12 (`orbStyle`); E02 `choosableIn` (A1 A3) |
+| 5 (motion) | Veyra Task 16 (`settle`, `glideBias`, `flourishRate`, `flourish.ts`, and from A2 `instance.flourish.subscribe(cb)`), Task 17 (`EntranceShape`, `spiral: false`), Task 18 (`kitDrives` on `'emissive'`) |
+| 6 (orbs live) | Veyra Task 19 (`bloomState`, `armLift`, `armLiftTarget`, `{ liftMs, overshoot, expression }`, and the shared `reveal` reader used by `bloom` and `pulse`) |
+
+The A2 items (contract 19.1, X1 to X3) are accepted by the engine owner and pending the owner's A2 approval. If A2 is declined, use the fallbacks in the "Gaps" section.
 | 7 (head swell) | Milestone 3 approved; nothing further from other worlds |
 
 If a needed task has not landed, stop that milestone and report. Never build another world's variant inside Flux's work. The one exception is `'sand'` (A1 A15): whichever of Flux or Aether needs it first adds it.
@@ -454,14 +456,13 @@ Raise this with the engine owner before starting (A1 F4a, F4b, A15).
 ### Task 14: Flux's personality and the idle pulse
 
 **Files:**
-- Modify: `src/worlds/flux/character.ts` (`settle` 1.4, `glideBias` 0.55, `flourishRate` 10)
-- Modify, only if the engine owner accepts gap X1 below: `src/engine/behavior/flourish.ts` (`Personality.flourishPulse: number`, the share of flourishes that fire a pulse, default 0)
-- Test: `src/worlds/flux/motion.test.ts`, and `flourish.test.ts` if X1 is accepted
+- Modify: `src/worlds/flux/character.ts` (`settle` 1.4, `glideBias` 0.55, `flourishRate` 10, `flourishPulse` 0.75)
+- Modify: `src/engine/types/` (`Personality.flourishPulse?: number`, 0 to 1, default 0), `src/engine/config/validate.ts`, `src/engine/character/cupPulse.ts` (the subscription)
+- Test: `src/worlds/flux/motion.test.ts`, `src/engine/character/cupPulse.test.ts`
 
 **Interfaces:**
-- Consumes: `flourish.ts`, `flourishRate`, `settle`, `glideBias` (Veyra Task 16); `firePulse` (Task 5).
-- Produces: with X1, a flourish fires `firePulse` on a random arm with probability `flourishPulse` (Flux 0.75); otherwise it runs Veyra's tip unroll.
-- **Fallback if X1 is declined:** `CupPulse.idle?: { every: readonly [number, number] }`, a schedule inside Flux's own `cupPulse` module. Flux's `flourishRate` then becomes 2.5, for tip flicks only.
+- Consumes: `flourish.ts`, `flourishRate`, `settle`, `glideBias`, `instance.flourish.subscribe(cb: (e: { arm: ArmId; clock: number }) => void): () => void` (Veyra Task 16, A2 X1); `firePulse` (Task 5).
+- Produces: `subscribeIdlePulse(instance: InstanceState, cfg: CharacterConfig): () => void`. On each flourish event, with probability `flourishPulse`, it calls `firePulse` on the event's arm and suppresses that event's tip unroll; otherwise Veyra's unroll runs. It returns the unsubscribe function, which is called on unmount. `flourishPulse` 0 or absent subscribes nothing, so Nox and Veyra are unchanged.
 
 - [ ] **Step 1: Failing tests:**
   - over 600 s of simulated time, idle pulses average one every 6 to 10 s;
@@ -470,7 +471,7 @@ Raise this with the engine owner before starting (A1 F4a, F4b, A15).
   - with `reducedMotion`, no idle pulse fires;
   - Nox's and Veyra's flourish fixtures are unchanged.
 - [ ] **Step 2 to 4:** run (FAIL), implement, run; regression.
-- [ ] **Step 5: Commit** `feat(flux): motion personality and idle pulse` (and `feat(engine): flourish pulse share (for Flux)` if X1).
+- [ ] **Step 5: Commit** `feat(engine): flourish pulse share (for Flux)`, then `feat(flux): motion personality and idle pulse`.
 
 ### Task 15: Flux's entrance with the portal run
 
@@ -508,36 +509,36 @@ Raise this with the engine owner before starting (A1 F4a, F4b, A15).
 
 ### Task 16: Engine variant: pulse appear, lift pulse and swell reveal (A1 F2)
 
-Raise this with the engine owner before starting (F2; and gaps X2 and X3 below).
+Raise this with the engine owner before starting (F2).
 
 **Files:**
 - Create: `src/engine/artifacts/pulseAppear.ts`, `pulseAppear.test.ts`
 - Modify:
   - `strategies.ts` (`APPEARS.pulse`, with no `sheet`, A1 G5);
-  - `armLift.ts` (optional `pulse?: boolean` param: fires `firePulse` on lift);
-  - only if X2 and X3 are accepted: `pendant.ts` (`swing?: { maxAngle, settle }` and `reveal?: { start, span, step }`).
-- Modify: `src/worlds/flux/artifacts.ts`
+  - `armLift.ts` (optional `pulse?: boolean` param: fires `firePulse` on lift).
+- Modify: `src/worlds/flux/artifacts.ts` (`swing` and `reveal` values)
 
 **Interfaces:**
-- Consumes: `bloomState`'s orb channel (Veyra Task 19) for the grow; `firePulse`, `cupPulseAt` (Task 5); `armLiftTarget` (Veyra Task 19).
+- Consumes:
+  - `bloomState`'s orb channel (Veyra Task 19) for the grow;
+  - `firePulse`, `cupPulseAt` (Task 5);
+  - `armLiftTarget` (Veyra Task 19);
+  - `pendant.swing` and `pendant.reveal` (Veyra Task 13, A2 X2 and X3), and the shared `reveal` reader (Veyra Task 19), which `pulse` uses exactly as `bloom` does.
 - Produces:
   - `pulseSchedule(step: number): { arm: ArmId; fireAt: number }[]`: pairs (T1, T8), (T2, T7), (T3, T6), (T4, T5) at 0, `step`, 2·`step`, 3·`step`.
   - `orbGrowStart(slot: PendantSlot, schedule, speed: number): number = fireAt(slot.arm) + slot.at / speed`.
-  - `revealSize(i: number, swell: number, sizes, reveal): number`: from `sizes.intro` to `sizes.overview` over swell `start + step·i` to `start + step·i + span`, clamped.
   - Flux configs:
     - `appear: { kind: 'pulse', step: 0.18 }`;
     - `select: { kind: 'armLift', liftMs: 300, overshoot: 0.12, expression: 'focused', scale: 1.25, threadShorten: 0, pulse: true }`;
-    - `reveal: { start: 0.35, span: 0.3, step: 0.03 }`;
-    - `swing: { maxAngle: 18°, settle: 0.8 }`.
-- **Fallbacks if declined:**
-  - X3 declined: all orbs grow together over swell 0.35 to 0.65.
-  - X2 declined: Veyra's swing constants. Tell the owner the 18-degree bound is not met.
+    - `placement.reveal: { start: 0.35, span: 0.3, step: 0.03 }` (orb *i* grows over swell `start + step·i` to that plus `span`);
+    - `placement.swing: { maxAngle: 18°, settle: 0.8 }`.
 
 - [ ] **Step 1: Failing tests:**
   - `pulseSchedule(0.18)` has 4 pairs, mirrored, ascending;
   - an orb never starts growing before its pulse reaches its slot;
   - with `sizes.intro` 0, the appear leaves every intro orb at size 0, and no button exists in the intro (A3);
-  - `revealSize` is monotonic in swell, 0 at swell ≤ 0.35 and `0.28` at swell 1 for all 16;
+  - with Flux's `reveal`, the shared reader's size is monotonic in swell, 0 at swell ≤ 0.35 and `0.28` at swell 1 for all 16;
+  - with Flux's `swing`, `pendantSwing` stays within 18 degrees for a 3 units/s velocity step and settles within 0.8 s;
   - a swell begun mid-appear still ends every orb at 0.28, and none drops back to 0 (Review Focus 2);
   - a select fires one pulse on the owning arm;
   - a six-orb hover sweep in 600 ms never doubles a pulse on one arm and never has more than three arms pulsing (Review Focus 3);
@@ -612,15 +613,14 @@ Raise this with the engine owner before starting (F2; and gaps X2 and X3 below).
 
 ## Gaps found against the engine contract (to the orchestrator; not edited into the contract)
 
-- **X1: idle pulses through the flourish layer.** F1 says appear, select and sequences fire the trigger; the idle pulse (spec 7.5, 7.8) also needs the flourish layer to fire it.
-  - **Proposal:** `Personality.flourishPulse` (0 to 1, default 0).
-  - **Fallback:** an idle schedule inside Flux's own `cupPulse` module (Task 14).
-- **X2: pendant swing bounds as data.** Veyra's `pendantSwing` fixes 25 degrees and 1.2 s; Flux's spec asks for 18 degrees and 0.8 s.
-  - **Proposal:** `pendant.swing?: { maxAngle, settle }`, defaulting to Veyra's.
-  - **Fallback:** Veyra's constants (Task 16).
-- **X3: per-slot reveal stagger on the swell.** Spec 7.5 grows orbs from size 0 with a swell-range offset per slot.
-  - **Proposal:** `pendant.reveal?: { start, span, step }`; absent means today's size blend.
-  - **Fallback:** all orbs grow together (Task 16).
+All three are accepted by the engine owner into the A2 draft (contract 19.1), pending the owner's A2 approval. The fallbacks apply only if A2 is declined.
+
+- **X1: idle pulses through the flourish layer.** Veyra's Task 16 emits `instance.flourish.subscribe(cb)`. `Personality.flourishPulse` and the cup-pulse subscription are Flux's own work (Task 14).
+  - **Fallback:** an idle schedule inside Flux's `cupPulse` module, `CupPulse.idle?: { every: readonly [number, number] }`, with `flourishRate` 2.5 for tip flicks only.
+- **X2: pendant swing bounds as data.** Veyra's Task 13 builds `pendant.swing?: { maxAngle, settle }`, defaulting to 25 degrees and 1.2 s. Flux sets 18 degrees and 0.8 s (Task 16).
+  - **Fallback:** Veyra's constants; tell the owner the 18-degree bound is not met.
+- **X3: per-slot reveal stagger on the swell.** Veyra's Task 13 adds `pendant.reveal?: { start, span, step }`; Task 19's reader is shared by `bloom` and `pulse` (Task 16).
+  - **Fallback:** all orbs grow together over swell 0.35 to 0.65.
 - **Aligned:**
   - the `armLift` `pulse` flag is the select module calling the F1 trigger, inside F1;
   - "eager" is an override of the existing `focused` id (A1 G1);
