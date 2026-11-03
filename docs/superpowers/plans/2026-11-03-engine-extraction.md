@@ -135,7 +135,7 @@ See spec 6.1 for the full tree. New files this plan creates:
 
 **Files:**
 - Modify: `src/nox3d/config/types.ts`, `config/nox.character.ts`, `config/lighting.ts`, `config/validate.ts`, `character/glowLight.ts`, `character/Octopus.tsx`, `character/auraMaterial.ts`, `character/skinMaterial.ts`, `character/headGlyphs.ts`, `character/headGeometry.ts`, `artifacts/orbMaterial.ts`, `behavior/expressions.ts`, `behavior/poseBlend.ts`, `behavior/urlState.ts`, and their tests.
-- Test: `behavior/expressions.test.ts`, `config/validate.test.ts`, `config/nox.character.test.ts`, `character/headGeometry.test.ts`, `character/auraMaterial.test.ts`, `character/glowLight.test.ts`.
+- Test: `behavior/expressions.test.ts`, `config/validate.test.ts`, `config/nox.character.test.ts`, `character/auraMaterial.test.ts`, `character/glowLight.test.ts`.
 
 **Interfaces:**
 - Produces on `CharacterConfig`: `lighting: StageLighting`; `glow.core: string`; `glow.light: { color: string; intensity: number; distance: number; decay: number }`; `glow.aura.belowStart: number`; `palette.orbFocus: string`; `palette.effect: { halo: string; stroke: string; core: string }`; `expressions?: Partial<Record<ExpressionId, Partial<ExpressionParams>>>` (amendment A1, G1) with `resolveExpressions(config: CharacterConfig): Record<ExpressionId, ExpressionParams>` in `behavior/expressions.ts`; `PoseBlender`, `Octopus` and `urlState` read the resolved table instead of the `EXPRESSIONS` constant (`PoseBlender` takes the table at construction).
