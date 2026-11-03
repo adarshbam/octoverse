@@ -322,14 +322,16 @@ export interface PendantSlot { arm: ArmId; at: number; order: number }
 
 export interface ArtifactConfig {
   placement: PlacementConfig;
-  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup); each kind carries its own parameters (A1, F5). */
-  appear: { kind: AppearId };
+  /** How artifacts appear: 'blow' (Nox: from the mouth) or 'bloom' (Veyra: from a cup); each kind carries its own parameters (A1, F5). `on` says when it runs: after the entrance settles, or with the head swell (A1, Aether A2). */
+  appear: { kind: AppearId; on: 'settle' | 'swell' };
+  /** The stages in which an artifact can be chosen (Nox: both; Aether: the overview only). */
+  choosableIn: readonly ('intro' | 'overview')[];
   /** How one is chosen: 'suctionHold' (Nox: the arm pulls it to its tip and lifts it) or 'armLift' (Veyra: its own arm lifts its orb toward the pointer; carries `liftMs`, `overshoot`, `expression`). */
   select: { kind: SelectId };
 }
 ```
 
-- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: { kind: 'blow' }`, `select: { kind: 'suctionHold' }`.
+- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: { kind: 'blow', on: 'settle' }`, `select: { kind: 'suctionHold' }`, `choosableIn: ['intro', 'overview']`.
 - **Veyra:** `placement.kind: 'pendant'`: orbs on short tethers at arm arc-length slots, at most two per arm, the tether swinging **procedurally** from the owning arm's motion (a driven sine on the arm's own velocity; no physics). `appear: 'bloom'`: each orb grows out of a cup on its arm. `select: 'armLift'`: on hover, focus or tap the owning arm lifts its orb toward the pointer, the orb grows and glows, and the tooltip shows (P4).
 - **Combinations are independent.** Nothing requires a placement to pair with one appear or select; a world may mix (for example, orbit placement with `armLift`). The tooltip, buttons and tray read positions from the instance's `bubbleLive` whichever strategy writes them.
 - **Slot rules.** The pendant slots map arms to technologies by `order` in the project's declared technology order. With more technologies than slots (at most 16 slots against the 15 primary technologies), the extras go to the tray, as today.
@@ -574,3 +576,22 @@ Flux is mostly data on this contract (cheeks kept, `jelly` skin with its own col
 | F5 | `armLift` timing and expression come from the character, not module constants | **Accepted; changes the artifact config shape.** `appear` and `select` become small configs: `appear: { kind: AppearId; ...params }`, `select: { kind: SelectId; ...params }`. `armLift` carries `{ liftMs, overshoot, expression }`; Veyra sets about 450 ms ease-out, Flux about 300 ms with overshoot and a slightly open mouth (an expression override, A1 G1). Nox's `{ kind: 'blow' }` and `{ kind: 'suctionHold' }` keep their module constants. |
 | F6 | `jelly` colour stops hue-free | **Accepted as a build constraint on Veyra's `jelly` work.** Crown, depth and warm-core colours are all config (`skin.jelly: { crown, depth, core }`); no hue constant in the shader. |
 | F7 | Tether length down to about 0; orb size as data | **Accepted.** `pendant.tether.length` admits 0 (a cap only), and `pendant.sizes: Record<'intro' \| 'overview', number>` joins the placement config (9.2). |
+
+### 18.2 Aether's gaps (first list; items A1 to A3 provisional on the owner's approach-A answer)
+
+Aether's proposed approach A: in the intro and detail a tilted gold ring carries five seed beads joined by constellation lines; when the head opens the beads flare, split into the technology orbs and fly to arm-tip pendant slots. Technologies are choosable from the overview on, not in the intro. Items A1 to A3 below hold only if the owner picks approach A; the rest hold under any approach. All are built in Aether's own work (H01) unless marked E02.
+
+| Gap | Need | Decision |
+|---|---|---|
+| A1 | `satellite` placement: a ring rest form plus pendant slots, swell-driven flight between them | **Accepted if approach A.** One entry in `PLACEMENTS`. **Build rule for Veyra's work:** the pendant's slot assignment, tether path and swing are exported as pure functions (`assignSlots`, `tetherPath`, `tetherSwing`) from `engine/artifacts/pendant/`, and Nox's orbit maths (`orbitPoint`, `layoutOrbits`) stays exported, so `satellite` composes them without copying. A placement is built from shared helpers, never from another placement's component. |
+| A2 | The contract never says when an appear runs | **Accepted: a gap in the contract, fixed as data.** `appear: { kind; on: 'settle' \| 'swell' }`. `'settle'` (Nox, Veyra): the appear runs once, after the entrance settles. `'swell'` (Aether): it runs on the head swell into the overview and reverses on close. Every appear module receives `{ stage, swell, dt }` each frame whichever trigger is set. E02 plumbs the field with the type admitting only `'settle'`; `'swell'` is built in H01 (if approach A). |
+| A3 | A stage with zero choosable artifacts (the intro) must work | **Accepted; built and tested in E02.** `ArtifactConfig.choosableIn: readonly ('intro' \| 'overview')[]` (Nox: both). The stage reducer ignores `FOCUS_TECH` in a stage not listed; the bubble buttons and the tray render nothing there; Explore still leads to the overview; keyboard order has no dead stops. |
+| A4 | `HEAD_EFFECTS.synapse` (star nodes, gold lines wiring in a wave, one pulse, dissolve) | **Accepted.** Fits `HeadEffectModule` (9.1). |
+| A5 | A `jellyfish` live element (instanced bell with trailing filaments) | **Accepted** as a closed `LIVE_ELEMENTS` entry, with `packets` and kelp. |
+| A6 | `jelly` and `sparkle` need colour and core position as config, and apply to the arms as well as the mantle | **Accepted as a build constraint on Veyra's `jelly` work.** `skin.jelly: { crown, depth, rim, core: { colour, position }, surfaces: ('mantle' \| 'arms')[] }`, with no hue constant in the shader (with F6). Veyra uses `['mantle']`; Aether `['mantle', 'arms']`. `sparkle` is per surface in the same way. |
+| A7 | Frill cup style as config (pink-white) | **Accepted as a build constraint** on `suckers.style`: colours, glow and size are config. |
+| A8 | Veyra's portal membrane as a shared material with colour parameters | **Accepted.** A `membrane` entry in `KIT_MATERIAL_VARIANTS` (with F4b's `led`), with colour parameters in `place.materials`; Aether's arch reuses it. The brain glyph is a kit node on the existing `'emissive'` prop drive. |
+| A9 | Per-character expression table; `armLift` reads the focus expression from it | **Already in A1/G1 (promoted to E02).** `CharacterConfig.expressions` overrides carry Aether's "wonder"; `select.expression` (F5) names the id. This supersedes the earlier "dropped unless F01 finds a need". |
+| A10 | Floor reuses `'sand'` | No change. |
+| A11 | `artifacts.orbStyle { rimBeads, rimColour, cap }` on the shared orb glass | **Accepted, built in H01.** Data on `ArtifactConfig`; zero beads and no cap is today's look, so Nox is unchanged. |
+| A12 | Curious personality: an idle head tilt and gaze wander | **Cheap form accepted:** `Personality.idleTilt: { amplitude, period }` (0 is none) and `StagePose.lookPoints?: readonly Point2[]` (a per-pose list of look-at points that attention picks from every few seconds; the existing single `look` stays). **Richer form declined:** attention reading live-element positions couples two systems for one world's benefit. Revisit only if H01 shows the cheap form is not enough. Built in H01. |
