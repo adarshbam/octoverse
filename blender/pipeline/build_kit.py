@@ -363,7 +363,7 @@ def build_tower(name, coll, mats, seed, count, lean, break_at, slip, cut_back, d
     barnacle and coral growth over the modules (full detail only)."""
     D = MODULE[detail]
     rng = random.Random(seed)
-    leds = Leds(rng)
+    leds = Leds(random.Random(f"{seed}:leds"))  # its own dice: the geometry's rng is the same at every detail level
     m = Mesh(phase=True)
     pos = Vector((0.0, 0.0, 0.0))
     surfaces = []
@@ -417,7 +417,7 @@ def build_rack_module(name, coll, mats, seed, detail):
     D = MODULE[detail]
     rng = random.Random(seed)
     m = Mesh(phase=True)
-    build_module(m, None, rng, Leds(rng), D, 0.9)
+    build_module(m, None, rng, Leds(random.Random(f"{seed}:leds")), D, 0.9)
     grow(m, rng, [(Matrix.Identity(4), Vector((1, 1, 1)))], D, 10 * D["barnacles"], 3 * D["twigs"])
     return to_object(name, m, coll, mats, smooth=False)
 
@@ -456,9 +456,9 @@ def build_disc(name, coll, mats, detail):
     m = Mesh()
     face_front = Matrix.Translation((0, 0, RING_Z)) @ Matrix.Rotation(math.radians(90), 4, "X")  # +Z -> -Y
     m.prism(RING_R0 - 0.04, RING_R0 - 0.04, 0.1, n, 1, grey(0.5, (0.6, 0.75, 1.0)), face_front @ Matrix.Translation((0, 0, -0.05)))
-    m.prism(RING_R0 - 0.14, RING_R0 - 0.14, 0.07, n, 0, (0.82, 0.93, 1.0, 1.0), face_front @ Matrix.Translation((0, 0, -0.07)))
+    m.prism(RING_R0 - 0.14, RING_R0 - 0.14, 0.07, n, 0, (0.82, 0.93, 1.0, 1.0), face_front)
     if detail == 0:
-        m.prism(0.95, 0.95, 0.03, n, 0, (0.95, 0.98, 1.0, 1.0), face_front @ Matrix.Translation((0, 0, -0.1)))
+        m.prism(0.95, 0.95, 0.03, n, 0, (0.95, 0.98, 1.0, 1.0), face_front @ Matrix.Translation((0, 0, 0.07)))
     uv = m.bm.loops.layers.uv.verify()
     d = 2 * (RING_R0 - 0.14)
     for f in m.bm.faces:
@@ -749,6 +749,8 @@ def build(out):
     # Everything below evaluates and exports the kit's own scene, whatever scene Blender shows.
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
         built = build_pieces(coll)
+        leds = sum(LED_TALLY.values())
+        assert LED_TALLY["amber"] / leds < 0.10, "amber LEDs reach 10%"  # before anything is written
         export(coll)
         raw = RAW.stat().st_size
         compress(RAW, out)
@@ -760,9 +762,7 @@ def build(out):
         lo = Vector((min(v.co[i] for v in full.data.vertices) for i in range(3)))
         hi = Vector((max(v.co[i] for v in full.data.vertices) for i in range(3)))
         print(f"{name}: {tf} triangles, lod1 {tl} ({tl / tf:.0%}); x {lo.x:.2f}..{hi.x:.2f}, y {lo.y:.2f}..{hi.y:.2f}, z {lo.z:.2f}..{hi.z:.2f}")
-    leds = sum(LED_TALLY.values())
     print("LEDs: " + ", ".join(f"{k} {v} ({v / leds:.0%})" for k, v in LED_TALLY.items()) + f" of {leds}")
-    assert LED_TALLY["amber"] / leds < 0.10, "amber LEDs reach 10%"
     print(f"kit total: {total} triangles full, {lod} lod1, {total + lod} together")
     print(f"exported {out}: {raw} bytes raw, {out.stat().st_size} bytes compressed")
 
