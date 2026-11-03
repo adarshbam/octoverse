@@ -18,8 +18,8 @@ import { swimShapes } from '../poses/nox.swim';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
-import { type OrbState, type PlacedOrb, TechOrbs } from '../artifacts/TechOrbs';
-import { ORB_Z, orbRestPosition, tipTarget } from '../artifacts/orbSlots';
+import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
+import { bubbleLive } from '../artifacts/bubbleLive';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -80,9 +80,9 @@ export interface OctopusProps {
   quality?: TierSettings;
   /** Clicking Nox's head (it opens into the overview). */
   onSelect?: () => void;
-  /** Technology orbs the arms carry while the head is open. */
-  orbs?: readonly PlacedOrb[];
-  /** The technology in focus: its arm presents its orb and Nox looks at it. */
+  /** The technology bubbles that orbit Nox once the entrance has settled. */
+  orbs?: readonly PlacedBubble[];
+  /** The technology in focus: its bubble glows and Nox looks at it. */
   focusTechId?: string | null;
   /**
    * The entrance (sequences/entrance.ts), read each frame while the stage is `entering`: its clock
@@ -106,7 +106,7 @@ export interface OctopusProps {
    * then casts the surface light's shadow, and brings his aura, his glow's light and the local grade.
    */
   accents?: AccentLink;
-  /** For measurement captures only: the orbs and the dome glass are not drawn (the arms still carry and present the orbs). */
+  /** For measurement captures only: the bubbles and the dome glass are not drawn. */
   solo?: boolean;
   /** Degrees the whole body turns about its upright axis, on top of the stage's turn: for stills of his back. */
   yaw?: number;
@@ -138,16 +138,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const dome = useRef<THREE.Mesh>(null);
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
-  const orbState = useMemo<OrbState>(
-    () => ({
-      out: 0,
-      focus: new Float32Array(orbs.length),
-      tips: ARM_IDS.map(() => new THREE.Vector2()),
-      armReach: new Float32Array(ARM_IDS.length),
-      driver: new Int8Array(ARM_IDS.length).fill(-1),
-    }),
-    [orbs],
-  );
+  const bubbleState = useMemo<BubbleState>(() => ({ show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length) }), [orbs]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
@@ -234,8 +225,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
 
-  const chains = useMemo(() => rig.arms.map(arm => arm.chain), [rig]);
-  const readOrbs = useMemo(() => () => orbState, [orbState]);
+  const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
 
   // Every shader, the dome's too, is compiled up front, so the first opening never stalls.
   const gl = useThree(s => s.gl);
@@ -400,21 +390,17 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     }
 
     // The technology in focus. One timeline (FocusChoreography) runs it: the eyes turn at once,
-    // the face reacts a beat later, then the orb's arm reaches its tip under the orb and lifts it
-    // to its presentation pose while the orb glows and the others dim. Letting go runs back the
-    // same way. Every value retargets from where it is, so quick changes never jump.
+    // the face reacts a beat later, then the bubble glows and grows while the others dim; the
+    // orbits have eased to still. Letting go runs back the same way. Every value retargets from
+    // where it is, so quick changes never jump.
     const selected = focusTechId ? orbs.findIndex(o => o.techId === focusTechId) : -1;
     // A still capture (freeze) shows the focus as it settles, at once.
     choreography.update(selected, now, dt * 1000, reducedMotion || freeze);
     const out = THREE.MathUtils.clamp(pose.orbs, 0, 1);
     let fixed: { x: number; y: number } | undefined;
     if (selected >= 0) {
-      // Eyes follow the orb as its arm brings it to where it is presented.
-      const orb = orbs[selected];
-      const riding = orbRestPosition(rig.arms[ARM_IDS.indexOf(orb.slot.armId)].chain, orb.slot);
-      const f = choreography.arm(selected);
-      lookAt.set(riding.x + (orb.slot.present[0] - riding.x) * f, riding.y + (orb.slot.present[1] - riding.y) * f, ORB_Z);
-      lookAt.applyMatrix4(content.current!.matrixWorld).project(state.camera);
+      // Eyes follow the bubble (it slows to a stop as they settle on it).
+      lookAt.copy(bubbleLive.worlds[selected]).project(state.camera);
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
@@ -444,7 +430,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       activeExpression = blendExpression(activeExpression, EXPRESSIONS[orb.reaction ?? 'curious'], f);
       if (f > strongest) {
         strongest = f;
-        tiltTarget = 0.1 * f * Math.sign(orb.slot.present[0] - config.head.faceOrigin[0]);
+        tiltTarget = 0.1 * f * (bubbleLive.sides[i] ?? 1);
       }
     });
     spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
@@ -484,22 +470,16 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     m.inverse.copy(content.current!.matrixWorld).invert();
     m.target.applyMatrix4(m.inverse);
 
-    // Which orb each arm presents (the one furthest along), and how far: that arm reaches its tip
-    // to hold the orb at its presentation pose. With reduced motion no arm moves.
-    orbState.armReach.fill(0);
-    orbState.driver.fill(-1);
-    orbs.forEach((orb, i) => {
-      const f = choreography.arm(i);
-      orbState.focus[i] = f;
-      const a = ARM_IDS.indexOf(orb.slot.armId);
-      if (f > orbState.armReach[a]) {
-        orbState.armReach[a] = f;
-        orbState.driver[a] = i;
-      }
-    });
-    if (reducedMotion) orbState.armReach.fill(0);
+    // The bubbles: shown in the intro and the overview once the entrance has settled (never in it),
+    // hidden beside the detail panel. Their orbits ease to still while one is hovered, held or in
+    // focus, and stand still with motion off.
+    bubbleState.show = !silhouette && !solo && (stage === 'intro' || stage === 'overview' || stage === 'techFocus');
+    bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
+    bubbleState.hot = bubblePointer.hovered || selected >= 0;
+    bubbleState.still = freeze || reducedMotion;
+    orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
-    // face. While the orbs are out, only arms presenting a technology move.
+    // face; it never reaches while the pointer is on a bubble.
     const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
@@ -511,11 +491,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const weight = m.reach[i];
       spring(weight, i === pointerArm ? 1 : 0, i === pointerArm ? 5 : 3, dt);
       if (i === pointerArm) m.reachPoint[i].set(m.target.x, m.target.y);
-      const pointerW = THREE.MathUtils.clamp(weight.x, 0, 1);
-      const presentW = orbState.armReach[i];
-      const driver = orbState.driver[i];
-      const target = presentW > 0 && driver >= 0 ? tipTarget(orbs[driver].slot) : m.reachPoint[i];
-      const w = presentW > 0 && driver >= 0 ? presentW : pointerW;
+      const w = THREE.MathUtils.clamp(weight.x, 0, 1);
+      const target = m.reachPoint[i];
       chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
@@ -527,7 +504,6 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
         pitch,
         straighten,
       });
-      orbState.tips[i].set(chain.tipX, chain.tipY);
       tube.update();
       row.write(rig.suckers, offset, rig.suckerBend);
       offset += row.count;
@@ -560,7 +536,6 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     dome.current!.position.set(config.dome.center[0], config.dome.center[1], 0);
     rig.domeMaterial.uniforms.uOpacity.value = glass.opacity;
     rig.domeMaterial.uniforms.uReveal.value = glass.reveal;
-    orbState.out = silhouette ? 0 : THREE.MathUtils.clamp(pose.orbs, 0, 1);
     rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease) * (1 - cupVeil), config.glow.halo.bandStrength * (1 - ease) * (1 - cupVeil));
   });
 
@@ -588,11 +563,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && (
-            <group visible={!solo}>
-              <TechOrbs orbs={orbs} chains={chains} state={readOrbs} />
-            </group>
-          )}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

@@ -34,11 +34,11 @@ import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { ProjectDetail } from './ui/ProjectDetail';
 import { SkipEntrance } from './ui/SkipEntrance';
-import { OrbButtons, faceSpot, orbSpots } from './ui/OrbButtons';
+import { OrbButtons, bubbleDisc, faceSpot } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
+import type { Disc } from './ui/tooltipPlacement';
 import { tooltipContent } from './ui/tooltipContent';
 import { OrbTray } from './ui/OrbTray';
-import { NOX_OVERVIEW_SLOTS, assignOrbs } from './artifacts/orbSlots';
 import { noxTechnologies } from './content/noxTechnologies';
 import { layoutFor } from './stage/framing';
 
@@ -49,14 +49,15 @@ import { LAST_LEVEL, type WorldLevel, stepFrom } from './world/worldLevel';
 import { WorldScene } from './world/WorldScene';
 
 const url = parseUrlState(location.search);
-// The project's technologies in its order, each riding an orb slot; the rest go to the tray.
+// The project's technologies in its order, each in a bubble orbiting Nox; the rest go to the tray.
 const ORDER = noxProject.primaryTechnologyIds ?? [];
 const TECH = new Map(noxTechnologies.map(t => [t.id, t]));
 const USAGE = new Map((noxProject.technologyUsages ?? []).map(u => [u.technologyId, u]));
-const ASSIGNED = assignOrbs(ORDER, NOX_OVERVIEW_SLOTS);
-const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({
+/** How many bubbles orbit Nox. */
+const BUBBLE_COUNT = 15;
+const OVERFLOW = ORDER.slice(BUBBLE_COUNT);
+const ORBS = ORDER.slice(0, BUBBLE_COUNT).map(techId => ({
   techId,
-  slot,
   iconKey: TECH.get(techId)?.iconKey ?? techId,
   name: TECH.get(techId)?.name ?? techId,
   reaction: focusReaction(USAGE.get(techId)),
@@ -345,23 +346,36 @@ export function App() {
     };
   }, [dispatch, focusing]);
   const focusedTech = focusing ? state.techId : null;
-  const presented = useMemo(() => {
-    const i = ORBS.findIndex(o => o.techId === focusedTech);
-    return i >= 0 ? orbSpots(ORBS, true)[i] : null;
-  }, [focusedTech]);
-  // The other orbs, where they rest, so the tooltip finds a place clear of them.
-  const others = useMemo(() => orbSpots(ORBS).filter((_, i) => ORBS[i].techId !== focusedTech), [focusedTech]);
-  const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech]);
+  // The bubble's orbit eases to still in about 0.4 s once it is hot, so the tooltip takes its place
+  // when it has stopped (at once with motion off): the bubble's place and the others', and the face's.
+  const SETTLE_MS = 420;
+  const settle = reducedMotion || url.freeze ? 0 : SETTLE_MS;
   // The tooltip shown, and the one before it fading out, each where it was placed.
-  const [tips, setTips] = useState<{ techId: string; orb: typeof presented; leaving: boolean }[]>([]);
+  const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: ReturnType<typeof faceSpot>; leaving: boolean }[]>([]);
   useEffect(() => {
-    setTips(list => [
-      ...list.filter(tip => tip.techId !== focusedTech).map(tip => ({ ...tip, leaving: true })),
-      ...(focusedTech ? [{ techId: focusedTech, orb: presented, leaving: false }] : []),
-    ]);
-    const timer = window.setTimeout(() => setTips(list => list.filter(tip => !tip.leaving)), 240);
-    return () => window.clearTimeout(timer);
-  }, [focusedTech, presented]);
+    const here = focusedTech ? ORBS.findIndex(o => o.techId === focusedTech) : -1;
+    const place = () => {
+      if (here < 0 || !focusedTech) return null;
+      return {
+        techId: focusedTech,
+        orb: bubbleDisc(here, true),
+        others: ORBS.flatMap((_, i) => (i === here ? [] : [bubbleDisc(i)])),
+        face: faceSpot(shown === 'intro' ? 'intro' : 'overview'),
+        leaving: false,
+      };
+    };
+    const timer = window.setTimeout(() => {
+      const tip = place();
+      setTips(list => [...list.filter(t => t.techId !== focusedTech).map(t => ({ ...t, leaving: true })), ...(tip ? [tip] : [])]);
+    }, settle);
+    // Letting go (or moving on) starts the old tooltip fading out at once.
+    setTips(list => list.some(t => t.techId !== focusedTech && !t.leaving) ? list.map(t => (t.techId === focusedTech ? t : { ...t, leaving: true })) : list);
+    const gone = window.setTimeout(() => setTips(list => list.filter(tip => !tip.leaving)), 240 + settle);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(gone);
+    };
+  }, [focusedTech, settle, shown]);
   const octopus = (
     <Octopus
       config={config}
@@ -436,7 +450,7 @@ export function App() {
           <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />
           <OrbButtons
             orbs={ORBS}
-            open={state.stage === 'overview' || focusing}
+            open={shown === 'intro' || shown === 'overview'}
             focused={focusedTech}
             tooltipId={TOOLTIP_ID}
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
@@ -450,15 +464,15 @@ export function App() {
                 id={TOOLTIP_ID}
                 content={tooltipContent(technology, USAGE.get(tip.techId), SHOW_PLACEHOLDERS)}
                 orb={tip.orb}
-                face={face}
-                others={others}
-                delayMs={FOCUS_BEATS.tooltip}
+                face={tip.face}
+                others={tip.others}
+                delayMs={Math.max(0, FOCUS_BEATS.tooltip - settle)}
                 leaving={tip.leaving}
               />
             );
           })}
           <OrbTray
-            items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
+            items={(PHONE_PORTRAIT ? ORDER : OVERFLOW).map(trayItem)}
             open={state.stage === 'overview' || state.stage === 'techFocus'}
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
           />
