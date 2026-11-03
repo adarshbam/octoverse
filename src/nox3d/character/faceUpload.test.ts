@@ -58,3 +58,18 @@ test('a redrawn face is copied once; an unchanged one is not sent again', () => 
   expect(f.upload(gl)).toBe(false);
   expect(calls).toHaveLength(3);
 });
+
+test('after a restored context the unchanged face is sent again, once', () => {
+  // A restored WebGL context brings the target back empty; a still face (freeze, reduced motion) is not redrawn.
+  const f = face();
+  const { gl, calls } = renderer();
+  f.draw(params, 0);
+  f.upload(gl);
+  expect(f.draw(params, 100)).toBe(false);
+  f.invalidate();
+  const version = f.staging.version;
+  expect(f.upload(gl)).toBe(true);
+  expect(f.staging.version).toBe(version + 1);
+  expect(calls).toEqual(['target', 'render', 'screen', 'target', 'render', 'screen']);
+  expect(f.upload(gl)).toBe(false);
+});

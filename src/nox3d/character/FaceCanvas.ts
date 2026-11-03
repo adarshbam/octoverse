@@ -118,6 +118,11 @@ export class FaceCanvas {
     return true;
   }
 
+  /** Sends the face again on the next `upload`, though it was not redrawn: after a lost WebGL context is restored, the target is empty. */
+  invalidate() {
+    this.dirty = true;
+  }
+
   dispose() {
     this.target.dispose();
     this.staging.dispose();

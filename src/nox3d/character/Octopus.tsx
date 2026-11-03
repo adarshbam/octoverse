@@ -285,6 +285,15 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     if (glyphs) glyphs.mesh.visible = glyphsWere;
   }, [gl, scene, camera, rig, glyphs]);
 
+  // A lost WebGL context takes the face's texture with it, and a still face (freeze, reduced
+  // motion, a held expression) is not redrawn: send it again once the context is restored
+  // (three.js's own listener, added first, has by then rebuilt its state).
+  useEffect(() => {
+    const restored = () => rig.face.invalidate();
+    gl.domElement.addEventListener('webglcontextrestored', restored);
+    return () => gl.domElement.removeEventListener('webglcontextrestored', restored);
+  }, [gl, rig]);
+
   // A rebuilt rig (a lower tier) frees the old one's GPU buffers.
   useEffect(() => () => {
     for (const { tube } of rig.arms) tube.geometry.dispose();
