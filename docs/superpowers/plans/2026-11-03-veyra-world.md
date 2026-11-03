@@ -87,7 +87,7 @@
 
 **Interfaces:**
 - Consumes: `WorldBundle`, `validateBundle`, `faceAnchor`, `WORLDS`, `resolveWorld`, `clampCharacterConfig`.
-- Produces: `VEYRA_BUNDLE` with `id: 'veyra'`; `VEYRA: CharacterConfig`; `VEYRA_POSES.intro`; `VAULT_STAGE: WorldConfig` (kit `stage.glb`, empty layout, water and fog colours fitted to P2's mid and upper water samples, `camera.tilt` 0.04, `camera.hover` 0.8 of Nox's); `VEYRA_THEME: UiTheme` (accent `#3fe0c5`, a mint-to-cyan Live Demo gradient, dark teal surfaces, a cyan focus ring, `titleIcon: 'padlock'`); content per spec 7.10 with every storyboard string wrapped in the placeholder marker Nox uses.
+- Produces: `VEYRA_BUNDLE` with `id: 'veyra'`; `VEYRA: CharacterConfig`; `VEYRA_POSES.intro`; `VAULT_STAGE: WorldConfig` (kit `stage.glb`, empty layout, water and fog colours fitted to P2's mid and upper water samples, `camera.tilt` 0.04, `camera.hover: { amount: 0.8 x Nox's, pace: 0.75 x Nox's }`); `VEYRA_THEME: UiTheme` (accent `#3fe0c5`, a mint-to-cyan Live Demo gradient, dark teal surfaces, a cyan focus ring, `titleIcon: 'padlock'`); content per spec 7.10 with every storyboard string wrapped in the placeholder marker Nox uses.
 
 - [ ] **Step 1: Write failing tests in `bundle.test.ts`:**
   - `validateBundle(VEYRA_BUNDLE)` does not throw.
@@ -119,7 +119,7 @@
 - Test: `src/engine/character/skinMaterial.test.ts`, `src/engine/config/validate.test.ts`
 
 **Interfaces:**
-- Produces: `JellySettings = { rim: string; rimPower: number; crown: string; crownHeight: number; depth: string; depthStrength: number; coreWarmth: number }`; `skin.sparkle` is specks per square world unit (0 = off; Nox 0); a `uSparkleWave` uniform (0 to 1, the crown-to-face shimmer used in Task 18).
+- Produces: `JellySettings = { rim: string; rimPower: number; crown: string; crownHeight: number; depth: string; depthStrength: number; coreWarmth: number }`; `skin.sparkle` is specks per square world unit (0 = off; Nox 0); a `uSparkleWave` uniform (0 to 1, the crown-to-face shimmer used in Task 18). Every colour (rim, crown, depth, core) is config read into uniforms, never a shader constant: Flux reuses this mode (amendment A1).
 
 - [ ] **Step 1: Failing tests.**
   - `createSkinMaterial` with `mode: 'jelly'` compiles: run the material through `renderer.compile` in the existing headless GL test harness, or assert the generated fragment source contains the `JELLY` define.
@@ -161,12 +161,12 @@ Raise this with the engine owner before starting (gap G1 in the report). `EXPRES
 - Test: `expressions.test.ts`
 
 **Interfaces:**
-- Produces: `expressionsFor(config: CharacterConfig): Record<ExpressionId, ExpressionParams>`: the engine presets with the character's overrides merged in. Nox has no overrides.
+- Produces: `resolveExpressions(config: CharacterConfig): Record<ExpressionId, ExpressionParams>`: the engine presets with the character's overrides merged in. Nox has no overrides.
 
 - [ ] **Step 1: Failing tests.**
-  - `expressionsFor(NOX)` deep-equals `EXPRESSIONS`.
-  - `expressionsFor(VEYRA).focused` has brows higher and lids wider than `EXPRESSIONS.focused` (Veyra's "interested" look); other ids are unchanged.
-- [ ] **Step 2: Run**; expected FAIL. **Step 3: Implement**, and route every `EXPRESSIONS[...]` read through `expressionsFor`. **Step 4: Run** the tests; Nox regression (expression stills for all seven ids unchanged). **Step 5: Commit** `feat(engine): per-character expression overrides (for Veyra)`.
+  - `resolveExpressions(NOX)` deep-equals `EXPRESSIONS`.
+  - `resolveExpressions(VEYRA).focused` has brows higher and lids wider than `EXPRESSIONS.focused` (Veyra's "interested" look); other ids are unchanged.
+- [ ] **Step 2: Run**; expected FAIL. **Step 3: Implement**, and route every `EXPRESSIONS[...]` read through `resolveExpressions`. **Step 4: Run** the tests; Nox regression (expression stills for all seven ids unchanged). **Step 5: Commit** `feat(engine): per-character expression overrides (for Veyra)`.
 
 ### Task 6: Veyra's face
 
@@ -409,7 +409,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 ### Task 19: Engine variants: bloom appear and arm lift select
 
 **Files:**
-- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` and `SELECTS`; `SequenceId` gains `'bloom'`
+- Create: `src/engine/artifacts/bloom.ts`, `armLift.ts`; add to `APPEARS` (bloom entry declares `sheet: 'bloom'`, so `SequenceId` gains it by derivation) and `SELECTS`; Veyra's configs are `appear: { kind: 'bloom', duration: 1.2 }` and `select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }`
 - Test: `bloom.test.ts`, `armLift.test.ts`
 
 **Interfaces:**
@@ -427,7 +427,7 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 
 ### Task 20: Pendants in Veyra's stages, buttons, tooltip, tray
 
-- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: 'bloom'`, `select: 'armLift'`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
+- **Files:** `src/worlds/veyra/artifacts.ts` (`appear: { kind: 'bloom', ... }`, `select: { kind: 'armLift', ... }`), `sequences/state.theatre.json` (bloom sheet), `content/` usage notes (placeholders).
 - **Tests:**
   - e2e `tests/e2e/veyra.spec.ts`: on `?world=veyra`, after settle there are 12 `.orb-button`s with unique ids.
   - Tabbing to one shows the tooltip naming the technology, and Escape clears it.
@@ -473,11 +473,11 @@ Raise this with the engine owner before starting (gap G2). Today the entrance sp
 
 ## Gaps found against the engine contract (sent to the orchestrator, not edited into the contract)
 
-- **G1: Expression presets per character.** `EXPRESSIONS` is an engine constant; contract 14.1 dropped new face fields. Veyra's tech-focus "interested" face (spec 7.3) needs `CharacterConfig.expressions` overrides (Task 5).
-- **G2: Entrance turn amount.** The spin is a fixed 2π golden-spiral turn in `entrance.ts`. Veyra needs a 200-degree glide-turn without the spiral: `EntranceShape { turn, spiral }` in the bundle (Task 17).
-- **G3: Camera hover pace.** The contract carries `camera.hover` as an amount. Veyra's calmer hover also wants a slower period. If the engine owner prefers not to add `period`, Veyra uses a lower amount only (Task 2 sets 0.8 x Nox).
-- **G4: Idle flourish layer.** `flourishRate` is in the contract (deferred), but the flourish motion itself is a new shared ambient layer (Task 16).
-- **G5: `SequenceId` is closed** to `entrance | bubbleBlow | headSwell | arrival`. Bloom needs its own sheet: add `'bloom'` (Task 19).
+- **G1 (accepted, A1): Expression presets per character.** `EXPRESSIONS` is an engine constant; contract 14.1 dropped new face fields. Veyra's tech-focus "interested" face (spec 7.3) needs `CharacterConfig.expressions` overrides (Task 5).
+- **G2 (accepted, A1): Entrance turn amount.** The spin is a fixed 2π golden-spiral turn in `entrance.ts`. Veyra needs a 200-degree glide-turn without the spiral: `EntranceShape { turn, spiral }` in the bundle (Task 17).
+- **G3 (accepted, A1 `camera.hover: { amount, pace }`): Camera hover pace.** The contract carries `camera.hover` as an amount. Veyra's calmer hover also wants a slower period. If the engine owner prefers not to add `period`, Veyra uses a lower amount only (Task 2 sets 0.8 x Nox).
+- **G4 (accepted, A1, built in F01): Idle flourish layer.** `flourishRate` is in the contract (deferred), but the flourish motion itself is a new shared ambient layer (Task 16).
+- **G5 (accepted, A1: derived from the appear table's `sheet`): `SequenceId` is closed** to `entrance | bubbleBlow | headSwell | arrival`. Bloom needs its own sheet: add `'bloom'` (Task 19).
 - **G6: Milestone 1 backdrop.** Solved inside the contract: an empty kit glTF plus water colours (Task 2). No engine change.
 - **G7: Tip spirals.** Accepted as authored pose points (contract 14.1). If ambient curl unrolls them visibly in Task 7, raise it then.
 - **Aligned:** pendant swing follows the contract's "driven sine on the arm's velocity" with a decay envelope, which meets spec 7.5's bounds (25 degrees, 1.2 s settle).
