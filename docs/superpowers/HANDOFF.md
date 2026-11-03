@@ -2,6 +2,18 @@
 
 Updated 2026-11-03. Read this first in a new session, then the files it points to.
 
+## Nox is complete (2026-11-03)
+
+All 28 tasks are done; the branch `feat/nox-3d` holds everything and has NOT been merged into `main` or pushed (the owner decides).
+
+- **Merged:** lane B (Tasks 25, 27: micro-animations, phone, accessibility, WebGL fallback) and lane C (bubbles in front, no bubble camera moves, spin waits for open arms, `ENTRANCE_SECONDS` 8.4), then Task 26 (dev-only `?variant=dummy`, fixtures never ship) and Task 28 (spike and video tools removed). Theatre sheets: `entrance`, `bubbleBlow`, `headSwell`, `arrival` (re-seed with `node scripts/theatre-seed.mjs <sheet>`).
+- **Tests:** vitest 423+ (the two heavy ones, `suckerRow` and `entrance.test`, time out only under 100% CPU and pass alone); tsc app and nox3d configs clean; Playwright 28/28 with `--workers=1` (default timeout is now 90 s). The production build test: `NOX_BUILD_TEST=1 npx vitest run src/nox3d/config/variant.test.ts`.
+- **Review switches (`?freeze`, `?stage`, `?mask`, `?hold`...) work in development only**; the production build ignores them (final review I3).
+- **Final review:** `.superpowers/sdd/.../final-review.md` (git-ignored): 0 Critical, 4 Important, 10 Minor; I3 fixed (aa81e7e); open: I1 owner's live walk-through, I2 honest frame rate, I4 dark first ~11 s.
+- **Frame rate is not yet honest.** The Task 28 run (intro high 7.3 / overview high 8.7 / techFocus high 7.9; low 12.5 / 21.0 / 12.5 fps median) was taken with CPU at 65% and 31 other vite processes. Stop the other dev servers, then run `node scripts/perf.mjs --secs=8 "stage=intro&tier=high" ...` and compare against 6009863.
+- **Look checks:** `check_stage --world` exits 1 on every stage by design now (R46, R58, R66); front-view baseline R58, intro sat now 0.786.
+- **Open for the owner:** the walk-through (entrance, intro hover, bubble from intro, head swell with glyphs, overview choice, detail, Escape, reduced motion, phone, `/?variant=dummy`); the parked intro black start (decide before merging); portrait tray/sheet overlapping the lower arms; `TechTooltip` for a tray technology uses a stand-in disc (unproven on a real phone); a second click right after the swell settles can be ignored; keyboard e2e Kali/every-bubble flake under load.
+
 ## Current direction (2026-10-26, governs over everything below)
 
 - **Spec:** `docs/superpowers/specs/2026-10-26-nox-world-and-motion-design.md`. It sets the approach and detail for the next phase:
@@ -36,7 +48,7 @@ Updated 2026-11-03. Read this first in a new session, then the files it points t
   - **Milestone 5 (Tasks 16-19, stroke cycle, swim, entrance) is approved (owner, 2026-11-03, "Approve M5").** Milestone commit `feat(nox3d): swimming entrance with spin` (checkpoints 5e8fb44, 7ee7227, 64bb559, 76c1e99, e431b0a; ledger R48-R53). Three whole strokes at Nox's 1.33 s rate to 4.5 s, a 1.0 s hold, a golden-spiral spin 5.5 to 6.5 s, settle to 7.5 s (`ENTRANCE_SECONDS` 7.5). Theatre.js: `src/nox3d/sequences/` (`keys.ts` defaults, `theatre.ts`, repo state `state/octoverse.theatre.json`, seed with `node scripts/theatre-seed.mjs <sheet>`); core is a lazy chunk, studio only in dev with `?studio`. `swimDrive(frame, settle)` is the arm drive. Known weaknesses are in `docs/superpowers/reviews/nox-world.md` (dark silhouette at t=0.5, pillar clearance 0.158, reload replay in the settle, Skip-intro e2e failing on this machine).
   - **Milestone 6 (Tasks 20-23, technology bubbles) is approved (owner, 2026-11-03, "Approve M6").** Milestone commit 9f9a61d `feat(nox3d): suction hold for technology bubbles` (commits 2bc7a05, 359d9c1, c0b1f53, 5ebd9f6). Fifteen orbiting bubbles blown from the mouth after the entrance, nearest-arm suction hold, no physics (R56). Colour parity with bubbles at rest is the new baseline (R58); focus from the overview keeps the dome open (R59).
   - **Milestone 7 (Task 24, head swell) is approved (owner, 2026-11-03, "Approve M7").** Nox's effect is glowing red glyphs (`headEffect: 'glyphs'`, R57); no camera moves (R60). Commits da0e343, 5999708, plus the milestone commit `feat(nox3d): head swell with Nox's effect`. Known: keyboard e2e Kali and every-bubble tests flake under load (3/5 on the base too); a second click right after the swell settles can be ignored (swell 1.5 s vs STAGE_TRANSITION 1800 ms).
-  - **Lane A is finished.** Next: lane B (Tasks 25, 27) and lane C (bubbles in front of Nox, no hover camera moves, entrance spin retime) merge only on the owner's word; then Task 26 (needs `headEffect`), then Task 28.
+  - **Lane A is finished; lanes B and C are merged and Tasks 26 and 28 are done** (see "Nox is complete" above).
   - **Known weaknesses given to the owner:** pillar lean 1.2 degrees vs panel 2's 8 to 12 (R39: a stronger lean means leaning the pillars in the layout, bake plus far rerun, or a larger tilt that changes Nox); lower-third pattern (corner rocks too red, centre lava weak, stone lost most of its blue sheen: R40); tier high 16.8 fps vs the 27 fps floor on this Intel UHD (R43; render scale 0.75 gives about 23, 0.6 about 32 fps); the adaptive logic settles on tier low (about 38 fps) after about 8 s; far layer failure = fog only (R41); framed-mode Nox colour at tilt 0.07 not measured; overview panel edges drift about 12 px at hover extremes.
   - Open minors worth a glance: `keyboard.spec.ts` flakes under parallel Playwright load; `bake_world.py` ALBEDO table is stale; the `world-capture.mjs` `view=` freezes the camera so `hover=` stills need a framed capture.
 
