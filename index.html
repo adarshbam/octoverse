@@ -6,9 +6,192 @@
     <title>Nox · Security Lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- Poppins loads without blocking the first paint (the boot veil shows at once, in the system font until it arrives). -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" /></noscript>
+    <style>
+      /* The entrance's water (SECURITY_WORLD.palette.waterFar), so the page is never white before the stage is up. */
+      html,
+      body {
+        margin: 0;
+        background: #071535;
+      }
+
+      /*
+       * The boot veil (src/nox3d/ui/bootVeil.ts): the water and the title, up from the first paint until the
+       * world is drawn. It sits under the stage (which comes later in the page), so the skip controls and
+       * every other control stay above it, and it never takes a press or focus. While it is up the canvas is
+       * clear; when the world is ready the canvas fades in over it (600 ms) and the node is removed.
+       */
+      #boot-veil {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        pointer-events: none;
+        background-color: #071535;
+        background-image: radial-gradient(ellipse 90% 70% at 50% 0%, #0f2a5c 0%, #071535 58%, #050e26 100%);
+        color: #fff;
+        text-align: center;
+        font-family: 'Poppins', system-ui, sans-serif;
+      }
+
+      #boot-veil .bv-ray {
+        position: absolute;
+        top: -10%;
+        height: 90%;
+        width: 16vmin;
+        background: linear-gradient(to bottom, rgba(140, 200, 255, 0.2), rgba(140, 200, 255, 0.06) 45%, rgba(140, 200, 255, 0) 80%);
+        filter: blur(10px);
+        transform-origin: 50% 0;
+        animation: bv-sway 9s ease-in-out infinite alternate;
+      }
+
+      #boot-veil .bv-ray.one {
+        left: 22%;
+        transform: rotate(9deg);
+      }
+
+      #boot-veil .bv-ray.two {
+        left: 63%;
+        width: 10vmin;
+        opacity: 0.7;
+        transform: rotate(-7deg);
+        animation-duration: 12s;
+        animation-direction: alternate-reverse;
+      }
+
+      #boot-veil .bv-kicker {
+        position: relative;
+        margin: 0;
+        font-size: max(12px, 1.85vmin);
+        font-weight: 500;
+        letter-spacing: 0.62em;
+        padding-left: 0.62em;
+        color: #ff8a9b;
+      }
+
+      #boot-veil .bv-title {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: max(8px, 1.6vmin);
+        margin: max(10px, 1.6vmin) 0 0;
+        font-size: max(30px, 6.1vmin);
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.01em;
+        color: #ff8a9b;
+      }
+
+      #boot-veil .bv-title svg {
+        width: max(28px, 6vmin);
+        height: max(32px, 6.9vmin);
+        filter: drop-shadow(0 0 1.2vmin rgba(255, 50, 70, 0.75));
+      }
+
+      #boot-veil .bv-dots {
+        position: relative;
+        display: flex;
+        gap: max(8px, 1.1vmin);
+        margin-top: max(24px, 4.5vmin);
+      }
+
+      #boot-veil .bv-dots i {
+        width: max(6px, 0.9vmin);
+        height: max(6px, 0.9vmin);
+        border-radius: 50%;
+        background: #cfe3ff;
+        opacity: 0.35;
+        animation: bv-pulse 1.4s ease-in-out infinite;
+      }
+
+      #boot-veil .bv-dots i:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      #boot-veil .bv-dots i:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes bv-pulse {
+        0%,
+        100% {
+          opacity: 0.25;
+        }
+        50% {
+          opacity: 0.9;
+        }
+      }
+
+      @keyframes bv-sway {
+        from {
+          opacity: 0.55;
+          translate: -2vmin 0;
+        }
+        to {
+          opacity: 1;
+          translate: 2vmin 0;
+        }
+      }
+
+      /* The stage's canvas is clear while the veil is up, then fades in over it. */
+      #boot-veil ~ #root canvas {
+        opacity: 0;
+      }
+
+      #boot-veil.is-fading ~ #root canvas {
+        opacity: 1;
+        transition: opacity 600ms ease;
+      }
+
+      #boot-veil.is-instant ~ #root canvas {
+        opacity: 1;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #boot-veil .bv-ray,
+        #boot-veil .bv-dots i {
+          animation: none;
+        }
+
+        #boot-veil .bv-dots i {
+          opacity: 0.6;
+        }
+
+        #boot-veil.is-fading ~ #root canvas {
+          transition: none;
+        }
+      }
+    </style>
+    <noscript><style>#boot-veil { display: none; } #boot-veil ~ #root canvas { opacity: 1; }</style></noscript>
   </head>
   <body>
+    <div id="boot-veil" aria-hidden="true">
+      <div class="bv-ray one"></div>
+      <div class="bv-ray two"></div>
+      <p class="bv-kicker">OCTOVERSE</p>
+      <div class="bv-title">
+        <svg viewBox="0 0 40 46" aria-hidden="true">
+          <defs>
+            <linearGradient id="bv-flame" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ff7a5a" />
+              <stop offset="1" stop-color="#ff2440" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#bv-flame)"
+            d="M20 2c2 8 12 12 12 24a12 12 0 0 1-24 0c0-6 3-9 5-12 0 4 2 7 4 8-1-8 1-14 3-20Zm0 26c-3 3-5 5-5 8a5 5 0 0 0 10 0c0-3-2-5-5-8Z"
+          />
+        </svg>
+        <span>Security Lab</span>
+      </div>
+      <div class="bv-dots"><i></i><i></i><i></i></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/nox3d/main.tsx"></script>
   </body>

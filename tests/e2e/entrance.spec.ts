@@ -42,6 +42,17 @@ async function sheetLoaded(page: Page) {
     await page.clock.runFor(16);
   }
 }
+/**
+ * Steps the page's clock until the world is drawn (`__noxReady`): the boot veil holds the entrance's
+ * clock until then, so it plays from its start on screen rather than under the dark.
+ */
+async function worldReady(page: Page) {
+  const until = Date.now() + 60_000;
+  while (!(await page.evaluate(() => (window as unknown as { __noxReady?: boolean }).__noxReady))) {
+    expect(Date.now(), 'the world drawn within 60 s').toBeLessThan(until);
+    await page.clock.runFor(16);
+  }
+}
 /** Steps the page's clock until the entrance's own clock reaches `seconds` (it runs on frame time). */
 async function entranceAt(page: Page, seconds: number, steps = 40) {
   for (let i = 0; ((await entrance(page))?.t ?? 0) < seconds; i++) {
@@ -56,6 +67,7 @@ test('first visit shows the entrance, a reload in the same session goes straight
   await page.goto('/');
   await opened(page);
   await sheetLoaded(page);
+  await worldReady(page);
   // Half a second in, Nox is coming out of the murk: the skip control shows and the intro's words do not.
   await entranceAt(page, 0.5);
   await expect(skip(page)).toBeVisible();
@@ -78,6 +90,33 @@ test('first visit shows the entrance, a reload in the same session goes straight
   await expect(title(page)).toBeVisible();
 });
 
+test('the boot veil shows the title from the first paint, holds the entrance, and leaves when the world is drawn', async ({ page }) => {
+  test.setTimeout(REST_WALL_MS + 60_000);
+  await page.addInitScript(() => {
+    const seen = window as unknown as { __fadeAt?: number | null };
+    seen.__fadeAt = null;
+    new MutationObserver(() => {
+      const veil = document.getElementById('boot-veil');
+      if (veil?.classList.contains('is-fading') && seen.__fadeAt == null) seen.__fadeAt = (window as unknown as { __noxEntrance?: { t: number } }).__noxEntrance?.t ?? 0;
+    }).observe(document, { subtree: true, attributes: true, childList: true });
+  });
+  await page.goto('/', { waitUntil: 'commit' });
+  const veil = page.locator('#boot-veil');
+  await expect(veil.getByText('Security Lab')).toBeVisible();
+  await expect(veil.getByText('OCTOVERSE')).toBeVisible();
+  // The entrance's water, not white, and not in the way: no press, no focus.
+  expect(await veil.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(7, 21, 53)');
+  expect(await veil.evaluate(el => getComputedStyle(el).pointerEvents)).toBe('none');
+  expect(await veil.getAttribute('aria-hidden')).toBe('true');
+  // The world drawn: the veil goes, the canvas is up, and the entrance has not run under the veil.
+  await page.waitForFunction(() => (window as unknown as { __noxReady?: boolean }).__noxReady, undefined, { timeout: 60_000 });
+  await expect(veil).toHaveCount(0, { timeout: 3_000 });
+  await expect(page.locator('.spike canvas')).toBeVisible();
+  const fadeAt = await page.evaluate(() => (window as unknown as { __fadeAt?: number | null }).__fadeAt);
+  expect(fadeAt, 'the entrance clock when the veil began to fade').not.toBeNull();
+  expect(fadeAt ?? 99).toBeLessThan(0.6);
+});
+
 test('reduced motion skips the entrance', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
@@ -92,6 +131,7 @@ test('skip mid-spin lands in the intro', async ({ page }) => {
   await page.goto('/');
   await opened(page);
   await sheetLoaded(page);
+  await worldReady(page);
   // 6.9 s in, on the paused clock: Nox is half way round his turn (6.4 to 7.4 s).
   await entranceAt(page, 6.9);
   const now = await entrance(page);

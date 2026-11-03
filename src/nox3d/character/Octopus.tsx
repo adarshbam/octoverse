@@ -99,6 +99,8 @@ export interface OctopusProps {
    * is called.
    */
   entranceSheet?: EntranceSheet;
+  /** Read each frame: while true the entrance's clock stands at its start (the page's boot veil is up, so the swim waits to be seen). */
+  entranceHold?: () => boolean;
   /** With `freeze`: the moment of the entrance shown, in seconds. */
   entranceSeconds?: number;
   /** The settle has begun (7.4 s, after the spin): the intro's words come in. */
@@ -151,7 +153,7 @@ const HOLD_LIFT = 0.16;
 const HOLD_BOB = 0.04;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
@@ -387,7 +389,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           onEntranceUnavailable?.();
         }
       } else {
-        e.seconds = e.seconds === null ? 0 : e.seconds + step;
+        e.seconds = e.seconds === null ? 0 : e.seconds + (entranceHold?.() ? 0 : step);
         const seconds = freeze ? entranceSeconds : e.seconds;
         swim = entranceFrame(sheet, seconds);
         onEntranceFrame?.(swim, seconds);

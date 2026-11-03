@@ -44,6 +44,7 @@ import type { Disc } from './ui/tooltipPlacement';
 import { tooltipContent } from './ui/tooltipContent';
 import { OrbTray } from './ui/OrbTray';
 import { noxTechnologies } from './content/noxTechnologies';
+import { armBootVeilFailsafe, bootVeilHeld, hideBootVeil, noteStageDrawn, veilPlan } from './ui/bootVeil';
 import { Poster } from './ui/Poster';
 import { SkipLink } from './ui/SkipLink';
 import { hasWebgl2, useViewport } from './ui/useViewport';
@@ -266,15 +267,26 @@ const KIT_WAIT = import.meta.env.DEV && url.kitWait ? url.kitWait : KIT_WAIT_MS;
 const READY_FRAMES = 40;
 
 /**
+ * The boot veil (index.html) goes at the latest this long after the kit's and plate's waits, whatever the world is doing.
+ */
+const BOOT_VEIL_FAILSAFE_MS = Math.max(KIT_WAIT, PLATE_WAIT_MS) + 2_000;
+
+/**
  * Sets `window.__noxReady` once the scene has drawn READY_FRAMES frames; `wait` holds the count
  * until the world's kit has loaded (or been given up) and the far plate's layers have loaded or failed. A frame-rate
- * measurement (scripts/perf.mjs) then starts on a settled scene.
+ * measurement (scripts/perf.mjs) then starts on a settled scene. The boot veil goes with it, and the
+ * entrance's clock (held until then) starts.
  */
 function ReadyFlag({ wait }: { wait: boolean }) {
   const frames = useRef(0);
   useFrame(() => {
+    // The stage has drawn: the veil, once it has faded, may leave without showing the bare page.
+    noteStageDrawn();
     if (wait || frames.current > READY_FRAMES) return;
-    if (++frames.current === READY_FRAMES) (window as unknown as { __noxReady?: boolean }).__noxReady = true;
+    if (++frames.current === READY_FRAMES) {
+      (window as unknown as { __noxReady?: boolean }).__noxReady = true;
+      hideBootVeil();
+    }
   });
   return null;
 }
@@ -321,6 +333,17 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
   useEffect(() => {
     if (!WEBGL) dispatch({ type: 'SKIP' });
   }, [dispatch]);
+  // The boot veil (index.html) stays while the entrance is waiting on the world (the ready flag takes it away), or
+  // at the failsafe; a page with no entrance to hold for (skipped, past it, a still, no WebGL, motion off) drops it now.
+  const entering = state.stage === 'entering';
+  useEffect(() => armBootVeilFailsafe(BOOT_VEIL_FAILSAFE_MS), []);
+  useEffect(() => {
+    const plan = veilPlan({ webgl: WEBGL, entering, freeze: url.freeze, reducedMotion, mask: MASK });
+    if (plan === 'wait') return;
+    // No canvas to wait for when there is no WebGL, and the mask page draws none of the world.
+    if (!WEBGL || MASK) noteStageDrawn();
+    hideBootVeil({ immediate: plan === 'now' });
+  }, [entering, reducedMotion]);
   // The far plate's layers load outside Suspense; `__noxReady` waits for them.
   const [plateReady, setPlateReady] = useState(false);
   const settlePlate = useCallback(() => setPlateReady(true), []);
@@ -393,7 +416,6 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
   }, [blender, state.stage, shown, reducedMotion, dispatch]);
   // Any click or key skips the entrance.
-  const entering = state.stage === 'entering';
   useEffect(() => {
     if (!entering) return;
     const skip = (event: Event) => {
@@ -497,6 +519,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
       armDrive={REVIEW_SWIM?.drive}
       holdAt={HOLD_STILL}
       entranceSheet={ENTRANCE_SHEET}
+      entranceHold={bootVeilHeld}
       entranceSeconds={ENTRANCE_STILL_SECONDS}
       onEntranceSettling={() => setSettling(true)}
       onEntranceDone={() => {
