@@ -8,9 +8,14 @@ test('keyboard: Tab reaches the Kali orb, its tooltip opens, Escape closes it an
   for (let i = 0; i < 40 && !(await kali.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab');
   await expect(kali).toBeFocused();
   await expect(page.getByRole('tooltip')).toContainText('Used for penetration testing');
+  // The suction hold: an arm has pulled the Kali bubble to its tip and holds it, and only it.
+  const held = () => page.evaluate(() => (window as unknown as { __noxHold?: { techId: string; pull: number; release: number }[] }).__noxHold ?? []);
+  await expect.poll(held).toEqual([{ techId: 'kali', pull: 1, release: 0 }]);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('tooltip')).toBeHidden();
   await expect(kali).toBeFocused();
+  // Escape releases it back to its orbit.
+  await expect.poll(held).toEqual([]);
 });
 
 // Bubbles orbit Nox from the intro: a keyboard-only visitor tabs to every one, and the tooltip of

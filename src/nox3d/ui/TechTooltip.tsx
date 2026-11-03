@@ -1,5 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { bubbleLive } from '../artifacts/bubbleLive';
 import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
+import { bubbleDisc } from './OrbButtons';
 import './tooltip.css';
 import type { TooltipContent } from './tooltipContent';
 import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPlacement';
@@ -13,9 +15,10 @@ const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
  * on storyboard or missing text. It sits beside the orb, clear of Nox's face (placeTooltip), or on
  * a phone held upright along the bottom of the window when that is clear of the face (sheetFits); it
  * fades in with a small rise once the presentation reads (`delayMs`). A tooltip that is `leaving`
- * fades out quickly and is no longer announced.
+ * fades out quickly and is no longer announced. With `follow` (the held bubble's index) the card
+ * keeps beside that bubble's live anchor as it moves on from where it was placed (the hold's lift).
  */
-export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean }) {
+export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false, follow }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean; follow?: number }) {
   const box = useRef<HTMLDivElement>(null);
   useAnchorShift(box, TOOLTIP_ANCHOR);
   // Where it goes; null for the sheet along the bottom. Measured as a card, which is never shorter
@@ -27,6 +30,24 @@ export function TechTooltip({ id, content, orb, face, others, delayMs, leaving =
     const viewport = { width: window.innerWidth, height: window.innerHeight };
     setPlace(sheetFits(viewport, face, height) ? null : placeTooltip(orb, { width, height }, face, viewport, others));
   }, [orb, face, others, content]);
+  // Beside the held bubble as it moves: offset (as a margin, leaving the anchor's translate and
+  // the fade's transform alone) by how far it has moved since the card was placed. A leaving card stays where it is.
+  const card = place !== null;
+  useEffect(() => {
+    const el = box.current;
+    if (follow === undefined || follow < 0 || !orb || leaving || !card || !el) return;
+    let last = '';
+    const apply = () => {
+      if (!bubbleLive.spots[follow]) return;
+      const now = bubbleDisc(follow);
+      const next = `${(now.y - orb.y).toFixed(1)}px 0 0 ${(now.x - orb.x).toFixed(1)}px`;
+      if (next === last) return;
+      last = next;
+      el.style.margin = next;
+    };
+    apply();
+    return bubbleLive.subscribe(apply);
+  }, [follow, orb, leaving, card]);
   if (!orb) return null;
   return (
     <div

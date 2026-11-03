@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FOCUS_BEATS, focusReaction } from './behavior/focusChoreography';
+import { HOLD_BEATS } from './artifacts/suctionHold';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import { parseUrlState } from './behavior/urlState';
 import { initialStage } from './behavior/stageMachine';
@@ -109,6 +110,9 @@ if (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion())) {
     () => void (BLOW_SHEET.failed = true),
   );
 }
+
+/** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen, for review. */
+const HOLD_STILL = url.freeze && new URLSearchParams(location.search).has('hold') ? Number(new URLSearchParams(location.search).get('hold')) || 0 : undefined;
 
 /** A still of the entrance (`?stage=entering&freeze`) shows `?t=<s>`, or mid-swim, 2 s in. */
 const ENTRANCE_STILL_SECONDS = url.t ?? 2;
@@ -361,9 +365,10 @@ export function App() {
     };
   }, [dispatch, focusing]);
   const focusedTech = focusing ? state.techId : null;
-  // The bubble's orbit eases to still in about 0.4 s once it is hot, so the tooltip takes its place
-  // when it has stopped (at once with motion off): the bubble's place and the others', and the face's.
-  const SETTLE_MS = 420;
+  // The bubble's orbit eases to still in about 0.4 s once it is hot, and the suction hold pulls it
+  // to its arm's tip, so the tooltip takes its place when it has arrived there (at once with motion
+  // off): the bubble's place and the others', and the face's; it then keeps beside it as it lifts.
+  const SETTLE_MS = HOLD_BEATS.pullMs[1];
   const settle = reducedMotion || url.freeze ? 0 : SETTLE_MS;
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: ReturnType<typeof faceSpot>; leaving: boolean }[]>([]);
@@ -409,6 +414,7 @@ export function App() {
       solo={url.solo}
       yaw={url.yaw}
       armDrive={REVIEW_SWIM?.drive}
+      holdAt={HOLD_STILL}
       entranceSheet={ENTRANCE_SHEET}
       entranceSeconds={ENTRANCE_STILL_SECONDS}
       onEntranceSettling={() => setSettling(true)}
@@ -482,6 +488,7 @@ export function App() {
                 orb={tip.orb}
                 face={tip.face}
                 others={tip.others}
+                follow={ORBS.findIndex(o => o.techId === tip.techId)}
                 delayMs={Math.max(0, FOCUS_BEATS.tooltip - settle)}
                 leaving={tip.leaving}
               />

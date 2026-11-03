@@ -1080,3 +1080,5 @@ Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64
 
 - **Tasks 20-21:** focus from the intro; 15 orbiting bubbles on three shells with live buttons (commits 2bc7a05, 359d9c1, c0b1f53). Colour parity baseline with bubbles at rest: Nox (126,32,80), saturation 0.804, brightness 0.564 (R58). Focus from the overview keeps the dome open (R59).
 - **Task 22:** the puffed cheeks and round mouth. **Owner face component review (2026-11-03): "Approve"** (`review.html?component=mouth&expression=blow`). Bubbles are blown 0.18 s apart (puff 0.25 s, pop 0.08 s, wobble-grow to 0.9 s); no bubble before the entrance settles; reduced motion and `?freeze` show them at their orbits.
+- **Task 23:** suction hold (nearest arm turns, cups flare, bubble pulled to the tip along an outward arc, lift with a 0.10 overshoot, release 600 ms; no physics, R56). Parity at rest (125,31,80), saturation 0.811, brightness 0.563 (the second state HEAD also flips into). fps numbers were skewed by lane B.
+- **Owner verdict, Milestone 6 live check (2026-11-03): "Approve M6".**

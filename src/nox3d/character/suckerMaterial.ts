@@ -1,7 +1,27 @@
 import * as THREE from 'three';
 import type { Palette, SuckerSettings } from '../config/types';
 import type { SkinUniforms } from './skinMaterial';
-import { CUP_EMBED, CUP_FACE } from './suckerRow';
+import { CUP_EMBED, CUP_FACE, type SuckerRow } from './suckerRow';
+
+/** How many arms' cups can flare on their own (`uFlare`, one value per arm). */
+export const FLARE_ARMS = 8;
+
+/**
+ * Each cup's arm and how far along it the cup sits (0 root, 1 tip), in the instance order the
+ * rows write them (arm by arm): the `aCup` attribute that picks a cup's arm's `uFlare`.
+ */
+export function createCupArmAttribute(rows: readonly { row: SuckerRow; length: number }[]) {
+  const total = rows.reduce((n, r) => n + r.row.count, 0);
+  const data = new Float32Array(total * 2);
+  let k = 0;
+  rows.forEach(({ row, length }, arm) => {
+    for (const sucker of row.suckers) {
+      data[k++] = arm;
+      data[k++] = sucker.arc / length;
+    }
+  });
+  return new THREE.InstancedBufferAttribute(data, 2);
+}
 
 /** The stage lights the cups share with the skin, so cups and arm are lit as one surface. */
 export type CupLighting = Pick<SkinUniforms, 'uKeyDir' | 'uKeyLight' | 'uUnderglow' | 'uSkyLight' | 'uGroundLight' | 'uHaze' | 'uHazeColor' | 'uFarHazeColor'>;
@@ -54,20 +74,35 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
       /** How far the cups fade into the far water (0 to 1): far away, or veiled as Nox comes out of the murk (0 otherwise). */
       uVeil: { value: 0 },
       uVeilColor: light.uFarHazeColor,
+      /**
+       * How far each arm's cups flare (0 to 1), as the arm takes a bubble in the suction hold
+       * (artifacts/suctionHold.ts): the rim opens and rises, the hollow opens from a slit toward a
+       * round mouth; more toward the tip. 0 at rest, where the cups are exactly as approved.
+       */
+      uFlare: { value: new Float32Array(FLARE_ARMS) },
     },
     vertexShader: /* glsl */ `
       ${bendCupSpace}
+      attribute vec2 aCup;
       uniform float uFace;
+      uniform float uFlare[${FLARE_ARMS}];
       varying vec3 vLocal;
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vWorld;
+      varying float vFlare;
       void main() {
         mat4 m = modelMatrix * instanceMatrix;
         // Cups the viewer sees edge-on, along the arm's outline, flatten toward their face so they
         // never break its silhouette; the face stays just above the skin.
         float facing = dot(normalize(mat3(m)[2]), normalize(cameraPosition - m[3].xyz));
         vec3 p = position;
+        // Flaring: the rim spreads a little and rises, the dimple sinks.
+        float flare = uFlare[int(aCup.x + 0.5)] * mix(0.45, 1.0, smoothstep(0.3, 0.95, aCup.y));
+        float r0 = length(p.xy);
+        p.xy *= 1.0 + 0.12 * flare * smoothstep(0.25, 0.9, r0);
+        p.z += flare * (0.12 * smoothstep(0.45, 0.75, r0) * (1.0 - smoothstep(0.9, 1.0, r0)) - 0.06 * (1.0 - smoothstep(0.0, 0.5, r0)));
+        vFlare = flare;
         p.z = mix(p.z, uFace + (p.z - uFace) * 0.3, 1.0 - smoothstep(0.05, 0.35, facing));
         vec4 world = m * vec4(bentPosition(p), 1.0);
         vLocal = position;
@@ -96,6 +131,7 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vWorld;
+      varying float vFlare;
       void main() {
         // Seen from below, the disc's underside shows: light whichever side is seen.
         vec3 N = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0);
@@ -107,9 +143,12 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
         vec3 c = mix(uBody, uHot, smoothstep(0.3, 0.68, r) * (1.0 - smoothstep(0.84, 0.97, r)));
         c = mix(c, uEdge, smoothstep(0.88, 1.0, r));
         // The red slit of the hollow, lying along the arm, darkest along its middle.
-        float slit = (1.0 - smoothstep(0.045, 0.1, abs(vLocal.y))) * (1.0 - smoothstep(0.26, 0.4, abs(vLocal.x)));
+        // Flaring, the slit opens toward a round mouth and the rim warms.
+        vec2 hollow = vLocal.xy / vec2(1.0 + 0.25 * vFlare, 1.0 + 2.2 * vFlare);
+        float slit = (1.0 - smoothstep(0.045, 0.1, abs(hollow.y))) * (1.0 - smoothstep(0.26, 0.4, abs(hollow.x)));
         c = mix(c, uHollow, slit);
-        c *= 1.0 - 0.35 * slit * (1.0 - smoothstep(0.0, 0.05, abs(vLocal.y)));
+        c *= 1.0 - 0.35 * slit * (1.0 - smoothstep(0.0, 0.05, abs(hollow.y)));
+        c = mix(c, uHot, 0.3 * vFlare * smoothstep(0.45, 0.7, r) * (1.0 - smoothstep(0.85, 0.97, r)));
         // Cups seen edge-on darken a little; cups facing the viewer glow.
         c *= mix(0.72, 1.0, smoothstep(0.0, 0.6, abs(dot(N, V))));
         // The key light models the cup: the lip facing it brightens, the far side falls into

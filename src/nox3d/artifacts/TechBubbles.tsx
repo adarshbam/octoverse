@@ -6,6 +6,7 @@ import { NOX } from '../config/nox.character';
 import { type BlowSheet, BlowRun, blowFrame, blowPosition } from '../sequences/bubbleBlow';
 import { bubbleLive } from './bubbleLive';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
+import { pullPosition } from './suctionHold';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbMaterial } from './orbMaterial';
 
@@ -35,6 +36,14 @@ export interface BubbleState {
   /** Written back each frame for Nox's face: how puffed his cheeks are and how round his mouth, blowing (0 otherwise). */
   puff: number;
   mouthRound: number;
+  /** Written back each frame: each bubble's place on its orbit (body space), which the arm holding it turns toward. */
+  orbit: THREE.Vector3[];
+  /**
+   * The suction hold (artifacts/suctionHold.ts), written by Nox each frame: how far each bubble is
+   * pulled from its orbit to its arm's tip (0..1, eased; 0 when not held), and that tip and the way
+   * the arm runs there (body space). A held bubble sits just off the tip, against its cups.
+   */
+  hold: { pull: Float32Array; tip: THREE.Vector3[]; dir: THREE.Vector3[] };
 }
 
 /** How much a bubble in focus grows. */
@@ -43,6 +52,10 @@ export const FOCUS_GROW = { intro: 1.1, overview: 1.05 } as const;
 /** Seconds for the bubbles to fade in or out, and to grow into a new stage's size. */
 const FADE_S = 0.9;
 const RESIZE_PER_S = 3;
+/** How far beyond the arm's tip a held bubble's centre sits, in bubble radii: its glass meets the tip clear of the logo. */
+const HOLD_OFF_TIP = 1.25;
+/** The middle a pulled bubble swings round (body space): where the orbits are centred. */
+const HOLD_CENTRE = { x: 0, y: 0.25 };
 
 /**
  * The technology bubbles, orbiting Nox on his shells (artifacts/bubbleOrbits.ts) in the approved
@@ -85,7 +98,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
   const layouts = useMemo(() => ({ intro: layoutOrbits(bubbles.length, NOX_SHELLS, 'intro'), overview: layoutOrbits(bubbles.length, NOX_SHELLS, 'overview') }), [bubbles.length]);
   // The orbit clock, the speed spring that eases it, each bubble's current size, and how far all are shown.
   const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: new BlowRun() }), [bubbles.length]);
-  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3() }), []);
+  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
@@ -122,7 +135,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     if (!s.still) run.clock += dt * pace;
     const shown = run.shown * run.shown * (3 - 2 * run.shown);
     root.updateWorldMatrix(true, false);
-    const { edge, ndc, right, orbit: target } = scratch;
+    const { edge, ndc, right, orbit: target, held } = scratch;
     const e = frame.camera.matrixWorld.elements;
     right.set(e[0], e[1], e[2]).normalize();
     const strongest = s.focus.reduce((a, b) => Math.max(a, b), 0);
@@ -132,6 +145,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
       const node = root.children[i];
       const orbit = orbits[i];
       orbitPoint(orbit, run.clock, s.swell, target);
+      s.orbit[i]?.copy(target);
       const f = s.focus[i];
       // A bubble grows into its stage's size.
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? orbit.size : run.size[i] + (orbit.size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
@@ -150,6 +164,9 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
         node.scale.setScalar(radius);
         node.visible = true;
       }
+      // Held: pulled along from where it was, swinging round Nox, to just off its arm's tip.
+      const pull = s.hold.pull[i] ?? 0;
+      if (pull > 0) pullPosition(scratch.from.copy(node.position), held.copy(s.hold.tip[i]).addScaledVector(s.hold.dir[i], radius * HOLD_OFF_TIP), pull, HOLD_CENTRE, node.position);
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
       const breathe = s.still ? 1 : 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);

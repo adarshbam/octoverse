@@ -21,6 +21,7 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
 import { bubbleLive } from '../artifacts/bubbleLive';
+import { type Box, HoldChoreography, nearestArm } from '../artifacts/suctionHold';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -34,7 +35,7 @@ import { createHeadSilhouetteMaterial } from './headMorph';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createDomeMaterial, domeState } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
-import { createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
+import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 import { type AccentLink, farHaze } from './worldAccent';
 
@@ -118,6 +119,8 @@ export interface OctopusProps {
    * poses; no arm reaches for the pointer while it is on.
    */
   armDrive?: { pitch: number; straighten: number };
+  /** With `freeze`: the moment of the suction hold shown, in ms from the choice (review stills); otherwise a still shows it held. */
+  holdAt?: number;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -125,9 +128,19 @@ const REST_IN = 2;
 const WAKE = 0.5;
 /** The warm glow card before the chin, facing the visitor. */
 const CORE_GLOW = 0.22;
+/**
+ * The suction hold's arm (artifacts/suctionHold.ts), in body units: it reaches out toward the
+ * bubble at most HOLD_REACH (stopping HOLD_SHORT shy of it), draws HOLD_DRAW of that back as it
+ * pulls the bubble in, and lifts its tip HOLD_LIFT; the bubble rides HOLD_BOB higher on the tip.
+ */
+const HOLD_REACH = 0.55;
+const HOLD_SHORT = 0.2;
+const HOLD_DRAW = 0.5;
+const HOLD_LIFT = 0.16;
+const HOLD_BOB = 0.04;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
@@ -141,9 +154,16 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const dome = useRef<THREE.Mesh>(null);
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
-  const bubbleState = useMemo<BubbleState>(() => ({ show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0 }), [orbs, blowSheet]);
+  const bubbleState = useMemo<BubbleState>(() => ({
+    show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
+    orbit: orbs.map(() => new THREE.Vector3()),
+    hold: { pull: new Float32Array(orbs.length), tip: orbs.map(() => new THREE.Vector3()), dir: orbs.map(() => new THREE.Vector3(0, -1, 0)) },
+  }), [orbs, blowSheet]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
+  // The suction hold: the arm nearest a chosen bubble (not across the face) turns, pulls it to its tip and lifts it.
+  const holdArm = useRef<(bubble: number) => number>(() => 0);
+  const hold = useMemo(() => new HoldChoreography(bubble => holdArm.current(bubble)), [orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
   const restAt = useMemo(() => new THREE.Vector3(), []);
@@ -185,6 +205,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const cupDetail = Math.round(32 * quality.suckerScale);
     const cupGeometry = createSuckerCup(cupDetail);
     cupGeometry.setAttribute('aBend', suckerBend);
+    cupGeometry.setAttribute('aCup', createCupArmAttribute(arms.map(({ row, chain }) => ({ row, length: chain.segmentLength * chain.segments }))));
     const shadowGeometry = createCupShadow(cupDetail);
     shadowGeometry.setAttribute('aBend', suckerBend);
     const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms), suckerTotal);
@@ -271,6 +292,11 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     glow: new THREE.Vector3(),
     reach: config.arms.map(() => ({ x: 0, v: 0 })),
     reachPoint: config.arms.map(() => new THREE.Vector2()),
+    // The suction hold: each held bubble's arm tip when it was chosen; each arm's turn toward its bubble, and where to.
+    holdFrom: new Map<number, THREE.Vector3>(),
+    holdWeight: new Float32Array(config.arms.length),
+    holdSum: config.arms.map(() => new THREE.Vector2()),
+    holdPoint: new THREE.Vector2(),
     lastInput: performance.now(),
     rest: 0,
     breathPhase: 0,
@@ -485,6 +511,36 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     bubbleState.still = freeze || reducedMotion;
     bubbleState.blow = blowSheet;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
+    // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
+    // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it
+    // is held at once; `?freeze&hold=<ms>` shows that moment of it.
+    const holdStill = freeze && holdAt !== undefined;
+    const faceBox: Box = { x0: config.head.centerX - config.head.halfWidth, y0: config.head.bottom, x1: config.head.centerX + config.head.halfWidth, y1: config.head.top };
+    holdArm.current = bubble => {
+      const at = bubbleState.orbit[bubble];
+      return nearestArm(rig.arms.map(({ chain }) => [chain.tipX, chain.tipY, chain.pz[chain.segments]] as const), [at.x, at.y, at.z], faceBox);
+    };
+    hold.instant = reducedMotion || (freeze && !holdStill);
+    hold.choose(selected >= 0 ? selected : null, holdStill ? 0 : now);
+    const holds = hold.sample(holdStill ? holdAt : now);
+    // The hold as the development build reports it, for the end-to-end tests (`window.__noxHold`).
+    if (import.meta.env.DEV) (window as unknown as { __noxHold?: { techId: string; pull: number; release: number }[] }).__noxHold = holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release }));
+    m.holdWeight.fill(0);
+    for (const sum of m.holdSum) sum.set(0, 0);
+    for (const key of m.holdFrom.keys()) if (!holds.some(f => f.bubble === key)) m.holdFrom.delete(key);
+    for (const f of holds) {
+      const { chain } = rig.arms[f.arm];
+      let from = m.holdFrom.get(f.bubble);
+      if (!from) m.holdFrom.set(f.bubble, (from = new THREE.Vector3(chain.tipX, chain.tipY, 0)));
+      const orbit = bubbleState.orbit[f.bubble];
+      const dx = orbit.x - from.x;
+      const dy = orbit.y - from.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const outward = Math.min(HOLD_REACH, Math.max(0, d - HOLD_SHORT)) * (1 - HOLD_DRAW * f.pull);
+      m.holdWeight[f.arm] += f.turn;
+      m.holdSum[f.arm].x += (from.x + (dx / d) * outward) * f.turn;
+      m.holdSum[f.arm].y += (from.y + (dy / d) * outward + HOLD_LIFT * f.lift) * f.turn;
+    }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
     const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
@@ -498,8 +554,11 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const weight = m.reach[i];
       spring(weight, i === pointerArm ? 1 : 0, i === pointerArm ? 5 : 3, dt);
       if (i === pointerArm) m.reachPoint[i].set(m.target.x, m.target.y);
-      const w = THREE.MathUtils.clamp(weight.x, 0, 1);
-      const target = m.reachPoint[i];
+      const pointerWeight = THREE.MathUtils.clamp(weight.x, 0, 1);
+      // A held bubble's arm turns toward it, shared with any reach for the pointer as one lets go.
+      const held = m.holdWeight[i];
+      const w = Math.min(1, pointerWeight + held);
+      const target = held > 0 ? m.holdPoint.copy(m.reachPoint[i]).multiplyScalar(pointerWeight).add(m.holdSum[i]).divideScalar(pointerWeight + held) : m.reachPoint[i];
       chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
       chain.solve({
         time: t,
@@ -515,6 +574,18 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       row.write(rig.suckers, offset, rig.suckerBend);
       offset += row.count;
     });
+    // Each held bubble rides its arm's tip; that arm's cups flare.
+    const flare = (rig.suckers.material as THREE.ShaderMaterial).uniforms.uFlare.value as Float32Array;
+    flare.fill(0);
+    bubbleState.hold.pull.fill(0);
+    for (const f of holds) {
+      const { px, py, pz, segments: n } = rig.arms[f.arm].chain;
+      bubbleState.hold.pull[f.bubble] = f.pull;
+      bubbleState.hold.tip[f.bubble].set(px[n], py[n] + HOLD_BOB * f.lift, pz[n]);
+      // Across the view (no depth), so the bubble sits off the tip on the page, never over it.
+      bubbleState.hold.dir[f.bubble].set(px[n] - px[n - 4], py[n] - py[n - 4], 0).normalize();
+      flare[f.arm] = Math.max(flare[f.arm], f.flare);
+    }
     rig.suckers.instanceMatrix.needsUpdate = true;
     rig.suckerBend.needsUpdate = true;
     for (const web of rig.webs) web.update();
