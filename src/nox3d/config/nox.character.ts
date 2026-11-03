@@ -170,5 +170,16 @@ export const NOX: CharacterConfig = {
     breathPeriod: 4.6,
     // Spec 9.5: a slow opening, a fast sweep back, then a glide; the mantle fills 4% and squeezes 6%.
     swim: { recovery: 0.52, power: 0.21, glide: 0.6, fill: 0.04, squeeze: 0.06 },
+    // Design 9.7. Blink, tracking, glance and saccade values are the ones ambient.ts and
+    // attention.ts had in code (unchanged); startle, settle and arrival are new (Task 25).
+    micro: {
+      blink: { seconds: 0.17, doubleGap: 0.12 },
+      tracking: 3.5,
+      glance: { first: 2, wait: [2.0, 4.5], x: 0.45, y: 0.3, lift: 0.05 },
+      saccade: { first: 0.4, wait: [0.35, 1.25], x: 0.07, y: 0.05 },
+      startle: { duration: 0.6, lift: 0.05, armsIn: 0.12, eyes: 0.5, speed: 3.5, near: 0.55, cooldown: 3 },
+      settle: { duration: 0.9, amount: 0.03, cycles: 1.5 },
+      arrival: { duration: 1.4, roll: 0.09, armWave: 0.14 },
+    },
   },
 };

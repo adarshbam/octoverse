@@ -53,16 +53,18 @@ const MIN_PANEL_WIDTH = 640;
  * too small to read, it is a sheet instead: along the bottom on a phone held upright, down the
  * right side otherwise, clear of Nox.
  */
-export function ProjectDetail({ project, technologies, open, showPlaceholders, dispatch }: {
+export function ProjectDetail({ project, technologies, open, showPlaceholders, forceSheet = false, dispatch }: {
   project: Project;
   technologies: readonly Technology[];
   open: boolean;
   showPlaceholders: boolean;
+  /** A sheet whatever the window (without WebGL there is no stage to place the panel on). */
+  forceSheet?: boolean;
   dispatch: (event: StageEvent) => void;
 }) {
   const id = useId();
   const box = useStageBox('detail', DETAIL_PANEL_BOX);
-  const sheet = portraitPhone() || box.width < MIN_PANEL_WIDTH;
+  const sheet = forceSheet || portraitPhone() || box.width < MIN_PANEL_WIDTH;
   const side = sheet && !portraitPhone();
   const pages = detailPages(project, showPlaceholders);
   const [pageId, setPageId] = useState('overview');
@@ -112,6 +114,7 @@ export function ProjectDetail({ project, technologies, open, showPlaceholders, d
   const section = page.section;
   return (
     <section
+      id="project-details"
       className={`project-detail${open ? ' is-open' : ''}${sheet ? ' is-sheet' : ''}${side ? ' is-side' : ''}`}
       style={sheet ? undefined : { left: box.left, top: box.top, width: box.width, height: box.height }}
       aria-label={`${project.name} full project view`}

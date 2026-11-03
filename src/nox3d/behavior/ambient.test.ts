@@ -25,13 +25,13 @@ test('spring stays bounded after a 5 s frame gap', () => {
 });
 
 test('a 30 s gap produces at most one blink in progress', () => {
-  const scheduler = new BlinkScheduler([2.6, 7.0], 0.2, () => 0.99);
+  const scheduler = new BlinkScheduler([2.6, 7.0], 0.2, NOX.personality.micro.blink, () => 0.99);
   scheduler.sample(1);
   expect(blinkStarts(scheduler, 31, 33.5)).toHaveLength(1);
 });
 
 test('blink lasts 170 ms, inside the 120-250 ms rule', () => {
-  const scheduler = new BlinkScheduler([2.6, 7.0], 0, () => 0.5);
+  const scheduler = new BlinkScheduler([2.6, 7.0], 0, NOX.personality.micro.blink, () => 0.5);
   // Time only moves forward: find the first closed window in one pass.
   let t = 0;
   while (scheduler.sample(t) === 0) t += 0.001;
@@ -43,7 +43,7 @@ test('blink lasts 170 ms, inside the 120-250 ms rule', () => {
 });
 
 test('blink intervals stay within the personality range', () => {
-  const scheduler = new BlinkScheduler([2.6, 7.0], 0.2, seeded(7));
+  const scheduler = new BlinkScheduler([2.6, 7.0], 0.2, NOX.personality.micro.blink, seeded(7));
   const starts = blinkStarts(scheduler, 0, 300, 0.002);
   const gaps = starts.slice(1).map((t, i) => t - starts[i]);
   expect(gaps.length).toBeGreaterThan(40);
@@ -128,7 +128,7 @@ test('the pointer is near Nox when it is close to the face, wherever the stage f
 test('swimming, Nox blinks at a slower rate: the waits between blinks stretch by SWIM_BLINK', () => {
   expect(SWIM_BLINK).toBeGreaterThan(1);
   const gaps = (slower: number) => {
-    const scheduler = new BlinkScheduler(NOX.personality.blinkInterval, 0, seeded(7));
+    const scheduler = new BlinkScheduler(NOX.personality.blinkInterval, 0, NOX.personality.micro.blink, seeded(7));
     const starts: number[] = [];
     let was = false;
     for (let t = 0; t <= 120; t += 0.002) {

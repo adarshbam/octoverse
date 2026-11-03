@@ -259,6 +259,36 @@ export interface StrokeTiming {
   squeeze: number;
 }
 
+/**
+ * The shared micro-animations' timings (seconds) and strengths (design 9.7): read by
+ * behavior/ambient.ts, behavior/attention.ts and motion/micro.ts. Gaze units are the face's
+ * normalised gaze (-1 to 1); lifts are world units; arm swings are radians at the tip.
+ */
+export interface MicroMotion {
+  /** One blink's length, and the gap before the second of a double blink. */
+  blink: { seconds: number; doubleGap: number };
+  /** Seconds the eyes keep following a pointer after it stops moving. */
+  tracking: number;
+  /**
+   * Idle glances: the first comes `first` s into an idle spell, each next one `wait` s later (a
+   * range). Each looks up to x / 2 to either side, and y / 2 above or below `lift`.
+   */
+  glance: { first: number; wait: [number, number]; x: number; y: number; lift: number };
+  /** Tiny eye movements between glances: the first after `first` s, then every `wait` s (a range), up to x / 2 and y / 2. */
+  saccade: { first: number; wait: [number, number]; x: number; y: number };
+  /**
+   * The small startle when the pointer darts to the face: it lasts `duration`; the body lifts by
+   * `lift`, the arms draw in by `armsIn` and the brows jump by `eyes`. It plays when the pointer
+   * comes within `near` (attention.ts nearFace, 0 to 1) at `speed` NDC per second or more, at most
+   * once every `cooldown` s.
+   */
+  startle: { duration: number; lift: number; armsIn: number; eyes: number; speed: number; near: number; cooldown: number };
+  /** The overshoot as a stage move lands: `amount` past the pose along the move, `cycles` swings, over `duration`. */
+  settle: { duration: number; amount: number; cycles: number };
+  /** The happy wiggle on arrival (the 'arrival' sheet): stretched to `duration`; body roll and arm fan at their peaks. */
+  arrival: { duration: number; roll: number; armWave: number };
+}
+
 export interface Personality {
   /** Seconds between ordinary blinks. */
   blinkInterval: [number, number];
@@ -271,6 +301,8 @@ export interface Personality {
   breathPeriod: number;
   /** The swim stroke's pace and mantle beat (motion/stroke.ts). */
   swim: StrokeTiming;
+  /** The shared micro-animations (design 9.7). */
+  micro: MicroMotion;
 }
 
 /**

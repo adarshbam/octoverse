@@ -113,3 +113,10 @@
     animation-delay: 0ms !important;
   }
 }
+
+/* On a phone the tray of technologies runs along the bottom: the sheet rides above it (SHEET_MARGIN in tooltipPlacement.ts must equal the 182px below: 12 px + 160 px tray + 10 px). */
+@media (max-width: 767px) {
+  .tech-tooltip.is-sheet {
+    bottom: 182px;
+  }
+}

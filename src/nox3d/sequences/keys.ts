@@ -216,6 +216,28 @@ const HEAD_SWELL: SequenceDefaults = {
   },
 };
 
+// --- The arrival wiggle (design 9.7) ---------------------------------------------------------
+
+/**
+ * The happy wiggle once the entrance has settled (motion/micro.ts `arrivalWiggle`): the body rocks
+ * side to side three times, each smaller, and the arms fan open and shut a beat behind it, so they
+ * follow through. Values are fractions of the personality's strengths (`personality.micro.arrival`);
+ * the sheet's 1.4 s is stretched to the personality's duration. Each key is a turning point, so
+ * Theatre's default ease in and out makes each swing round.
+ */
+const ARRIVAL: SequenceDefaults = {
+  length: 1.4,
+  objects: {
+    main: {
+      props: { roll: 0, armWave: 0 },
+      keys: {
+        roll: [[0, 0], [0.18, 1], [0.44, -0.75], [0.7, 0.45], [0.96, -0.2], [1.2, 0]],
+        armWave: [[0.08, 0], [0.3, 1], [0.56, -0.6], [0.82, 0.35], [1.08, -0.12], [1.4, 0]],
+      },
+    },
+  },
+};
+
 /**
  * Code defaults for each sheet's props and keyframes. `scripts/theatre-seed.mjs` writes them into
  * the state JSON the first time; exports from the studio replace that file afterwards.
@@ -230,5 +252,5 @@ export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,
-  arrival: placeholder(),
+  arrival: ARRIVAL,
 };

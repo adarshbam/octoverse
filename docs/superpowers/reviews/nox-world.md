@@ -1093,3 +1093,11 @@ Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64
 - **Task 24:** squeeze, overshoot past 1, settle at 1; closing reverses it. Nox's head effect: **glowing red glyphs** (owner's words, 2026-11-03), `headEffect: 'glyphs'`; `'none'` renders the approved dome. Bubbles are pushed out while swollen (small: 3% settled). No camera moves (R60). Panel 3 exits 0; parity at rest (125,31,80), saturation 0.811, brightness 0.563.
 - Known: Kali and every-bubble keyboard e2e flake under load (also on the base); a second click right after the swell settles can be ignored.
 - **Owner verdict, Milestone 7 live check (2026-11-03): "Approve M7".**
+
+## Lane B: micro-animations and phone fallback (branch claude/nox-lane-b-91f689)
+
+Task 25 (`feat(nox3d): shared micro-animations from personality`, 2667582, fix round 2302942): `startle`, `arrivalWiggle`, `settleOvershoot`, `idleGlance` and `Personality.micro`; no arm physics (B1). Strengths are first guesses and may read stiff.
+
+Task 27 (phone tray of 15 buttons at 48 px, bottom sheets, phone world tier, skip link, no-WebGL poster): 9 Playwright specs pass on port 5192; npm test 388. Known: `keyboard.spec.ts` fails identically before and after (kit load 15 s under load); tray technologies without an orb get no tooltip on desktop (lane A's `TechTooltip.tsx`); on a portrait phone the tray and overview sheet overlap Nox's lower arms. Phone fps not reported by the owner.
+
+**Owner verdict, phone check (2026-11-03):** "Approved"

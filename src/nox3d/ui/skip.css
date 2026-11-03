@@ -54,3 +54,24 @@
     animation: none;
   }
 }
+
+/* "Skip to project details": off the page until it has focus. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #ffd0dc;
+  color: #1a0710;
+  font: 600 15px/1.2 'Poppins', system-ui, sans-serif;
+  text-decoration: none;
+  transform: translateY(-300%);
+}
+
+.skip-link:focus {
+  transform: none;
+  outline: 3px solid #1a0710;
+  outline-offset: 2px;
+}
