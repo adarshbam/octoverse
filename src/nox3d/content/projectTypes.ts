@@ -3,11 +3,10 @@
  *
  * Minimal readonly TypeScript contracts separating:
  * - Anatomical arm identity (frozen exactly 8 arms: T1-T8)
- * - Five named scene states (Panels 1-5 of Nox storyboard)
+ * - The storyboard panel each stage shows (Panels 1-5 of Nox storyboard)
  * - Project identity, sections, optional links, media
  * - Technology identity (catalog item: id, name, category, iconKey)
  * - Project technology usage (project-specific role, details, highlights)
- * - Per-pose authored artifact placement (usageId, armId, position, accent, viewportGrouping)
  * - Primary technology limit (capped at 15 primary technologies, with additional allowed)
  *
  * NOTE: PoseDefinition and WorldDefinition rendering contracts (SVG spline paths,
@@ -15,89 +14,30 @@
  * Do not invent artwork geometry interfaces here.
  */
 
+import type { StageId } from '../config/types';
+
 // ---------------------------------------------------------------------------
 // 1. Anatomical Arm Identity (Frozen 8 Arms)
 // ---------------------------------------------------------------------------
 
-/**
- * Exactly eight anatomical arms, matching the approved Nox character anatomy.
- * Arm count is strictly decoupled from technology counts.
- */
-export const ARM_IDS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const;
-
-export type ArmId = (typeof ARM_IDS)[number];
-
-export const TOTAL_ARM_COUNT = 8 as const;
-
-export function isArmId(value: unknown): value is ArmId {
-  return typeof value === 'string' && (ARM_IDS as readonly string[]).includes(value);
-}
+// One definition lives in config/arms.ts; re-exported so content code keeps its import path.
+export { ARM_IDS, isArmId, TOTAL_ARM_COUNT, type ArmId } from '../config/arms';
 
 // ---------------------------------------------------------------------------
-// 2. Five Named Scene States
+// 2. Storyboard Panel per Stage
 // ---------------------------------------------------------------------------
 
 /**
- * Five named scene states corresponding to the 5 storyboard panels in Nox.jpeg:
- * 1. realm_entry        (Panel 1: Nox Enters the Security Realm)
- * 2. introduction       (Panel 2: Nox Arrives & Introduces Security Lab)
- * 3. project_overview   (Panel 3: Project Overview in Octopus Head)
- * 4. tech_interaction   (Panel 4: Tech Interaction / Hover)
- * 5. full_project       (Panel 5: Full Project View / Detail)
+ * The storyboard panel (Nox.jpeg, panels 1-5) each stage shows. StageId is the
+ * stage vocabulary; the panel number is the only thing content adds to it.
  */
-export const SCENE_STATES = [
-  'realm_entry',
-  'introduction',
-  'project_overview',
-  'tech_interaction',
-  'full_project',
-] as const;
-
-export type SceneState = (typeof SCENE_STATES)[number];
-
-export function isSceneState(value: unknown): value is SceneState {
-  return typeof value === 'string' && (SCENE_STATES as readonly string[]).includes(value);
-}
-
-export interface SceneStateMetadata {
-  readonly id: SceneState;
-  readonly panelNumber: 1 | 2 | 3 | 4 | 5;
-  readonly title: string;
-  readonly description: string;
-}
-
-export const SCENE_STATE_DEFINITIONS: readonly SceneStateMetadata[] = [
-  {
-    id: 'realm_entry',
-    panelNumber: 1,
-    title: 'Nox Enters the Security Realm',
-    description: 'Nox enters from the side into the underwater security ruin environment.',
-  },
-  {
-    id: 'introduction',
-    panelNumber: 2,
-    title: 'Nox Arrives & Introduces Security Lab',
-    description: 'Nox reaches center, floating and looking forward with project identity and nameplate.',
-  },
-  {
-    id: 'project_overview',
-    panelNumber: 3,
-    title: 'Project Overview in Octopus Head',
-    description: 'Floating project summary above head with up to 15 primary technologies held by tentacles.',
-  },
-  {
-    id: 'tech_interaction',
-    panelNumber: 4,
-    title: 'Tech Interaction',
-    description: 'Focused tentacle reaches toward cursor with active technology orb and usage detail tooltip.',
-  },
-  {
-    id: 'full_project',
-    panelNumber: 5,
-    title: 'Full Project View',
-    description: 'Comprehensive project showcase panel while Nox rests in the background alive.',
-  },
-] as const;
+export const STAGE_PANELS: Record<StageId, 1 | 2 | 3 | 4 | 5> = {
+  entering: 1,
+  intro: 2,
+  overview: 3,
+  techFocus: 4,
+  detail: 5,
+};
 
 // ---------------------------------------------------------------------------
 // 3. Technology Catalog Identity
@@ -136,39 +76,7 @@ export interface ProjectTechnologyUsage {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Per-Pose Authored Artifact Placement
-// ---------------------------------------------------------------------------
-
-/**
- * 2D spatial coordinate for artifact placement.
- */
-export interface PlacementPosition {
-  readonly x: number;
-  readonly y: number;
-}
-
-/**
- * Authored placement of a technology artifact/orb in a given scene pose.
- * Associates a project technology usage with an arm, spatial position,
- * visual accent color, and responsive viewport grouping.
- */
-export interface ArtifactPlacement {
-  readonly usageId: string;
-  readonly armId: ArmId;
-  readonly position: PlacementPosition;
-  readonly accent?: string;
-  readonly viewportGrouping?: 'all' | 'desktop' | 'mobile' | string;
-}
-
-/**
- * Collection of artifact placements keyed by pose or scene state.
- */
-export type PosePlacementMap = {
-  readonly [poseOrState: string]: readonly ArtifactPlacement[];
-};
-
-// ---------------------------------------------------------------------------
-// 6. Project Content: Identity, Sections, Links, Media
+// 5. Project Content: Identity, Sections, Links, Media
 // ---------------------------------------------------------------------------
 
 export interface ProjectIdentity {
@@ -208,7 +116,7 @@ export interface ProjectMedia {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Full Project Contract
+// 6. Full Project Contract
 // ---------------------------------------------------------------------------
 
 /**
@@ -237,5 +145,4 @@ export interface Project {
   readonly media?: readonly ProjectMedia[];
   readonly technologyUsages?: readonly ProjectTechnologyUsage[];
   readonly primaryTechnologyIds?: readonly string[];
-  readonly placements?: readonly ArtifactPlacement[] | PosePlacementMap;
 }

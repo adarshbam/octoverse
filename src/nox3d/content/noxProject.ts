@@ -30,5 +30,4 @@ export const noxProject: Project = {
   }],
   technologyUsages: placeholderUsages(noxTechnologies),
   primaryTechnologyIds: noxTechnologies.map(technology => technology.id),
-  placements: {},
 };

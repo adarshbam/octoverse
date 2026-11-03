@@ -1,8 +1,5 @@
 import {
-  type ArtifactPlacement,
-  isArmId,
   MAX_PRIMARY_TECHNOLOGIES,
-  type PosePlacementMap,
   type Project,
   type Technology,
 } from './projectTypes.ts';
@@ -13,10 +10,7 @@ import {
 export type ValidationIssueCode =
   | 'DUPLICATE_ID'
   | 'MISSING_CATALOG_REFERENCE'
-  | 'MISSING_USAGE_REFERENCE'
   | 'MISSING_PRIMARY_REFERENCE'
-  | 'MISSING_PLACEMENT_REFERENCE'
-  | 'INVALID_ARM_ID'
   | 'PRIMARY_TECH_LIMIT_EXCEEDED';
 
 /**
@@ -37,11 +31,10 @@ export interface ValidationResult {
 }
 
 /**
- * Optional validation inputs for catalog and external placement verification.
+ * Optional validation inputs for catalog verification.
  */
 export interface ValidationOptions {
   readonly catalog?: readonly Technology[];
-  readonly placements?: readonly ArtifactPlacement[] | PosePlacementMap;
 }
 
 /**
@@ -50,7 +43,6 @@ export interface ValidationOptions {
 export interface ValidateProjectInput {
   readonly project: Project;
   readonly catalog?: readonly Technology[];
-  readonly placements?: readonly ArtifactPlacement[] | PosePlacementMap;
 }
 
 /**
@@ -75,13 +67,8 @@ function isCatalogArray(
  * - Duplicate IDs across sections, links, media, technology usages, primary list, and catalog.
  * - Missing catalog references: technology usages pointing to non-existent catalog technologies
  *   (when catalog is explicitly supplied, even if empty).
- * - Missing usage references: artifact placements pointing to non-existent project technology usages
- *   (validated strictly against ProjectTechnologyUsage.id).
  * - Missing primary references: primary technology IDs that do not correspond to any project usage
  *   (validated strictly against ProjectTechnologyUsage.technologyId).
- * - Missing placement references: artifact placements missing a usageId.
- * - Invalid arm associations: placements using an armId outside T1-T8.
- *   (Shared-arm association is explicitly allowed: multiple placements on one arm do not error.)
  * - Primary technology limit: maximum of 15 primary technologies allowed.
  *   (Additional technologies outside the primary list are explicitly allowed in technologyUsages.)
  * - Draft tolerance: zero technologies and absent optional sections/links/media are valid drafts.
@@ -92,13 +79,11 @@ export function validateProject(
 ): ValidationResult {
   let project: Project;
   let catalog: readonly Technology[] | undefined;
-  let explicitPlacements: readonly ArtifactPlacement[] | PosePlacementMap | undefined;
 
   // Normalize polymorphic arguments
   if (isValidateProjectInput(projectOrInput)) {
     project = projectOrInput.project;
     catalog = projectOrInput.catalog;
-    explicitPlacements = projectOrInput.placements;
   } else {
     project = projectOrInput;
     if (optionsOrCatalog !== undefined) {
@@ -106,7 +91,6 @@ export function validateProject(
         catalog = optionsOrCatalog;
       } else {
         catalog = optionsOrCatalog.catalog;
-        explicitPlacements = optionsOrCatalog.placements;
       }
     }
   }
@@ -254,54 +238,6 @@ export function validateProject(
           `primaryTechnologyIds[${primaryId}]`,
           'MISSING_PRIMARY_REFERENCE',
           `Primary technology ID "${primaryId}" does not correspond to any technology usage in this project.`
-        );
-      }
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // 7. Placements Validation (Arm IDs & Usage References)
-  // -------------------------------------------------------------------------
-  const rawPlacements = explicitPlacements ?? project.placements;
-
-  if (rawPlacements) {
-    const placementList: ArtifactPlacement[] = [];
-
-    if (Array.isArray(rawPlacements)) {
-      placementList.push(...rawPlacements);
-    } else if (typeof rawPlacements === 'object') {
-      for (const list of Object.values(rawPlacements)) {
-        if (Array.isArray(list)) {
-          placementList.push(...list);
-        }
-      }
-    }
-
-    for (let i = 0; i < placementList.length; i++) {
-      const p = placementList[i];
-      const pathPrefix = `placements[${p.usageId || i}]`;
-
-      // 1. Arm ID validation (must be T1-T8)
-      if (!isArmId(p.armId)) {
-        addIssue(
-          `${pathPrefix}.armId`,
-          'INVALID_ARM_ID',
-          `Invalid arm association "${String(p.armId)}". Must be one of T1-T8.`
-        );
-      }
-
-      // 2. Usage reference validation
-      if (!p.usageId) {
-        addIssue(
-          `${pathPrefix}.usageId`,
-          'MISSING_PLACEMENT_REFERENCE',
-          'Placement is missing a usageId.'
-        );
-      } else if (!usageIdSet.has(p.usageId)) {
-        addIssue(
-          `${pathPrefix}.usageId`,
-          'MISSING_USAGE_REFERENCE',
-          `Placement references unknown technology usage ID "${p.usageId}".`
         );
       }
     }

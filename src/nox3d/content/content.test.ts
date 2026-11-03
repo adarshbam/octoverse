@@ -1,6 +1,9 @@
 import { expect, test } from 'vitest';
+import { ARM_IDS as armsIds } from '../config/arms';
+import { ARM_IDS as typesIds } from '../config/types';
 import { noxProject } from './noxProject';
 import { noxTechnologies } from './noxTechnologies';
+import { ARM_IDS as projectIds, STAGE_PANELS } from './projectTypes';
 import { validateProject } from './validateProject';
 
 test('nox project validates against its catalog', () => {
@@ -15,4 +18,15 @@ test('every technology has a usage and all storyboard copy is flagged placeholde
 
 test('live link is labelled Live Demo', () => {
   expect(noxProject.links!.find(l => l.kind === 'live')!.label).toBe('Live Demo');
+});
+
+test('Project has no coordinates', () => {
+  expect(Object.keys(noxProject)).not.toContain('placements');
+  expect(typesIds).toBe(projectIds);
+  expect(typesIds).toBe(armsIds);
+  expect(STAGE_PANELS.intro).toBe(2);
+  expect(STAGE_PANELS.entering).toBe(1);
+  expect(STAGE_PANELS.detail).toBe(5);
+  expect(STAGE_PANELS.overview).toBe(3);
+  expect(STAGE_PANELS.techFocus).toBe(4);
 });

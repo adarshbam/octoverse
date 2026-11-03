@@ -5,8 +5,9 @@
 import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
 import type { StageLighting } from './lighting';
 
-export const ARM_IDS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'] as const;
-export type ArmId = (typeof ARM_IDS)[number];
+import { ARM_IDS, type ArmId } from './arms';
+
+export { ARM_IDS, type ArmId };
 export type Point2 = readonly [number, number];
 export type StageId = 'entering' | 'intro' | 'overview' | 'techFocus' | 'detail';
 
