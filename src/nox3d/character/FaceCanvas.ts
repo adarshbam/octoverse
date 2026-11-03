@@ -19,6 +19,21 @@ const rgba = (hex: string, alpha: number) => {
 };
 
 /**
+ * How a puff (blowing a bubble, 1 full) changes each cheek's blush: the oval grows by `grow` across
+ * and `round` up and down (so it rounds), moves `out` and `down` (head units), with a shine of
+ * `shine` opacity on it and a shade of `shade` opacity under it.
+ */
+const PUFF = { grow: 0.22, round: 0.55, out: 0.02, down: 0.012, shine: 0.38, shade: 0.22 } as const;
+/**
+ * The round mouth of a blow: an "o" `rx` by `ry` (head units), `drop` below the mouth's centre,
+ * its outline `thicken` times the smile line's thickness.
+ */
+const ROUND_MOUTH = { rx: 0.032, ry: 0.038, drop: 0.012, thicken: 1.1 } as const;
+type MouthPoint = 'start' | 'c1' | 'c2' | 'end' | 'l1' | 'l2';
+/** The mouth outline's points in drawing order: the smile line, then the lower lip back. */
+const MOUTH_POINTS: readonly MouthPoint[] = ['start', 'c1', 'c2', 'end', 'l1', 'l2'];
+
+/**
  * Nox's face, drawn in 2D and projected onto the 3D mantle. Every feature is a
  * parameter (lids, brows, mouth, blush, gaze), so expressions blend instead of
  * swapping drawings. Lids clip the eye, so the lit 3D skin shows when it blinks.
@@ -47,12 +62,12 @@ export class FaceCanvas {
    * returns whether the texture was updated. A change held back is drawn on a later frame.
    */
   draw(p: FaceParams, nowMs = performance.now()): boolean {
-    const key = [p.lidRest, p.lidBottom, p.browLift, p.browTilt, p.mouthCurve, p.mouthOpen, p.blush, p.blink, p.gazeX, p.gazeY].map(v => v.toFixed(3)).join();
+    const key = [p.lidRest, p.lidBottom, p.browLift, p.browTilt, p.mouthCurve, p.mouthOpen, p.blush, p.blink, p.gazeX, p.gazeY, p.puff ?? 0, p.mouthRound ?? 0].map(v => v.toFixed(3)).join();
     if (!faceRedrawDue(key, this.last, nowMs, this.lastDrawn)) return false;
     this.last = key;
     this.lastDrawn = nowMs;
     this.ctx.clearRect(0, 0, SIZE, SIZE);
-    this.drawBlush(p.blush);
+    this.drawBlush(p.blush, p.puff ?? 0);
     this.drawBrows(p);
     this.layout.eye.centers.forEach((center, i) => this.drawEye(center, i === 0 ? -1 : 1, p));
     this.drawMouth(p);
@@ -60,11 +75,22 @@ export class FaceCanvas {
     return true;
   }
 
-  private drawBlush(amount: number) {
+  /**
+   * The blush ovals. Puffed (`puff` 0 to 1, blowing a bubble), each cheek swells: its oval grows,
+   * rounder and a little out and down, with a soft shine on its upper inner side and a faint
+   * shade under it, so it reads as a full, round cheek. At no puff it is drawn exactly as before.
+   */
+  private drawBlush(amount: number, puff = 0) {
     const { ctx, palette } = this;
-    const { centers, rx, ry } = this.layout.blush;
+    const { centers } = this.layout.blush;
+    const rx = this.layout.blush.rx * (1 + PUFF.grow * puff);
+    const ry = this.layout.blush.ry * (1 + PUFF.round * puff);
     const r = rx * PX_PER_UNIT;
-    for (const [x, y] of centers) {
+    for (const [cx, cy] of centers) {
+      const side = Math.sign(cx);
+      const x = cx + side * PUFF.out * puff;
+      const y = cy - PUFF.down * puff;
+      if (puff > 0) this.drawCheekShade(x, y, rx, ry, puff);
       ctx.save();
       ctx.translate(px(x), py(y));
       ctx.scale(1, ry / rx);
@@ -86,7 +112,45 @@ export class FaceCanvas {
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+      if (puff > 0) this.drawCheekShine(x, y, rx, ry, side, puff);
     }
+  }
+
+  /** A faint shade under a puffed cheek, fading out all round: the cheek's roundness. */
+  private drawCheekShade(x: number, y: number, rx: number, ry: number, puff: number) {
+    const { ctx, palette } = this;
+    const r = rx * PX_PER_UNIT * 1.25;
+    ctx.save();
+    ctx.translate(px(x), py(y - ry * 0.55));
+    ctx.scale(1, (ry / rx) * 0.9);
+    const g = ctx.createRadialGradient(0, 0, r * 0.45, 0, 0, r);
+    g.addColorStop(0, rgba(palette.mouthInside, 0));
+    g.addColorStop(0.55, rgba(palette.mouthInside, PUFF.shade * puff));
+    g.addColorStop(1, rgba(palette.mouthInside, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /** The shine on a puffed cheek: a soft light oval high on its inner side, as on a full, glossy cheek. */
+  private drawCheekShine(x: number, y: number, rx: number, ry: number, side: number, puff: number) {
+    const { ctx, palette } = this;
+    const sx = rx * 0.42 * PX_PER_UNIT;
+    ctx.save();
+    ctx.translate(px(x - side * rx * 0.3), py(y + ry * 0.38));
+    ctx.rotate(side * 0.25);
+    ctx.scale(1, 0.5);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, sx);
+    g.addColorStop(0, rgba(palette.catchlight, PUFF.shine * puff));
+    g.addColorStop(0.5, rgba(palette.catchlight, PUFF.shine * 0.55 * puff));
+    g.addColorStop(1, rgba(palette.catchlight, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, sx, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   private drawBrows(p: FaceParams) {
@@ -372,6 +436,10 @@ export class FaceCanvas {
   }
 
   private drawMouth(p: FaceParams) {
+    if ((p.mouthRound ?? 0) > 0) {
+      this.drawRoundMouth(p, p.mouthRound!);
+      return;
+    }
     const { ctx, palette } = this;
     const mouth = this.layout.mouth;
     const shape = mouthShape(mouth, p.mouthCurve, p.mouthOpen);
@@ -419,6 +487,82 @@ export class FaceCanvas {
       ctx.beginPath();
       ctx.arc(x, y, mouth.dimple * PX_PER_UNIT, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  /**
+   * The mouth rounding to blow (`round` 0 to 1): the smile's line and lips draw in to a small, round
+   * "o", dark inside, outlined as the smile line is; the dimples and the tongue go as it rounds.
+   * Every point of the mouth's outline moves straight from the smile toward the "o", so it never
+   * jumps between shapes.
+   */
+  private drawRoundMouth(p: FaceParams, round: number) {
+    const { ctx, palette } = this;
+    const mouth = this.layout.mouth;
+    const shape = mouthShape(mouth, p.mouthCurve, p.mouthOpen);
+    const r = Math.min(1, round);
+    const [cx, cy] = mouth.center;
+    const ox = ROUND_MOUTH.rx;
+    const oy = ROUND_MOUTH.ry;
+    // A cubic with handles 4/3 of the half height out reaches that height: a half ellipse.
+    const k = 4 / 3;
+    const ocy = cy - ROUND_MOUTH.drop;
+    // The "o" as the smile's six points: across the top from left to right, back along the bottom.
+    const o: Record<MouthPoint, Point2> = {
+      start: [cx - ox, ocy], c1: [cx - ox, ocy + k * oy], c2: [cx + ox, ocy + k * oy], end: [cx + ox, ocy],
+      l1: [cx + ox, ocy - k * oy], l2: [cx - ox, ocy - k * oy],
+    };
+    // A closed smile's lower lip is its own line, back the other way.
+    const from: Record<MouthPoint, Point2> = {
+      start: shape.start, c1: shape.c1, c2: shape.c2, end: shape.end,
+      l1: shape.lower ? shape.lower.c1 : shape.c2, l2: shape.lower ? shape.lower.c2 : shape.c1,
+    };
+    const at = (key: MouthPoint) => [px(from[key][0] + (o[key][0] - from[key][0]) * r), py(from[key][1] + (o[key][1] - from[key][1]) * r)] as const;
+    const [s0, a, b, e, l1, l2] = MOUTH_POINTS.map(at);
+    const outline = () => {
+      ctx.beginPath();
+      ctx.moveTo(s0[0], s0[1]);
+      ctx.bezierCurveTo(a[0], a[1], b[0], b[1], e[0], e[1]);
+      ctx.bezierCurveTo(l1[0], l1[1], l2[0], l2[1], s0[0], s0[1]);
+      ctx.closePath();
+    };
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.save();
+    outline();
+    ctx.fillStyle = palette.mouthInside;
+    ctx.fill();
+    ctx.clip();
+    // The "o"'s own depth: a warm tongue glow low inside it, coming in as it rounds.
+    const glowR = ox * PX_PER_UNIT;
+    const inner = ctx.createRadialGradient(px(cx), py(ocy - oy * 0.75), 0, px(cx), py(ocy - oy * 0.75), glowR);
+    inner.addColorStop(0, rgba(palette.tongue, 0.85 * r));
+    inner.addColorStop(1, rgba(palette.tongue, 0));
+    ctx.fillStyle = inner;
+    ctx.fillRect(px(cx) - glowR, py(ocy) - glowR, 2 * glowR, 2 * glowR);
+    if (shape.lower && r < 1) {
+      // An open smile's tongue fades as the mouth rounds.
+      const bottom = py(shape.lower.bottom);
+      ctx.globalAlpha = 1 - r;
+      ctx.fillStyle = palette.tongue;
+      ctx.beginPath();
+      ctx.ellipse(px(cx), bottom, (e[0] - s0[0]) * 0.32, Math.max(0, bottom - py(shape.lower.tongueTop)), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle = palette.mouth;
+    ctx.fillStyle = palette.mouth;
+    ctx.lineWidth = mouth.thickness * PX_PER_UNIT * (1 + (ROUND_MOUTH.thicken - 1) * r);
+    outline();
+    ctx.stroke();
+    // The dimples shrink away as it rounds.
+    const dimple = mouth.dimple * PX_PER_UNIT * (1 - r);
+    if (dimple > 0.5) {
+      for (const [x, y] of [s0, e]) {
+        ctx.beginPath();
+        ctx.arc(x, y, dimple, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 }

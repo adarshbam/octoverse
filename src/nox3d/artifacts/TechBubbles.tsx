@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
 import { NOX } from '../config/nox.character';
+import { type BlowSheet, BlowRun, blowFrame, blowPosition } from '../sequences/bubbleBlow';
 import { bubbleLive } from './bubbleLive';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { logoColour, logoTexture } from './logoTexture';
@@ -29,6 +30,11 @@ export interface BubbleState {
   swell: number;
   /** How far each is in focus (0..1, eased). */
   focus: Float32Array;
+  /** The blow's sheet (sequences/bubbleBlow.ts): the bubbles are blown from Nox's mouth when they first appear. */
+  blow?: BlowSheet;
+  /** Written back each frame for Nox's face: how puffed his cheeks are and how round his mouth, blowing (0 otherwise). */
+  puff: number;
+  mouthRound: number;
 }
 
 /** How much a bubble in focus grows. */
@@ -40,8 +46,10 @@ const RESIZE_PER_S = 3;
 
 /**
  * The technology bubbles, orbiting Nox on his shells (artifacts/bubbleOrbits.ts) in the approved
- * glass with each technology's logo, their halos breathing a little, each at its own pace. They
- * fade in once Nox is in the intro and out beside the detail panel. The page's buttons follow them:
+ * glass with each technology's logo, their halos breathing a little, each at its own pace. The
+ * first time they appear (once the entrance has settled) Nox blows them from his mouth, one after
+ * another, each wobbling as it grows on its way to its orbit (sequences/bubbleBlow.ts); with motion
+ * off they are simply there. Later they fade in and out (beside the detail panel). The page's buttons follow them:
  * each frame the bubbles' places on the page are written to `bubbleLive`. Lives in body space, so
  * the bubbles go with Nox.
  */
@@ -76,8 +84,8 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
 
   const layouts = useMemo(() => ({ intro: layoutOrbits(bubbles.length, NOX_SHELLS, 'intro'), overview: layoutOrbits(bubbles.length, NOX_SHELLS, 'overview') }), [bubbles.length]);
   // The orbit clock, the speed spring that eases it, each bubble's current size, and how far all are shown.
-  const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false }), [bubbles.length]);
-  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3() }), []);
+  const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: new BlowRun() }), [bubbles.length]);
+  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
@@ -87,9 +95,16 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     const s = state();
     const dt = Math.min(delta, 0.05);
     const root = group.current!;
-    // Fading in and out; with motion off they come and go at once.
-    const goal = s.show ? 1 : 0;
-    run.shown = s.still ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
+    // The blow: it starts the first time the bubbles are shown, and until it does there are none.
+    const { blow } = run;
+    blow.step({ exist: s.show, still: s.still, ready: !!s.blow?.sequences, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, at: s.blow?.at });
+    const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
+    const waiting = !blow.done && !blowing;
+    // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
+    const goal = s.show && !waiting ? 1 : 0;
+    run.shown = s.still || blowing ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
+    let puff = 0;
+    let mouthRound = 0;
     root.visible = run.shown > 0.001;
     if (!root.visible) {
       // Told once that they are gone, then left alone while hidden.
@@ -98,6 +113,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
         bubbleLive.notify();
         run.hidden = true;
       }
+      s.puff = s.mouthRound = 0;
       return;
     }
     run.hidden = false;
@@ -106,7 +122,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     if (!s.still) run.clock += dt * pace;
     const shown = run.shown * run.shown * (3 - 2 * run.shown);
     root.updateWorldMatrix(true, false);
-    const { edge, ndc, right } = scratch;
+    const { edge, ndc, right, orbit: target } = scratch;
     const e = frame.camera.matrixWorld.elements;
     right.set(e[0], e[1], e[2]).normalize();
     const strongest = s.focus.reduce((a, b) => Math.max(a, b), 0);
@@ -115,12 +131,25 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     parts.items.forEach((item, i) => {
       const node = root.children[i];
       const orbit = orbits[i];
-      orbitPoint(orbit, run.clock, s.swell, node.position);
+      orbitPoint(orbit, run.clock, s.swell, target);
       const f = s.focus[i];
       // A bubble grows into its stage's size.
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? orbit.size : run.size[i] + (orbit.size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
-      const radius = run.size[i] * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW[s.stage] - 1) * f);
-      node.scale.setScalar(radius);
+      let radius = run.size[i] * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW[s.stage] - 1) * f);
+      // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching.
+      const b = blowing ? blowFrame(blowing, i, blow.seconds!) : null;
+      if (b) {
+        puff = Math.max(puff, b.puff);
+        mouthRound = Math.max(mouthRound, b.mouthRound);
+        radius *= b.scale;
+        blowPosition(target, b.emerged, node.position);
+        node.scale.set(radius * (1 + b.wobble), radius * (1 - b.wobble), radius);
+        node.visible = b.scale > 0;
+      } else {
+        node.position.copy(target);
+        node.scale.setScalar(radius);
+        node.visible = true;
+      }
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
       const breathe = s.still ? 1 : 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
@@ -139,8 +168,10 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
       spot.x = ((ndc.x + 1) / 2) * frame.size.width;
       spot.y = ((1 - ndc.y) / 2) * frame.size.height;
       spot.size = Math.abs(edgeX - ndc.x) * frame.size.width;
-      spot.visible = shown > 0.5 && ndc.z < 1;
+      spot.visible = shown > 0.5 && ndc.z < 1 && (!b || b.scale > 0.5);
     });
+    s.puff = puff;
+    s.mouthRound = mouthRound;
     bubbleLive.notify();
   });
 

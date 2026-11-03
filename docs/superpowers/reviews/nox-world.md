@@ -1075,3 +1075,8 @@ Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64
 **Owner verdict, first look (2026-11-03):** "Motion is good enough, we don't need to add physics. But let him finish swimming. He is almost making the last stroke and then he is spinning. Make him finish his spinning, and after 1 second of him finishing, he will then turn." Read as "finish his swimming" (R53); fixed in e431b0a with a 1.0 s hold.
 
 **Owner verdict, re-check (2026-11-03):** "Approve M5". Arm physics is dropped for good (R52): Milestone 3 is cancelled.
+
+## Milestone 6 (in progress): technology bubbles
+
+- **Tasks 20-21:** focus from the intro; 15 orbiting bubbles on three shells with live buttons (commits 2bc7a05, 359d9c1, c0b1f53). Colour parity baseline with bubbles at rest: Nox (126,32,80), saturation 0.804, brightness 0.564 (R58). Focus from the overview keeps the dome open (R59).
+- **Task 22:** the puffed cheeks and round mouth. **Owner face component review (2026-11-03): "Approve"** (`review.html?component=mouth&expression=blow`). Bubbles are blown 0.18 s apart (puff 0.25 s, pop 0.08 s, wobble-grow to 0.9 s); no bubble before the entrance settles; reduced motion and `?freeze` show them at their orbits.

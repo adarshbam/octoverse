@@ -151,6 +151,39 @@ const ENTRANCE: SequenceDefaults = {
   },
 };
 
+// --- The bubble blow (design 9.8) ------------------------------------------------------------
+
+/** Seconds between one bubble's blow and the next's (sequences/bubbleBlow.ts plays the sheet once per bubble). */
+export const BLOW_STAGGER = 0.18;
+
+/** Handles that leave a key fast and arrive slowly (an ease out, as CSS cubic-bezier(0.33, 1, 0.68, 1)). */
+const EASE_OUT_RIGHT = [1 / 3, 1 / 3, 0.33, 1] as const;
+const EASE_OUT_LEFT = [0.68, 1, 1 / 3, 1 / 3] as const;
+
+/**
+ * One bubble's blow, from its first puff: the cheeks fill and the mouth rounds (0 to 0.25 s), the
+ * bubble pops out as the cheeks empty (0.25 to 0.33 s), then it grows to full size with a wobble
+ * as it goes from the mouth to its orbit (0.33 to 0.9 s). `emerged` is how far along that way it is
+ * (0 at the mouth, 1 on its orbit), `scale` its size (1 full), `wobble` its squash and stretch
+ * (wider by that fraction, shorter by as much; negative the other way).
+ */
+const BUBBLE_BLOW: SequenceDefaults = {
+  length: 0.9,
+  objects: {
+    main: {
+      props: { puff: 0, mouthRound: 0, emerged: 0, scale: 0, wobble: 0 },
+      keys: {
+        puff: [[0, 0], [0.25, 1], [0.33, 0]],
+        mouthRound: [[0, 0], [0.1, 1], [0.33, 1], [0.5, 0]],
+        scale: [[0.25, 0, EASE_OUT_RIGHT], [0.33, 0.45, [0.68, 1, 0.33, 1]], [0.9, 1, EASE_OUT_LEFT]],
+        // At the lips through the pop, then away to the orbit, gathering pace and settling in.
+        emerged: [[0.25, 0, LINEAR], [0.33, 0, [2 / 3, 2 / 3, 0.25, 0.1]], [0.9, 1, EASE_OUT_LEFT]],
+        wobble: [[0.33, 0], [0.42, 0.16], [0.52, -0.12], [0.62, 0.08], [0.72, -0.05], [0.81, 0.025], [0.9, 0]],
+      },
+    },
+  },
+};
+
 /**
  * Code defaults for each sheet's props and keyframes. `scripts/theatre-seed.mjs` writes them into
  * the state JSON the first time; exports from the studio replace that file afterwards.
@@ -163,7 +196,7 @@ const placeholder = (): SequenceDefaults => ({
 
 export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
   entrance: ENTRANCE,
-  bubbleBlow: placeholder(),
+  bubbleBlow: BUBBLE_BLOW,
   headSwell: placeholder(),
   arrival: placeholder(),
 };

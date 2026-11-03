@@ -21,6 +21,7 @@ import { NOX_POSES } from './poses/nox.poses';
 import { SWIM_POSES, swimShapes } from './poses/nox.swim';
 import type { StagePose } from './poses/types';
 import type { EntranceFrame } from './sequences/entrance';
+import type { BlowSheet } from './sequences/bubbleBlow';
 import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
@@ -95,6 +96,20 @@ if (initialStage({ entranceSeen: readEntranceSeen(), requested: url.stage, reduc
     },
   );
 }
+/**
+ * The bubble blow's sheet (the same Theatre state): Nox blows the bubbles when they first appear,
+ * once the entrance has settled (or as the page opens past it), so it loads from the start unless
+ * motion is off. `?freeze&blow=<s>` is a still of the blow at that moment, for review.
+ */
+const BLOW_STILL = url.freeze && new URLSearchParams(location.search).has('blow') ? Number(new URLSearchParams(location.search).get('blow')) || 0 : undefined;
+const BLOW_SHEET: BlowSheet = { sequences: null, failed: false, at: BLOW_STILL };
+if (BLOW_STILL !== undefined || !(url.freeze || readReducedMotion())) {
+  loadSequences().then(
+    sequences => void (BLOW_SHEET.sequences = sequences),
+    () => void (BLOW_SHEET.failed = true),
+  );
+}
+
 /** A still of the entrance (`?stage=entering&freeze`) shows `?t=<s>`, or mid-swim, 2 s in. */
 const ENTRANCE_STILL_SECONDS = url.t ?? 2;
 
@@ -389,6 +404,7 @@ export function App() {
       onSelect={() => dispatch({ type: 'OPEN_OVERVIEW' })}
       orbs={ORBS}
       focusTechId={focusedTech}
+      blowSheet={BLOW_SHEET}
       accents={accents}
       solo={url.solo}
       yaw={url.yaw}

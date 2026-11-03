@@ -25,7 +25,14 @@ const ORIGINAL = params.get('ref') === 'panel';
 // in the swim, and `&yaw=<deg>` turns the body (the back view sets its own turns).
 const POSE = params.get('pose');
 const YAW = BACK ? null : params.get('yaw');
+// `&expression=<id>` shows that face in the live panes. `&expression=blow` (the bubble blow, Task 22)
+// shows the blow face at its fullest, frozen, and two stills of the blow itself as it plays
+// (`?freeze&blow=<s>`): the cheeks puffed before the first bubble, and the first one wobbling out.
+const EXPRESSION = params.get('expression');
+const BLOW = EXPRESSION === 'blow';
+const BLOW_STILLS = [0.25, 0.5] as const;
 const EXTRA = `${POSE ? `&pose=${encodeURIComponent(POSE)}` : ''}${YAW ? `&yaw=${encodeURIComponent(YAW)}` : ''}`;
+const FACE = EXPRESSION ? `&expression=${encodeURIComponent(EXPRESSION)}` : '';
 
 function Reference() {
   const crop = ORIGINAL
@@ -48,7 +55,7 @@ function Reference() {
 }
 
 const live = (query: string, title: string) => (
-  <iframe title={title} src={`/?stage=intro&${query}&view=${box}${EXTRA}`} style={{ width: PANE_WIDTH, height, border: 0, display: 'block' }} />
+  <iframe title={title} src={`/?stage=intro&${query}&view=${box}${EXTRA}${query.includes('blow=') ? '' : FACE}`} style={{ width: PANE_WIDTH, height, border: 0, display: 'block' }} />
 );
 
 function Review() {
@@ -63,10 +70,17 @@ function Review() {
         {view.label}
         {POSE ? `, pose ${POSE}` : ''}
         {YAW ? `, turned ${YAW}°` : ''}
+        {EXPRESSION ? `, face ${EXPRESSION}` : ''}
       </h1>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS}, ${PANE_WIDTH}px)`, gap: 12 }}>
         {(BACK
           ? BACK_VIEW_YAWS.map(deg => [deg === 0 ? 'Front (0°)' : `Turned ${deg}°`, live(`freeze&yaw=${deg}`, `Turned ${deg} degrees`)])
+          : BLOW
+          ? [
+              [ORIGINAL ? 'Reference (panel 2)' : 'Reference (high-quality panel 2)', <Reference key="ref" />],
+              ['Blow face, frozen (puff 1, mouth round 1)', live('freeze', 'Blow face frozen')],
+              ...BLOW_STILLS.map(s => [`The blow at ${s} s`, live(`freeze&blow=${s}`, `The blow at ${s} seconds`)]),
+            ]
           : [
               [ORIGINAL ? 'Reference (panel 2)' : 'Reference (high-quality panel 2)', <Reference key="ref" />],
               ['Live, frozen', live('freeze', 'Live frozen')],

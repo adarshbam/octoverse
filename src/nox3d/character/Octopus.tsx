@@ -17,6 +17,7 @@ import { BODY_X } from '../poses/nox.poses';
 import { swimShapes } from '../poses/nox.swim';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceFrame, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
+import type { BlowSheet } from '../sequences/bubbleBlow';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
 import { bubbleLive } from '../artifacts/bubbleLive';
@@ -84,6 +85,8 @@ export interface OctopusProps {
   orbs?: readonly PlacedBubble[];
   /** The technology in focus: its bubble glows and Nox looks at it. */
   focusTechId?: string | null;
+  /** The bubble blow's sheet: Nox blows the bubbles from his mouth when they first appear (sequences/bubbleBlow.ts). */
+  blowSheet?: BlowSheet;
   /**
    * The entrance (sequences/entrance.ts), read each frame while the stage is `entering`: its clock
    * starts on the first frame drawn with the sheet in, and runs on frame time. Until then Nox is out
@@ -124,7 +127,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
+export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive }: OctopusProps) {
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
@@ -138,7 +141,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const dome = useRef<THREE.Mesh>(null);
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
-  const bubbleState = useMemo<BubbleState>(() => ({ show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length) }), [orbs]);
+  const bubbleState = useMemo<BubbleState>(() => ({ show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0 }), [orbs, blowSheet]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
@@ -451,6 +454,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       blush: Math.max(face.blush, m.smile.x),
       // Swimming, he blinks at a slower rate.
       blink: freeze ? 0 : m.blinks.sample(t, swim && swim.settle < 1 ? SWIM_BLINK : 1),
+      // Blowing the bubbles, his cheeks puff and his mouth rounds (written by TechBubbles).
+      puff: Math.max(face.puff ?? 0, bubbleState.puff),
+      mouthRound: Math.max(face.mouthRound ?? 0, bubbleState.mouthRound),
       gazeX: gaze.gazeX,
       gazeY: gaze.gazeY,
     });
@@ -477,6 +483,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = bubblePointer.hovered || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
+    bubbleState.blow = blowSheet;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.

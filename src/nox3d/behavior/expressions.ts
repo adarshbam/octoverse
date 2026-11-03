@@ -1,4 +1,4 @@
-export type ExpressionId = 'gentle' | 'happy' | 'focused' | 'attentive' | 'curious' | 'restful';
+export type ExpressionId = 'gentle' | 'happy' | 'focused' | 'attentive' | 'curious' | 'restful' | 'blow';
 
 /** Authored face shape, all values roughly -1..1 or 0..1. */
 export interface ExpressionParams {
@@ -11,6 +11,13 @@ export interface ExpressionParams {
   mouthCurve: number;
   mouthOpen: number;
   blush: number;
+  /**
+   * 0 to 1: the cheeks puffed, before a bubble is blown (design 9.8). Absent on every face but the
+   * blow's: an absent puff is none, and draws exactly as before it existed.
+   */
+  puff?: number;
+  /** 0 to 1: the mouth rounded to blow. Absent, as `puff`, on every other face. */
+  mouthRound?: number;
 }
 
 export type FaceParams = ExpressionParams & { blink: number; gazeX: number; gazeY: number };
@@ -27,6 +34,9 @@ export const EXPRESSIONS: Record<ExpressionId, ExpressionParams> = {
   attentive: { ...GENTLE, lidRest: 0.14, browLift: 0.5, mouthCurve: 0.45, blush: 0.3 },
   curious: { ...GENTLE, browTilt: -0.3, browLift: 0.2, mouthCurve: 0.6, mouthOpen: 0.3, blush: 0.25 },
   restful: { lidRest: 0.55, lidBottom: 0.1, browLift: -0.3, browTilt: 0, mouthCurve: 0.2, mouthOpen: 0, blush: 0 },
+  // Blowing a bubble (Task 22): the gentle face, cheeks puffed and mouth round. The blow itself
+  // (sequences/bubbleBlow.ts) puffs the face it is on; this is the face at the top of a puff.
+  blow: { ...GENTLE, puff: 1, mouthRound: 1 },
 };
 
 /**
@@ -45,5 +55,10 @@ export function blendExpression(a: ExpressionParams, b: ExpressionParams, t: num
     mouthCurve: mix(a.mouthCurve, b.mouthCurve),
     mouthOpen: mix(a.mouthOpen, b.mouthOpen),
     blush: mix(a.blush, b.blush),
+    // Puff and mouthRound only while the blend has any (absent is none), so a blend of the other
+    // faces, or one fully out of the blow, is exactly the face it would be without them.
+    ...blowParts(mix(a.puff ?? 0, b.puff ?? 0), mix(a.mouthRound ?? 0, b.mouthRound ?? 0)),
   };
 }
+
+const blowParts = (puff: number, mouthRound: number) => (puff !== 0 || mouthRound !== 0 ? { puff, mouthRound } : {});

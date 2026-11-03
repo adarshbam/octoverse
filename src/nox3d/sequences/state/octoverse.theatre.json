@@ -388,21 +388,21 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 1,
+        "length": 0.9,
         "type": "PositionalSequence",
         "tracksByObject": {
           "main": {
             "trackData": {
-              "seed000004": {
+              "bubbleBlow-0001": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "bubbleBlow",
                   "main",
-                  "value"
+                  "puff"
                 ],
                 "keyframes": [
                   {
-                    "id": "seed000005",
+                    "id": "bubbleBlow-0002",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -414,9 +414,9 @@
                     "value": 0
                   },
                   {
-                    "id": "seed000006",
-                    "position": 1,
-                    "connectedRight": false,
+                    "id": "bubbleBlow-0003",
+                    "position": 0.25,
+                    "connectedRight": true,
                     "handles": [
                       0.5,
                       1,
@@ -424,12 +424,272 @@
                       0
                     ],
                     "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0004",
+                    "position": 0.33,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "bubbleBlow-0005": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "mouthRound"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-0006",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-0007",
+                    "position": 0.1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0008",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0009",
+                    "position": 0.5,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "bubbleBlow-000a": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "scale"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000b",
+                    "position": 0.25,
+                    "connectedRight": true,
+                    "handles": [
+                      0.3333333333333333,
+                      0.3333333333333333,
+                      0.33,
+                      1
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000c",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.33,
+                      1
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "bubbleBlow-000d",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "bubbleBlow-000e": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "emerged"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000f",
+                    "position": 0.25,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000g",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.25,
+                      0.1
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000h",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "bubbleBlow-000i": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "wobble"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000j",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000k",
+                    "position": 0.42,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.16
+                  },
+                  {
+                    "id": "bubbleBlow-000l",
+                    "position": 0.52,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.12
+                  },
+                  {
+                    "id": "bubbleBlow-000m",
+                    "position": 0.62,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.08
+                  },
+                  {
+                    "id": "bubbleBlow-000n",
+                    "position": 0.72,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.05
+                  },
+                  {
+                    "id": "bubbleBlow-000o",
+                    "position": 0.81,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.025
+                  },
+                  {
+                    "id": "bubbleBlow-000p",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
                   }
                 ]
               }
             },
             "trackIdByPropPath": {
-              "[\"value\"]": "seed000004"
+              "[\"puff\"]": "bubbleBlow-0001",
+              "[\"mouthRound\"]": "bubbleBlow-0005",
+              "[\"scale\"]": "bubbleBlow-000a",
+              "[\"emerged\"]": "bubbleBlow-000e",
+              "[\"wobble\"]": "bubbleBlow-000i"
             }
           }
         }
