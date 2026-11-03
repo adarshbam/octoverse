@@ -329,7 +329,7 @@ export interface ArtifactConfig {
 }
 ```
 
-- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: 'blow'`, `select: 'suctionHold'`.
+- **Nox:** `placement.kind: 'orbit'` with today's `NOX_SHELLS` and constants, `appear: { kind: 'blow' }`, `select: { kind: 'suctionHold' }`.
 - **Veyra:** `placement.kind: 'pendant'`: orbs on short tethers at arm arc-length slots, at most two per arm, the tether swinging **procedurally** from the owning arm's motion (a driven sine on the arm's own velocity; no physics). `appear: 'bloom'`: each orb grows out of a cup on its arm. `select: 'armLift'`: on hover, focus or tap the owning arm lifts its orb toward the pointer, the orb grows and glows, and the tooltip shows (P4).
 - **Combinations are independent.** Nothing requires a placement to pair with one appear or select; a world may mix (for example, orbit placement with `armLift`). The tooltip, buttons and tray read positions from the instance's `bubbleLive` whichever strategy writes them.
 - **Slot rules.** The pendant slots map arms to technologies by `order` in the project's declared technology order. With more technologies than slots (at most 16 slots against the 15 primary technologies), the extras go to the tray, as today.
