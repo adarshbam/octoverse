@@ -338,7 +338,7 @@ Raise this with the engine owner before starting. These are contract 14.1 deferr
   - `TetherStyle = { length: number; color: string; width: number; sag: number; cap: string }`.
   - `threadClearance(pose, slots, faceRect): number`: the minimum distance from any thread or orb to another arm or the face.
   - `tetherCurve(attach: Vec3, angle: number, style: TetherStyle): { points: Vec3[]; orbCentre: Vec3 }`: the thread's sagging curve and the orb's position.
-  - **Amendment A1:** `assignPendants`, `pendantSwing`, `tetherCurve` and `threadClearance` are pure functions exported from `pendant.ts` and `tether.ts`. They take no React, no instance state and no globals, so Aether's `satellite` placement can compose them. The `pendant` placement module is a thin wrapper over them.
+  - **Amendment A1:** `assignPendants`, `pendantSwing`, `tetherCurve` and `threadClearance` are pure functions exported from `pendant.ts` and `tether.ts`. They take no React, no instance state and no globals, so Aether's `satellite` placement can compose them. The `pendant` placement module is a thin wrapper over them. It receives `{ stage, swell, dt }` every frame (contract 9.2) and advances each pendant's swing from it. Bloom runs on the shared appear trigger, after the entrance settles; there is no `on` field.
 - [ ] **Step 1: Failing tests.**
   - `assignPendants(3, slots)` places 3 on the slots with `order` 0 to 2.
   - `assignPendants(20, slots16)` places 16 and trays 4.
