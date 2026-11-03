@@ -546,9 +546,9 @@ Not raised by Veyra and added by this contract: instance isolation (section 8), 
 7. **Preview instances take no input, URL or storage.** This is the isolation story for the platform's mini octopuses.
 8. **Arm physics is gone from the engine**, per the orchestrator; the 2026-10-26 section 9.3 is not implemented by this work.
 
-## 18. Amendment A1: gaps found by Veyra's plan (draft, pending the owner's combined approval)
+## 18. Amendment A1: gaps found by the world plans (all items firm; pending the owner's combined approval)
 
-Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found five gaps against this contract and left the contract unedited. Each is answered below as data or a closed variant. Flux and Aether may add gaps; the owner approves one combined amendment, so this section may grow before approval. Sections 6.3, 6.4 and 14.1 carry the matching in-line edits, marked *(A1)*.
+Veyra's plan (`claude/veyra-design-3b1c3c`, `2026-11-03-veyra-world.md`) found five gaps against this contract and left the contract unedited. Each is answered below as data or a closed variant. Flux and Aether added their own gaps (18.1, 18.2); all items are now firm, and the owner approves one combined amendment. Sections 6.3, 6.4 and 14.1 carry the matching in-line edits, marked *(A1)*.
 
 | Gap | Need | Decision |
 |---|---|---|
@@ -562,17 +562,17 @@ Not changed: G6 (the first milestone's backdrop is an empty kit plus water colou
 
 Everything here keeps Nox's output unchanged and the Nox migration map (section 11) intact: each new field has an absent or neutral default that reproduces today's behaviour.
 
-### 18.1 Flux's gaps (provisional; from `flux-engine-needs.md`, an early list)
+### 18.1 Flux's gaps (firm; from `flux-engine-needs.md`)
 
-Flux is mostly data on this contract (cheeks kept, `jelly` skin with its own colours, `pendant` placement, `armLift` select, a `sand` floor, Veyra's `props` and `kitDrives` with the `emissive` drive, fish and bubbles). The gaps below stay **provisional** until Flux confirms them after the owner settles its signature motif; items F1 and F2 exist only if the owner accepts the "pulse" motif. All are built in Flux's own work (G01), not in E02.
+Flux is mostly data on this contract (cheeks kept, `jelly` skin with its own colours, `pendant` placement, `armLift` select, a `sand` floor, Veyra's `props` and `kitDrives` with the `emissive` drive, fish and bubbles). The owner accepted the pulse motif and Flux confirmed the list (2026-11-03), so every item is firm. All are built in Flux's own work (G01), not in E02.
 
 | Gap | Need | Decision |
 |---|---|---|
-| F1 (motif) | A travelling emissive pulse along each arm's cup row, with a per-arm one-shot trigger | **Accepted as a closed variant if the motif is accepted.** `suckers.pulse: { speed, wavelength, strength, colours }` in the character config; a term in the sucker material plus one uniform array of eight trigger times; no extra pass. `strength` defaults to 0, so Nox and Veyra are unchanged. The trigger is a function on the instance that appear and select modules and sequences call. |
-| F2 (motif) | An appear mode where the pulse runs down the arm and the orb grows at its slot | **Accepted with F1.** One entry in `APPEARS` (`pulse`), reusing `bloom`'s grow; one module, one entry, one test. |
+| F1 | A travelling emissive pulse along each arm's cup row, with a per-arm one-shot trigger | **Accepted (motif accepted by the owner).** `suckers.pulse: { speed, wavelength, strength, colours }` in the character config; a term in the sucker material plus one uniform array of eight trigger times; no extra pass. `strength` defaults to 0, so Nox and Veyra are unchanged. The trigger is a function on the instance that appear and select modules and sequences call. |
+| F2 | An appear mode where the pulse runs down the arm and the orb grows at its slot | **Accepted, with F1.** One entry in `APPEARS` (`pulse`), reusing `bloom`'s grow; one module, one entry, one test. |
 | F3 | A head effect: four linked light nodes fill in sequence, then a ripple opens the panel | **Accepted.** `HEAD_EFFECTS.pipelineRun`; it fits `HeadEffectModule` as written (9.1). |
 | F4a | A live element of light pulses travelling along spline paths named in the world layout | **Accepted as a closed variant.** A `packets` entry in the live-element table (instanced). The paths are layout data, so it rides on the generalised layout that Veyra's work builds first. |
-| F4b | Kit LEDs that blink | **Decided: a kit-material variant, not a live element.** A closed `KIT_MATERIAL_VARIANTS` table with `led` (emissive, with a per-vertex phase baked into the glTF by the world's Blender script). Chosen because the phase is authored in Blender and a prop per LED would not scale. Flux confirms. |
+| F4b | Kit LEDs that blink | **Decided: a kit-material variant, not a live element.** A closed `KIT_MATERIAL_VARIANTS` table with `led` (emissive, with a per-vertex phase baked into the glTF by the world's Blender script). Chosen because the phase is authored in Blender and a prop per LED would not scale. Confirmed by Flux. |
 | F5 | `armLift` timing and expression come from the character, not module constants | **Accepted; changes the artifact config shape.** `appear` and `select` become small configs: `appear: { kind: AppearId; ...params }`, `select: { kind: SelectId; ...params }`. `armLift` carries `{ liftMs, overshoot, expression }`; Veyra sets about 450 ms ease-out, Flux about 300 ms with overshoot and a slightly open mouth (an expression override, A1 G1). Nox's `{ kind: 'blow' }` and `{ kind: 'suctionHold' }` keep their module constants. |
 | F6 | `jelly` colour stops hue-free | **Accepted as a build constraint on Veyra's `jelly` work.** Crown, depth and warm-core colours are all config (`skin.jelly: { crown, depth, core }`); no hue constant in the shader. |
 | F7 | Tether length down to about 0; orb size as data | **Accepted.** `pendant.tether.length` admits 0 (a cap only), and `pendant.sizes: Record<'intro' \| 'overview', number>` joins the placement config (9.2). |
