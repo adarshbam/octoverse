@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
+import { useInstance } from '../host/instanceContext';
 import { setReliefGate, stoneLights } from './bakedLight';
 import { FarCards } from './FarCards';
 import { Floor } from './Floor';
@@ -48,7 +49,8 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
   }, [world, onPlateSettled]);
   // The stone's and seabed's relief is a uniform branch in their shaders: no rebuild on a tier change.
   const relief = reliefShown(tier);
-  useLayoutEffect(() => setReliefGate(relief), [relief]);
+  const { reliefGate } = useInstance();
+  useLayoutEffect(() => setReliefGate(reliefGate, relief), [reliefGate, relief]);
   return (
     <MotionContext.Provider value={motion}>
     <WorldTimeProvider value={time}>

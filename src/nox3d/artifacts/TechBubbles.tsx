@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
 import { NOX } from '../config/nox.character';
 import { type BlowSheet, BlowRun, blowFrame, blowPosition } from '../sequences/bubbleBlow';
-import { bubbleLive } from './bubbleLive';
+import { useInstance } from '../host/instanceContext';
+import type { BubbleLive } from './bubbleLive';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { pullPosition } from './suctionHold';
 import { logoColour, logoTexture } from './logoTexture';
@@ -57,6 +58,11 @@ const HOLD_OFF_TIP = 1.25;
 /** The middle a pulled bubble swings round (body space): where the orbits are centred. */
 const HOLD_CENTRE = { x: 0, y: 0.25 };
 
+/** Marks every bubble as not shown (the page's buttons go inert). */
+function hideSpots(live: BubbleLive) {
+  for (const spot of live.spots) spot.visible = false;
+}
+
 /**
  * The technology bubbles, orbiting Nox on his shells (artifacts/bubbleOrbits.ts) in the approved
  * glass with each technology's logo, their halos breathing a little, each at its own pace. The
@@ -67,6 +73,7 @@ const HOLD_CENTRE = { x: 0, y: 0.25 };
  * the bubbles go with Nox.
  */
 export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble[]; state: () => BubbleState }) {
+  const { bubbleLive } = useInstance();
   const group = useRef<THREE.Group>(null);
   const parts = useMemo(() => {
     const sphere = new THREE.SphereGeometry(1, 48, 32);
@@ -100,7 +107,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
-  }, [bubbles.length]);
+  }, [bubbleLive, bubbles.length]);
 
   useFrame((frame, delta) => {
     const s = state();
@@ -120,7 +127,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     if (!root.visible) {
       // Told once that they are gone, then left alone while hidden.
       if (!run.hidden) {
-        for (const spot of bubbleLive.spots) spot.visible = false;
+        hideSpots(bubbleLive);
         bubbleLive.notify();
         run.hidden = true;
       }

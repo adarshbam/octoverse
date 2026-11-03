@@ -4,7 +4,6 @@ import type { ArmSpec, Point2 } from '../config/types';
 
 /** How quickly a reaching arm follows the reach solver (critically damped, ~0.25 s to settle). */
 const REACH_OMEGA = 18;
-const reachState = { x: 0, v: 0 };
 
 /** An arm's rest pose as a chain: root, equal segment length, absolute segment angles. */
 export interface ArmRest {
@@ -109,6 +108,8 @@ export class ArmChain {
   /** The reach's turn per segment as the arm follows the solver, and how fast it is changing. */
   private readonly reachTurn: Float32Array;
   private readonly reachSpeed: Float32Array;
+  /** This chain's own scratch for one step of the reach spring (never shared between chains). */
+  private readonly reach = { x: 0, v: 0 };
   private lastTime: number | null = null;
 
   constructor(rest: ArmRest, spec: ArmSpec, index: number) {
@@ -188,11 +189,11 @@ export class ArmChain {
       for (let k = 0; k < n; k++) {
         const want = this.work[k] - this.angle[k];
         if (dt > 0) {
-          reachState.x = this.reachTurn[k];
-          reachState.v = this.reachSpeed[k];
-          spring(reachState, want, REACH_OMEGA, dt);
-          this.reachTurn[k] = reachState.x;
-          this.reachSpeed[k] = reachState.v;
+          this.reach.x = this.reachTurn[k];
+          this.reach.v = this.reachSpeed[k];
+          spring(this.reach, want, REACH_OMEGA, dt);
+          this.reachTurn[k] = this.reach.x;
+          this.reachSpeed[k] = this.reach.v;
         } else {
           this.reachTurn[k] = want;
           this.reachSpeed[k] = 0;

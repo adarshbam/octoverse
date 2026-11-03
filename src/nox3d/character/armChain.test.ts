@@ -285,3 +285,18 @@ test('idle drift is not synchronised: each arm sways at its own pace', () => {
   for (let i = 1; i < sorted.length; i++) expect(sorted[i] - sorted[i - 1]).toBeGreaterThan(0.02);
   expect(sorted.at(-1)! / sorted[0]).toBeGreaterThan(1.25);
 });
+
+test('reach on chain A does not move chain B\'s tip', () => {
+  const a = new ArmChain(restFromCurve(T1), spec('T1'), 0);
+  const b = new ArmChain(restFromCurve(T1), spec('T1'), 0);
+  const alone = new ArmChain(restFromCurve(T1), spec('T1'), 0);
+  for (let f = 0; f <= 30; f++) {
+    const time = f / 60;
+    a.solve({ ...still, time, reach: { x: -2, y: 1, weight: 1 } });
+    b.solve({ ...still, time, reach: { x: 0.5, y: -2, weight: 1 } });
+    alone.solve({ ...still, time, reach: { x: 0.5, y: -2, weight: 1 } });
+    expect(b.tipX).toBe(alone.tipX);
+    expect(b.tipY).toBe(alone.tipY);
+  }
+  expect(Math.hypot(a.tipX - b.tipX, a.tipY - b.tipY)).toBeGreaterThan(0.1);
+});

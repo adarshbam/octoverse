@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { RELIEF_GATE, setReliefGate } from './bakedLight';
+import { setReliefGate } from './bakedLight';
 import { PHONE_WORLD_TIER, WORLD_TIERS, reliefShown, stoneCastsShadow, worldTierFor } from './worldTiers';
 
 test('world tiers scale down monotonically', () => {
@@ -33,11 +33,15 @@ test('the stone casts shadows and shows its relief at high only', () => {
 });
 
 test('the relief gate follows the tier and goes back to shown', () => {
+  const own = { value: 1 };
+  const other = { value: 1 };
   const gate = (tier: keyof typeof WORLD_TIERS) => {
-    const restore = setReliefGate(reliefShown(WORLD_TIERS[tier]));
-    const value = RELIEF_GATE.value;
+    const restore = setReliefGate(own, reliefShown(WORLD_TIERS[tier]));
+    const value = own.value;
+    // Another instance's gate is not touched.
+    expect(other.value).toBe(1);
     restore();
-    expect(RELIEF_GATE.value).toBe(1);
+    expect(own.value).toBe(1);
     return value;
   };
   expect([gate('high'), gate('medium'), gate('low')]).toEqual([1, 0, 0]);

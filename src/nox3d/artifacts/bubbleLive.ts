@@ -41,6 +41,3 @@ export class BubbleLive {
     return () => this.listeners.delete(cb);
   }
 }
-
-/** The page's one set of live bubbles. */
-export const bubbleLive = new BubbleLive();

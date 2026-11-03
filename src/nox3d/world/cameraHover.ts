@@ -44,6 +44,3 @@ export function easeHover(amount: number, target: number, delta: number): number
   const step = delta / HOVER_EASE_S;
   return amount < target ? Math.min(target, amount + step) : Math.max(target, amount - step);
 }
-
-/** Whether the pointer is on a technology bubble: the orbits ease to still and no arm reaches for the pointer while it is (the camera takes no notice). */
-export const bubblePointer = { hovered: false };

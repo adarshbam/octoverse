@@ -136,16 +136,14 @@ export function reliefOf(light: BakedLight, map: THREE.Texture): Relief {
 }
 
 /**
- * 1 draws the relief and its specular, 0 skips them (a uniform branch, so the texture read and the
- * two BRDFs go): the lower quality tiers set it (WorldScene).
+ * Sets an instance's relief gate (1 draws the relief and its specular, 0 skips them: a uniform
+ * branch, so the texture read and the two BRDFs go) for a tier's decision; the returned function
+ * puts it back to shown. The lower quality tiers set it (WorldScene).
  */
-export const RELIEF_GATE = { value: 1 };
-
-/** Sets the relief gate for a tier's decision; the returned function puts it back to shown. */
-export function setReliefGate(shown: boolean) {
-  RELIEF_GATE.value = shown ? 1 : 0;
+export function setReliefGate(gate: { value: number }, shown: boolean) {
+  gate.value = shown ? 1 : 0;
   return () => {
-    RELIEF_GATE.value = 1;
+    gate.value = 1;
   };
 }
 
@@ -166,7 +164,7 @@ export function setReliefGate(shown: boolean) {
  * arrives from in front of the surface, so a reflection that grazes it, as the low camera sees the
  * seabed, looks away from that light. The sheen keeps its average strength, not its highlights.
  */
-export function withBakedLight(shader: { fragmentShader: string; uniforms: Record<string, THREE.IUniform> }, relief: Relief | null) {
+export function withBakedLight(shader: { fragmentShader: string; uniforms: Record<string, THREE.IUniform> }, relief: Relief | null, reliefGate: { value: number }) {
   // The direction is in stage (world) space, turned into view space here. An 8-bit zero is 128
   // in each channel, a length of 0.007 after decoding: below that there is no light.
   const reliefCode = relief
@@ -200,6 +198,6 @@ export function withBakedLight(shader: { fragmentShader: string; uniforms: Recor
       uniform float bakedReliefScale;
       uniform float bakedReliefOn;`,
     );
-    Object.assign(shader.uniforms, { bakedReliefMap: { value: relief.map }, bakedReliefScale: { value: relief.scale }, bakedReliefOn: RELIEF_GATE });
+    Object.assign(shader.uniforms, { bakedReliefMap: { value: relief.map }, bakedReliefScale: { value: relief.scale }, bakedReliefOn: reliefGate });
   }
 }

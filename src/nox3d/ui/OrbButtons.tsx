@@ -1,9 +1,8 @@
 import { type PointerEvent, useEffect, useMemo, useRef } from 'react';
 import { HoverIntent } from './hoverIntent';
-import { liveAnchors } from '../stage/liveAnchors';
-import { bubblePointer } from '../world/cameraHover';
+import { useInstance } from '../host/instanceContext';
+import type { InstanceState } from '../host/instance';
 import * as THREE from 'three';
-import { bubbleLive } from '../artifacts/bubbleLive';
 import { FOCUS_GROW } from '../artifacts/TechBubbles';
 import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
@@ -69,6 +68,11 @@ function faceSpotNow(stage: 'intro' | 'overview') {
   return { x: center.x, y: center.y, bounds };
 }
 
+/** Whether the pointer is on a bubble, as the instance (and Nox's eyes and arms) will read it. */
+function holdHover(hover: InstanceState['hover'], on: boolean) {
+  hover.bubble = on;
+}
+
 /** The smallest a button is, for touch (CSS pixels). */
 const MIN_BUTTON = 44;
 
@@ -77,7 +81,8 @@ const MIN_BUTTON = 44;
  * other overlays are laid out for that camera and follow the hover themselves), in CSS pixels;
  * `grown` is how big it looks in focus. Null when that bubble is not drawn (yet).
  */
-export function bubbleDisc(i: number, grown: false | 'intro' | 'overview' = false) {
+export function bubbleDisc(instance: InstanceState, i: number, grown: false | 'intro' | 'overview' = false) {
+  const { bubbleLive, liveAnchors } = instance;
   const spot = bubbleLive.spots[i];
   const world = bubbleLive.worlds[i];
   if (!spot || !world) return null;
@@ -97,6 +102,7 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
   onPointerMove: (event: PointerEvent<HTMLButtonElement>) => void;
   onPointerLeave: () => void;
 }) {
+  const { bubbleLive } = useInstance();
   const button = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let last = '';
@@ -115,7 +121,7 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
     };
     apply();
     return bubbleLive.subscribe(apply);
-  }, [index]);
+  }, [index, bubbleLive]);
   return (
     <button
       ref={button}
@@ -142,12 +148,13 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
  * described by the tooltip. While the pointer is on a bubble the orbits ease to still.
  */
 export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs: readonly OrbChoice[]; open: boolean; focused: string | null; tooltipId: string; onChoose: (techId: string) => void }) {
+  const { hover: pointer } = useInstance();
   const hover = useRef<{ techId: string | null; timer?: number }>({ techId: null });
   const intent = useMemo(() => new HoverIntent(), []);
   useEffect(() => () => {
     window.clearTimeout(hover.current.timer);
-    bubblePointer.hovered = false;
-  }, []);
+    holdHover(pointer, false);
+  }, [pointer]);
   // The pointer's own movement, wherever it is: a bubble that comes to a pointer that has been still is not a choice.
   useEffect(() => {
     const track = (event: globalThis.PointerEvent) => {
@@ -161,15 +168,15 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
   useEffect(() => {
     if (open) return;
     hover.current.techId = null;
-    bubblePointer.hovered = false;
+    holdHover(pointer, false);
     intent.reset();
     window.clearTimeout(hover.current.timer);
-  }, [open, intent]);
+  }, [open, intent, pointer]);
   // Chooses the bubble under the pointer once it has come to rest there; checks again when it might.
   const consider = (techId: string, x: number, y: number) => {
     const now = performance.now();
     intent.move(x, y, now);
-    bubblePointer.hovered = intent.engaged;
+    holdHover(pointer, intent.engaged);
     window.clearTimeout(hover.current.timer);
     if (intent.due(now)) return onChoose(techId);
     hover.current.timer = window.setTimeout(() => {
@@ -191,7 +198,7 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
             if (event.pointerType !== 'mouse') return;
             hover.current.techId = orb.techId;
             intent.enter(event.clientX, event.clientY, performance.now());
-            bubblePointer.hovered = intent.engaged;
+            holdHover(pointer, intent.engaged);
             consider(orb.techId, event.clientX, event.clientY);
           }}
           onPointerMove={event => {
@@ -199,7 +206,7 @@ export function OrbButtons({ orbs, open, focused, tooltipId, onChoose }: { orbs:
           }}
           onPointerLeave={() => {
             hover.current.techId = null;
-            bubblePointer.hovered = false;
+            holdHover(pointer, false);
             intent.reset();
             window.clearTimeout(hover.current.timer);
           }}

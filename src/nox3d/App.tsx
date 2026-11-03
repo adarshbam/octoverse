@@ -27,7 +27,9 @@ import type { SwellSheet } from './sequences/headSwell';
 import { loadSequences } from './sequences/theatre';
 import { POST } from './post';
 import { STAGE_FRAMES, fovFor } from './stage/framing';
-import { liveAnchors, noxFaceAnchor } from './stage/liveAnchors';
+import { noxFaceAnchor } from './stage/liveAnchors';
+import { EngineInstance } from './host/EngineInstance';
+import { useInstance } from './host/instanceContext';
 import { cameraHover, easeHover, hoverTarget, pinnedHover } from './world/cameraHover';
 import { leanCamera } from './world/lensShift';
 import type { Vec3 } from './world/types';
@@ -37,7 +39,6 @@ import { IntroOverlay } from './ui/IntroOverlay';
 import { OverviewPanel } from './ui/OverviewPanel';
 import { ProjectDetail } from './ui/ProjectDetail';
 import { SkipEntrance } from './ui/SkipEntrance';
-import { bubbleLive } from './artifacts/bubbleLive';
 import { OrbButtons, bubbleDisc, faceSpot } from './ui/OrbButtons';
 import { TechTooltip } from './ui/TechTooltip';
 import type { Disc } from './ui/tooltipPlacement';
@@ -201,6 +202,7 @@ function StageCamera({ stage, reducedMotion }: { stage: StageId; reducedMotion: 
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const size = useThree(s => s.size);
   const gl = useThree(s => s.gl);
+  const { liveAnchors } = useInstance();
   const framed = !url.view && !url.orbit;
   const target = fovFor(STAGE_FRAMES[stage], size);
   // The stage camera at rest, which the page's overlays are laid out for; and the hover's state.
@@ -313,11 +315,13 @@ export function App() {
       void Promise.all([import('./config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) => setVariant({ character: c.DUMMY, world: w.DUMMY_WORLD }));
     }
   }, []);
-  if (wantsVariant) return variant ? <NoxApp character={variant.character} world={variant.world} /> : null;
-  return <NoxApp character={NOX} world={SECURITY_WORLD} />;
+  if (wantsVariant) return variant ? <EngineInstance id="nox" mode="page"><NoxApp character={variant.character} world={variant.world} /></EngineInstance> : null;
+  return <EngineInstance id="nox" mode="page"><NoxApp character={NOX} world={SECURITY_WORLD} /></EngineInstance>;
 }
 
 function NoxApp({ character, world }: { character: CharacterConfig; world: WorldConfig }) {
+  const instance = useInstance();
+  const { bubbleLive } = instance;
   const config = useMemo(() => clampCharacterConfig(character), [character]);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
   const quality = useQuality(url);
@@ -466,12 +470,12 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
         const f = faceSpot('overview');
         return { techId: focusedTech, orb: { x: f.x, y: f.bounds.bottom + 30, size: 44 } as Disc, others: [] as Disc[], face: f, leaving: false };
       }
-      const orb = bubbleDisc(here, shown === 'intro' ? 'intro' : 'overview');
+      const orb = bubbleDisc(instance, here, shown === 'intro' ? 'intro' : 'overview');
       if (!orb) return null;
       return {
         techId: focusedTech,
         orb,
-        others: ORBS.flatMap((_, i) => { const d = i === here ? null : bubbleDisc(i); return d ? [d] : []; }),
+        others: ORBS.flatMap((_, i) => { const d = i === here ? null : bubbleDisc(instance, i); return d ? [d] : []; }),
         face: faceSpot(shown === 'intro' ? 'intro' : 'overview'),
         leaving: false,
       };
@@ -495,7 +499,7 @@ function NoxApp({ character, world }: { character: CharacterConfig; world: World
       window.clearTimeout(timer);
       window.clearTimeout(gone);
     };
-  }, [focusedTech, settle, shown, viewport, trayAll]);
+  }, [focusedTech, settle, shown, viewport, trayAll, instance, bubbleLive]);
   const octopus = (
     <Octopus
       config={config}

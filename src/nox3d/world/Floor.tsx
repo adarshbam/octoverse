@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { useInstance } from '../host/instanceContext';
 import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLight';
 import { SEABED_ORDER } from './drawOrder';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
@@ -101,6 +102,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
   const now = useWorldTime();
   const motionAmount = useMotionAmount();
   const gl = useThree(state => state.gl);
+  const { reliefGate } = useInstance();
   // The noise is drawn before the first frame, and again if the context is restored.
   const noise = useMemo(() => makeNoiseTarget(), []);
   useLayoutEffect(() => {
@@ -153,7 +155,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vFloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      withBakedLight(shader, baked && reliefMap ? reliefOf(baked, reliefMap) : null);
+      withBakedLight(shader, baked && reliefMap ? reliefOf(baked, reliefMap) : null, reliefGate);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\n${floorGlsl}`)
         .replace(
@@ -188,7 +190,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     };
     const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
     return { geometry, material, time, motion, disposables: owned };
-  }, [world, baked, noise]);
+  }, [world, baked, noise, reliefGate]);
   useDisposables(disposables);
   useFrame(state => {
     time.value = now(state);

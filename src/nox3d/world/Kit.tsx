@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { isFarChain, isFarPlacement } from './farPlate';
+import { useInstance } from '../host/instanceContext';
 import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, stoneLights, withBakedLight } from './bakedLight';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
@@ -106,6 +107,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
   const coralTime = useRef({ value: 0 });
   const coralMotion = useRef({ value: 1 });
   const motionAmount = useMotionAmount();
+  const { reliefGate } = useInstance();
   const group = useRef<THREE.Group>(null);
 
   const built = useMemo(() => {
@@ -130,7 +132,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const reliefMaps = baked && { lod0: lightMapOf(baked.reliefMaps.lod0), lod1: lightMapOf(baked.reliefMaps.lod1), seabed: lightMapOf(baked.reliefMaps.seabed) };
     const relief = (atlas: keyof BakeRecord['atlases']) => (baked && reliefMaps ? reliefOf(baked, reliefMaps[atlas]) : null);
     type Hook = (relief: Relief | null) => THREE.Material['onBeforeCompile'];
-    const stoneHook: Hook = r => shader => withBakedLight(shader, r);
+    const stoneHook: Hook = r => shader => withBakedLight(shader, r, reliefGate);
     stone.onBeforeCompile = stoneHook(relief('lod0'));
     const rock = new THREE.MeshStandardMaterial({
       color: '#211a26',
@@ -145,7 +147,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vRockWorld;')
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vRockWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      withBakedLight(shader, r);
+      withBakedLight(shader, r, reliefGate);
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
@@ -186,7 +188,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
           // Swaying in the current: more toward the tips, each clump on its own beat (liveMotion.ts); still when motion is held.
           ${CORAL_SWAY_GLSL}`,
         );
-      withBakedLight(shader, null);
+      withBakedLight(shader, null, reliefGate);
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
         /* glsl */ `#include <emissivemap_fragment>
@@ -354,7 +356,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     ];
 
     return { pillars, rocks, corals, chains, pebbles, lights, disposables };
-  }, [kit, world]);
+  }, [kit, world, reliefGate]);
   useDisposables(built.disposables);
 
   useFrame(state => {

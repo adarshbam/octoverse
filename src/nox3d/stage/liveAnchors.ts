@@ -4,6 +4,7 @@ import type { Vec3 } from '../world/types';
 import { projectToScreen } from './anchors';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
+import { useInstance } from '../host/instanceContext';
 
 /**
  * Nox's face in the intro, the overview or the detail (the point the overlays stay attached to,
@@ -61,14 +62,12 @@ export class LiveAnchors {
   }
 }
 
-/** The page's one set of live anchors, updated by the stage camera. */
-export const liveAnchors = new LiveAnchors();
-
 /**
  * Keeps an element attached to a world point as the camera hovers: writes `style.translate` each
  * frame, with no React render. The element's own layout (and `transform`) is left as it is.
  */
 export function useAnchorShift(ref: RefObject<HTMLElement | null>, world: Vec3): void {
+  const { liveAnchors } = useInstance();
   const at = useRef(world);
   useEffect(() => {
     at.current = world;
@@ -91,5 +90,5 @@ export function useAnchorShift(ref: RefObject<HTMLElement | null>, world: Vec3):
       off();
       if (el0) el0.style.translate = '';
     };
-  }, [ref]);
+  }, [ref, liveAnchors]);
 }

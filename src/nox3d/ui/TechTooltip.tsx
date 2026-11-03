@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { bubbleLive } from '../artifacts/bubbleLive';
+import { useInstance } from '../host/instanceContext';
 import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
 import { bubbleDisc } from './OrbButtons';
 import './tooltip.css';
@@ -19,6 +19,7 @@ const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
  * keeps beside that bubble's live anchor as it moves on from where it was placed (the hold's lift).
  */
 export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false, follow }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean; follow?: number }) {
+  const instance = useInstance();
   const box = useRef<HTMLDivElement>(null);
   useAnchorShift(box, TOOLTIP_ANCHOR);
   // Where it goes; null for the sheet along the bottom. Measured as a card, which is never shorter
@@ -38,7 +39,7 @@ export function TechTooltip({ id, content, orb, face, others, delayMs, leaving =
     if (follow === undefined || follow < 0 || !orb || leaving || !card || !el) return;
     let last = '';
     const apply = () => {
-      const now = bubbleDisc(follow);
+      const now = bubbleDisc(instance, follow);
       if (!now) return;
       const next = `${(now.y - orb.y).toFixed(1)}px 0 0 ${(now.x - orb.x).toFixed(1)}px`;
       if (next === last) return;
@@ -46,8 +47,8 @@ export function TechTooltip({ id, content, orb, face, others, delayMs, leaving =
       el.style.margin = next;
     };
     apply();
-    return bubbleLive.subscribe(apply);
-  }, [follow, orb, leaving, card]);
+    return instance.bubbleLive.subscribe(apply);
+  }, [follow, orb, leaving, card, instance]);
   if (!orb) return null;
   return (
     <div

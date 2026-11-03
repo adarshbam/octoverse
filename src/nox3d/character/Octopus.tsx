@@ -9,7 +9,6 @@ import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
-import { bubblePointer } from '../world/cameraHover';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
@@ -23,7 +22,7 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
-import { bubbleLive } from '../artifacts/bubbleLive';
+import { useInstance } from '../host/instanceContext';
 import { type Box, HoldChoreography, nearestArm } from '../artifacts/suctionHold';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
@@ -154,6 +153,7 @@ const HOLD_BOB = 0.04;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
 export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+  const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
   // The swim's own turn and lean, about the body's middle: yaw first, then the lean about his own
@@ -509,7 +509,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     let fixed: { x: number; y: number } | undefined;
     if (selected >= 0) {
       // Eyes follow the bubble (it slows to a stop as they settle on it).
-      lookAt.copy(bubbleLive.worlds[selected]).project(state.camera);
+      lookAt.copy(instance.bubbleLive.worlds[selected]).project(state.camera);
       fixed = { x: lookAt.x, y: lookAt.y };
     }
 
@@ -551,7 +551,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       activeExpression = blendExpression(activeExpression, EXPRESSIONS[orb.reaction ?? 'curious'], f);
       if (f > strongest) {
         strongest = f;
-        tiltTarget = 0.1 * f * (bubbleLive.sides[i] ?? 1);
+        tiltTarget = 0.1 * f * (instance.bubbleLive.sides[i] ?? 1);
       }
     });
     spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
@@ -612,7 +612,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     // focus, and stand still with motion off.
     bubbleState.show = !silhouette && !solo && (stage === 'intro' || stage === 'overview' || stage === 'techFocus');
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
-    bubbleState.hot = bubblePointer.hovered || selected >= 0;
+    bubbleState.hot = instance.hover.bubble || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
@@ -650,7 +650,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
-    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, instance.hover.bubble) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
     const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(rig.arms[0].chain.segments), rig.swimRests) : null;
