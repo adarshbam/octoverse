@@ -5,6 +5,7 @@ import type { GlowLightUniforms } from '../character/glowLight';
 import { type BubbleField, STAGE_BUBBLES } from './bubbleField';
 import { createBubbleMaterial, createEmberMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';
+import { useWorldTime } from './worldTime';
 
 function seeded(seed: number) {
   let s = seed;
@@ -52,8 +53,9 @@ export function Bubbles({ density = 1, glow, field = STAGE_BUBBLES, time }: { de
 
 const EMBER_COUNT = 460;
 
-/** Drifting crimson motes, denser along the seabed like the reference. In a world, `glow` tints them with Nox's face glow. `scale` makes that many times as many (the first 460 are the same motes). */
+/** Drifting crimson motes, denser along the seabed like the reference. In a world, `glow` tints them with Nox's face glow, and they drift on the world's clock (held still by `?freeze`, like the rest of it). `scale` makes that many times as many (the first 460 are the same motes). */
 export function Embers({ density = 1, glow, scale = 1 }: { density?: number; glow?: GlowLightUniforms; scale?: number }) {
+  const now = useWorldTime();
   const total = Math.round(EMBER_COUNT * Math.max(scale, 1));
   const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(23);
@@ -82,7 +84,7 @@ export function Embers({ density = 1, glow, scale = 1 }: { density?: number; glo
 
   useFrame(state => {
     const camera = state.camera as THREE.PerspectiveCamera;
-    material.uniforms.uTime.value = state.clock.elapsedTime;
+    material.uniforms.uTime.value = now(state);
     material.uniforms.uScale.value = (state.size.height * state.viewport.dpr) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   });
 
