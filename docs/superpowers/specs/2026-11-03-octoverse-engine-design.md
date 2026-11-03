@@ -599,7 +599,7 @@ Aether's proposed approach A: in the intro and detail a tilted gold ring carries
 | A14 | The fish live element needs its silhouette as data (Aether's manta-like fish) | **Accepted as data.** `live.fish.silhouette?: readonly Point2[]`: a closed outline polygon of at most 24 points in a unit box, validated by `validateWorld`; absent means Veyra's shape. The instanced fish card is built from the outline, so a new silhouette is data and not a new module. Built in H01 (the first world to override it). |
 | A15 | Floor `'sand'` (dark rock and sand); Veyra builds only `'moss'` | **Accepted: `'sand'` is one shared floor variant**, with its colours from the world's palette. Flux (a `sand` floor) and Aether both need it, so the first of the two to build adds the entry and the other reuses it; neither forks it. The `moss` fallback is not needed. |
 
-## 19. Amendment A2: the platform's embedding needs and Flux's plan gaps (pending the owner's approval)
+## 19. Amendment A2: the platform's embedding needs and Flux's plan gaps (approved by the owner, 2026-11-03)
 
 The platform design (`platform-design`, `platform-engine-needs.md`) mounts the OctoVerse host as the page instance, mini octopuses as `mode: 'preview'` instances (8.4), and creator octopuses as runtime bundles (12.4). Its seven gaps are answered below. The owner picked the platform's approach A (the host is an engine world, `octoverse`, with platform HTML around it), so every item stands. A2 is approved by the owner once, separately from A1, which is final. The E02 plan carries the E02 part as a clearly marked conditional Task 8b, so extraction builds the host options once if A2 is approved and skips them if not.
 
@@ -616,7 +616,7 @@ The platform design (`platform-design`, `platform-engine-needs.md`) mounts the O
 
 Platform rules (not gaps, recorded here): at most two live WebGL contexts at once (the page instance plus one preview; other cards are stills captured from the engine); one project per world visit; a world switch stays a full remount (8.3).
 
-### 19.1 Flux's plan gaps (provisional with A2; none changes E02)
+### 19.1 Flux's plan gaps (part of A2; none changes E02)
 
 Flux's plan (`flux-design`, `44c2b1b`) found three small gaps. They sit in A2 so the owner approves once. All three are built in Veyra's and Flux's own work; E02 is untouched.
 
