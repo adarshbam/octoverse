@@ -358,7 +358,7 @@ export function App() {
       if (here < 0 || !focusedTech) return null;
       return {
         techId: focusedTech,
-        orb: bubbleDisc(here, true),
+        orb: bubbleDisc(here, shown === 'intro' ? 'intro' : 'overview'),
         others: ORBS.flatMap((_, i) => (i === here ? [] : [bubbleDisc(i)])),
         face: faceSpot(shown === 'intro' ? 'intro' : 'overview'),
         leaving: false,

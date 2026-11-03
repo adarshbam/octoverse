@@ -32,7 +32,8 @@ export interface BubbleState {
 }
 
 /** How much a bubble in focus grows. */
-export const FOCUS_GROW = 1.35;
+/** How much a bubble in focus grows: as much as the rings' clearance of the title and the face allows (checked in bubbleOrbits.test.ts). */
+export const FOCUS_GROW = { intro: 1.1, overview: 1.05 } as const;
 /** Seconds for the bubbles to fade in or out, and to grow into a new stage's size. */
 const FADE_S = 0.9;
 const RESIZE_PER_S = 3;
@@ -75,7 +76,7 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
 
   const layouts = useMemo(() => ({ intro: layoutOrbits(bubbles.length, NOX_SHELLS, 'intro'), overview: layoutOrbits(bubbles.length, NOX_SHELLS, 'overview') }), [bubbles.length]);
   // The orbit clock, the speed spring that eases it, each bubble's current size, and how far all are shown.
-  const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0 }), [bubbles.length]);
+  const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false }), [bubbles.length]);
   const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
@@ -91,10 +92,15 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
     run.shown = s.still ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
     root.visible = run.shown > 0.001;
     if (!root.visible) {
-      for (const spot of bubbleLive.spots) spot.visible = false;
-      bubbleLive.notify();
+      // Told once that they are gone, then left alone while hidden.
+      if (!run.hidden) {
+        for (const spot of bubbleLive.spots) spot.visible = false;
+        bubbleLive.notify();
+        run.hidden = true;
+      }
       return;
     }
+    run.hidden = false;
     // The orbit clock runs at the eased speed; motion off, it stands where it is.
     const pace = orbitSpeed(s.hot, dt, run.speed);
     if (!s.still) run.clock += dt * pace;
@@ -113,11 +119,11 @@ export function TechBubbles({ bubbles, state }: { bubbles: readonly PlacedBubble
       const f = s.focus[i];
       // A bubble grows into its stage's size.
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? orbit.size : run.size[i] + (orbit.size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
-      const radius = run.size[i] * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW - 1) * f);
+      const radius = run.size[i] * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW[s.stage] - 1) * f);
       node.scale.setScalar(radius);
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
-      const breathe = 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
+      const breathe = s.still ? 1 : 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
       item.glass.uniforms.uOpacity.value = shown * dim;
       item.halo.uniforms.uOpacity.value = shown * dim * breathe;
       item.halo.uniforms.uFocus.value = f;

@@ -77,11 +77,11 @@ const MIN_BUTTON = 44;
  * other overlays are laid out for that camera and follow the hover themselves), in CSS pixels;
  * `grown` is how big it looks in focus.
  */
-export function bubbleDisc(i: number, grown = false) {
+export function bubbleDisc(i: number, grown: false | 'intro' | 'overview' = false) {
   const spot = bubbleLive.spots[i];
   const world = bubbleLive.worlds[i];
   const { dx, dy } = liveAnchors.shift([world.x, world.y, world.z]);
-  return { x: spot.x - dx, y: spot.y - dy, size: Math.max(MIN_BUTTON, spot.size * (grown ? FOCUS_GROW : 1)) };
+  return { x: spot.x - dx, y: spot.y - dy, size: Math.max(MIN_BUTTON, spot.size * (grown ? FOCUS_GROW[grown] : 1)) };
 }
 
 /** One bubble's button, which follows the bubble each frame (no React render). */
@@ -103,8 +103,10 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
       const el = button.current;
       const spot = bubbleLive.spots[index];
       if (!el || !spot) return;
+      // Inert (still real buttons for assistive tech) while the bubble is faded out.
+      el.style.pointerEvents = spot.visible ? '' : 'none';
       const size = Math.max(MIN_BUTTON, spot.size).toFixed(0);
-      const next = `${spot.x.toFixed(1)}px ${spot.y.toFixed(1)}px ${size}`;
+      const next = `${spot.visible}${spot.x.toFixed(1)}px ${spot.y.toFixed(1)}px ${size}`;
       if (next === last) return;
       last = next;
       el.style.translate = `${spot.x.toFixed(1)}px ${spot.y.toFixed(1)}px`;
@@ -121,7 +123,7 @@ function OrbButton({ index, orb, focused, tooltipId, tabIndex, onChoose, onPoint
       aria-label={orb.name}
       aria-describedby={orb.techId === focused ? tooltipId : undefined}
       tabIndex={tabIndex}
-      style={{ left: 0, top: 0, width: MIN_BUTTON, height: MIN_BUTTON }}
+      style={{ left: 0, top: 0, width: MIN_BUTTON, height: MIN_BUTTON, pointerEvents: 'none' }}
       onClick={() => onChoose(orb.techId)}
       onFocus={() => onChoose(orb.techId)}
       onPointerEnter={onPointerEnter}

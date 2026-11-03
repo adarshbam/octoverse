@@ -6,6 +6,7 @@ import { NOX_POSES } from '../poses/nox.poses';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
+import { FOCUS_GROW } from './TechBubbles';
 import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 
 type Stage = 'intro' | 'overview';
@@ -84,7 +85,8 @@ test('bubbles never cover the face, the title or the nameplate', () => {
           orbitPoint(o, t, 0, at);
           at.x += body.x;
           at.y += body.y;
-          edge.set(at.x + o.size, at.y, at.z);
+          // The grown bubble in focus is the widest it gets.
+          edge.set(at.x + o.size * FOCUS_GROW[stage], at.y, at.z);
           const c = px(at.clone().project(camera));
           const radius = Math.abs(px(edge.project(camera)).x - c.x);
           for (const [name, box] of boxes) {
