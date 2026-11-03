@@ -12,17 +12,20 @@ const VIEW = '-3.8318,2.4225,3.6792,-2.5848';
 const query = (mask) => `/?stage=${stage}&freeze&view=${VIEW}${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}`;
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 let failed = false;
-for (const mask of [false, true]) {
-  const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
-  page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
-  page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
-  await page.goto(base + query(mask), { waitUntil: 'load' });
-  // Waits for `__noxReady` (the world's kit and far plate drawn, 40 frames), then a short settle.
-  await waitForReady(page, { mask, label: `${stage} ` });
-  const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
-  await page.screenshot({ path });
-  console.log('saved', path);
-  await page.close();
+try {
+  for (const mask of [false, true]) {
+    const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
+    page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
+    page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
+    await page.goto(base + query(mask), { waitUntil: 'load' });
+    // Waits for `__noxReady` (the world's kit and far plate drawn, 40 frames), then a short settle.
+    await waitForReady(page, { mask, label: `${stage} ` });
+    const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
+    await page.screenshot({ path });
+    console.log('saved', path);
+    await page.close();
+  }
+} finally {
+  await browser.close();
 }
-await browser.close();
 if (failed) process.exit(1);

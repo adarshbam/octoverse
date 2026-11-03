@@ -14,16 +14,19 @@ const [width, height, scale] = process.env.VIEW
   : VIEWS[stage] ?? [506, 504, 2];
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 let failed = false;
-for (const mask of [false, true]) {
-  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
-  page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
-  page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
-  await page.goto(base + query(mask), { waitUntil: 'load' });
-  await waitForReady(page, { mask, label: `${stage} ` });
-  const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
-  await page.screenshot({ path });
-  console.log('saved', path);
-  await page.close();
+try {
+  for (const mask of [false, true]) {
+    const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
+    page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
+    page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
+    await page.goto(base + query(mask), { waitUntil: 'load' });
+    await waitForReady(page, { mask, label: `${stage} ` });
+    const path = mask ? out.replace(/\.png$/, '-mask.png') : out;
+    await page.screenshot({ path });
+    console.log('saved', path);
+    await page.close();
+  }
+} finally {
+  await browser.close();
 }
-await browser.close();
 if (failed) process.exit(1);
