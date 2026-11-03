@@ -30,7 +30,7 @@
 
 ## Review Focus
 
-1. **Fewer technologies than slots, and more than 16.** With 3 technologies, only 3 pendants show, on the top arms; with 20, 16 hang and 4 go to the tray. No arm ever carries a third (Task 14, `assignPendants` tests).
+1. **Fewer technologies than slots, and more than 16.** With 3 technologies, only 3 pendants show, on the top arms; with 20, 16 hang and 4 go to the tray. No arm ever carries a third (Task 13, `assignPendants` tests).
 2. **Pointer over a pendant while its arm is mid-swing or mid-lift.** The HTML button must follow the orb and the hover must not flicker between two pendants (Task 20, hover-intent test with a moving anchor).
 3. **Reduced motion.** No swing, no float, no bloom wobble, no dial spin; pendants are simply present, and the dial becomes a crossfade (Tasks 13, 19 and 21 tests with `reducedMotion: true`).
 4. **A world switch mid-sequence** (entrance, bloom or swell running) from Veyra to Nox and back resets everything, and Nox's entrance flag is untouched (Task 22, extends `worldSwitch.spec.ts`).
