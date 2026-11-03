@@ -614,3 +614,13 @@ The platform design (`platform-design`, `platform-engine-needs.md`) mounts the O
 | P7 | An exit slot `exit?: { label, href }`, first in tab order, drawn by the engine UI | **Accepted, E02 (Task 8b).** One engine component, themed from `bundle.theme`, rendered first in the instance's DOM order; absent by default. |
 
 Platform rules (not gaps, recorded here): at most two live WebGL contexts at once (the page instance plus one preview; other cards are stills captured from the engine); one project per world visit; a world switch stays a full remount (8.3).
+
+### 19.1 Flux's plan gaps (provisional with A2; none changes E02)
+
+Flux's plan (`flux-design`, `44c2b1b`) found three small gaps. They sit in A2 so the owner approves once. All three are built in Veyra's and Flux's own work; E02 is untouched.
+
+| Gap | Need | Decision |
+|---|---|---|
+| X1 | Idle cup pulses come from the flourish layer | **Accepted.** The flourish layer (Veyra's Task 16, `engine/behavior/flourish.ts`) emits each flourish as an event on the instance (`instance.flourish.subscribe(cb: (arm: ArmId) => void)`; with no subscriber, nothing changes). Flux's own work adds `Personality.flourishPulse` (0 to 1, the share of flourish events that also fire a cup pulse; 0 is none, so every other world is unchanged) and subscribes the pulse trigger (F1) to it. The setting is Flux's, not Veyra's. |
+| X2 | The orb swing limits as data (Flux 18 degrees and 0.8 s; Veyra 25 degrees and 1.2 s) | **Accepted, built in Veyra's Task 13.** `pendant.swing?: { maxAngle: number; settle: number }`, defaulting to Veyra's 25 degrees and 1.2 s (radians and seconds in data). `pendantSwing` takes the limits as an argument and its tests cover both pairs. |
+| X3 | A per-slot swell stagger for orbs growing from size 0 | **Accepted, the field in Veyra's Task 13 and the reader in Veyra's Task 19.** `pendant.reveal?: { start: number; span: number; step: number }` (seconds: first slot's start, each orb's grow time, and the delay between slots in `order`). Absent means what Veyra's `bloom` does when it is first built, so the default is Veyra's behaviour. The `bloom` and Flux's `pulse` appear modules both read it. |
