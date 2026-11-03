@@ -1,7 +1,7 @@
 # Flux in 3D: Character, Pipeline World and Motion Design
 
 Date: 2026-11-03
-Status: draft for the owner's approval.
+Status: approved by the owner, 2026-11-03.
 Branch: `flux-design` (docs only), cut from `claude/engine-contract-9ac935` at `b8f2fcb` (engine contract with amendment A1 approved).
 Packets: master plan G01 (Flux static) and G02 (Flux behaviour).
 References (read-only, main checkout, `docs/design/references/`):
