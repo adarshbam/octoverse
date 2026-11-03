@@ -274,7 +274,9 @@ export function App() {
   // A lower tier rebuilds the arms at its segment count, from the stage Nox is in. On the entrance
   // the blender holds the intro pose he swims into (the swim's own arm shapes and placement come
   // from the entrance, in Octopus), so when it ends he is already there.
-  const blender = useMemo(() => new PoseBlender(stagePose(state.stage === 'entering' ? 'intro' : state.stage), segments), [segments]);
+  // A technology focus keeps the stage it came from (the intro or the overview) for pose, framing and words.
+  const shown: StageId = state.stage === 'techFocus' ? state.returnTo : state.stage;
+  const blender = useMemo(() => new PoseBlender(stagePose(state.stage === 'entering' ? 'intro' : shown), segments), [segments]);
   // In a world, the world lights Nox's skin through these capped accents, from the lights nearest him.
   const accents = useMemo<AccentLink>(() => ({ uniforms: createAccentUniforms(), at: new THREE.Vector3(), light: createGlowLightUniforms() }), []);
   const frame = useRef<HTMLDivElement>(null);
@@ -307,9 +309,9 @@ export function App() {
     const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
     const duration = reducedMotion || skipped ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(stagePose(state.stage), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
+    blender.start(stagePose(shown), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-  }, [blender, state.stage, reducedMotion, dispatch]);
+  }, [blender, state.stage, shown, reducedMotion, dispatch]);
   // Any click or key skips the entrance.
   const entering = state.stage === 'entering';
   useEffect(() => {
@@ -401,7 +403,7 @@ export function App() {
         camera={{ position: [0, 0, CAMERA_Z], fov: 24, near: 0.1, far: 140 }}
       >
         <color attach="background" args={[MASK ? '#000000' : SECURITY_WORLD.palette.waterFar]} />
-        <StageCamera stage={state.stage} reducedMotion={reducedMotion} />
+        <StageCamera stage={shown} reducedMotion={reducedMotion} />
         {quality.adaptive && <QualityProbe tier={quality.tier} onLower={quality.step} />}
         {MASK ? (
           <>
@@ -428,7 +430,7 @@ export function App() {
       {!MASK && !url.view && (
         <>
           {/* The intro's words come in as Nox settles at the end of the entrance (the skip control goes then). */}
-          <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
+          <IntroOverlay project={noxProject} hidden={shown !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
           <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />

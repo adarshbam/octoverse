@@ -13,12 +13,15 @@ export interface StageState {
   stage: StageId;
   /** The focused technology in `techFocus`, otherwise null. */
   techId: string | null;
+  /** The stage a technology focus came from, and where letting go returns to; 'overview' elsewhere. */
+  returnTo: 'intro' | 'overview';
 }
 
 /** Idle time in the intro before Nox rests. */
 export const REST_AFTER_MS = 40000;
 
-const at = (stage: StageId): StageState => ({ stage, techId: null });
+const at = (stage: StageId): StageState => ({ stage, techId: null, returnTo: 'overview' });
+const focus = (techId: string, returnTo: 'intro' | 'overview'): StageState => ({ stage: 'techFocus', techId, returnTo });
 
 /** A requested stage wins; otherwise a first visit enters, unless reduced motion skips the entrance. */
 export function initialStage({ entranceSeen, requested, reducedMotion }: { entranceSeen: boolean; requested?: StageId; reducedMotion: boolean }): StageState {
@@ -32,14 +35,15 @@ export function stageReducer(state: StageState, event: StageEvent, knownTechIds:
     case 'entering':
       return event.type === 'ENTRANCE_DONE' || event.type === 'SKIP' ? at('intro') : state;
     case 'intro':
+      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) ? focus(event.id, 'intro') : state;
       return event.type === 'OPEN_OVERVIEW' ? at('overview') : state;
     case 'overview':
-      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) ? { stage: 'techFocus', techId: event.id } : state;
+      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) ? focus(event.id, 'overview') : state;
       if (event.type === 'OPEN_DETAIL') return at('detail');
       return event.type === 'CLOSE' ? at('intro') : state;
     case 'techFocus':
-      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) && event.id !== state.techId ? { stage: 'techFocus', techId: event.id } : state;
-      if (event.type === 'BLUR_TECH' || event.type === 'CLOSE') return at('overview');
+      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) && event.id !== state.techId ? focus(event.id, state.returnTo) : state;
+      if (event.type === 'BLUR_TECH' || event.type === 'CLOSE') return at(state.returnTo);
       return event.type === 'OPEN_DETAIL' ? at('detail') : state;
     case 'detail':
       return event.type === 'CLOSE' ? at('overview') : state;

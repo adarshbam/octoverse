@@ -29,9 +29,10 @@ export function reachingArm(tips: readonly { x: number; y: number }[], target: {
 
 /**
  * Whether an arm may reach for the pointer: only in the intro, while the orbs are still mostly
- * in and the eyes follow the pointer. Out of the intro the arms keep to the stage's own motion;
- * beside the detail panel Nox only idles and glances.
+ * in and the eyes follow the pointer, and not while the pointer is on a bubble (hovered or held).
+ * Out of the intro the arms keep to the stage's own motion; beside the detail panel Nox only idles
+ * and glances.
  */
-export function reachesForPointer(stage: StageId, orbsOut: number, tracking: boolean) {
-  return stage === 'intro' && orbsOut < 0.5 && tracking;
+export function reachesForPointer(stage: StageId, orbsOut: number, tracking: boolean, bubbleHot: boolean) {
+  return stage === 'intro' && orbsOut < 0.5 && tracking && !bubbleHot;
 }

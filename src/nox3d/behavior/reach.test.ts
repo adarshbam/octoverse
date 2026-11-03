@@ -21,9 +21,14 @@ test('no arm reaches into the head: hovering the face only makes Nox smile', () 
 });
 
 test('an arm reaches for the pointer only in the intro: not while the orbs are out, nor beside the detail panel', () => {
-  expect(reachesForPointer('intro', 0, true)).toBe(true);
-  expect(reachesForPointer('intro', 0, false)).toBe(false);
-  expect(reachesForPointer('intro', 0.6, true)).toBe(false);
-  expect(reachesForPointer('detail', 0, true)).toBe(false);
-  expect(reachesForPointer('entering', 0, true)).toBe(false);
+  expect(reachesForPointer('intro', 0, true, false)).toBe(true);
+  expect(reachesForPointer('intro', 0, false, false)).toBe(false);
+  expect(reachesForPointer('intro', 0.6, true, false)).toBe(false);
+  expect(reachesForPointer('detail', 0, true, false)).toBe(false);
+  expect(reachesForPointer('entering', 0, true, false)).toBe(false);
+});
+
+test('pointer reach pauses while a bubble is hot', () => {
+  expect(reachesForPointer('intro', 0, true, true)).toBe(false);
+  expect(reachesForPointer('intro', 0, true, false)).toBe(true);
 });

@@ -3,7 +3,7 @@ import type { StageId } from '../config/types';
 import { type StageEvent, type StageState, initialStage, isRestful, stageReducer } from './stageMachine';
 
 const known = new Set(['kali', 'burp', 'docker']);
-const at = (stage: StageId, techId: string | null = null): StageState => ({ stage, techId });
+const at = (stage: StageId, techId: string | null = null, returnTo: 'intro' | 'overview' = 'overview'): StageState => ({ stage, techId, returnTo });
 const run = (state: StageState, ...events: StageEvent[]) => events.reduce((s, e) => stageReducer(s, e, known), state);
 
 test('initial stage: a requested stage wins', () => {
@@ -29,7 +29,32 @@ test('intro: OPEN_OVERVIEW goes to the overview', () => {
 });
 
 test('overview: FOCUS_TECH with a known id focuses it', () => {
-  expect(run(at('overview'), { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali'));
+  expect(run(at('overview'), { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali', 'overview'));
+});
+
+test('focus from the intro returns to the intro', () => {
+  const focused = run(at('intro'), { type: 'FOCUS_TECH', id: 'kali' });
+  expect(focused).toEqual(at('techFocus', 'kali', 'intro'));
+  expect(run(focused, { type: 'BLUR_TECH' })).toEqual(at('intro'));
+  expect(run(focused, { type: 'CLOSE' })).toEqual(at('intro'));
+  // Moving the focus on keeps where it came from.
+  expect(run(focused, { type: 'FOCUS_TECH', id: 'burp' })).toEqual(at('techFocus', 'burp', 'intro'));
+});
+
+test('focus from the overview returns to the overview', () => {
+  const focused = run(at('overview'), { type: 'FOCUS_TECH', id: 'kali' });
+  expect(run(focused, { type: 'BLUR_TECH' })).toEqual(at('overview'));
+  expect(run(focused, { type: 'CLOSE' })).toEqual(at('overview'));
+});
+
+test('the entrance cannot focus', () => {
+  const entering = at('entering');
+  expect(run(entering, { type: 'FOCUS_TECH', id: 'kali' })).toBe(entering);
+});
+
+test('an unknown id from the intro is ignored', () => {
+  const intro = at('intro');
+  expect(run(intro, { type: 'FOCUS_TECH', id: 'nope' })).toBe(intro);
 });
 
 test('overview: OPEN_DETAIL goes to the detail', () => {

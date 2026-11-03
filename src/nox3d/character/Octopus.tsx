@@ -9,6 +9,7 @@ import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
+import { bubblePointer } from '../world/cameraHover';
 import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
 import { strokeAt, swimDrive } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimRests } from '../motion/swimArms';
@@ -499,7 +500,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     if (reducedMotion) orbState.armReach.fill(0);
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face. While the orbs are out, only arms presenting a technology move.
-    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubblePointer.hovered) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
     const rests = swim && stroke ? swimRests(swimShapes(rig.arms[0].chain.segments), stroke, swim.settle, rig.swimRests) : null;
