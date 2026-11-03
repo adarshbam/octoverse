@@ -32,9 +32,11 @@ export function OpenMark() {
 
 /**
  * The project panel inside the overview dome (panel 3): preview, title, short text, and the two
- * actions. It is placed on the dome's traced inner rectangle and fades in as the head opens.
+ * actions. It is placed on the dome's traced inner rectangle and fades in as the head opens. On a
+ * phone (and without WebGL, where there is no dome) it is a sheet along the bottom of the window
+ * instead, with a close button that returns to the intro.
  */
-export function OverviewPanel({ project, open, dispatch }: { project: Project; open: boolean; dispatch: (event: StageEvent) => void }) {
+export function OverviewPanel({ project, open, sheet = false, dispatch }: { project: Project; open: boolean; sheet?: boolean; dispatch: (event: StageEvent) => void }) {
   const box = useStageBox('overview', DOME_PANEL_BOX);
   const panel = useRef<HTMLElement>(null);
   useAnchorShift(panel, FACE_ANCHOR);
@@ -43,11 +45,18 @@ export function OverviewPanel({ project, open, dispatch }: { project: Project; o
   return (
     <section
       ref={panel}
-      className={`overview-panel${open ? ' is-open' : ''}`}
-      style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+      className={`overview-panel${open ? ' is-open' : ''}${sheet ? ' is-sheet' : ''}`}
+      style={sheet ? undefined : { left: box.left, top: box.top, width: box.width, height: box.height }}
       aria-label={`${project.name} overview`}
       aria-hidden={!open}
     >
+      {sheet && (
+        <button type="button" className="overview-close" aria-label="Close overview" tabIndex={open ? 0 : -1} onClick={() => dispatch({ type: 'CLOSE' })}>
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      )}
       {preview && <img className="overview-preview" src={preview.previewUrl ?? preview.url} alt={preview.alt} />}
       <div className="overview-copy">
         <h2>{project.name}</h2>

@@ -166,6 +166,155 @@
   height: 22px;
 }
 
+/* On a phone the tray holds every technology, in 48 px buttons, along the bottom; with the overview's
+   sheet up it rides above it. Tapping a button focuses that technology (its tooltip comes up above the tray). */
+/* With the overview's sheet up (a phone, or no WebGL) the tray rides above it. */
+.orb-tray.is-lifted {
+  bottom: calc(var(--sheet-height) + 12px);
+}
+
+@media (max-width: 767px) {
+  .orb-tray {
+    position: fixed;
+    bottom: 12px;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    transition: opacity 500ms ease, transform 500ms ease, bottom 300ms ease;
+  }
+
+  .orb-tray.is-open {
+    transition: opacity 800ms ease 1100ms, transform 800ms ease 1100ms, bottom 300ms ease;
+  }
+
+  .orb-tray-item {
+    width: 48px;
+    height: 48px;
+  }
+
+  .orb-tray-item svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.orb-tray-item[aria-pressed='true'] {
+  border-color: #ffd0dc;
+  background: rgba(70, 20, 50, 0.85);
+}
+
+.orb-tray-item:focus-visible {
+  outline: 3px solid #ffd0dc;
+  outline-offset: 2px;
+}
+
+/* The overview as a sheet along the bottom (a phone, or no WebGL): sized in pixels, not by the dome. */
+:root {
+  --sheet-height: 168px;
+}
+
+.overview-panel.is-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 640px);
+  height: var(--sheet-height);
+  margin: 0 auto;
+  box-sizing: border-box;
+  container-type: normal;
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 18px 18px 0 0;
+  border: 1.5px solid rgba(255, 70, 110, 0.7);
+  border-bottom: 0;
+  background: linear-gradient(160deg, rgba(22, 13, 32, 0.96), rgba(8, 6, 16, 0.97) 60%);
+  box-shadow: 0 0 28px rgba(255, 40, 90, 0.35);
+  transform: translateY(8%);
+}
+
+.overview-panel.is-sheet.is-open {
+  transform: none;
+  transition: opacity 600ms ease 400ms, transform 700ms cubic-bezier(0.22, 1, 0.36, 1) 400ms;
+}
+
+.is-sheet .overview-preview {
+  display: none;
+}
+
+.is-sheet .overview-copy {
+  position: static;
+  width: auto;
+  padding-right: 52px;
+}
+
+.is-sheet .overview-copy h2 {
+  font-size: 22px;
+}
+
+.is-sheet .overview-copy p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.is-sheet .overview-actions {
+  position: static;
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.is-sheet .overview-actions > * {
+  position: static;
+  flex: 1 1 0;
+  min-height: 48px;
+  height: auto;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.is-sheet .overview-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.is-sheet .overview-actions > *:focus-visible {
+  outline-width: 3px;
+  outline-offset: 2px;
+}
+
+.overview-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.overview-close svg {
+  width: 45%;
+  height: 45%;
+}
+
+.overview-close:focus-visible {
+  outline: 3px solid #ffd0dc;
+  outline-offset: 2px;
+}
+
 /* The nameplate is the way in: a button that opens the overview. */
 .nameplate-button {
   pointer-events: auto;

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { RELIEF_GATE, setReliefGate } from './bakedLight';
-import { WORLD_TIERS, reliefShown, stoneCastsShadow } from './worldTiers';
+import { PHONE_WORLD_TIER, WORLD_TIERS, reliefShown, stoneCastsShadow, worldTierFor } from './worldTiers';
 
 test('world tiers scale down monotonically', () => {
   const { high, medium, low } = WORLD_TIERS;
@@ -41,4 +41,10 @@ test('the relief gate follows the tier and goes back to shown', () => {
     return value;
   };
   expect([gate('high'), gate('medium'), gate('low')]).toEqual([1, 0, 0]);
+});
+
+test('a phone draws the lowest tier with no fish and no motes, whatever tier the device picked', () => {
+  expect(PHONE_WORLD_TIER).toEqual({ ...WORLD_TIERS.low, fish: false, motes: false });
+  for (const tier of ['high', 'medium', 'low'] as const) expect(worldTierFor(tier, true)).toBe(PHONE_WORLD_TIER);
+  expect(worldTierFor('high', false)).toBe(WORLD_TIERS.high);
 });

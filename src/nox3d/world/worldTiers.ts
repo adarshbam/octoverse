@@ -34,3 +34,13 @@ export const stoneCastsShadow = (tier: WorldTier) => tier.shadowMap > 1024;
  * surface light has the large shadow map.
  */
 export const reliefShown = (tier: WorldTier) => tier.shadowMap > 1024;
+
+/**
+ * The world on a phone (the `phone` layout): the lowest tier's, with no fish and no motes, whatever
+ * quality tier the device picked. A phone's frame is small, and these are the first things to cost
+ * frame rate and the last to be seen.
+ */
+export const PHONE_WORLD_TIER: WorldTier = { ...WORLD_TIERS.low, fish: false, motes: false };
+
+/** What the world draws at `tier`, or on a phone. */
+export const worldTierFor = (tier: QualityTier, phone: boolean): WorldTier => (phone ? PHONE_WORLD_TIER : WORLD_TIERS[tier]);

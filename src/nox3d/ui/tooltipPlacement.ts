@@ -19,8 +19,11 @@ export type FaceInput = { x: number; y: number; bounds?: Rect };
 /** A round thing on the page (an orb): centre and diameter in CSS pixels. */
 export type Disc = { x: number; y: number; size: number };
 
-/** Space kept under the sheet, as tooltip.css sets it, in CSS pixels. */
-const SHEET_MARGIN = 24;
+/**
+ * Space kept under the sheet, as tooltip.css sets it, in CSS pixels: on a phone the sheet rides
+ * above the tray of technologies (three rows of 48 px buttons and the gaps, 12 px from the bottom).
+ */
+const SHEET_MARGIN = 182;
 
 /**
  * Whether the tooltip is a sheet along the bottom of the window instead of a card beside its orb:

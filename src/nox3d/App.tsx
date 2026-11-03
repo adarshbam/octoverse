@@ -40,11 +40,13 @@ import { tooltipContent } from './ui/tooltipContent';
 import { OrbTray } from './ui/OrbTray';
 import { NOX_OVERVIEW_SLOTS, assignOrbs } from './artifacts/orbSlots';
 import { noxTechnologies } from './content/noxTechnologies';
-import { layoutFor } from './stage/framing';
+import { Poster } from './ui/Poster';
+import { SkipLink } from './ui/SkipLink';
+import { hasWebgl2, useViewport } from './ui/useViewport';
 
 import { ContactShadows } from './world/ContactShadows';
 import { SECURITY_WORLD } from './world/security/config';
-import { WORLD_TIERS } from './world/worldTiers';
+import { worldTierFor } from './world/worldTiers';
 import { LAST_LEVEL, type WorldLevel, stepFrom } from './world/worldLevel';
 import { WorldScene } from './world/WorldScene';
 
@@ -63,8 +65,8 @@ const ORBS = ASSIGNED.placed.map(({ techId, slot }) => ({
 }));
 /** Storyboard or missing text shows, badged, only while developing; never in the public build. */
 const SHOW_PLACEHOLDERS = import.meta.env.DEV;
-// On a phone held upright the orbs are too small to pick out, so the tray lists every technology.
-const PHONE_PORTRAIT = layoutFor({ width: window.innerWidth, height: window.innerHeight }) === 'phone' && window.innerHeight > window.innerWidth;
+// Without WebGL (or `?nowebgl`) the page is the poster under the HTML overlays; the entrance has nothing to play on.
+const WEBGL = !url.noWebgl && hasWebgl2();
 const TOOLTIP_ID = 'tech-tooltip';
 const trayItem = (techId: string) => ({ techId, name: TECH.get(techId)?.name ?? techId, iconKey: TECH.get(techId)?.iconKey ?? techId });
 const MASK = new URLSearchParams(location.search).has('mask');
@@ -81,7 +83,7 @@ const DETAIL_PROJECT = import.meta.env.DEV && url.fixture === 'nosections' ? { .
  * pay for them. Octopus starts the entrance's clock on the first frame drawn with the sheet in.
  */
 const ENTRANCE_SHEET: EntranceSheet = { sequences: null, failed: false };
-if (initialStage({ entranceSeen: readEntranceSeen(), requested: url.stage, reducedMotion: readReducedMotion() }).stage === 'entering') {
+if (WEBGL && initialStage({ entranceSeen: readEntranceSeen(), requested: url.stage, reducedMotion: readReducedMotion() }).stage === 'entering') {
   loadSequences().then(
     sequences => {
       swimShapes(TIER_SETTINGS[startingTier(url).tier].segments);
@@ -241,6 +243,18 @@ export function App() {
   const config = useMemo(() => clampCharacterConfig(NOX), []);
   const { state, dispatch, reducedMotion } = useStage(noxProject);
   const quality = useQuality(url);
+  // On a phone held upright the orbs are too small to pick out, so the tray lists every technology (as it does without WebGL).
+  const viewport = useViewport();
+  const phone = viewport.layout === 'phone';
+  const trayAll = viewport.phonePortrait || !WEBGL;
+  const worldTier = worldTierFor(quality.tier, phone);
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __noxWorldTier?: unknown }).__noxWorldTier = worldTier;
+  }, [worldTier]);
+  // No WebGL: no entrance to wait for.
+  useEffect(() => {
+    if (!WEBGL) dispatch({ type: 'SKIP' });
+  }, [dispatch]);
   // The far plate's layers load outside Suspense; `__noxReady` waits for them.
   const [plateReady, setPlateReady] = useState(false);
   const settlePlate = useCallback(() => setPlateReady(true), []);
@@ -333,7 +347,7 @@ export function App() {
       if (event.key === 'Escape') dispatch({ type: focusing ? 'BLUR_TECH' : 'CLOSE' });
     };
     const onPress = (event: PointerEvent) => {
-      if (focusing && !(event.target as Element | null)?.closest?.('.orb-button, .tech-tooltip')) dispatch({ type: 'BLUR_TECH' });
+      if (focusing && !(event.target as Element | null)?.closest?.('.orb-button, .tech-tooltip, .orb-tray-item')) dispatch({ type: 'BLUR_TECH' });
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('pointerdown', onPress);
@@ -343,13 +357,16 @@ export function App() {
     };
   }, [dispatch, focusing]);
   const focusedTech = focusing ? state.techId : null;
+  // The window's size is a dependency: a resize puts the focused technology's tooltip in its new place.
   const presented = useMemo(() => {
     const i = ORBS.findIndex(o => o.techId === focusedTech);
     return i >= 0 ? orbSpots(ORBS, true)[i] : null;
-  }, [focusedTech]);
+  }, [focusedTech, viewport]);
   // The other orbs, where they rest, so the tooltip finds a place clear of them.
-  const others = useMemo(() => orbSpots(ORBS).filter((_, i) => ORBS[i].techId !== focusedTech), [focusedTech]);
-  const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech]);
+  const others = useMemo(() => orbSpots(ORBS).filter((_, i) => ORBS[i].techId !== focusedTech), [focusedTech, viewport]);
+  const face = useMemo(() => (focusedTech ? faceSpot() : { x: 0, y: 0 }), [focusedTech, viewport]);
+  // A technology with no orb (the tray's) is described beside the tray's button, as a sheet: it stands in for the orb just under Nox's face.
+  const trayOrb = useMemo(() => ({ x: face.x, y: ('bounds' in face ? face.bounds.bottom : face.y) + 30, size: 44 }), [face]);
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: typeof presented; leaving: boolean }[]>([]);
   useEffect(() => {
@@ -391,7 +408,7 @@ export function App() {
   );
   return (
     <div className="spike" ref={frame}>
-      <Canvas
+      {WEBGL && <Canvas
         flat
         dpr={pixelRatio}
         frameloop={visible ? 'always' : 'never'}
@@ -412,7 +429,7 @@ export function App() {
           <>
             {/* Nothing here waits on a file: the world's kit has a Suspense of its own, so Nox and the
                 water are drawn whatever the network does. */}
-            <WorldScene world={SECURITY_WORLD} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={WORLD_TIERS[quality.tier]} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
+            <WorldScene world={SECURITY_WORLD} level={worldLevel} onFail={failWorld} onKitSettled={setKitLevel} time={url} tier={worldTier} onPlateSettled={settlePlate} accents={accents} solo={url.solo} reducedMotion={reducedMotion} />
             {octopus}
             <ReadyFlag wait={!plateReady || !kitDone} />
             {/* SMAA edges, not 4x multisampling: the same look at stage size for about 40% more frame rate. */}
@@ -424,17 +441,19 @@ export function App() {
             </EffectComposer>
           </>
         )}
-      </Canvas>
+      </Canvas>}
+      {!WEBGL && <Poster />}
       {!MASK && !url.view && (
         <>
+          <SkipLink onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />
           {/* The intro's words come in as Nox settles at the end of the entrance (the skip control goes then). */}
           <IntroOverlay project={noxProject} hidden={state.stage !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
           <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
-          <OverviewPanel project={noxProject} open={state.stage === 'overview'} dispatch={dispatch} />
-          <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} dispatch={dispatch} />
+          <OverviewPanel project={noxProject} open={state.stage === 'overview'} sheet={phone || !WEBGL} dispatch={dispatch} />
+          <ProjectDetail project={DETAIL_PROJECT} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!WEBGL} dispatch={dispatch} />
           <OrbButtons
             orbs={ORBS}
-            open={state.stage === 'overview' || focusing}
+            open={(state.stage === 'overview' || focusing) && WEBGL && !viewport.phonePortrait}
             focused={focusedTech}
             tooltipId={TOOLTIP_ID}
             onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
@@ -447,7 +466,7 @@ export function App() {
                 key={tip.techId}
                 id={TOOLTIP_ID}
                 content={tooltipContent(technology, USAGE.get(tip.techId), SHOW_PLACEHOLDERS)}
-                orb={tip.orb}
+                orb={tip.orb ?? (trayAll ? trayOrb : null)}
                 face={face}
                 others={others}
                 delayMs={FOCUS_BEATS.tooltip}
@@ -456,9 +475,13 @@ export function App() {
             );
           })}
           <OrbTray
-            items={(PHONE_PORTRAIT ? ORDER : ASSIGNED.overflow).map(trayItem)}
+            items={(trayAll ? ORDER : ASSIGNED.overflow).map(trayItem)}
             open={state.stage === 'overview' || state.stage === 'techFocus'}
-            onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
+            all={trayAll}
+            lifted={state.stage === 'overview' && (phone || !WEBGL)}
+            focused={focusedTech}
+            tooltipId={TOOLTIP_ID}
+            onChoose={id => dispatch(id === focusedTech ? { type: 'BLUR_TECH' } : { type: 'FOCUS_TECH', id })}
           />
         </>
       )}
