@@ -1,6 +1,6 @@
 # Nox 3D build: handoff
 
-Updated 2026-11-02. Read this first in a new session, then the files it points to.
+Updated 2026-11-03. Read this first in a new session, then the files it points to.
 
 ## Current direction (2026-10-26, governs over everything below)
 
@@ -31,17 +31,17 @@ Updated 2026-11-02. Read this first in a new session, then the files it points t
 - **Task 12 and Milestone 2 are approved (owner, 2026-11-02, "Approve M2").** Milestone commit cad8f8a `feat(nox3d): every stage in the 3D world`.
   - The world is always on (`?world` is ignored). `?tilt=<rad>` overrides the lean (default 0.07). Fallback chain: baked `near.glb`, then `kit.glb` live-lit, then no kit; Nox and the non-GLB water stay up while assets fail or hang (`KIT_WAIT_MS` 15 s; dev-only `?kitwait=<ms>`).
   - The spike code (`src/spikeEnv/`, `spike-env.html`, `spike-env/{capture,clip,perf}.mjs`, `public/spike-env/`) is deleted (backup: `spike-env-backup-2026-11-02.tgz` in the side-session notes folder). `spike-env/out/` (with the mp4s) and `spike-env/blender/` stay untracked. The test-scene stills are in `docs/superpowers/reviews/assets/world-test-scene/`.
-  - **Milestone 3 (arm water physics, Tasks 13–14) is deferred by the owner (2026-11-02, "Skip, go to M4"; ledger R45).** The arms look good to the owner at rest, and they want fast progress. Physics only shows in motion, so it is judged again at the Milestone 5 review.
+  - **Milestone 3 (arm water physics, Tasks 13–14) is cancelled (owner, 2026-11-03: "we don't need to add physics"; ledger R45, R52).** Do not build `ArmPhysicsRig`. Tasks 22, 23 and 25 drive the pose directly.
   - **Milestone 4 (Task 15, back view) is approved (owner, 2026-11-02, "Approve M4").** Milestone commit `feat(nox3d): Nox reads round and cute from behind` (checkpoint 7621c08; ledger R46-R47). `?yaw=<deg>` rotates the body for stills; `review.html?component=back` shows 0/45/90/180.
-  - **Next: Milestone 5 (Tasks 16-19, stroke cycle, swim, entrance), built without arm physics (see below).** Task 16 runs on Opus max. Start a fresh controller session from this file and the ledger.
+  - **Milestone 5 (Tasks 16-19, stroke cycle, swim, entrance) is approved (owner, 2026-11-03, "Approve M5").** Milestone commit `feat(nox3d): swimming entrance with spin` (checkpoints 5e8fb44, 7ee7227, 64bb559, 76c1e99, e431b0a; ledger R48-R53). Three whole strokes at Nox's 1.33 s rate to 4.5 s, a 1.0 s hold, a golden-spiral spin 5.5 to 6.5 s, settle to 7.5 s (`ENTRANCE_SECONDS` 7.5). Theatre.js: `src/nox3d/sequences/` (`keys.ts` defaults, `theatre.ts`, repo state `state/octoverse.theatre.json`, seed with `node scripts/theatre-seed.mjs <sheet>`); core is a lazy chunk, studio only in dev with `?studio`. `swimDrive(frame, settle)` is the arm drive. Known weaknesses are in `docs/superpowers/reviews/nox-world.md` (dark silhouette at t=0.5, pillar clearance 0.158, reload replay in the settle, Skip-intro e2e failing on this machine).
+  - **Next: Milestone 6 (Tasks 20-23, technology bubbles).** Start a fresh controller session from this file and the ledger. Tasks 20, 21: Sonnet medium; Tasks 22, 23: Opus high.
   - **Known weaknesses given to the owner:** pillar lean 1.2 degrees vs panel 2's 8 to 12 (R39: a stronger lean means leaning the pillars in the layout, bake plus far rerun, or a larger tilt that changes Nox); lower-third pattern (corner rocks too red, centre lava weak, stone lost most of its blue sheen: R40); tier high 16.8 fps vs the 27 fps floor on this Intel UHD (R43; render scale 0.75 gives about 23, 0.6 about 32 fps); the adaptive logic settles on tier low (about 38 fps) after about 8 s; far layer failure = fog only (R41); framed-mode Nox colour at tilt 0.07 not measured; overview panel edges drift about 12 px at hover extremes.
   - Open minors worth a glance: `keyboard.spec.ts` flakes under parallel Playwright load; `bake_world.py` ALBEDO table is stale; the `world-capture.mjs` `view=` freezes the camera so `hover=` stills need a framed capture.
 
-## Without arm physics (owner, 2026-11-02, ledger R45)
+## No arm physics (owner, 2026-11-03, ledger R52)
 
-- **Milestone 5:** build the stroke cycle, swim and entrance (Tasks 16–19) without `ArmPhysicsRig`. Drop the plan's physics hooks: no trailing from physics in Task 18, no `ArmPhysicsRig.snap` in Task 19. Arm follow-through comes only from the stroke drives (`spread`, `sweep`, `straighten`). Task 16 still runs on Opus max.
-- **Milestone 5 review:** ask the owner whether the arms read stiff while swimming and on stage changes. If they do, physics comes back: either Milestone 3 as planned or a cheaper delayed trail. Expect to retune the swim then.
-- **Milestones 6 and 8:** Tasks 22, 23 and 25 mention physics follow-through. Without physics, their motions drive the pose directly.
+- Milestone 3 is cancelled, not deferred. Arm follow-through comes only from stroke drives (`spread`, `sweep`, `straighten`, `ArmDrive.pitch`, `swimDrive`).
+- **Milestones 6 and 8:** Tasks 22, 23 and 25 mention physics follow-through. Without physics, their motions drive the pose directly. Ignore every `ArmPhysicsRig`, `snap` and `__physicsMs` mention in the plan.
 
 ## Deferred owner fixes (do not start until the owner asks)
 

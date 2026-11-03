@@ -1054,3 +1054,24 @@ Commit 7621c08 (checkpoint), milestone commit `feat(nox3d): Nox reads round and 
 - The superseded entrance's head turn loses face glow on the far side; recheck in Milestone 5.
 
 **Owner verdict (2026-11-02):** "Approve M4".
+
+## Milestone 5: swimming entrance (Tasks 16–19)
+
+Commits 5e8fb44 (stroke cycle and swim poses), 7ee7227 (Theatre.js plumbing), 64bb559 (entrance path and sequence), 76c1e99 (entrance in the stage), e431b0a (hold before the spin); milestone commit `feat(nox3d): swimming entrance with spin`. Built without arm physics (R45, R48).
+
+- Stroke: Nox's own 1.33 s stroke (recovery 0.52, power 0.21, glide 0.6). Three whole strokes from 0.51 to 4.5 s, not the plan's four or five, which do not fit at the approved timing (R50).
+- Timing: swim 0 to 4.5 s, hold 4.5 to 5.5 s, spin 5.5 to 6.5 s along a golden spiral, settle 6.5 to 7.5 s (`ENTRANCE_SECONDS` 7.5). Reveal 0 to 1 s.
+- Theatre.js: `@theatre/core` is a lazy 33.5 kB gzip chunk; studio is dev only (`?studio`). The `dist/assets` grep matches only core's own warning text (R51).
+- Numbers: 378 unit tests; at-rest fps unchanged (intro 49.1 vs 49.1); entrance median 37 to 43 fps; first visible Nox about 10.9 s, unchanged. Front view at rest unchanged.
+
+### Known weaknesses
+
+- Nox reads as a dark silhouette at t=0.5 (veil waterFar #071535).
+- The path clears the pillars by 0.158 (bar 0.1), tightest at 3.69 s.
+- A reload between 6.5 s and 7.5 s replays the entrance (session flag set at the end).
+- e2e "Skip intro, a click anywhere or a key" fails on this machine and also on 76c1e99 per the implementer (R47 flake); not fixed.
+- The entrance pauses through the pre-existing load stalls, about 27 s wall time on this laptop.
+
+**Owner verdict, first look (2026-11-03):** "Motion is good enough, we don't need to add physics. But let him finish swimming. He is almost making the last stroke and then he is spinning. Make him finish his spinning, and after 1 second of him finishing, he will then turn." Read as "finish his swimming" (R53); fixed in e431b0a with a 1.0 s hold.
+
+**Owner verdict, re-check (2026-11-03):** "Approve M5". Arm physics is dropped for good (R52): Milestone 3 is cancelled.
