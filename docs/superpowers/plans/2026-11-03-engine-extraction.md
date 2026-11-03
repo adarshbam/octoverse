@@ -224,7 +224,7 @@ Also in this step: `expressions.test.ts`: `resolveExpressions(NOX)` deep-equals 
 
 **Interfaces:**
 - Produces: the `WorldBundle` of spec 6.2, trimmed to what E02 builds (spec 14.1): `{ id: WorldId; character: CharacterConfig; poses: Record<StageId, StagePose>; swim: SwimPoseSet; artifacts: ArtifactConfig; sequences: SequenceSet; place: WorldConfig; stage: { frames: Record<StageId, StageFrame> }; content: { project: Project; technologies: readonly Technology[] }; theme: UiTheme }`.
-  - `function validateBundle(bundle: WorldBundle): WorldBundle` (clamps the character, validates the world and project, checks `poses` has all five stages and every pose has exactly the eight `ARM_IDS` keys, throws a named error otherwise).
+  - `function validateBundle(bundle: WorldBundle): WorldBundle` (clamps the character, validates the world and project, checks `poses` has all five stages and every pose has exactly the eight `ARM_IDS` keys, throws a named error otherwise); also checks `id` against `^[a-z][a-z0-9-]{1,31}$` and that an id starting `u-` is not one of the shipped `WORLDS` (the prefix is reserved for creator bundles; amendment A2, P4).
   - `function faceAnchor(bundle: WorldBundle, stage: 'intro' | 'overview' | 'detail'): Vec3`: derived from `bundle.character.head` and `bundle.poses[stage].body` by today's formula, so it is per character without a second authored table; the one shared function, replacing the duplicated code in `liveAnchors.ts` and `OrbButtons.tsx`.
   - `interface UiTheme { accent: string; accentHot: string; surface: string; surfaceEdge: string; buttonFrom: string; buttonTo: string; focusRing: string; titleIcon: string; nameplateLabel: string }` and `themeVars(theme: UiTheme): Record<string, string>` mapping to CSS custom properties (`--oct-accent`, ...).
   - `NOX_BUNDLE: WorldBundle` in `bundle.nox.ts`, assembled from `NOX`, `NOX_POSES`, `SWIM_POSES`/`swimShapes`, `NOX_ARTIFACTS`, the Theatre state and defaults, `SECURITY_WORLD`, `STAGE_FRAMES`, `noxProject`, `noxTechnologies`, and the Nox theme.
@@ -236,6 +236,31 @@ Also in this step: `expressions.test.ts`: `resolveExpressions(NOX)` deep-equals 
 - [ ] **Step 4: Verify the leak list is empty:** `rg "nox\.character|nox\.poses|nox\.swim|noxProject|noxTechnologies|security/config" src/nox3d -g '!*.test.*' -g '!bundle.nox.ts' -g '!**/content/**' -g '!**/poses/**' -g '!**/config/nox*'` returns only the files that define those values. Add the result to the commit message.
 - [ ] **Step 5: Run** the full suite, typecheck, the six e2e specs and the isolation spec; expected pass. Stills; expected exit 0.
 - [ ] **Step 6: Commit** `refactor(nox3d): WorldBundle, shared face anchor, UI theme tokens, WorldHost`.
+
+---
+
+### Task 8b: Host options for embedding (amendment A2, provisional)
+
+**Build this task only if the owner has approved amendment A2** (spec 19); otherwise skip it and renumber nothing: Tasks 9 onward do not depend on it. It extends `WorldHost` once, while it is being built, so the platform does not need a second pass.
+
+**Files:**
+- Create: `src/nox3d/host/useInstanceApi.ts`, `src/nox3d/host/options.ts`, `src/nox3d/ui/ExitLink.tsx`, `src/nox3d/host/options.test.ts`, `tests/e2e/embedding.spec.ts`
+- Modify: `host/WorldHost.tsx`, `behavior/useStage.ts`, `behavior/stageMachine.ts`, `stage/useQuality.ts`, `App.tsx` call sites
+
+**Interfaces:**
+- Consumes: `WorldHost`, `InstanceState` and `useStage` from Tasks 2, 3 and 8.
+- Produces:
+  - `WorldHost` props: `ui?: 'engine' | 'none'` (default `'engine'`); `preview?: PreviewOptions` (when `mode: 'preview'`); `initialStage?: 'intro' | 'overview' | 'detail'`; `onStageChange?: (stage: StageId) => void`; `stageRequest?: { id: number; stage: 'intro' | 'overview' | 'detail' }` (a new `id` is a new request); `exit?: { label: string; href: string }`.
+  - `interface PreviewOptions { stage: 'intro' | 'overview' | 'detail'; tierCap?: QualityTier; motion: 'still' | 'ambient'; place: 'full' | 'backdrop'; artifacts: 'settled' | 'hidden' }` and `function previewToReview(p: PreviewOptions): ReviewOptions` in `options.ts` (stage, `freeze: motion === 'still'`, `tier`, the world level for `place`, and no sheets for `settled`).
+  - `useInstanceApi(): { stage: StageId; faceAnchor: Vec3; liveShift(world: Vec3): { dx: number; dy: number }; explore(): void; back(): void; skip(): void }`.
+  - `function capTier(probed: QualityTier, cap?: QualityTier): QualityTier` in `stage/quality.ts`.
+
+- [ ] **Step 1: Write failing tests.** `options.test.ts`: `previewToReview({ stage: 'overview', motion: 'still', place: 'backdrop', artifacts: 'hidden' })` has `stage: 'overview'`, `freeze: true`, the lowest world level, and no entrance (the initial stage is never `entering`); `capTier('high', 'low') === 'low'`, `capTier('low', 'high') === 'low'`, `capTier('medium') === 'medium'`. `stageMachine.test.ts`: a `stageRequest` to `detail` from `intro` is accepted only through `OPEN_DETAIL` after `OPEN_OVERVIEW` (the reducer's own rules stay), and a request for the current stage changes nothing; `initialStage({ requested: 'detail' })` starts in `detail`, and a requested `entering` or `techFocus` is ignored (falls back to the normal start). A bundle test: with `poses.overview.headMorph = 0` the swell never opens (`headOpen` false for every stage), so the overview has no dome or head effect. `ExitLink` renders `<a href>` with the given label.
+- [ ] **Step 2: Write `tests/e2e/embedding.spec.ts`** on the dev page `src/app/multi.html`: a page instance with `ui: 'none'` renders no title, nameplate, overview panel or skip element, while a button wired to `useInstanceApi().explore()` opens the overview; a preview with `artifacts: 'hidden'` renders no `.orb-button`; with `exit` set, the exit link is the first focusable element in the instance; `onStageChange` fires on each stage change and a `stageRequest` to `intro` closes an open detail (the browser-Back case); two previews and a page instance never exceed two live `<canvas>` elements at once when the page mounts only the page instance and one preview (assert the count the dev page mounts).
+- [ ] **Step 3: Run** `npx vitest run src/nox3d/host src/nox3d/behavior` and the new e2e spec; expected FAIL.
+- [ ] **Step 4: Implement** per Interfaces; the engine UI components read the same dispatchers as the hook. A preview never attaches window listeners (Task 3) and never plays the entrance or an appear (`previewToReview`).
+- [ ] **Step 5: Run** the full suite, typecheck, the six e2e specs, isolation and embedding; expected pass. Stills; expected exit 0 (defaults reproduce today's page).
+- [ ] **Step 6: Commit** `feat(engine): host options for embedding (ui, preview, history sync, exit)`.
 
 ---
 
@@ -292,7 +317,7 @@ Also in this step: `expressions.test.ts`: `resolveExpressions(NOX)` deep-equals 
 **Files:**
 - Create: `docs/superpowers/evidence/engine-extraction/FINAL.md`
 
-- [ ] **Step 1:** `npx vitest run` (count at least the baseline), `npm run typecheck`, `npm run lint`, `npm run build`; all clean.
+- [ ] **Step 1:** `npx vitest run` (count at least the baseline; Task 8b's tests included if it was built), `npm run typecheck`, `npm run lint`, `npm run build`; all clean.
 - [ ] **Step 2:** `npx playwright test -c playwright.nox3d.config.ts`: the six existing specs plus `isolation` and `worldSwitch` pass; the six are byte-identical to baseline (`git diff <baseline-commit> -- tests/e2e/{detail,entrance,keyboard,world,worldMotion,worldTiers}.spec.ts` is empty).
 - [ ] **Step 3:** Recapture the full still set into `final/`; `python scripts/still_compare.py baseline final --floor baseline/floor.json` exits 0; run `check_stage.py` as in Task 1 and diff its output against `baseline/check_stage.txt`.
 - [ ] **Step 4:** With the browser pane closed, run `node scripts/perf.mjs` exactly as in Task 1, twice back to back; record the numbers beside the baseline in `FINAL.md`. If either median falls by more than the baseline's own run-to-run spread, stop and report the numbers; do not tune.
