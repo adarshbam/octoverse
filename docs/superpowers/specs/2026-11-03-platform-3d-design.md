@@ -420,7 +420,7 @@ interface DraftProject {
   - its CIE76 delta E from the upper-head colour is at least 40;
   - it stays at least 30 higher in OKLCH lightness (×100) than the upper head.
   - Where a swatch hue would break this for a template (a pink body around a pink face), `applyPalette` lowers that palette's body lightness for that template until the rule holds. The 128-combination test proves it.
-- `applyPalette(config, slots, palette)` is a pure function over `clampCharacterConfig` (contract 19, P6).
+- `applyPalette(config, template, palette)` (the template carries its slots and face glow) is a pure function over `clampCharacterConfig` (contract 19, P6).
 - **Personalities** (`PersonalityId`): **Calm** = Veyra's personality block, **Energetic** = Flux's, **Mysterious** = Nox's, **Playful** = Aether's (motion only: blink, gaze, sway, float, breath, stroke, settle, flourish, idle tilt; never expressions or poses).
 - **Technologies** come from one shared catalog, the union of the four worlds' technologies plus the approved common set; each has its approved icon. No free-text technology in v1. More than the template's slots go to the tray, as in every world.
 - **Name:** 1 to 24 characters, letters, numbers, spaces, `-`, `.` and `'`; shown on the nameplate. **Handle:** `^[a-z][a-z0-9-]{1,23}$`, not reserved; the bundle id is `u-<handle>` (contract 19, P4).
