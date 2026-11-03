@@ -10,7 +10,7 @@ Inputs: the Nox code in `src/nox3d/` (about 14k lines), the references `Veyra.jp
 
 OctoVerse is four octopus worlds (Nox, Veyra, Flux, Aether), a platform that shows them, a creator, and a backend. Nox is built, procedural, and nearly finished. The engine contract answers one question: **how do we put a second, different octopus in a second, different place without recolouring Nox and without copying him?**
 
-The test is Veyra (`Veyra.jpeg`). She is not Nox in teal. She has a rounder jelly-glass body with no cheek lobes, tight spiral tips, cream-gold scalloped cups, a green iris, a vault door with a padlock instead of rune pillars and lava, glowing plants instead of coral, and orbs hung on tethers from her arms instead of bubbles orbiting her head. A contract that survives Veyra honestly will survive Flux and Aether, which are closer to Nox in kind.
+The test is Veyra (`Veyra.jpeg`). She is not Nox in teal. She has a rounder jelly-glass body with small cheek lobes, tight spiral tips, cream-gold scalloped cups, a green iris, a vault door with a padlock instead of rune pillars and lava, glowing plants instead of coral, and orbs hung on tethers from her arms instead of bubbles orbiting her head. A contract that survives Veyra honestly will survive Flux and Aether, which are closer to Nox in kind.
 
 The contract is a **boundary map plus a migration**. It names what is engine, what is a world, who owns each piece of authored data, and how every existing Nox effect and pose reaches the new layout unchanged. It does not add features. Nox's rendered output is the frozen reference throughout.
 
@@ -190,7 +190,6 @@ Master-plan names map as follows: `WorldDefinition` = `WorldBundle` (with `place
 
 | Change | For | Nox value |
 |---|---|---|
-| `head.cheeks: CheekShape \| null`; radius 0 or `null` removes the lobes and the neck blend must hold | Veyra has no cheeks | unchanged |
 | `lighting: StageLighting` moved into the config (today `INTRO_LIGHTING`) | lighting is the character's | `INTRO_LIGHTING` |
 | `glow.core: string`, `glow.light: { color, intensity, distance, decay }` replacing the `'#ff4a2a'` and `GLOW_LIGHT` literals | no hard-coded hue | the current literals |
 | `glow.aura.low`: already config. `RED_BELOW` becomes `aura.belowStart` | no hard-coded hue | 0.75 |
@@ -360,7 +359,7 @@ Every existing effect and authored pose, where it goes, and how its preservation
 
 | Existing | Destination | Preserved by |
 |---|---|---|
-| Mantle: `headGeometry`, `headMorph`, dome geometry and material | `engine/character/` (cheeks optional) | Frozen stills of intro and overview; `headGeometry` and `domeMaterial` unit tests |
+| Mantle: `headGeometry`, `headMorph`, dome geometry and material | `engine/character/` | Frozen stills of intro and overview; `headGeometry` and `domeMaterial` unit tests |
 | Skin material (`skinMaterial`), skin detail, wet gloss, speckles | `engine/character/` (`mode: 'skin'`; `'jelly'` is added later) | `skinMaterial.test`; frozen stills; colour samples |
 | Arms: `armChain`, `armTube`, `armWeb`, suckers (`suckerRow`, `suckerMaterial`) | `engine/character/` | Their unit tests unchanged; frozen stills |
 | Face: `FaceCanvas`, `eyeShape`, `browShape`, `mouthShape`, `faceRedraw`, blush, puff and round mouth | `engine/character/` (lashes and brow thickness read config) | The face tests; expression stills for all seven expression ids |
@@ -444,7 +443,7 @@ Each new world is a directory with a bundle and its assets, and engine changes o
 
 ### 12.2 Veyra (the second-world proof)
 
-Reconciled with the Veyra session's list (section 15). Needs engine variants: no cheeks, jelly skin mode, sparkle term, `vaultDial` head effect, `pendant` placement with `bloom` and `armLift`, a world-defined relic and light vocabulary, a floor material, kelp and seagrass live elements.
+Reconciled with the Veyra session's list (section 15). Needs engine variants: jelly skin mode, sparkle term, `vaultDial` head effect, `pendant` placement with `bloom` and `armLift`, a world-defined relic and light vocabulary, a floor material, kelp and seagrass live elements.
 
 ### 12.3 Flux and Aether (from the references; to be confirmed by their own design sessions)
 
@@ -497,7 +496,7 @@ Measure with `scripts/perf.mjs` only (pane closed, back to back, 1536 x 1024, pi
 
 The closed-variant rule (section 9) applies to the extraction itself: E02 builds the **boundary, the isolation and every move that Nox already exercises**, and defers each variant that has no user yet to the world that needs it, built against that world's reference.
 
-- **E02 builds:** the layout (6.1); the bundle and host; instance isolation (8); `?world=` and full-remount switching; nullable `head.cheeks` (proved with a test geometry, since Veyra needs it and Nox does not); `lighting` into the character; `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus` and the head-effect colours moved from literals into config at Nox's values; `skinAccent`, `causticStrength`, `post` and `camera.hover` into the world; open `WorldLight.kind` strings; the `HEAD_EFFECTS` and `ARTIFACT_STRATEGIES` tables with their derived id unions (Nox's `glyphs` and `orbit` only); the content-contract cleanup; theme tokens; `--world-id` tooling.
+- **E02 builds:** the layout (6.1); the bundle and host; instance isolation (8); `?world=` and full-remount switching; `lighting` into the character; `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus` and the head-effect colours moved from literals into config at Nox's values; `skinAccent`, `causticStrength`, `post` and `camera.hover` into the world; open `WorldLight.kind` strings; the `HEAD_EFFECTS` and `ARTIFACT_STRATEGIES` tables with their derived id unions (Nox's `glyphs` and `orbit` only); the content-contract cleanup; theme tokens; `--world-id` tooling.
 - **Deferred to F01, with the Veyra work that needs each:** `skin.mode: 'jelly'` and `skin.sparkle`; cup-frill style fields (`suckers.style`); `vaultDial`; `pendant`, `bloom` and `armLift`; `place.props` and `SequenceSet.kitDrives` (the gate's ring); the generalised layout categories, relic and palette keys (`WorldLayout` is still `pillars / rocks / corals / chains / coralLights`, which only Veyra's real kit can shape correctly); `floor.material` and extra live elements; personality `settle`, `glideBias` and `flourishRate`.
 - **Added by amendment A1 (section 18):** per-character `expressions` overrides, `EntranceShape`, `camera.hover.pace`, and sheet ids derived from the appear table: all plumbed in E02 at Nox's values. The flourish layer and the non-spiral entrance path are built in F01.
 - **Dropped unless F01 finds a need:** `armCurl.tightness` and new face fields other than `expressions`. Tip spirals are authored pose points, and lash count, lash shape and brow thickness are already config (`EyeLayout.lashes`, `FaceLayout.brow.thickness`).
@@ -511,7 +510,7 @@ Source: Veyra's full answers, relayed 2026-11-03 (they supersede its first list)
 
 | # | Veyra's need | Outcome |
 |---|---|---|
-| 1 | Cheek lobes optional; tip-curl tightness and cup style as config | Accepted (6.3). |
+| 1 | Cheek lobes optional; tip-curl tightness and cup style as config | **Cheeks: withdrawn by Veyra** (it now has small cheek lobes, radius about 0.10, `adf5ac2`), so `head.cheeks` stays a required config value and nothing in the contract or E02 exists for radius 0. Tip curl and cup style: as 14.1 (authored pose points; `suckers.style` in F01). |
 | 2 | "Jelly glass" mantle mode, single pass; sparkle term; no hue assumed by shaders | Accepted. `skin.mode`, `skin.sparkle`, the hard-coded hue list in 4.2 moves to config. The jelly shader is built against Veyra in F01, not speculatively now. |
 | 3 | Face fully from config; expression presets per character | Accepted. Lash count and style, brow thickness and an expression tuning table become config. |
 | 4 | `HeadEffectId` an open registry; `vaultDial`; the effect gets swell progress and the dome frame | **Modified.** A `HEAD_EFFECTS` table in the engine with the id union derived from it, so adding `vaultDial` is one module and one entry with no other shared-code edit. No runtime registration. The module receives the swell progress and dome frame (9.1). |

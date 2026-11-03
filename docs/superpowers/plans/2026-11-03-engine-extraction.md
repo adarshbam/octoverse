@@ -41,7 +41,7 @@ Inputs and conditions the spec implies but the tasks' main tests would not catch
 1. **`?world=<unknown>`** must fall back to `nox` with a console warning, not a blank page (Task 10, `resolveWorld` test).
 2. **React StrictMode mount, unmount, mount** must not double-register listeners, ids or the Theatre project (`getProject` throws on a duplicate id) (Task 3 and Task 5 tests).
 3. **A returning visitor's session flag** `octoverse.nox.entranceSeen` keeps its name so the entrance does not replay after the migration (Task 3 test).
-4. **A legacy Nox config with none of the new fields**, and one with `head.cheeks: null`, validates and builds geometry with finite vertices (Task 4 tests).
+4. **A legacy Nox config with none of the new fields** validates and reads defaults that reproduce today's output (Task 4 tests).
 5. **Unmounting a preview while the page instance runs** leaves the page's Escape and skip handlers working and leaks no listener (Task 3 e2e).
 
 ---
@@ -131,24 +131,24 @@ See spec 6.1 for the full tree. New files this plan creates:
 
 ---
 
-### Task 4: Hard-coded hues, nullable cheeks and expression overrides into config
+### Task 4: Hard-coded hues and expression overrides into config
 
 **Files:**
 - Modify: `src/nox3d/config/types.ts`, `config/nox.character.ts`, `config/lighting.ts`, `config/validate.ts`, `character/glowLight.ts`, `character/Octopus.tsx`, `character/auraMaterial.ts`, `character/skinMaterial.ts`, `character/headGlyphs.ts`, `character/headGeometry.ts`, `artifacts/orbMaterial.ts`, `behavior/expressions.ts`, `behavior/poseBlend.ts`, `behavior/urlState.ts`, and their tests.
 - Test: `behavior/expressions.test.ts`, `config/validate.test.ts`, `config/nox.character.test.ts`, `character/headGeometry.test.ts`, `character/auraMaterial.test.ts`, `character/glowLight.test.ts`.
 
 **Interfaces:**
-- Produces on `CharacterConfig`: `lighting: StageLighting`; `glow.core: string`; `glow.light: { color: string; intensity: number; distance: number; decay: number }`; `glow.aura.belowStart: number`; `palette.orbFocus: string`; `palette.effect: { halo: string; stroke: string; core: string }`; `head.cheeks: CheekShape | null`; `expressions?: Partial<Record<ExpressionId, Partial<ExpressionParams>>>` (amendment A1, G1) with `resolveExpressions(config: CharacterConfig): Record<ExpressionId, ExpressionParams>` in `behavior/expressions.ts`; `PoseBlender`, `Octopus` and `urlState` read the resolved table instead of the `EXPRESSIONS` constant (`PoseBlender` takes the table at construction).
+- Produces on `CharacterConfig`: `lighting: StageLighting`; `glow.core: string`; `glow.light: { color: string; intensity: number; distance: number; decay: number }`; `glow.aura.belowStart: number`; `palette.orbFocus: string`; `palette.effect: { halo: string; stroke: string; core: string }`; `expressions?: Partial<Record<ExpressionId, Partial<ExpressionParams>>>` (amendment A1, G1) with `resolveExpressions(config: CharacterConfig): Record<ExpressionId, ExpressionParams>` in `behavior/expressions.ts`; `PoseBlender`, `Octopus` and `urlState` read the resolved table instead of the `EXPRESSIONS` constant (`PoseBlender` takes the table at construction).
 - Nox values: `lighting = INTRO_LIGHTING`; `glow.core = '#ff4a2a'`; `glow.light = { color: '#ff4a30', intensity: 5, distance: 6, decay: 2 }`; `glow.aura.belowStart = 0.75`; `palette.orbFocus = '#ff2e5a'`; `palette.effect = { halo: 'rgba(255,24,44,0.5)', stroke: '#ff2c3c', core: '#ffb49c' }`.
 - Absent fields read these Nox values as defaults in `clampCharacterConfig`, so a legacy config validates.
 
-- [ ] **Step 1: Write failing tests.** `validate.test.ts`: `clampCharacterConfig` of `NOX` with `lighting`, `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus`, `palette.effect` deleted equals `clampCharacterConfig(NOX)` (deep equal). `headGeometry.test.ts`: with `head.cheeks = null`, and with `cheeks.radius = 0`, `createHeadGeometry` returns finite positions (no NaN) and the silhouette half-width is continuous at the neck (adjacent row widths differ by less than 0.05). `glowLight.test.ts`: the light's colour comes from the config argument, not a module constant. A new `boundary` precursor test in `character/hue.test.ts`: reads the sources of `skinMaterial.ts`, `auraMaterial.ts`, `glowLight.ts`, `Octopus.tsx`, `orbMaterial.ts` and `headGlyphs.ts` with `fs`, and fails if any matches `/#[0-9a-fA-F]{6}\b|rgba\(\d/` outside comments (the logo allow-list lives in `logoTexture.ts`, not checked here).
+- [ ] **Step 1: Write failing tests.** `validate.test.ts`: `clampCharacterConfig` of `NOX` with `lighting`, `glow.core`, `glow.light`, `aura.belowStart`, `palette.orbFocus`, `palette.effect` deleted equals `clampCharacterConfig(NOX)` (deep equal). `glowLight.test.ts`: the light's colour comes from the config argument, not a module constant. A new `boundary` precursor test in `character/hue.test.ts`: reads the sources of `skinMaterial.ts`, `auraMaterial.ts`, `glowLight.ts`, `Octopus.tsx`, `orbMaterial.ts` and `headGlyphs.ts` with `fs`, and fails if any matches `/#[0-9a-fA-F]{6}\b|rgba\(\d/` outside comments (the logo allow-list lives in `logoTexture.ts`, not checked here).
 Also in this step: `expressions.test.ts`: `resolveExpressions(NOX)` deep-equals the base `EXPRESSIONS`; a config with `expressions: { curious: { browLift: 0.5 } }` changes only `curious.browLift` and no other key or expression; `urlState` still accepts every base id.
 - [ ] **Step 2: Run** `npx vitest run src/nox3d/behavior src/nox3d/config src/nox3d/character`; expected FAIL.
-- [ ] **Step 3: Implement.** Add the fields and defaults; thread each from the config to its reader (replace `GLOW_LIGHT`, the `'#ff4a2a'` core glow, `RED_BELOW`, `ORB_FOCUS_COLOUR`, the glyph stroke colours, and the `INTRO_LIGHTING` default in `skinMaterial.ts` with `config.lighting`). Make `HeadShape.cheeks` nullable; `createHeadGeometry` treats `null` or `radius <= 0` as no lobes (no neck-blend term).
+- [ ] **Step 3: Implement.** Add the fields and defaults; thread each from the config to its reader (replace `GLOW_LIGHT`, the `'#ff4a2a'` core glow, `RED_BELOW`, `ORB_FOCUS_COLOUR`, the glyph stroke colours, and the `INTRO_LIGHTING` default in `skinMaterial.ts` with `config.lighting`).
 - [ ] **Step 4: Run** the full suite and typecheck; expected pass.
 - [ ] **Step 5: Stills**; expected exit 0 (values are identical).
-- [ ] **Step 6: Commit** `refactor(nox3d): move hard-coded hues and lighting into the character config; nullable cheeks`.
+- [ ] **Step 6: Commit** `refactor(nox3d): move hard-coded hues and lighting into the character config; expression overrides`.
 
 ---
 
