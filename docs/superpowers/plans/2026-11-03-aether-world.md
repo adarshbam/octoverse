@@ -6,7 +6,7 @@
 
 **Architecture:** Aether is a `WorldBundle` under `src/worlds/aether/`, with assets under `public/aether/` and `blender/aether/`. She reuses Veyra's engine variants (jelly surfaces, frill cups, `pendant` helpers, `armLift`, membrane, props, live-element table) with her own values. She adds closed variants of her own, each in one engine change with a test, reviewed by the engine owner:
 - `PLACEMENTS.satellite`, `APPEARS.twinkle`, `HEAD_EFFECTS.synapse`;
-- `LIVE_ELEMENTS.jellyfish`;
+- `LIVE_ELEMENTS.jellyfish`, the fish silhouette, the `'bob'` prop drive, and the shared `'sand'` floor if Flux has not added it;
 - `artifacts.orbStyle`;
 - `Personality.idleTilt` and `StagePose.lookPoints`.
 
@@ -97,7 +97,7 @@ If a needed Veyra task has not landed, stop that milestone and report. Do not bu
 - `src/engine/artifacts/twinkle.ts`, `twinkle.test.ts`: the appear.
 - `src/engine/artifacts/orbStyle.ts`: rim beads and cap on the shared orb glass.
 - `src/engine/character/headEffects/synapse.ts`, `synapse.test.ts`.
-- `src/engine/world/live/Jellyfish.tsx`, `jellyfish.test.ts`.
+- `src/engine/world/live/Jellyfish.tsx`, `jellyfish.test.ts`; fish silhouette data, prop drive `'bob'`, and `src/engine/world/floors/sand.ts` (unless Flux adds it first).
 - `src/engine/behavior/idleTilt.ts`, `lookPoints.ts` and tests.
 - `blender/aether/build_kit.py`, `bake_world.py`, `render_far.py`, `empty_kit.py`; `public/aether/world/*`, `public/aether/ref/*`, `public/aether/poster.webp`.
 - `docs/superpowers/reviews/aether.md`: the owner's review log.
@@ -311,11 +311,11 @@ export function ringLineVisible(angle: number, ring: RingStyle): number;  // 0 i
 
 ### Task 7: Engine variants: jellyfish, and Aether's world vocabulary
 
-Raise this with the engine owner before starting (A1 18.2, A5). Items (b) to (d) were sent on 2026-11-03 as additions; each has a fallback.
+Raise this with the engine owner before starting. A1 18.2 accepted all four items (2026-11-03): (a) A5, and (b) to (d) as additions. None has a fallback any more.
 
 **Files:**
 - Create: `src/engine/world/live/Jellyfish.tsx`, `jellyfish.test.ts`
-- Modify: the `LIVE_ELEMENTS` table; and, only if accepted, the fish element (silhouette data), the prop-drive union (`'bob'`), and `src/engine/world/floors/` (`sand.ts`)
+- Modify: the `LIVE_ELEMENTS` table, the fish element (silhouette data), the prop-drive union (`'bob'`), and `src/engine/world/floors/` (`sand.ts`, only if Flux has not added it)
 - Test: `jellyfish.test.ts`, `validateWorld.test.ts`, `floor.test.ts`
 
 **Interfaces:**
@@ -328,16 +328,18 @@ Raise this with the engine owner before starting (A1 18.2, A5). Items (b) to (d)
     ```
 
     The bell is instanced, with vertex-shader pulse and filament wave, one draw for bells and one for filaments.
-  - (b) If accepted, the fish element takes `silhouette: 'fish' | 'ray'`. Fallback: Aether uses the landed fish shape.
-  - (c) If accepted, prop drive `'bob'`: `{ amplitude, period }` vertical sine. Fallback: the rubble is static.
-  - (d) If `'sand'` has not landed, `floor.material: 'sand'` (dark rock-sand with light pools from the baked lightmap). Fallback: `'moss'` with Aether's palette and moss tint 0.
+  - (b) `live.fish.silhouette?: readonly Point2[]`: an outline polygon of at most 24 points, validated (simple, at least 3 points). Absent means Veyra's shape, so Veyra is unchanged. Aether supplies a manta-like outline.
+  - (c) Prop drive `'bob'` joins `'rotateZ'` and `'emissive'`: `{ amplitude, period }` vertical sine, driven per prop with its own phase.
+  - (d) `floor.material: 'sand'`: one shared variant whose colours come from the world palette. Whichever of Flux or Aether builds it first adds the entry. At this task's start, `rg "sand" src/engine/world/floors` decides: if the entry exists, reuse it with Aether's palette (dark rock-sand, light pools from the baked lightmap) and add only the validation case; otherwise add it here. Never fall back to `'moss'`.
 - [ ] **Step 1: Failing tests:**
   - `jellyPulse` is periodic in `period`, and `bellScale` stays within `[0.85, 1.1]`;
   - with `reducedMotion`, `rise` is 0;
   - a config with a `jellyfish` element validates, and one with `count.low > count.high` fails with the field name;
-  - for each accepted item, its validation case.
+  - a fish silhouette of 25 points, or a self-crossing one, fails validation, and an absent one gives the pre-change fish geometry (fixture);
+  - a `'bob'` prop's offset stays within ±`amplitude` and is periodic, and Nox's and Veyra's props are unchanged;
+  - a world with `floor.material: 'sand'` validates and its shader takes every colour from the palette (no hex literal: `boundary.test.ts`).
 - [ ] **Step 2: Run**; FAIL. **Step 3: Implement.** **Step 4: Run**; Nox and Veyra regression (e2e `world`, `worldMotion`, `worldTiers`).
-- [ ] **Step 5: Commit** `feat(engine): jellyfish live element (for Aether)`, plus one commit per accepted item.
+- [ ] **Step 5: Commit** `feat(engine): jellyfish live element (for Aether)`, then one commit each for the fish silhouette, `'bob'`, and `'sand'` (if added here).
 
 ### Task 8: The observatory kit (Blender, headless)
 
@@ -357,7 +359,7 @@ Raise this with the engine owner before starting (A1 18.2, A5). Items (b) to (d)
   - foreground rocks and coral.
 
 - [ ] **Step 1:** Write `build_kit.py` in the style of `blender/security/` and `blender/vault/`, reading `layout.json`. Run `blender -b -P blender/aether/build_kit.py`; expected: `kit.glb` written, node names as above, triangle count logged.
-- [ ] **Step 2:** `validateWorld` passes with the kit: every `props` node exists (`portal_glyph` on the `'emissive'` drive, and the rubble on `'bob'` if accepted).
+- [ ] **Step 2:** `validateWorld` passes with the kit: every `props` node exists (`portal_glyph` on the `'emissive'` drive, `rubble_float_*` on `'bob'`).
 - [ ] **Step 3:** A clearance unit test (`src/worlds/aether/place/layout.test.ts`): the intro frame contains no `portal_*` node's bounds, and the tower groups lie outside the arm-span box (spec 2.2, 3.84 + 0.3 margin).
 - [ ] **Step 4: Commit** `feat(aether): observatory kit and layout`.
 
@@ -378,7 +380,8 @@ Raise this with the engine owner before starting (A1 18.2, A5). Items (b) to (d)
     - jellyfish: tiers high 10, medium 7, low 4;
     - star motes: blue-white, twinkling;
     - bubbles;
-    - fish: tier low 0;
+    - fish with Aether's manta-like `silhouette`: tier low 0;
+    - floating rubble on `'bob'` (amplitude 0.04, period 7 to 11 s);
     - membrane flow;
     - glyph pulse every 6 to 9 s.
   - **Post:** bloom tuned so the face glow keeps G ≤ 235.
