@@ -173,7 +173,8 @@ test('the place supplies its water, floor glow and live colours, and no seabed g
   expect(Object.keys(live.colours).sort()).toEqual(['bubbles', 'embers', 'motes', 'snow']);
   expect(glow).toMatchObject({ lava: 0, back: 0, floor: 0, crevice: 0, embers: 0 });
   expect(live.embers).toBe(0);
-  expect(VEYRA_BUNDLE.place.lights.points).toEqual([]);
+  // Her lights: the portal's spill, the plants' green and the corals' faint orange (place/config.test checks them).
+  expect(new Set(VEYRA_BUNDLE.place.lights.points.map(p => p.kind))).toEqual(new Set(['portal', 'plant', 'coral_orange']));
 });
 
 test('the theme gives every colour token, a poster, a title and a padlock', () => {
@@ -200,25 +201,18 @@ test('no red anywhere in her world: the character, the place and the UI hold no 
   expect(red).toEqual([]);
 });
 
-test('the stage backdrop is a kit with one empty scene, the layout names no piece, and the camera is calmer than Nox\'s', () => {
+test('the place is the vault: its kit, baked near world and far plate, and a camera calmer than Nox\'s', () => {
   const { place } = VEYRA_BUNDLE;
-  expect(place.kit.pieces).toEqual([]);
-  expect(place.near).toBeUndefined();
-  expect(place.farPlate).toBeUndefined();
-  const { floorY, groups, ...rest } = place.layout;
-  expect(floorY).toBeLessThan(0);
-  expect([...Object.values(groups).flat(), ...Object.values(rest).flat()]).toEqual([]);
+  expect(place.id).toBe('vault');
+  expect(place.kit.url).toBe('/veyra/world/kit.glb');
+  expect(place.near?.url).toBe('/veyra/world/near.glb');
+  expect(place.farPlate?.layers).toHaveLength(3);
+  expect(place.floor?.material).toBe('moss');
   // Spec 7.7 and the plan: a lean of 0.04, and 0.8 and 0.75 of Nox's drift (his amount and pace are both 1).
   expect(place.camera).toEqual({ tilt: 0.04, hover: { amount: 0.8, pace: 0.75 } });
-  // The glb the kit names exists, is a glTF 2 binary and holds one scene with no nodes, meshes or materials.
-  expect(place.kit.url).toBe('/veyra/world/stage.glb');
-  const data = readFileSync(join(ROOT, 'public', place.kit.url));
-  expect(data.subarray(0, 4).toString()).toBe('glTF');
-  expect(data.readUInt32LE(4)).toBe(2);
-  const doc = JSON.parse(data.subarray(20, 20 + data.readUInt32LE(12)).toString('utf8')) as Record<string, unknown>;
-  expect(doc.scenes).toHaveLength(1);
-  expect((doc.scenes as { nodes?: unknown[] }[])[0].nodes ?? []).toEqual([]);
-  for (const group of ['nodes', 'meshes', 'materials', 'textures', 'animations']) expect(doc[group] ?? [], group).toEqual([]);
+  for (const url of [place.kit.url, place.near!.url, ...place.farPlate!.layers.map(l => l.url)]) {
+    expect(readFileSync(join(ROOT, 'public', url)).length, url).toBeGreaterThan(0);
+  }
 });
 
 test('her artifacts have no places yet: no shells, nothing chosen in any stage (the pendants task adds them)', () => {

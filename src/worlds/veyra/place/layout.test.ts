@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { asWorldLayout, layoutProblems, validateWorld } from '../../../engine/world/validateWorld';
 import type { Placement } from '../../../engine/world/types';
-import { VAULT_STAGE } from './config';
+import { VAULT_WORLD } from './config';
 import layoutData from './layout.json';
 import { CORRIDOR_WIDTH, VAULT_CORRIDOR, VAULT_KIT } from './kit';
 
@@ -119,11 +119,11 @@ test('the layout stands on the floor the stage backdrop uses (floorY -2.45)', ()
   expect(layout.floorY).toBe(-2.45);
 });
 
-test('the engine accepts this kit and layout: the stage world with them in, and props naming the portal nodes, validates', () => {
+test('the engine accepts this kit and layout: the vault world, with props naming the portal nodes, validates', () => {
+  expect(VAULT_WORLD.kit).toMatchObject({ url: VAULT_KIT.url, pieces: VAULT_KIT.pieces, nodes: VAULT_KIT.nodes });
+  expect(VAULT_WORLD.layout).toEqual(layout);
   const world = {
-    ...VAULT_STAGE,
-    kit: { url: VAULT_KIT.url, pieces: VAULT_KIT.pieces, nodes: VAULT_KIT.nodes },
-    layout,
+    ...VAULT_WORLD,
     props: [
       { id: 'lockRing', node: 'padlock_ring', drive: 'rotateZ' as const },
       { id: 'membraneFlash', node: 'membrane', drive: 'emissive' as const },

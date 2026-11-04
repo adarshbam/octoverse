@@ -1,0 +1,38 @@
+{
+  "_note": "The vault's far plate (src/engine/world/farPlate.ts; blender/vault/render_far.py). Pieces of layout.json beyond cutZ are drawn in the layer whose near/far range holds their z; `extras` are pieces only the plate has: the ruin going on into the distance, walls and blocks on both flanks, a fallen far arch and glowing plants. width/height are the card in world units (farCardSize at Veyra's intro frame; config.test pins them); pixels is the layer image's size.",
+  "cutZ": -14,
+  "fog": {
+    "color": "#020b10",
+    "density": 0.034
+  },
+  "layers": [
+    { "z": -42, "near": -34, "far": null, "width": 58.694, "height": 50.655, "pixels": [1024, 884] },
+    { "z": -28, "near": -23, "far": -34, "width": 44.568, "height": 38.264, "pixels": [2048, 1760] },
+    { "z": -18, "near": -14, "far": -23, "width": 34.479, "height": 29.413, "pixels": [2048, 1748] }
+  ],
+  "extras": [
+    { "piece": "block_a", "position": [-7.4, -2.45, -16.5], "rotY": 0.7, "scale": 1.3 },
+    { "piece": "wall_broken", "position": [-9.2, -2.45, -20.5], "rotY": 0.55, "scale": 1.4 },
+    { "piece": "block_c", "position": [7.6, -2.45, -17.5], "rotY": -0.3, "scale": 1.3 },
+    { "piece": "wall_broken", "position": [10.2, -2.45, -21.5], "rotY": -0.9, "scale": 1.5 },
+    { "piece": "rock_a", "position": [-4.6, -2.6, -16.2], "rotY": 0.9, "scale": 1.1 },
+    { "piece": "glowplant_a", "position": [-6.0, -2.5, -18.4], "rotY": 1.2, "scale": 1.4 },
+    { "piece": "glowplant_b", "position": [5.0, -2.5, -15.8], "rotY": 0.3, "scale": 1.5 },
+
+    { "piece": "wall_broken", "position": [-6.4, -2.45, -29.5], "rotY": 0.25, "scale": 1.8 },
+    { "piece": "block_c", "position": [-3.6, -2.45, -32.5], "rotY": 0.5, "scale": 1.6 },
+    { "piece": "wall_broken", "position": [6.8, -2.45, -28.5], "rotY": -0.4, "scale": 1.7 },
+    { "piece": "steps", "position": [3.8, -2.45, -32.0], "rotY": -0.2, "scale": 1.3 },
+    { "piece": "block_b", "position": [9.0, -2.45, -31.5], "rotY": 0.4, "scale": 1.5 },
+    { "piece": "rock_c", "position": [-1.6, -2.55, -26.5], "rotY": 1.1, "scale": 1.2 },
+    { "piece": "glowplant_a", "position": [-4.4, -2.5, -27.2], "rotY": 2.0, "scale": 1.7 },
+    { "piece": "glowplant_b", "position": [2.4, -2.5, -29.8], "rotY": 0.8, "scale": 1.6 },
+
+    { "piece": "wall_broken", "position": [-8.6, -2.45, -39.0], "rotY": 0.35, "scale": 2.2 },
+    { "piece": "wall_broken", "position": [7.8, -2.45, -41.5], "rotY": -0.35, "scale": 2.2 },
+    { "piece": "block_c", "position": [-3.2, -2.45, -44.0], "rotY": 0.2, "scale": 2.0 },
+    { "piece": "arch", "position": [2.2, -2.45, -47.0], "rotY": -0.15, "tilt": 0.05, "scale": 1.5 },
+    { "piece": "block_a", "position": [9.6, -2.45, -37.5], "rotY": 0.9, "scale": 1.8 },
+    { "piece": "glowplant_b", "position": [-5.2, -2.5, -36.5], "rotY": 1.4, "scale": 1.9 }
+  ]
+}
