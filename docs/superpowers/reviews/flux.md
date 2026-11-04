@@ -194,3 +194,8 @@ The floor of 40 is met, so the spec 10.1 fallback was not applied.
 - **Core and ramp interaction.** The jelly core blends with `max(col, ramp(core))`. A core weaker than faceGlow pulls the ramp's violet-blue into the face and lifts the darks (pupil, mouth). Worked round here by centring the core under the mouth at warmth 1.
 - **Chin and face glow.** Both met with coreCenter, coreWarmth, the ramp and reachDown. No world light was added and the engine was not forked.
 - **Existing gaps.** Sparkle twinkle speed; the hard-coded silhouette reference in `check_stage.py`.
+
+## Task 9: baked pipeline world (provisional, PENDING OWNER REVIEW)
+- Dropped or deviating from the plan, each logged in `docs/superpowers/MORNING-REVIEW-flux.md`: glyph motes dropped (motes take no sprite set, spec 12.6); bubbles are uniform, not denser to the left (the engine has no density field); the far plate is KTX2, not webp (the engine loads only KTX2).
+- Engine-owner item: per-arc `portal_arc_<q>_inlay` membrane nodes solve the shared-stone emissive problem world-side; Task 15 props must name the `_inlay` nodes.
+- Not seen: packets are not visible in any stage frame (Task 10 judges this).

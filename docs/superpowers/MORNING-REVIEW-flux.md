@@ -44,7 +44,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   - Placements: 14 LED emitter sets; 9 of 44 placements unread (unlit, or beyond the cut).
   - Far cards: 11.3%, 10.9% and 8.0% covered; mean fog 0.95, 0.81 and 0.64.
   - Visitor download: near + far = 4.32 MB; with kit.glb, 5.07 MB (under the 6 MB test).
-  - Frame rate, under load: median 48.1 fps, slowest 10% 47.8 fps (intro, live, 240 frames).
+  - Frame rate, under load: median 48.1 fps, slowest 10% 47.8 fps (intro, live, 240 frames). Task 6 stage-only was 73 fps (also under load); the world adds the baked near world, far plate, LEDs and packets.
   - Clipping (channels at 254+): the world adds none. The world's cyan peaks at 240 (LEDs).
   - Pixels at 254+ in two channels: 3,225 cup rims (R and B) and 2,662 white (eye highlights, title text). These counts are the same with the quick bake and the full bake.
   - The portal and ring spill lights are 12+ units from Flux; their skin ranges are 3 and 2.5. The bloom is unchanged from Task 6.
