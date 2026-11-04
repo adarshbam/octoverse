@@ -238,10 +238,10 @@ export function validateWorld(world: WorldConfig): string[] {
     assigned.add(m?.node);
     if (record(m)) problems.push(...kitMaterialProblems(m, at));
   });
-  // A glow's brightest value is its colour times its strength; an emissive drive would raise it past that bound.
+  // A glow's (or a led's) brightest value is its colour times its strength; an emissive drive would raise it past that bound.
   (world.props ?? []).forEach((prop, i) => {
     const material = (world.materials ?? []).find(m => m?.node === prop.node)?.material;
-    if (prop.drive === 'emissive' && material === 'glow') problems.push(`props[${i}] (${prop.id}) drives the emissive of "${prop.node}", which has a glow material: a glow sets its own level`);
+    if (prop.drive === 'emissive' && (material === 'glow' || material === 'led')) problems.push(`props[${i}] (${prop.id}) drives the emissive of "${prop.node}", which has a ${material} material: a ${material} sets its own level`);
   });
   const { colours: liveColours, elements, ...shares } = live;
   for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {
