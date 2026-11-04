@@ -113,3 +113,12 @@ test('validateBundle names a theme colour token that is missing or not a colour:
   expect(field({ ...NOX_THEME, lineHover: 'rose-ish' })).toBe('theme.lineHover');
   expect(field({ ...NOX_THEME, glow: 'rgb(63, 224, 197)', ink: '#04201c' })).toBeNull();
 });
+
+test('the padlock title icon is drawn in the theme button gradient and carries no colour of its own', () => {
+  expect(Object.keys(TITLE_ICONS)).toEqual(['flame', 'padlock']);
+  const markup = renderToStaticMarkup(createElement(TITLE_ICONS.padlock));
+  expect(markup).toMatch(/^<svg/);
+  expect(markup).toContain('var(--oct-button-from)');
+  expect(markup).toContain('var(--oct-button-to)');
+  expect(markup).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+});

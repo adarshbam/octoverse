@@ -1,6 +1,9 @@
 import { expect, test } from 'vitest';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import { NOX } from '../../worlds/nox/character';
-import { clampCharacterConfig } from './validate';
+import { BundleError, validateBundle } from '../types/bundle';
+import type { JellySettings, SuckerStyle } from './types';
+import { GLOW_SPREAD_MIN, clampCharacterConfig } from './validate';
 
 test('NOX is unchanged by clamping', () => {
   expect(clampCharacterConfig(NOX)).toEqual(NOX);
@@ -113,6 +116,9 @@ const clampedNumbers = (bad: unknown) => ({
     ...NOX.glow,
     light: poison(NOX.glow.light, bad),
     underside: bad as number,
+    spreadX: bad as number,
+    reachUp: bad as number,
+    reachDown: bad as number,
     aura: poison(NOX.glow.aura, bad),
     grade: poison(NOX.glow.grade, bad),
   },
@@ -185,4 +191,115 @@ test('an expression override keeps only the keys the face has', () => {
   });
   expect(c.expressions).toEqual({ curious: { browLift: 0.5, puff: 0.5, mouthRound: 1 }, gentle: { lidRest: 0.1 } });
   expect(Object.keys(c.expressions!.curious!)).not.toContain('nonsense');
+});
+
+const JELLY: JellySettings = { rim: '#62eaff', rimPower: 3, crown: '#14b0cc', crownHeight: 0.5, depth: '#015f67', depthStrength: 0.6, core: '#f0eca0', coreCenter: [0, 0.1, -0.3], coreWarmth: 0.8 };
+const surfaces = (mantle: unknown, arms: unknown) => clampCharacterConfig({ ...NOX, skin: { ...NOX.skin, surfaces: { mantle, arms } as never } }).skin.surfaces!;
+
+test('Nox has no surfaces and the clamp adds none (absent is skin on both, no sparkle)', () => {
+  expect(NOX.skin.surfaces).toBeUndefined();
+  expect(clampCharacterConfig(NOX).skin).not.toHaveProperty('surfaces');
+});
+
+test('each surface keeps its sparkle in [0, 400] and its mode in the closed table (default skin)', () => {
+  const s = surfaces({ mode: 'jelly', jelly: JELLY, sparkle: 900 }, { mode: 'glass', sparkle: -5 });
+  expect(s.mantle.sparkle).toBe(400);
+  expect(s.mantle.mode).toBe('jelly');
+  expect(s.arms.sparkle).toBe(0);
+  expect(s.arms.mode).toBe('skin');
+  expect(surfaces({ sparkle: Number.NaN }, { mode: 'skin', sparkle: 12 }).mantle).toEqual({ mode: 'skin', sparkle: 0 });
+  expect(surfaces({ mode: 'skin', sparkle: 12 }, { mode: 'jelly', jelly: JELLY, sparkle: 30 }).arms).toEqual({ mode: 'jelly', jelly: JELLY, sparkle: 30 });
+});
+
+test('jelly settings are clamped, and a missing or unreadable colour reads the character’s own palette (no colour in the engine)', () => {
+  const wild = { ...JELLY, rim: 'not a colour', rimPower: 99, crownHeight: -1, depthStrength: 4, coreWarmth: Number.NaN, coreCenter: [Number.NaN, 0, 9] };
+  const j = surfaces({ mode: 'jelly', jelly: wild, sparkle: 50 }, { mode: 'skin', sparkle: 0 }).mantle.jelly!;
+  expect(j.rim).toBe(NOX.palette.rimTop);
+  expect(j.rimPower).toBe(8);
+  expect(j.crownHeight).toBe(0);
+  expect(j.depthStrength).toBe(1);
+  expect(j.coreWarmth).toBe(1);
+  expect(j.coreCenter).toEqual([0, 0, 2]);
+  const fallback = surfaces({ mode: 'jelly', sparkle: 0 }, { mode: 'skin', sparkle: 0 }).mantle.jelly!;
+  expect([fallback.rim, fallback.crown, fallback.depth, fallback.core]).toEqual([NOX.palette.rimTop, NOX.palette.headEdge, NOX.palette.blotch, NOX.glow.core]);
+  // A skin surface carries no jelly.
+  expect(surfaces({ mode: 'skin', jelly: JELLY, sparkle: 0 }, { mode: 'skin', sparkle: 0 }).mantle).toEqual({ mode: 'skin', sparkle: 0 });
+});
+
+test('the jelly crown starts at 0.9 at the most, so its soft edge always fits below the top', () => {
+  const crown = (crownHeight: number) => surfaces({ mode: 'jelly', jelly: { ...JELLY, crownHeight }, sparkle: 0 }, { mode: 'skin', sparkle: 0 }).mantle.jelly!.crownHeight;
+  expect(crown(1)).toBe(0.9);
+  expect(crown(0.95)).toBe(0.9);
+  expect(crown(0.6)).toBe(0.6);
+});
+
+test('the face glow spread and reach stay above zero (the shaders divide by them); Nox keeps his', () => {
+  const g = clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, spreadX: 0, reachUp: -1, reachDown: 99 } }).glow;
+  expect([g.spreadX, g.reachUp, g.reachDown]).toEqual([GLOW_SPREAD_MIN, GLOW_SPREAD_MIN, 4]);
+  expect(GLOW_SPREAD_MIN).toBeGreaterThan(0);
+  const nox = clampCharacterConfig(NOX).glow;
+  expect([nox.spreadX, nox.reachUp, nox.reachDown]).toEqual([NOX.glow.spreadX, NOX.glow.reachUp, NOX.glow.reachDown]);
+});
+
+test('validateBundle names a face glow spread or reach that is not above zero', () => {
+  const withGlow = (change: Record<string, number>) => ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, glow: { ...NOX_BUNDLE.character.glow, ...change } } });
+  const field = (bundle: typeof NOX_BUNDLE) => {
+    try {
+      validateBundle(bundle);
+    } catch (error) {
+      if (error instanceof BundleError) return error.field;
+      throw error;
+    }
+    return null;
+  };
+  expect(field(withGlow({ spreadX: 0 }))).toBe('character.glow.spreadX');
+  expect(field(withGlow({ reachUp: -0.2 }))).toBe('character.glow.reachUp');
+  expect(field(withGlow({ reachDown: 0 }))).toBe('character.glow.reachDown');
+  expect(field(withGlow({ spreadX: 0.3 }))).toBeNull();
+});
+
+test('validateBundle names a surface mode the engine has not got, and a jelly colour that does not parse', () => {
+  const withSurfaces = (mantle: unknown) => ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, skin: { ...NOX_BUNDLE.character.skin, surfaces: { mantle, arms: { mode: 'skin', sparkle: 0 } } as never } } });
+  const field = (bundle: typeof NOX_BUNDLE) => {
+    try {
+      validateBundle(bundle);
+    } catch (error) {
+      if (error instanceof BundleError) return error.field;
+      throw error;
+    }
+    return null;
+  };
+  expect(field(withSurfaces({ mode: 'glass', sparkle: 0 }))).toBe('character.skin.surfaces.mantle.mode');
+  expect(field(withSurfaces({ mode: 'jelly', jelly: { ...JELLY, crown: 'bluish' }, sparkle: 0 }))).toBe('character.skin.surfaces.mantle.jelly.crown');
+  expect(field(withSurfaces({ mode: 'jelly', jelly: JELLY, sparkle: 60 }))).toBeNull();
+});
+
+const FRILL: SuckerStyle = { rimWidth: 0.22, scallop: 0.6, edge: '#e0dc9c', rim: '#f6f0ba', hollow: '#6a9478', glow: 1.3 };
+const suckerStyle = (style: unknown) => clampCharacterConfig({ ...NOX, suckers: { ...NOX.suckers, style: style as SuckerStyle } }).suckers.style!;
+
+test('Nox has no cup style and the clamp adds none (absent is the sunk discs)', () => {
+  expect(NOX.suckers.style).toBeUndefined();
+  expect(clampCharacterConfig(NOX).suckers).not.toHaveProperty('style');
+  expect(clampCharacterConfig(NOX).suckers).toEqual(NOX.suckers);
+});
+
+test('a cup frill style is clamped, and a missing or unreadable colour reads the character’s own cup colours', () => {
+  expect(suckerStyle(FRILL)).toEqual(FRILL);
+  const s = suckerStyle({ ...FRILL, rimWidth: 2, scallop: -1, glow: Number.NaN, rim: 'not a colour', edge: undefined });
+  expect(s.rimWidth).toBe(0.5);
+  expect(s.scallop).toBe(0);
+  expect(s.glow).toBe(1);
+  expect([s.edge, s.rim, s.hollow]).toEqual([NOX.palette.suckerEdge, NOX.palette.suckerHot, FRILL.hollow]);
+});
+
+test('validateBundle names a cup style colour that does not parse', () => {
+  const bundle = { ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, suckers: { ...NOX_BUNDLE.character.suckers, style: { ...FRILL, hollow: 'greenish' } } } };
+  try {
+    validateBundle(bundle);
+    expect.unreachable('validateBundle took an unreadable cup colour');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BundleError);
+    expect((error as BundleError).field).toBe('character.suckers.style.hollow');
+  }
+  expect(() => validateBundle({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, suckers: { ...NOX_BUNDLE.character.suckers, style: FRILL } } })).not.toThrow();
 });

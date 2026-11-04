@@ -1,0 +1,72 @@
+{
+  "2": {
+    "colorTolerance": 24,
+    "widthTolerance": 0.02,
+    "hq": {
+      "image": "public/veyra/ref/p2.png",
+      "frame": [
+        4.88,
+        4.95
+      ],
+      "origin": [
+        244,
+        247.5
+      ],
+      "pxPerUnit": 100
+    },
+    "points": {
+      "head crown": [
+        0.12,
+        0.325
+      ],
+      "head middle": [
+        0.12,
+        -0.025
+      ],
+      "head side": [
+        -0.65,
+        -0.125
+      ],
+      "face glow": [
+        0.22,
+        -0.855
+      ],
+      "chin": [
+        0.22,
+        -1.005
+      ],
+      "blush": [
+        -0.29,
+        -0.805
+      ],
+      "mouth line highlight": [
+        0.25,
+        -0.705
+      ],
+      "arm top surface": [
+        -1.42,
+        -0.605
+      ],
+      "arm body": [
+        -1.08,
+        -0.755
+      ],
+      "sucker cup rim": [
+        -1.09,
+        -1.005
+      ],
+      "water outside head": [
+        -0.83,
+        0.125
+      ],
+      "mid water": [
+        -1.93,
+        0.225
+      ],
+      "upper water": [
+        1.15,
+        1.475
+      ]
+    }
+  }
+}

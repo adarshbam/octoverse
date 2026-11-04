@@ -26,6 +26,8 @@ export interface Shell {
 /** `count` bubbles over the placement's shells in turn, evenly spaced round the ring, sized for the stage's framing. */
 export function layoutOrbits(count: number, placement: Pick<OrbitPlacement, 'shells' | 'sizes'>, stage: 'intro' | 'overview'): Orbit[] {
   const { shells, sizes } = placement;
+  // No shells, no places: the artifacts have none to take (a world's artifacts config may leave them out).
+  if (shells.length === 0) return [];
   return Array.from({ length: count }, (_, i) => {
     const shell = i % shells.length;
     const { radius, tilt, speed } = shells[shell];
