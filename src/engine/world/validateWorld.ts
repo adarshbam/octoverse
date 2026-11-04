@@ -209,6 +209,14 @@ export function validateWorld(world: WorldConfig): string[] {
     propIds.add(prop.id);
     if (!nodes.has(prop.node)) problems.push(`${at} names the kit node "${prop.node}", which is not in the kit`);
     if (!PROP_DRIVE_IDS.includes(prop.drive)) problems.push(`${at} has drive "${String(prop.drive)}", which is not one of ${PROP_DRIVE_IDS.join(', ')}`);
+    const bob: unknown = prop.bob;
+    if (prop.drive === 'bob') {
+      if (!record(bob)) problems.push(`${at} drives "bob" but has no bob: { amplitude, period }`);
+      else {
+        if (!finite(bob.amplitude) || bob.amplitude < 0) problems.push(`${at}.bob.amplitude must be 0 or more (stage units)`);
+        if (!finite(bob.period) || bob.period <= 0) problems.push(`${at}.bob.period must be above 0 (seconds)`);
+      }
+    } else if (bob !== undefined) problems.push(`${at} has bob, which only the 'bob' drive reads`);
   });
   const kitNodes = new Set(world.kit.nodes ?? []);
   (world.kit.attached ?? []).forEach((a, i) => {

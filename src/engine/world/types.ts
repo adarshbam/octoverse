@@ -7,7 +7,7 @@ import type { KitMaterialAssignment } from './kitMaterials';
 import type { Point2 } from '../config/types';
 import type { QualityTier } from '../stage/quality';
 import type { StrandElementId } from './live';
-import type { PropDrive } from './props';
+import type { BobParams, PropDrive } from './props';
 
 /** x, y, z in stage units. The camera looks down -z, so z < 0 is beyond Nox. */
 export type Vec3 = readonly [number, number, number];
@@ -180,13 +180,16 @@ export interface WorldPalette {
   [name: string]: string | FloorGlow;
 }
 
-/** An animatable part of the kit, named for a sequence to target. */
-export interface WorldProp {
+/**
+ * An animatable part of the kit, named for a sequence to target. A `bob` prop carries its own
+ * motion (`bob`: amplitude and period) and bobs on the world's clock, on a phase of its own (from
+ * its id); the other drives take their value from a sequence and carry nothing.
+ */
+export type WorldProp = {
   id: string;
   /** A named node of the kit file. */
   node: string;
-  drive: PropDrive;
-}
+} & ({ drive: Exclude<PropDrive, 'bob'>; bob?: never } | { drive: 'bob'; bob: BobParams });
 
 /**
  * Instanced strands that sway from the root (live/Kelp.tsx): `count` of them, `height` tall in stage

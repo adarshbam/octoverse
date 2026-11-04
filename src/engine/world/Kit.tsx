@@ -10,6 +10,7 @@ import { type WorldKit, bakedGeometry } from './kitLoader';
 import { type KitMaterialInstance, kitMaterialFor, makeKitMaterial } from './kitMaterials';
 import { fbm2, seeded } from './noise';
 import { DRESSED_GROUPS, applyPlacement, coralRest, withLod } from './placement';
+import { bobOffset, drive } from './props';
 import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
@@ -247,12 +248,15 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return found;
     };
     // Each placed piece is a LOD holding copies of the piece and its lod1. The copies keep the
-    // node transforms the compressed file gives them; the placement goes on the LOD.
+    // node transforms the compressed file gives them; the placement goes on the LOD. Each is
+    // listed under its piece's name, for the props that move a piece (`bob`).
+    const placedByPiece = new Map<string, THREE.Object3D[]>();
     const placedLod = (p: Placement, dress: (level: THREE.Object3D, index: number) => void) => {
       const lod = withLod(piece(p.piece).clone(true), piece(`${p.piece}_lod1`).clone(true));
       lod.levels.forEach(({ object }, index) => dress(object, index));
       applyPlacement(lod, p);
       lod.updateMatrixWorld(true);
+      placedByPiece.set(p.piece, [...(placedByPiece.get(p.piece) ?? []), lod]);
       return lod;
     };
 
@@ -432,7 +436,10 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       pebbles,
     ];
 
-    return { pillars, rocks, corals, stoneGroups, glowing, attached, kitMaterials: [...kitMaterials.values()], chains, pebbles, lights, disposables };
+    // The props on the `bob` drive move every placement of their piece, on the world's clock.
+    const bobbing = (world.props ?? []).flatMap(prop => (prop.drive === 'bob' ? (placedByPiece.get(prop.node) ?? []).map(object => ({ prop, object })) : []));
+
+    return { pillars, rocks, corals, stoneGroups, glowing, attached, kitMaterials: [...kitMaterials.values()], chains, pebbles, lights, bobbing, disposables };
   }, [kit, world, reliefGate]);
   useDisposables(built.disposables);
 
@@ -440,6 +447,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     coralTime.current.value = now(state);
     coralMotion.current.value = motionAmount;
     for (const k of built.kitMaterials) k.update(now(state), motionAmount);
+    for (const { prop, object } of built.bobbing) drive(prop, object, bobOffset(now(state), prop, motionAmount));
   });
 
   useLayoutEffect(() => {
