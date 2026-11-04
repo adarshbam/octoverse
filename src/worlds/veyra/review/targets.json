@@ -217,7 +217,9 @@
     },
     "nearHer": {
       "px": 4,
-      "reason": "Task 11: in the vault world the recipe also takes the world's green plants and seagrass beside her arm tips (span 3.94, IoU 0.850 at Task 10). The held numbers are taken on the recipe's pixels within 4 px (0.04 units) of the engine's silhouette: P2's segmented span is 0.04 over the engine's (3.75 against 3.71), so 4 px keeps her halo as the recipe sees it and leaves the world beyond it out. The targets are unchanged. Sensitivity on the Task 10 frame (span, IoU without the extra arms): 3 px 3.72 / 0.860, 4 px 3.73 / 0.859, 6 px 3.76 / 0.856, 8 px 3.78 / 0.854, 12 px 3.83 / 0.852 (the world creeps in from 6 px)."
+      "reason": "Task 11: in the vault world the recipe also takes the world's green plants and seagrass beside her arm tips (span 3.94, IoU 0.850 at Task 10). The held numbers are taken on the recipe's pixels within 4 px (0.04 units) of the engine's silhouette: P2's segmented span is 0.04 over the engine's (3.75 against 3.71), so 4 px keeps her halo as the recipe sees it and leaves the world beyond it out. The targets are unchanged. Sensitivity on the Task 10 frame (span, IoU without the extra arms): 3 px 3.72 / 0.860, 4 px 3.73 / 0.859, 6 px 3.76 / 0.856, 8 px 3.78 / 0.854, 12 px 3.83 / 0.852 (the world creeps in from 6 px).",
+      "finalFrame": "Task 11 round 6 frame (the committed look): 3 px 3.73 / 0.860, 4 px 3.74 / 0.858, 6 px 3.77 / 0.855, 8 px 3.80 / 0.853, 12 px 3.84 / 0.852.",
+      "limitation": "The her row can only shrink the recipe's mask to the engine silhouette plus 4 px: where the recipe reads her outline wider than that, the extra is cut off, so the span check cannot catch the recipe over-reading her outline (the plain recipe row, still printed, shows it)."
     }
   }
 }

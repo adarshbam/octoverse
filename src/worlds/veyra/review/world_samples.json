@@ -71,7 +71,7 @@
     ]
   },
   "p1": {
-    "note": "Task 11: the vault world against P1 (native panel, colour truth). Each sample is the median of its boxes (x0, y0, x1, y1, px; 'without' boxes left out), or with stat top25 the median of the brightest quarter of those pixels (small glowing sprigs over dark ground). The render boxes are on the intro at the owner's desktop size: /?world=veyra&stage=intro&freeze&tier=high at 1536 x 1024 (scale 1). 'relic' is spec 7.7's rule on the pixels: the portal's 99.5th-percentile linear luminance stays below the face's; 'noClip': no white pixel (R, G, B all 250 or more) on the membrane. Run: python scripts/veyra_world.py <capture.png>.",
+    "note": "Task 11: the vault world against P1 (native panel, colour truth). Each sample is the median of its boxes (x0, y0, x1, y1, px; 'without' boxes left out), or with stat top25 the median of the brightest quarter of those pixels (small glowing sprigs over dark ground). The render boxes are on the intro at the owner's desktop size: /?world=veyra&stage=intro&freeze&tier=high at 1536 x 1024 (scale 1). 'relic' is spec 7.7's rule on the pixels: the portal's 99.5th-percentile linear luminance stays below the face's; 'noClip': no white pixel (R, G, B all 250 or more) on the membrane's rim strips; 'noRed': see its rule. Run: python scripts/veyra_world.py <capture.png>.",
     "panel": "docs/design/references/Veyra/native-panels/01 - Veyra Enters the Vault OS World.png",
     "capture": "/?world=veyra&stage=intro&freeze&tier=high, 1536 x 1024",
     "deltaE": 15,
@@ -110,15 +110,10 @@
               535,
               1328,
               705
-            ],
-            [
-              1326,
-              380,
-              1366,
-              800
             ]
           ]
-        }
+        },
+        "withoutReason": "The padlock is left out of both boxes. (Fix round 1: a second render box, a 40 px band right of the padlock, had no recorded reason and is removed; with it the body was (27, 130, 146), delta E 3.6, without it (24, 127, 144), delta E 2.5.)"
       },
       "membrane edge": {
         "p1": {
@@ -143,7 +138,7 @@
           ],
           "stat": "top25"
         },
-        "capped": "P1's rim (186, 255, 248) is 0.89 in linear luminance, above her face core's 0.81: spec 7.7's relic rule keeps the portal's brightest below her face, so this sample cannot be met by design. It is printed, not held."
+        "capped": "The edge's own colour is within 4% of the relic cap. In config units (what config.test holds below the face core's 0.810) the edge #70e6dc is 0.652, 0.782 at a full flash (x 1.2): a brighter edge colour fails the relic rule. On screen the rim's brightest quarter is about 0.43 in linear luminance against P1's 0.89 (and her face's 0.938, so P1's rim would pass the pixel relic rule): the shortfall is the membrane shader's wide edge band, the fog share and the vignette, not the colour. Reaching P1 needs an engine change to the membrane (a narrower, brighter edge, or the cap measured at rest), an owner decision."
       },
       "padlock": {
         "p1": {
@@ -275,6 +270,21 @@
           392,
           1360,
           420
+        ]
+      ]
+    },
+    "deltaEReason": "Set after tuning (round 6), not before, from the spread of P1's own pixels: inside each P1 box, the median pixel lies delta E 4.8 (mid water), 5.8 (padlock), 12.4 (portal stone), 15.4 (membrane body) and 22.2 (plants, brightest quarter) from that box's median (p75 8.1 to 28.5). These are painterly regions, not the flat-shaded character samples Task 7 holds at 10. At 10, three held samples would miss (padlock 13.0, plants 10.2, portal stone 13.8 on the round 6 frame): veyra_world.py prints them, for the owner to rule on.",
+    "tighterLimit": 10,
+    "noRed": {
+      "rule": "Outside her silhouette (<capture>-mask.png dilated by herPx), the coral boxes and near-black pixels (every channel below darkBelow, dither), no pixel has R > G and R > B. All counts are printed.",
+      "herPx": 4,
+      "darkBelow": 16,
+      "coral": [
+        [
+          1300,
+          930,
+          1430,
+          995
         ]
       ]
     }

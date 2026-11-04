@@ -1005,6 +1005,7 @@ def finish():
     bake_record = record()
     with in_scene():
         KIT.export(colls[PIECES], RAW)
+    # A failed check leaves no raw export behind: RAW is in this run's TMP, which main() removes in its finally.
     KIT.check_flow(RAW)
 
     def add_record(doc):
