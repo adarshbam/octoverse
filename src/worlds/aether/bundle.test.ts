@@ -1,4 +1,6 @@
 import { expect, test } from 'vitest';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
@@ -108,4 +110,27 @@ test('the placeholder orbit lays out any count without a visible bubble (the eng
       expect(orbits.every(o => o.size === 0 && Number.isFinite(o.radius))).toBe(true);
     }
   }
+});
+
+test('the fifteen-technology test set is not in the bundle path: no source the bundle imports names it', () => {
+  const seen = new Set<string>();
+  const walk = (file: string) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    for (const [, spec] of source.matchAll(/(?:from|import\()\s*'(\.[^']+)'/g)) {
+      const base = resolve(dirname(file), spec);
+      const found = [`${base}.ts`, `${base}/index.ts`, base].find(p => existsSync(p) && statSync(p).isFile());
+      if (found && found.endsWith('.ts')) walk(found);
+    }
+  };
+  walk(resolve(import.meta.dirname, 'bundle.ts'));
+  expect(seen.size).toBeGreaterThan(8);
+  for (const file of seen) expect(readFileSync(file, 'utf8'), file).not.toMatch(/testSets|AETHER_TECHNOLOGIES_15/);
+});
+
+// Stopgap: remove when the engine gains 'ringedPlanet' (spec 7.7: no red); this test failing is the cue.
+// The engine's only title icon is Nox's red flame; Aether's intro title shows it until then.
+test("the title icon is still the flame stopgap (this test failing is the cue to switch to 'ringedPlanet')", () => {
+  expect(AETHER_BUNDLE.theme.titleIcon).toBe('flame');
 });

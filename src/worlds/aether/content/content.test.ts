@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { aetherProject, aetherProjectFor } from './aetherProject';
-import { AETHER_TECHNOLOGIES_15, aetherTechnologies } from './aetherTechnologies';
+import { aetherTechnologies } from './aetherTechnologies';
+import { AETHER_TECHNOLOGIES_15 } from './testSets';
 import { validateProject } from '../../../engine/content/validateProject';
 import { MAX_PRIMARY_TECHNOLOGIES } from '../../../engine/content/projectTypes';
 

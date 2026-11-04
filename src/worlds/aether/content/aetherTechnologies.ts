@@ -17,19 +17,3 @@ export const aetherTechnologies: readonly Technology[] = [
   { id: 'aws', name: 'AWS', category: 'cloud', iconKey: 'aws' },
   { id: 'vector-db', name: 'Vector DB', category: 'data', iconKey: 'vectordb' },
 ];
-
-/**
- * TEST ONLY, never part of the shipped bundle: the ten above plus five placeholder-named
- * technologies for the five marks panels 3 and 4 show without names (an atom-like mark, a golden
- * block, a white animal mascot, a gold-and-violet mark, and Vite's "V"). They give the overview
- * its full fifteen for the stills, the overview frame-rate run and the slot-table tests. The
- * owner names the real five later; until then none of these ships.
- */
-export const AETHER_TECHNOLOGIES_15: readonly Technology[] = [
-  ...aetherTechnologies,
-  { id: 'atom', name: 'Atom', category: 'placeholder', iconKey: 'atom' },
-  { id: 'block', name: 'Block', category: 'placeholder', iconKey: 'block' },
-  { id: 'mascot', name: 'Mascot', category: 'placeholder', iconKey: 'mascot' },
-  { id: 'spark', name: 'Spark', category: 'placeholder', iconKey: 'spark' },
-  { id: 'vite', name: 'Vite', category: 'placeholder', iconKey: 'vite' },
-];
