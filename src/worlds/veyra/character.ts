@@ -105,21 +105,24 @@ export const VEYRA: CharacterConfig = {
     // Large round eyes, a little bigger than Nox's, set wide on the lower dome (P2: about 0.75
     // apart); the layers follow Nox's parametric canvas at Veyra's own layout (spec 7.3).
     eye: {
-      rx: 0.19,
-      ry: 0.2,
+      rx: 0.17,
+      ry: 0.19,
       centers: [[-0.375, -0.1], [0.375, -0.1]],
-      border: { outer: 0.026, upperOuter: 0.036, top: 0.036, upperInner: 0.026, inner: 0.009, lowerInner: 0.009, bottom: 0.008, lowerOuter: 0.012 },
-      // The iris sits toward the nose and leaves a pale crescent of sclera on the outer side; the pupil is large and black.
-      iris: { rx: 0.78, ry: 0.92, inset: 0.28, rim: 0.1 },
-      pupil: { rx: 0.62, ry: 0.66, drop: 0.05, inner: { dx: -0.12, dy: 0.08, rx: 0.6, ry: 0.75 } },
-      // A large catchlight at the upper left and a small one low on the right.
-      catchlights: [{ x: -0.45, y: 0.42, r: 0.2 }, { x: 0.4, y: -0.45, r: 0.1 }],
+      // A dark line all round the eye (P2), heavy along the lid and on the outer side.
+      border: { outer: 0.026, upperOuter: 0.036, top: 0.036, upperInner: 0.026, inner: 0.011, lowerInner: 0.012, bottom: 0.012, lowerOuter: 0.016 },
+      // The iris sits toward the nose and leaves a pale crescent of sclera on the outer side; the
+      // pupil is large and black, nearly filling the dark upper iris (P2 at 3x).
+      iris: { rx: 0.82, ry: 0.93, inset: 0.2, rim: 0.1 },
+      pupil: { rx: 0.74, ry: 0.74, drop: -0.08, inner: { dx: -0.12, dy: 0.08, rx: 0.6, ry: 0.75 } },
+      // A large catchlight at the upper left and a small one high on the right (P2's right eye).
+      catchlights: [{ x: -0.58, y: 0.36, r: 0.18 }, { x: 0.34, y: 0.54, r: 0.1 }],
+      // The green glows low in the iris only: its upper part stays near black round the pupil.
       glows: [
-        { x: -0.62, y: -0.38, rx: 0.34, ry: 0.4, strength: 0.9 },
-        { x: 0.66, y: -0.36, rx: 0.3, ry: 0.36, strength: 0.75 },
-        { x: 0, y: -0.72, rx: 0.55, ry: 0.26, strength: 0.8 },
+        { x: -0.6, y: -0.5, rx: 0.3, ry: 0.32, strength: 0.6 },
+        { x: 0.62, y: -0.48, rx: 0.28, ry: 0.3, strength: 0.5 },
+        { x: 0, y: -0.76, rx: 0.6, ry: 0.24, strength: 0.85 },
       ],
-      spot: { x: 0.05, y: -0.76, rx: 0.24, ry: 0.13 },
+      spot: { x: 0.08, y: -0.8, rx: 0.3, ry: 0.14 },
       lid: { inner: 0.012, outer: 0.02 },
       rim: 0.01,
       fold: { width: 0.008, band: 0.016, from: -0.7, to: 0.7 },
@@ -129,35 +132,39 @@ export const VEYRA: CharacterConfig = {
         { at: 0.84, length: 0.056, width: 0.02, angle: 42 },
       ],
     },
-    // Thin dark arcs set high and slightly raised: a friendly, open default.
-    brow: { inner: [0.27, 0.22], control: [0.36, 0.27], outer: [0.46, 0.2], thickness: 0.022 },
+    // Thin dark arcs set high over each eye (P2: a clear gap of about an eye's radius above the lid)
+    // and slightly raised: a friendly, open default.
+    brow: { inner: [0.3, 0.235], control: [0.385, 0.33], outer: [0.49, 0.215], thickness: 0.02 },
     // A small closed smile with tiny dimples; the blush is a soft oval under each outer eye.
-    mouth: { center: [0.02, -0.32], halfWidth: 0.12, depth: 0.05, thickness: 0.014, dimple: 0.0095 },
-    blush: { centers: [[-0.52, -0.36], [0.52, -0.36]], rx: 0.13, ry: 0.065 },
+    mouth: { center: [0.02, -0.255], halfWidth: 0.105, depth: 0.06, thickness: 0.017, dimple: 0.0105 },
+    blush: { centers: [[-0.49, -0.285], [0.49, -0.285]], rx: 0.125, ry: 0.062 },
   },
   facePalette: {
-    // Warm white eyes; a dark green iris rising to a bright green-gold at the bottom.
-    sclera: ['#8a7c6a', '#fff6e6', '#f6d4b8', '#b08c72'],
-    iris: ['#08240f', '#1c7436', '#a8dc58'],
-    irisRim: ['#04140a', '#1c5a2c'],
-    irisGlow: '#7ee06c',
-    irisPool: '#d6f08c',
+    // Warm white eyes (P2's crescent: 252, 228, 187); a near-black green iris round the pupil,
+    // rising to a bright green-gold crescent at the bottom.
+    sclera: ['#8a6c60', '#fff2dc', '#fbe4c4', '#d8b090'],
+    iris: ['#05241a', '#083a24', '#5cc848'],
+    irisRim: ['#020e08', '#2a7a3a'],
+    irisGlow: '#86dc6c',
+    irisPool: '#d2ec84',
     irisPoolEdge: '#58c848',
-    pupil: ['#020a06', '#04140c'],
+    pupil: ['#020a08', '#06201a'],
     pupilRing: '#010503',
     catchlight: '#ffffff',
-    lid: '#06201c',
-    border: ['#06201c', '#0e4a40', '#3ca898'],
+    lid: '#04181a',
+    border: ['#04181a', '#0a3634', '#18705e'],
     lidFold: '#0e3a36',
     lidSkin: '#2aa492',
     outline: '#f6e8c4',
-    brow: '#052018',
+    // Dark teal, as P2's brows (0, 39, 47).
+    brow: '#022a2e',
     // A dark teal-brown smile; an open one is warm pink inside.
-    mouth: '#2a1a12',
+    mouth: '#221a12',
     mouthInside: '#7a3a40',
     tongue: '#f08a8e',
-    blush: '#ffb08c',
-    blushGlow: '#ff9c80',
+    // Peach-pink (P2's blush sample 249, 190, 138), a little warmer at the halo.
+    blush: '#ffc092',
+    blushGlow: '#ffa886',
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
   // Slimmer than Nox's at the root and tapering longer, so the spirals stay tidy (spec 7.1).

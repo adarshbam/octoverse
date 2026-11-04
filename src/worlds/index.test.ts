@@ -98,3 +98,9 @@ test('the test world (development only) is a clone of Nox under its own id and p
   // It is not a shipped world.
   expect(Object.keys(WORLDS)).not.toContain('nox-b');
 });
+
+// Veyra's face beside Nox's (spec 7.3): her brows are thin dark arcs, thinner than his. Here, since
+// a world's own tests may not import another world.
+test("Veyra's brows are thinner than Nox's", () => {
+  expect(VEYRA_BUNDLE.character.face.brow.thickness).toBeLessThan(NOX_BUNDLE.character.face.brow.thickness);
+});

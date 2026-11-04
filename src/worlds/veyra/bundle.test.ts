@@ -132,6 +132,26 @@ test('her cups are the frill style: raised cream cups at the P2 sample with a da
   for (const key of ['edge', 'rim', 'hollow'] as const) expect(isRed(style[key]), key).toBe(false);
 });
 
+test("her face (spec 7.3): two outer lashes, the iris toward the nose, green irises, brows thinner than Nox's, a peach blush", () => {
+  const { eye, brow } = VEYRA.face;
+  expect(eye.lashes.length).toBe(2);
+  expect(eye.iris.inset).toBeGreaterThan(0);
+  const rgb = (c: string) => Object.values(channels(c)).map(v => Math.round(v * 255));
+  // Dark green at the top to bright green-gold at the bottom: green leads every stop.
+  for (const stop of VEYRA.facePalette.iris) {
+    const [r, g, b] = rgb(stop);
+    expect(g, stop).toBeGreaterThan(r);
+    expect(g, stop).toBeGreaterThan(b);
+  }
+  // Thin arcs (src/worlds/index.test.ts holds them thinner than Nox's: a world's tests may not import another world).
+  expect(brow.thickness).toBeLessThan(0.025);
+  // Peach-pink: red high, green between red and blue, so it is neither red nor orange-brown.
+  const [r, g, b] = rgb(VEYRA.facePalette.blush);
+  expect(r).toBeGreaterThanOrEqual(230);
+  expect(g).toBeLessThan(r);
+  expect(g).toBeGreaterThan(b);
+});
+
 test('the place supplies its water, floor glow and live colours, and no seabed glow band', () => {
   const { water, palette, live, glow } = VEYRA_BUNDLE.place;
   expect(Object.keys(water.colours).sort()).toEqual(['deep', 'fish', 'glow', 'opening', 'rays', 'raysWide', 'zenith']);

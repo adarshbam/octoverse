@@ -163,3 +163,29 @@ What is not there yet, honestly:
 - **Which edge:** on P2's right arms the frill runs along the arms' upper inner edges; the render's runs along the lower edges (the arms' sucker side and pose, Task 7).
 - **Hollows:** P2's dark notches are partly the water seen between scallops; the render's hollows are inside each cup and read lighter.
 - Cup colour within 6 points per channel of P2 on the medians, but P2's band is a touch warmer (more red and blue).
+
+## Task 6: the face (with Task 5's focused override)
+
+No engine change (ruling R-V4: `resolveExpressions` and `CharacterConfig.expressions` landed in E02). Veyra's `face`, `facePalette` and `expressions` (`src/worlds/veyra/character.ts`) re-traced from the 3x P2 panel, comparing a `?view=` zoom of the frozen intro at 3x (300 px a unit, the box x -1..1, y 0.14..-1.19, the same box as the P2 crop (432, 700)-(1032, 1100) of the 3x panel) beside the crop. Every face feature in spec 7.3 already had a field in the engine's face config: nothing was added.
+
+Changed from Task 2's first fit, each to close a gap seen beside P2:
+- **Eyes:** a little narrower than tall (rx 0.17, ry 0.19); the iris larger (0.82 x 0.93 of the eye) and less far toward the nose (inset 0.2), so P2's narrow pale crescent shows on the outer side; the pupil large (0.74) and raised (drop -0.08), so the iris is near black round it and the green is a thick crescent at the bottom with a gold-green pool (P2, and P3 for the same eye); the iris glows only low down. Two catchlights, the large one at the upper left and a small one high on the right (P2's right eye, P3's both eyes). A dark border all round (P2), the bottom no longer teal.
+- **Sclera:** warm cream (P2's crescent sample 252, 228, 187) instead of a pinkish edge.
+- **Brows:** the arc higher (ends up 0.015, middle up 0.04; with the shorter eye the gap over the lid grows by about 0.05: P2 has about an eye's radius of face between brow and lid), centred over each eye, thinner (0.02, was 0.022; Nox 0.028), dark teal (P2's brow 0, 39, 47).
+- **Mouth:** up 0.065 (centre y -0.255) and narrower (halfWidth 0.105), a little deeper (0.06) and thicker (0.017): P2's closed smile sits between the eyes' lower edges and is 73 to 77 px wide at 3x (render 73).
+- **Blush:** up 0.075 and in 0.03 (centres x 0.49, y -0.285), a little smaller (0.125 x 0.062); peach (`#ffc092`). Sample at the spec's blush pixel (native 215, 328): render (250, 194, 149) vs P2 (248, 190, 138).
+- **Focused (Task 5):** `expressions.focused` = browLift 0.55, browTilt 0.1, lidRest -0.05, mouthCurve 0.5, mouthOpen 0.12, blush 0.25: brows up, eyes a touch wider, a small smile, in place of Nox's narrowed open grin. Every other id is the base table (tested). The clamp leaves her values unchanged (tested).
+
+Tilt: the intro keeps 0.18 rad (10.3 degrees). Measured on the render's catchlights the eye line leans 9.9 degrees (0.6 degrees the other way with the tilt set to 0, so the head turns rigidly); P2's eye line, on its pupils, leans 11.8 degrees. Within the spec's "about 10"; left as is, since Task 2 placed the crown with it.
+
+Nox: all seven of his expression stills (`?expression=<id>`, intro) captured before and after are bit-identical (mean 0, max 0); a unit test draws his seven faces through `resolveExpressions(NOX)` and the base table and gets the same draw calls.
+
+Stills (`docs/superpowers/reviews/assets/veyra/`): `t6-face-vs-p2.png` (left the P2 crop at 3x, right the render at the same box), `t6-eyes-vs-p2.png` (the eyes and mouth at 4.5x), `t6-expressions.png` (gentle, focused, happy at 3x), `t6-intro.png` (the stage intro).
+
+What reads right: big round eyes with near-black irises, a green-gold crescent low in each, two white catchlights, a cream crescent on the outer side, two lashes at each outer corner, thin high brows, a small dark smile with dimples, peach ovals under the outer corners; the focused face reads interested, not narrowed; the happy face's open smile is dark inside with a pink tongue (as P3).
+
+Not there yet, honestly:
+- **Pupils and lid lines are not black in the render:** the scene's light, haze and bloom over the head lift them to dark grey-teal (P2's are pure black). That is the head's material and the bloom (Task 7), not the face canvas.
+- **The right blush is dim:** the viewer's-right cheek is in shade (render about 187, 152, 119 there; P2 250, 212, 157). The face light is Task 7's.
+- **The right eye:** P2's head turns a little toward the viewer's right, so its right eye is narrower than its left; the render's face is frontal (the head's yaw is the pose's, Task 7).
+- **Face glow:** still over-exposed round the mouth (Task 3's note; Task 7).
