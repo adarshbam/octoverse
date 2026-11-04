@@ -46,6 +46,8 @@ const LEGACY = {
  */
 const DEFAULTS = {
   underside: 1.6,
+  // The face glow's spread and reach: the shaders divide by them, so they stay above zero.
+  glowSpread: { spreadX: 0.58, reachUp: 0.45, reachDown: 0.2 },
   auraRadius: 3.6,
   auraStrength: 1,
   gradeRadius: 4,
@@ -81,6 +83,9 @@ function clampLighting(l: StageLighting, d: StageLighting = INTRO_LIGHTING): Sta
   };
 }
 
+/** The least the face glow's spread and reach may be: the skin and jelly shaders divide by their squares. */
+export const GLOW_SPREAD_MIN = 0.02;
+
 /** Sparkle specks per square unit of surface: none to a dense frost. */
 const SPARKLE_MAX = 400;
 
@@ -103,7 +108,8 @@ function clampSurface(look: Partial<SurfaceLook> | undefined, palette: Palette, 
     rim: colour(j.rim, palette.rimTop),
     rimPower: clamp(j.rimPower as number, 0.5, 8, JELLY_DEFAULTS.rimPower),
     crown: colour(j.crown, palette.headEdge),
-    crownHeight: unit(j.crownHeight as number, JELLY_DEFAULTS.crownHeight),
+    // Below 0.9, so the cap always has room to fade in over its soft edge before the top.
+    crownHeight: clamp(j.crownHeight as number, 0, 0.9, JELLY_DEFAULTS.crownHeight),
     depth: colour(j.depth, palette.blotch),
     depthStrength: unit(j.depthStrength as number, JELLY_DEFAULTS.depthStrength),
     core: colour(j.core, core),
@@ -191,6 +197,9 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
         decay: clamp(light.decay, 0.5, 4, LEGACY.light.decay),
       },
       underside: clamp(config.glow.underside, 0, 2, DEFAULTS.underside),
+      spreadX: clamp(config.glow.spreadX, GLOW_SPREAD_MIN, 4, DEFAULTS.glowSpread.spreadX),
+      reachUp: clamp(config.glow.reachUp, GLOW_SPREAD_MIN, 4, DEFAULTS.glowSpread.reachUp),
+      reachDown: clamp(config.glow.reachDown, GLOW_SPREAD_MIN, 4, DEFAULTS.glowSpread.reachDown),
       aura: { ...aura, belowStart: clamp(aura.belowStart ?? LEGACY.belowStart, 0.05, 4, LEGACY.belowStart), radius: clamp(aura.radius, 0.2, 4, DEFAULTS.auraRadius), strength: unit(aura.strength, DEFAULTS.auraStrength) },
       grade: { ...grade, radius: clamp(grade.radius, 0.5, 8, DEFAULTS.gradeRadius), strength: unit(grade.strength, DEFAULTS.gradeStrength) },
     },

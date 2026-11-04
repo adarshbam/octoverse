@@ -212,6 +212,11 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (surfaces && !(SKIN_MODES as readonly unknown[]).includes(mode)) throw new BundleError(`character.skin.surfaces.${surface}.mode`, `"${String(mode)}" is not a skin mode the engine has (${SKIN_MODES.join(', ')})`);
   }
   checkLeaves(rest.character, 'character', true);
+  // The face glow's spread and reach divide in the skin and jelly shaders: each must be above zero.
+  for (const key of ['spreadX', 'reachUp', 'reachDown'] as const) {
+    const value: unknown = bundle.character.glow?.[key];
+    if (!(finite(value) && value > 0)) throw new BundleError(`character.glow.${key}`, `${String(value)} is not above 0 (the face glow divides by it)`);
+  }
   checkLeaves(rest.place, 'place', true);
   checkLeaves(rest.poses, 'poses', false);
   checkLeaves(rest.artifacts, 'artifacts', false);

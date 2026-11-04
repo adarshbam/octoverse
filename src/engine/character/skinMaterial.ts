@@ -162,6 +162,8 @@ const skinVertex = /* glsl */ `
 export const SPARKLE_RADIUS = 0.012;
 /** Each speck fades in and out over this many seconds, its own pace and phase. */
 const TWINKLE_SECONDS = [2, 6] as const;
+/** The jelly crown's soft lower edge: the normal's up component over which the cap fades in above `crownHeight`. */
+const CROWN_SOFTNESS = 0.4;
 
 /**
  * The jelly glass and the sparkles (spec 7.2), spliced into the skin's fragment shader only for a
@@ -178,8 +180,8 @@ const LOOK_GLSL = /* glsl */ `
     uniform vec3 uJellyCore;
     // rimPower, crownHeight (the normal's up component), depthStrength, coreWarmth.
     uniform vec4 uJellyShape;
-    // The warm core's centre, from the face glow's.
-    uniform vec3 uJellyCoreCenter;
+    // The warm core's centre in world space, written each frame through the head's frame (jellyCoreWorld).
+    uniform vec3 uJellyCorePos;
 
     // Jelly glass in one pass, over the skin's own shading: the face glow and its spill stay as the
     // skin drew them, the rest takes the jelly's thick middle, its lighter crown, the warm core seen
@@ -188,11 +190,12 @@ const LOOK_GLSL = /* glsl */ `
       float clear = 1.0 - smoothstep(0.2, 0.65, faceGlow);
       // Depth: the surface facing the viewer looks through the most jelly, darker and denser.
       col = mix(col, uJellyDepth, ndv * uJellyShape.z * clear);
-      // Crown: a soft lighter cap toward the top.
-      float cap = smoothstep(uJellyShape.y, min(uJellyShape.y + 0.3, 1.0), N.y);
+      // Crown: a soft lighter cap toward the top, always the same soft width (a high crownHeight
+      // gives a smaller, fainter cap, never a hard edge).
+      float cap = smoothstep(uJellyShape.y, uJellyShape.y + ${glsl(CROWN_SOFTNESS)}, N.y);
       col = mix(col, uJellyCrown, cap * clear);
       // Warm core: brightest where the view through the jelly passes nearest it.
-      vec3 toCore = uGlowPos + uJellyCoreCenter - cameraPosition;
+      vec3 toCore = uJellyCorePos - cameraPosition;
       vec3 ray = -V;
       vec3 miss = toCore - ray * max(dot(toCore, ray), 0.0);
       float core = exp(-dot(miss, miss) / (uGlowShape.x * uGlowShape.x)) * uGlowStrength * uJellyShape.w;
@@ -631,15 +634,38 @@ export function surfaceLooks(skin: SkinDetail): { mantle: SurfaceLook; arms: Sur
   return skin.surfaces ?? { mantle: PLAIN_SKIN, arms: PLAIN_SKIN };
 }
 
-/** One surface's jelly settings as uniforms: every colour and the core's place are values, never shader text. */
-function jellyUniforms(jelly: JellySettings) {
+type Triple = readonly [number, number, number];
+
+/**
+ * Where a jelly surface's warm core sits in the head's own space (the frame `glow.center` is given
+ * in): the face glow's centre plus the surface's `coreCenter`.
+ */
+export function jellyCoreLocal(glowCenter: Triple, coreCenter: Triple): THREE.Vector3 {
+  return new THREE.Vector3(glowCenter[0] + coreCenter[0], glowCenter[1] + coreCenter[1], glowCenter[2] + coreCenter[2]);
+}
+
+/**
+ * The warm core in world space, written into `out` (the surface's `uJellyCorePos`, preallocated):
+ * the head-space point `local` carried through the head's world matrix, so the core turns, tilts and
+ * scales with the head, as the face glow does. Allocates nothing; Octopus calls it each frame.
+ */
+export function jellyCoreWorld(out: THREE.Vector3, local: THREE.Vector3, headMatrixWorld: THREE.Matrix4): THREE.Vector3 {
+  return out.copy(local).applyMatrix4(headMatrixWorld);
+}
+
+/**
+ * One surface's jelly settings as uniforms: every colour and the core's place are values, never
+ * shader text. The core starts at its head-space point (`glowCenter` + `coreCenter`), which is its
+ * world place for a head at the origin, until the first frame carries it through the head's frame.
+ */
+function jellyUniforms(jelly: JellySettings, glowCenter: Triple) {
   return {
     uJellyRim: { value: new THREE.Color(jelly.rim) },
     uJellyCrown: { value: new THREE.Color(jelly.crown) },
     uJellyDepth: { value: new THREE.Color(jelly.depth) },
     uJellyCore: { value: new THREE.Color(jelly.core) },
     uJellyShape: { value: new THREE.Vector4(jelly.rimPower, jelly.crownHeight, jelly.depthStrength, jelly.coreWarmth) },
-    uJellyCoreCenter: { value: new THREE.Vector3(...jelly.coreCenter) },
+    uJellyCorePos: { value: jellyCoreLocal(glowCenter, jelly.coreCenter) },
   };
 }
 
@@ -648,8 +674,9 @@ function jellyUniforms(jelly: JellySettings) {
  * `rimHot` (the character's `palette.rimHot`), drawn in its surface's `look` (the mantle's for the
  * head, the arms' for the arms and webs): a jelly or sparkling surface compiles that code behind its
  * define, with its own uniforms; plain skin compiles exactly the skin program it always did.
+ * `glowCenter` is the character's `glow.center` (head space), where a jelly core is placed from.
  */
-export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHot: string, face?: { texture: THREE.Texture; rect: THREE.Vector4 }, look: SurfaceLook = PLAIN_SKIN) {
+export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHot: string, face?: { texture: THREE.Texture; rect: THREE.Vector4 }, look: SurfaceLook = PLAIN_SKIN, glowCenter: Triple = [0, 0, 0]) {
   const jelly = look.mode === 'jelly';
   const sparkle = look.sparkle > 0;
   if (jelly && !look.jelly) throw new Error('A jelly skin surface needs its jelly settings (clampCharacterConfig fills them in)');
@@ -659,7 +686,7 @@ export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHo
       ...uniforms,
       uFace: { value: face?.texture ?? null },
       uFaceRect: { value: face?.rect ?? new THREE.Vector4(0, 0, 1, 1) },
-      ...(jelly ? jellyUniforms(look.jelly!) : {}),
+      ...(jelly ? jellyUniforms(look.jelly!, glowCenter) : {}),
       ...(sparkle ? { uSparkle: { value: look.sparkle } } : {}),
     },
     vertexShader: skinVertex,

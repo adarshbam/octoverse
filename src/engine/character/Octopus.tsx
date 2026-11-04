@@ -38,7 +38,7 @@ import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createHeadSilhouetteMaterial } from './headMorph';
 import { HEAD_EFFECTS } from './headEffects';
-import { createSkinMaterial, createSkinUniforms, surfaceLooks } from './skinMaterial';
+import { createSkinMaterial, createSkinUniforms, jellyCoreWorld, surfaceLooks } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
 import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
@@ -224,7 +224,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     });
     // The mantle and the arms each take their own surface's look; the webs are arm surface.
     const looks = surfaceLooks(config.skin);
-    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms);
+    const glowCenter = config.glow.center;
+    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms, glowCenter);
     webMaterial.side = THREE.DoubleSide;
     // The cups and their contact shadows share one set of placements and bends.
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
@@ -242,7 +243,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     const cupShadows = new THREE.InstancedMesh(shadowGeometry, createCupShadowMaterial(config.palette, config.suckers, uniforms), suckerTotal);
     cupShadows.instanceMatrix = suckers.instanceMatrix;
     cupShadows.frustumCulled = false;
-    return {
+    // The materials are made in the order they always were (the renderer sorts opaques by material id, so a new order would redraw Nox differently).
+    const built = {
       uniforms,
       face,
       arms,
@@ -257,8 +259,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       suckers,
       cupShadows,
       suckerBend,
-      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }, looks.mantle),
-      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms),
+      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }, looks.mantle, glowCenter),
+      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms, glowCenter),
       coreGlow: createGlowMaterial(config.glow.core, CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
@@ -269,6 +271,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       // What this rig's materials last showed of the entrance's haze and veil (written only on a change).
       shown: { hazeZ: 0, veil: 0 },
     };
+    // Each jelly surface's warm core: its head-space point, and the world-space uniform it is carried into each frame (none for Nox).
+    const jellyCores = [built.headMaterial, built.armMaterial, webMaterial]
+      .filter(material => 'uJellyCorePos' in material.uniforms)
+      .map(material => {
+        const pos = material.uniforms.uJellyCorePos.value as THREE.Vector3;
+        return { pos, local: pos.clone() };
+      });
+    return { ...built, jellyCores };
     // Built once per character and quality tier; stage poses reach the arms as new rests each frame.
   }, [config, blender, quality, accents]);
 
@@ -761,6 +771,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     headSpace.current!.updateWorldMatrix(true, false);
     m.glow.copy(rig.glowLocal).applyMatrix4(headSpace.current!.matrixWorld);
     rig.uniforms.uGlowPos.value.copy(m.glow);
+    // A jelly surface's warm core rides the same head frame as the face glow: turned, tilted and scaled with it.
+    for (let k = 0; k < rig.jellyCores.length; k++) jellyCoreWorld(rig.jellyCores[k].pos, rig.jellyCores[k].local, headSpace.current!.matrixWorld);
     accents?.at.copy(m.glow);
     if (world && glowLight) {
       // Placed in world space, where the particles read it, then into the float group's (its matrix was just brought up to date).

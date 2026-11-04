@@ -433,7 +433,7 @@ export interface JellySettings {
   /** The thick middle's colour, and how far the surface facing the viewer takes it (0 to 1). */
   depth: string;
   depthStrength: number;
-  /** The warm core inside: its colour, its centre relative to the face glow's (`glow.center`), and its strength (0 to 2). */
+  /** The warm core inside: its colour, its centre relative to the face glow's (`glow.center`) in the head's own space (it turns, tilts and scales with the head), and its strength (0 to 2). */
   core: string;
   coreCenter: readonly [number, number, number];
   coreWarmth: number;

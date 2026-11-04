@@ -3,7 +3,7 @@ import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import { NOX } from '../../worlds/nox/character';
 import { BundleError, validateBundle } from '../types/bundle';
 import type { JellySettings, SuckerStyle } from './types';
-import { clampCharacterConfig } from './validate';
+import { GLOW_SPREAD_MIN, clampCharacterConfig } from './validate';
 
 test('NOX is unchanged by clamping', () => {
   expect(clampCharacterConfig(NOX)).toEqual(NOX);
@@ -116,6 +116,9 @@ const clampedNumbers = (bad: unknown) => ({
     ...NOX.glow,
     light: poison(NOX.glow.light, bad),
     underside: bad as number,
+    spreadX: bad as number,
+    reachUp: bad as number,
+    reachDown: bad as number,
     aura: poison(NOX.glow.aura, bad),
     grade: poison(NOX.glow.grade, bad),
   },
@@ -221,6 +224,38 @@ test('jelly settings are clamped, and a missing or unreadable colour reads the c
   expect([fallback.rim, fallback.crown, fallback.depth, fallback.core]).toEqual([NOX.palette.rimTop, NOX.palette.headEdge, NOX.palette.blotch, NOX.glow.core]);
   // A skin surface carries no jelly.
   expect(surfaces({ mode: 'skin', jelly: JELLY, sparkle: 0 }, { mode: 'skin', sparkle: 0 }).mantle).toEqual({ mode: 'skin', sparkle: 0 });
+});
+
+test('the jelly crown starts at 0.9 at the most, so its soft edge always fits below the top', () => {
+  const crown = (crownHeight: number) => surfaces({ mode: 'jelly', jelly: { ...JELLY, crownHeight }, sparkle: 0 }, { mode: 'skin', sparkle: 0 }).mantle.jelly!.crownHeight;
+  expect(crown(1)).toBe(0.9);
+  expect(crown(0.95)).toBe(0.9);
+  expect(crown(0.6)).toBe(0.6);
+});
+
+test('the face glow spread and reach stay above zero (the shaders divide by them); Nox keeps his', () => {
+  const g = clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, spreadX: 0, reachUp: -1, reachDown: 99 } }).glow;
+  expect([g.spreadX, g.reachUp, g.reachDown]).toEqual([GLOW_SPREAD_MIN, GLOW_SPREAD_MIN, 4]);
+  expect(GLOW_SPREAD_MIN).toBeGreaterThan(0);
+  const nox = clampCharacterConfig(NOX).glow;
+  expect([nox.spreadX, nox.reachUp, nox.reachDown]).toEqual([NOX.glow.spreadX, NOX.glow.reachUp, NOX.glow.reachDown]);
+});
+
+test('validateBundle names a face glow spread or reach that is not above zero', () => {
+  const withGlow = (change: Record<string, number>) => ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, glow: { ...NOX_BUNDLE.character.glow, ...change } } });
+  const field = (bundle: typeof NOX_BUNDLE) => {
+    try {
+      validateBundle(bundle);
+    } catch (error) {
+      if (error instanceof BundleError) return error.field;
+      throw error;
+    }
+    return null;
+  };
+  expect(field(withGlow({ spreadX: 0 }))).toBe('character.glow.spreadX');
+  expect(field(withGlow({ reachUp: -0.2 }))).toBe('character.glow.reachUp');
+  expect(field(withGlow({ reachDown: 0 }))).toBe('character.glow.reachDown');
+  expect(field(withGlow({ spreadX: 0.3 }))).toBeNull();
 });
 
 test('validateBundle names a surface mode the engine has not got, and a jelly colour that does not parse', () => {

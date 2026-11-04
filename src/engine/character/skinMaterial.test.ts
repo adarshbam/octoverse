@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
 import type { CharacterConfig, JellySettings, SurfaceLook } from '../config/types';
-import { createSkinMaterial, createSkinUniforms, faceWeight, surfaceLooks } from './skinMaterial';
+import { createSkinMaterial, createSkinUniforms, faceWeight, jellyCoreLocal, jellyCoreWorld, surfaceLooks } from './skinMaterial';
 import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
 
 // Nox's skin program before the jelly mode existed (taken from the sources at fcfedba, before the
@@ -22,7 +22,15 @@ const withSurfaces = (mantle: SurfaceLook, arms: SurfaceLook): CharacterConfig =
 const materials = (config: CharacterConfig) => {
   const u = createSkinUniforms(config);
   const looks = surfaceLooks(config.skin);
-  return { head: createSkinMaterial('HEAD', u, config.palette.rimHot, undefined, looks.mantle), arm: createSkinMaterial('ARM', u, config.palette.rimHot, undefined, looks.arms) };
+  return {
+    head: createSkinMaterial('HEAD', u, config.palette.rimHot, undefined, looks.mantle, config.glow.center),
+    arm: createSkinMaterial('ARM', u, config.palette.rimHot, undefined, looks.arms, config.glow.center),
+  };
+};
+/** The `#ifdef name` block of a shader source, up to its `#endif`. */
+const branchOf = (source: string, name: string) => {
+  const start = source.indexOf(`#ifdef ${name}`);
+  return source.slice(start, source.indexOf('#endif', start));
 };
 
 test("Nox's skin program is the text it was before the jelly mode: mantle and arms, absent surfaces or plain skin", () => {
@@ -50,14 +58,51 @@ test('a jelly surface compiles the JELLY branch, its colours and shape read from
   expect(u.uJellyDepth.value).toEqual(new THREE.Color(JELLY.depth));
   expect(u.uJellyCore.value).toEqual(new THREE.Color(JELLY.core));
   expect(u.uJellyShape.value.toArray()).toEqual([JELLY.rimPower, JELLY.crownHeight, JELLY.depthStrength, JELLY.coreWarmth]);
-  expect(u.uJellyCoreCenter.value.toArray()).toEqual([...JELLY.coreCenter]);
-  // The jelly takes no colour of its own: the only vec3 constants it holds are the luminance weights.
-  const source = head.fragmentShader;
-  const start = source.indexOf('#ifdef JELLY');
-  const branch = source.slice(start, source.indexOf('#endif', start));
-  expect(branch).toContain('vec3 jellyLook(');
-  expect(branch.match(/vec3\([^)]*\)/g) ?? []).toEqual([]);
-  expect(branch).not.toMatch(/#[0-9a-fA-F]{6}/);
+  // The core starts at its head-space point, the face glow's centre plus the surface's offset.
+  const [gx, gy, gz] = NOX.glow.center;
+  const [cx, cy, cz] = JELLY.coreCenter;
+  expect(u.uJellyCorePos.value.toArray()).toEqual([gx + cx, gy + cy, gz + cz]);
+});
+
+test('neither the jelly nor the sparkle code holds a colour of its own: no vec3 constant, no hex', () => {
+  const source = materials(withSurfaces(jelly(80), jelly(40))).head.fragmentShader;
+  const branches = { JELLY: branchOf(source, 'JELLY'), SPARKLE: branchOf(source, 'SPARKLE') };
+  expect(branches.JELLY).toContain('vec3 jellyLook(');
+  expect(branches.SPARKLE).toContain('float sparkles(');
+  for (const [name, branch] of Object.entries(branches)) {
+    expect(branch.match(/vec[34]\([^)]*\)/g) ?? [], name).toEqual([]);
+    expect(branch, name).not.toMatch(/#[0-9a-fA-F]{6}/);
+  }
+  // The sparkles' colour is the palette's wet colour, a uniform.
+  expect(source).toContain('col += uWetColor * sparkles(p, footprint, up)');
+});
+
+test('the warm core follows the head frame: its world place is the head-space point through the head matrix, rotated and scaled', () => {
+  const local = jellyCoreLocal([0.3, -0.88, 0.6], [0, 0.12, -0.35]);
+  expect(local.toArray().map(v => +v.toFixed(6))).toEqual([0.3, -0.76, 0.25]);
+  // A head turned half round (as at yaw 180), scaled 1.5 and moved.
+  const head = new THREE.Matrix4().compose(new THREE.Vector3(1, 2, -3), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI), new THREE.Vector3(1.5, 1.5, 1.5));
+  const out = new THREE.Vector3();
+  const same = jellyCoreWorld(out, local, head);
+  expect(same).toBe(out);
+  const expected = [1 - 0.3 * 1.5, 2 - 0.76 * 1.5, -3 - 0.25 * 1.5];
+  out.toArray().forEach((v, i) => expect(v).toBeCloseTo(expected[i], 6));
+  // Behind the face stays behind the face: turned half round, the face looks down -z, and the core
+  // (0.35 behind it in head space) lies on the head's inner side of it, toward +z, not in front of it.
+  const glow = new THREE.Vector3(0.3, -0.88, 0.6).applyMatrix4(head);
+  expect(out.z).toBeGreaterThan(glow.z);
+  // A small head turn moves the core with the head, not by a fixed world offset.
+  const turned = new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(20));
+  jellyCoreWorld(out, local, turned);
+  expect(out.distanceTo(local.clone().applyMatrix4(turned))).toBe(0);
+  expect(local.toArray().map(v => +v.toFixed(6))).toEqual([0.3, -0.76, 0.25]);
+});
+
+test("Octopus writes each jelly core through the head's world matrix every frame, into the preallocated uniform", () => {
+  const source = readFileSync(resolve(__dirname, 'Octopus.tsx'), 'utf8');
+  expect(source).toContain('jellyCoreWorld(rig.jellyCores[k].pos, rig.jellyCores[k].local, headSpace.current!.matrixWorld)');
+  // After the head's world matrix is brought up to date, beside the face glow.
+  expect(source.indexOf('jellyCoreWorld(rig.jellyCores')).toBeGreaterThan(source.indexOf('headSpace.current!.updateWorldMatrix(true, false);'));
 });
 
 test('the jelly allocates no render target: one pass, no transmission, only the textures the skin already reads', () => {
@@ -86,7 +131,9 @@ test('changing the jelly core colour or its centre changes only uniform values, 
   expect(b.vertexShader).toBe(a.vertexShader);
   expect(b.defines).toEqual(a.defines);
   expect(b.uniforms.uJellyCore.value).not.toEqual(a.uniforms.uJellyCore.value);
-  expect(b.uniforms.uJellyCoreCenter.value.toArray()).toEqual([0.2, -0.1, 0.4]);
+  const [gx, gy, gz] = NOX.glow.center;
+  b.uniforms.uJellyCorePos.value.toArray().forEach((v: number, i: number) => expect(v).toBeCloseTo([gx + 0.2, gy - 0.1, gz + 0.4][i], 9));
+  expect(b.uniforms.uJellyCorePos.value).not.toEqual(a.uniforms.uJellyCorePos.value);
 });
 
 test('sparkles: a define only where a surface has them, at the configured density, under one shared shimmer wave', () => {
