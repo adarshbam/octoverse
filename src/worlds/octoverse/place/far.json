@@ -1,0 +1,38 @@
+{
+  "_note": "The reef's far plate (src/engine/world/farPlate.ts; blender/reef/render_far.py). Pieces of layout.json beyond cutZ are drawn in the layer whose near/far range holds their z (the reef's layout has none); `extras` are pieces only the plate has: the reef going on into the distance, boulders and coral clumps on both flanks and a second, fallen gateway far back, dark (no membrane). width/height are the card in world units (farCardSize at the host's intro frame; config.test pins them); pixels is the layer image's size, kept modest (spec 7.16: far-plate size is a performance lever).",
+  "cutZ": -14,
+  "fog": {
+    "color": "#141e5f",
+    "density": 0.034
+  },
+  "layers": [
+    { "z": -42, "near": -34, "far": null, "width": 60.129, "height": 53.048, "pixels": [1024, 904] },
+    { "z": -28, "near": -23, "far": -34, "width": 45.64, "height": 40.05, "pixels": [1024, 900] },
+    { "z": -18, "near": -14, "far": -23, "width": 35.29, "height": 30.766, "pixels": [1536, 1340] }
+  ],
+  "extras": [
+    { "piece": "rock_d", "position": [-7.6, -2.55, -16.0], "rotY": 0.6, "scale": 2.2 },
+    { "piece": "rock_c", "position": [-6.4, -2.5, -19.5], "rotY": 1.4, "scale": 1.8 },
+    { "piece": "rock_b", "position": [8.6, -2.55, -15.5], "rotY": -0.4, "scale": 2.4 },
+    { "piece": "rock_a", "position": [5.2, -2.6, -19.5], "rotY": 0.9, "scale": 2.0 },
+    { "piece": "coral_magenta_c", "position": [-6.0, 0, -15.2], "rotY": 0.4, "scale": 1.8 },
+    { "piece": "coral_orange_a", "position": [-5.2, 0, -16.4], "rotY": -0.6, "scale": 1.6 },
+    { "piece": "coral_orange_b", "position": [6.9, 0, -15.0], "rotY": 0.8, "scale": 1.7 },
+    { "piece": "coral_magenta_b", "position": [7.8, 0, -16.6], "rotY": -1.1, "scale": 1.8 },
+
+    { "piece": "rock_d", "position": [-9.5, -2.55, -27.0], "rotY": 0.3, "scale": 3.0 },
+    { "piece": "rock_c", "position": [-5.0, -2.5, -30.5], "rotY": 2.2, "scale": 2.6 },
+    { "piece": "rock_b", "position": [10.5, -2.55, -26.0], "rotY": -0.9, "scale": 3.0 },
+    { "piece": "rock_d", "position": [6.2, -2.55, -31.0], "rotY": 1.6, "scale": 2.6 },
+    { "piece": "coral_magenta_a", "position": [-7.4, 0, -25.0], "rotY": 0.2, "scale": 2.2 },
+    { "piece": "coral_orange_b", "position": [8.2, 0, -24.5], "rotY": -0.4, "scale": 2.2 },
+    { "piece": "gate_arch", "position": [-1.8, -2.45, -29.0], "rotY": 0.25, "tilt": 0.06, "scale": 1.5 },
+
+    { "piece": "rock_c", "position": [-12.0, -2.5, -40.0], "rotY": 0.8, "scale": 4.0 },
+    { "piece": "rock_d", "position": [-4.5, -2.55, -44.0], "rotY": 1.9, "scale": 3.4 },
+    { "piece": "rock_b", "position": [12.5, -2.55, -39.0], "rotY": -0.2, "scale": 4.0 },
+    { "piece": "rock_a", "position": [4.0, -2.6, -46.0], "rotY": 0.5, "scale": 3.2 },
+    { "piece": "coral_orange_a", "position": [-9.0, 0, -37.0], "rotY": 1.0, "scale": 2.8 },
+    { "piece": "coral_magenta_c", "position": [9.5, 0, -36.5], "rotY": -0.7, "scale": 2.8 }
+  ]
+}

@@ -8,7 +8,7 @@ import { HOST_ARTIFACTS } from './artifacts';
 import { HOST_BUNDLE } from './bundle';
 import { HOST } from './character';
 import { HOST_CONTENT } from './content/index';
-import { REEF_STAGE } from './place/config';
+import { REEF_WORLD } from './place/config';
 import { HOST_POSES, INTRO_TRACED } from './poses';
 import { HOST_SWIM } from './swim';
 import { HOST_THEME } from './theme';
@@ -45,7 +45,9 @@ describe('the host bundle', () => {
   test('has no technologies to choose, and no slots to place them in', () => {
     expect(HOST_BUNDLE.content.technologies.length).toBe(0);
     expect(HOST_ARTIFACTS.choosableIn).toEqual([]);
-    expect(HOST_ARTIFACTS.placement.shells).toEqual([]);
+    const placement = HOST_ARTIFACTS.placement;
+    expect(placement.kind).toBe('orbit');
+    expect(placement.kind === 'orbit' ? placement.shells : null).toEqual([]);
   });
 
   test('its project is OctoVerse itself, with no sections', () => {
@@ -101,12 +103,12 @@ describe('the host bundle', () => {
     expect(clampCharacterConfig(HOST)).toEqual(HOST);
   });
 
-  test('the stage backdrop has no kit, and drifts at Nox amount and 0.85 of his pace', () => {
-    expect(REEF_STAGE.kit.pieces).toEqual([]);
-    expect(REEF_STAGE.near).toBeUndefined();
-    expect(REEF_STAGE.farPlate).toBeUndefined();
-    expect(REEF_STAGE.camera.hover).toEqual({ amount: 1, pace: 0.85 });
-    expect(HOST_BUNDLE.place).toBe(REEF_STAGE);
+  test('the place is the reef (Task 5): its kit, the baked near world and the far plate, drifting at Nox amount and 0.85 of his pace', () => {
+    expect(REEF_WORLD.kit.pieces.length).toBeGreaterThan(0);
+    expect(REEF_WORLD.near?.url).toBe('/octoverse/world/reef/near.glb');
+    expect(REEF_WORLD.farPlate?.layers.length).toBeGreaterThan(0);
+    expect(REEF_WORLD.camera.hover).toEqual({ amount: 1, pace: 0.85 });
+    expect(HOST_BUNDLE.place).toBe(REEF_WORLD);
   });
 
   test('the theme is the host theme, with a lavender accent and focus ring', () => {

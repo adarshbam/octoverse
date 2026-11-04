@@ -38,3 +38,28 @@ Known gaps for the owner to rule on:
 - The arm upper sample (58, 55, 213) is P2's deep blue gap beside the head. Round 2 moved T1 onto it (it had read the arm's rim light) and made the lit arms violet-lavender as P2's are, so the sample now reads the shaded arm root (90, 69, 196), delta E 18.8; nearer needs bluer arms all over.
 - Round 2 made the head rounder (top 0.35, topPower 1.7, bottomPower 2.45) and the cups amber-orange; the arms are still a little bluer and darker than P2's, whose tops run pink-lavender.
 
+## PENDING OWNER REVIEW: M2, the reef world around the host (Task 5)
+
+Commit on `claude/platform-overnight`: `feat(octoverse): reef world (pending owner review)`.
+
+Stills (`docs/superpowers/evidence/platform/m2/`, frozen, 512 x 508 at scale 2, kit and far plate loaded):
+- `task5-reef-intro.png` and `-mask.png`: the frozen intro at P2's frame;
+- `task5-reef-entrance.png` and `-mask.png`: `?stage=entering&t=3&freeze`. The entrance is a placeholder until Task 12, so this frame is the intro pose, not P1's.
+
+Numbers:
+- P2 (`python scripts/host_delta_e.py`): 12 of 17 samples within delta E 10, the same 12 as Task 3. No passing sample regressed. Changes: upper head 8.6 to 8.9, face glow 7.5 to 5.8, water outside head 8.7 to 8.6, mid water 8.6 to 3.3. The five misses are Task 3's, unchanged (head sides 13.3 and 19.7, arm upper 18.8, arm underside 14.5, upper water 11.0). Every global check passes; IoU 0.856.
+- The gate as a greeting (`python scripts/reef_check.py intro <still> --reference m1/task3-host-intro.png`): the brightest pixel in the gate's box is 0.230 relative luminance, against 0.712 on the host's face glow (ratio 0.32). That pixel is the surface water seen through the ruin, not the gate. The gate's own surfaces are dimmer: membrane and glyph 0.135, windows 0.10. Without the reference, the brightest is a bubble highlight at 0.684 (still below the face).
+- P1 samples on the entrance still (placeholder frame): membrane 79.4, floor path 32.3, mid water 34.6. These read the intro pose, so they say nothing yet. The membrane variant's body is 0.32 x its colour, so P1's bright violet membrane is out of reach (BLOCKED on E02b: membrane body brightness).
+- Frame rate, production build, intro, tier auto (production ignores the `tier` parameter), under load: 40.2, 29.0 and 37.5 fps median on the final build (earlier runs 32.6 to 80.6). The reef costs about 4.5 ms of GPU per frame over Task 3's kitless host. The 40 fps floor is marginal under load.
+- Gate plinth on the dunes: the sand under the gate's footprint runs -2.528 to -2.252 against the plinth at -2.45. At the front edge the gap is at most 0.012, so the plinth sits in the sand and does not float.
+
+What to check, live at `?world=octoverse&stage=intro`:
+1. Reef light: violet stone, magenta and orange corals that differ, glass cards, path glow on sand.
+2. Water colour: indigo near the host, cyan-blue toward the top right. The brief's fog `#021648` and surface glow `#1081db` were tried and measured worse on P2 (mid water 12.9, upper water 17.4). Task 3's `#141e5f` and `#20a8ff` are kept.
+3. The gate as a greeting, not glare: it stands right of the head and is clearly visible in the intro. The static layout cannot hide it per stage; Task 6's frames own that.
+
+Known gaps for the owner to rule on:
+- Jellyfish and bobbing props are left out (ruling R14); jellyfish waits on Aether Task 7. Props wait on Task 12.
+- Magenta corals take a glow material, so they lose the engine's coral sway and rest drop; their heights are set by hand. A per-node coral colour (E02b) would fix this.
+- Cards are a glow approximation of glass.
+- Under load the production kit sometimes took longer than the engine's 15 s wait, and the world fell back to level 1.

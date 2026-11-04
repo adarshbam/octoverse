@@ -3,7 +3,7 @@ import { HOST } from './character';
 import type { StageId } from '../../engine/config/types';
 import { HOST_CONTENT } from './content/index';
 import { HOST_POSES } from './poses';
-import { REEF_STAGE } from './place/config';
+import { REEF_WORLD } from './place/config';
 import { HOST_ENTRANCE, HOST_SEQUENCE_DEFAULTS } from './sequences/defaults';
 import type { SequenceSet } from '../../engine/sequences/keys';
 import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/framing';
@@ -55,7 +55,7 @@ export const HOST_BUNDLE: WorldBundle = {
   swim: HOST_SWIM,
   artifacts: HOST_ARTIFACTS,
   sequences: HOST_SEQUENCES,
-  place: REEF_STAGE,
+  place: REEF_WORLD,
   stage: { frames: HOST_STAGE_FRAMES, panels: HOST_STAGE_PANELS, introTitle: HOST_INTRO_TITLE },
   content: HOST_CONTENT,
   theme: HOST_THEME,

@@ -7,7 +7,7 @@ import { PROP_DRIVE_IDS } from '../../../engine/world/props';
 import type { Placement, WorldConfig } from '../../../engine/world/types';
 import { asWorldLayout, layoutProblems, validateWorld } from '../../../engine/world/validateWorld';
 import { HOST_BUNDLE, HOST_STAGE_FRAMES } from '../bundle';
-import { REEF_STAGE } from './config';
+import { REEF_WORLD } from './config';
 import layoutData from './layout.json';
 
 // The reef's layout against the kit it is built from (blender/reef/build_kit.py writes the kit
@@ -211,9 +211,9 @@ test('the layout stands on the floor of the host stage', () => {
   expect(Object.keys(layout.groups).sort()).toEqual(['cards', 'corals', 'gate', 'rocks']);
 });
 
-/** The reef world as Task 5 will build it from this kit: the stage's water, this kit and layout, the gate's parts attached to the arch. */
+/** The reef world (Task 5) on this kit: the stage's water, this kit and layout, the gate's parts attached to the arch. */
 const world = (props: WorldConfig['props']): WorldConfig => ({
-  ...REEF_STAGE,
+  ...REEF_WORLD,
   kit: { url: '/octoverse/world/reef/kit.glb', pieces: nodeList.pieces, nodes: nodeList.nodes, attached: nodeList.attached },
   layout,
   props,
@@ -224,7 +224,8 @@ test('the engine accepts this kit and layout, with the glyph on the emissive dri
   expect(validateWorld(world([{ id: 'gateGlyph', node: 'gate_glyph', drive: 'emissive' }]))).toEqual([]);
   // Declaring every card as an 'emissive' prop is only a way to validate that each card is a kit node a prop may
   // name. It must not be copied into the real config: the cards take 'bob' (the skipped test below), not 'emissive'.
-  for (const name of cards) expect(validateWorld(world([{ id: name, node: name, drive: 'emissive' }])), name).toEqual([]);
+  // The reef draws the cards with a glow material (Task 5), which sets its own level: the check runs without the materials.
+  for (const name of cards) expect(validateWorld({ ...world([{ id: name, node: name, drive: 'emissive' }]), materials: [] }), name).toEqual([]);
 });
 
 // The `'bob'` drive is not in the engine yet (Aether Task 7), and validateWorld rejects a prop with a

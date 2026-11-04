@@ -506,8 +506,8 @@ def build_rock(name, coll, seed, scale, mats, detail):
     return ob
 
 
-def skin_object(name, coll, verts, edges, radii, smooth_levels):
-    """A skeleton thickened by the Skin modifier (radius per vertex), smoothed, baked into the mesh."""
+def skin_object(name, coll, verts, edges, radii, smooth_levels, keep=1.0):
+    """A skeleton thickened by the Skin modifier (radius per vertex), smoothed, lightened to `keep` of its triangles (a Decimate collapse), baked into the mesh."""
     me = bpy.data.meshes.new(PREFIX + name)
     me.from_pydata([tuple(v) for v in verts], edges, [])
     me.update()
@@ -520,6 +520,8 @@ def skin_object(name, coll, verts, edges, radii, smooth_levels):
     sv[0].use_root = True
     if smooth_levels:
         ob.modifiers.new("Smooth", "SUBSURF").levels = smooth_levels
+    if keep < 1.0:
+        ob.modifiers.new("Lighter", "DECIMATE").ratio = keep
     deps = bpy.context.evaluated_depsgraph_get()
     baked = bpy.data.meshes.new_from_object(ob.evaluated_get(deps))
     ob.modifiers.clear()
@@ -541,6 +543,13 @@ def glow_by_height(ob, floor=0.32, power=1.4):
         attr.data[i].color = (g, g, g, 1.0)
     me.color_attributes.active_color = attr
     me.color_attributes.default_color_name = attr.name
+
+
+# The share of its triangles a coral keeps at full detail, after the Skin and Subdivision modifiers
+# (a Decimate collapse; lod1 is the unsmoothed skin, about a quarter). Task 5 set it for the
+# frame-rate floor (spec 2.4, 7.16): the seven placed corals stand at about 10 to 12 units from the
+# camera, always at lod0, and at full count they were about 75k triangles together.
+CORAL_LOD0_SHARE = 0.45
 
 
 def build_coral(name, coll, seed, mat, size=1.0, smooth_levels=1):
@@ -572,7 +581,7 @@ def build_coral(name, coll, seed, mat, size=1.0, smooth_levels=1):
     for k in range(stems):
         a = (k - (stems - 1) / 2) * 0.42 + rng.uniform(-0.12, 0.12)
         grow(0, Vector((math.sin(a), rng.uniform(-0.2, 0.2), math.cos(a))).normalized(), 0.17 * size, 0.026 * size, 3)
-    ob = skin_object(name, coll, verts, edges, radii, smooth_levels)
+    ob = skin_object(name, coll, verts, edges, radii, smooth_levels, CORAL_LOD0_SHARE if smooth_levels else 1.0)
     glow_by_height(ob)
     ob.data.materials.append(mat)
     return ob
@@ -749,7 +758,10 @@ def build_pieces(coll):
         "coral_magenta": material("kit_coral_magenta", (0.95, 0.1, 0.55), 0.5),
         "coral_orange": material("kit_coral_orange", (0.95, 0.42, 0.08), 0.5),
         "membrane": material("kit_membrane", (0.178, 0.04, 0.973), 0.3),
-        "glyph": material("kit_glyph", (0.8, 0.75, 1.0), 0.4, emit=(0.85, 0.8, 1.0)),
+        # The glyph's lavender light at rest stays below the host's face glow (spec 7.7's relic rule;
+        # config.test): linear luminance about 0.39 against the face core's 0.55. The 'emissive'
+        # prop drive raises it as the host passes in the entrance (Task 12).
+        "glyph": material("kit_glyph", (0.5, 0.42, 0.85), 0.4, emit=(0.42, 0.34, 0.75)),
         "window": material("kit_window", (0.9, 0.45, 0.1), 0.5, emit=(1.0, 0.5, 0.12)),
         "card": material("kit_card", (0.5, 0.6, 1.0), 0.2),
     }

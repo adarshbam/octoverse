@@ -157,3 +157,43 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 - Look: violet-lavender arm tops (arm crown `#8a7cff` from height 0.4, armBody `#5c48e4`, arm depth `#3c44f0` at 0.48), amber-orange cup walls (edge `#ffa868`), lighter underside band (terminator `#ffbcb4`, belly `#ffd4c0`), a rounder head (top 0.35, topPower 1.7, bottomPower 2.45) and T1 moved 0.02 to 0.06 toward the head.
 - Result: 12 of 17 within delta E 10 (arm upper 43.6 to 18.8, arm underside 11.2 to 14.5, cup rim 5.0 to 9.3; the rest within 2), every global check passes, IoU 0.856, mean inside passes (saturation 0.484 against a 0.478 floor).
 - Still open: the head sides need one-sided mantle light (BLOCKED on E02b / owner); arm upper is P2's deep blue gap and fights the lighter arms; upper water 11.0 (brightening it further lifts mid water and the water by the head).
+
+## Task 5: the reef world (2026-11-05)
+
+**Verdict: provisional, pending owner.** The reef is in the host bundle as `REEF_WORLD`, with near bake, far plate, membrane gate, glow materials and live water. P2 holds Task 3's 12 of 17 with no passing sample regressed. The gate's brightest is 0.32 of the face glow's. Frame rate is marginal against the 40 fps floor under load. Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
+
+### What landed
+
+- `src/worlds/octoverse/place/config.ts`: `REEF_WORLD` with a sand floor (path `#a97896`, four path lights), membrane, ember, coral and path lights, a `gate_membrane` membrane in violet-blue `#7538fc`, glow materials for the windows, the glass cards and the magenta corals, the camera hover pace 0.85, bubbles and motes (no snow, no embers, no jellyfish, no props). floorY is -2.45.
+- `kit.ts` and `far.json`: the kit list and the far plate (three layers at z -42, -28 and -18, 21 extras, 116 KB of KTX2).
+- `blender/reef/bake_world.py` and `render_far.py`: thin overrides of the vault's bake and far scripts. They produce `near.glb` (2.68 MB) and `far/far-0..2.ktx2`.
+- `blender/reef/build_kit.py`: the glyph's emissive is dimmed below the face glow (relic rule). Coral lod0 is decimated to 45%, so placed lod0 falls from about 75k to about 35k triangles. The build stays deterministic.
+- `scripts/reef_check.py`: the gate against the face glow in the intro, and the P1 samples.
+- `src/worlds/octoverse/place/config.test.ts`: 16 tests (one skipped: jellyfish), including validateWorld, no hex outside the palette, `post` present, the bake record against the layout and lights, the far plate sizes, and the visitor budget below 6 MB.
+
+### Measured
+
+| Sample | Target | Task 3 | Task 5 | dE Task 3 | dE Task 5 |
+|---|---|---|---|---|---|
+| crown | 85, 101, 252 | 91, 99, 245 | 91, 99, 245 | 3.0 | 3.2 |
+| upper head | 128, 78, 230 | 135, 98, 242 | 133, 99, 243 | 8.6 | 8.9 |
+| forehead | 224, 129, 208 | 215, 130, 224 | 215, 130, 224 | 9.3 | 9.3 |
+| face glow beside mouth | 253, 182, 183 | 254, 173, 186 | 253, 174, 184 | 7.5 | 5.8 |
+| water outside head | 2, 22, 72 | 20, 40, 94 | 25, 33, 93 | 8.7 | 8.6 |
+| mid water | 20, 30, 95 | 21, 38, 93 | 25, 32, 92 | 8.6 | 3.3 |
+| upper water | 16, 129, 219 | 23, 117, 189 | 23, 117, 189 | 11.0 | 11.0 |
+
+The other samples read as in Task 3 round 2 (within 0.2). The misses are the same five as Task 3's.
+
+- Gate against the face (intro, reference-masked): 0.230 against 0.712 (ratio 0.32). The gate's own surfaces: membrane and glyph 0.135, windows 0.10.
+- Frame rate, production build, intro, under load: 40.2, 29.0 and 37.5 fps median (final build). The reef adds about 4.5 ms GPU per frame (22.5 to 23.4 ms against 18.2 to 18.8 ms kitless).
+
+### Gaps
+
+1. The verbatim fog `#021648` dropped P2 mid water to 12.9, and the verbatim glow `#1081db` dropped upper water to 17.4. Task 3's `#141e5f` and `#20a8ff` are kept. The test pins them within delta E 20 of the brief's values.
+2. P1's membrane is out of reach of the membrane variant (body 0.32 x colour, delta E about 60 to 80). This is BLOCKED on E02b. The P1 frame itself waits on Task 12.
+3. The gate shows in the intro beside the head. The layout is static; Task 6's frames own per-stage framing.
+4. Magenta corals use a glow material, so they get no sway and no rest drop; their y is set by hand from the bake's rest heights. E02b: a per-node coral colour.
+5. Cuts for frame rate, in spec 7.16 order: coral lod0 to 45%, and snow off. The tier-low cuts (rays, motes) are already engine defaults, and a world cannot make tier-only cuts. Production ignores `tier=low`.
+6. `scripts/platform-capture.mjs` tolerates a kit error for octoverse, so it captures the level-2 world. Task 5's stills use `stage-capture.mjs` with `kitwait=90000`. The kitless tolerance should be retired.
+7. Fixed in passing: `bundle.test.ts` had a typecheck error (`placement.shells` on a union).
