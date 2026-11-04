@@ -181,16 +181,20 @@ export const FLUX: CharacterConfig = {
   // to the next (spacing 2.3) and its rim stands barely proud (scallop 0.1). The cup edge and rim are
   // P2's cup glow (243, 175, 239); the hollow is a deeper violet-pink. Task 6 made them P2's size
   // (size 0.27, sizePower 0.8: they shrink toward the tip) and set them near the arm's lower edge
-  // (tilt 12), so they read as P2's glowing scallops along the underside, not coins on the arm's face;
-  // a lighter rim and glow 2.5 make them glow pink-white like P2's (at glow 3 the bloom hazed the
-  // water and the body's saturation fell under the target band).
+  // (tilt 20), so they read as P2's glowing scallops along the underside, not coins on the arm's face
+  // (tilt 12 hid the root cups, and their pulse, edge-on); a lighter rim and glow 2 make them glow
+  // pink-white like P2's. At glow 2.5 or more the resting curl cups already reach 254 and the bloom
+  // hazes the water; at 1.8 the T1 arm body sample falls out of tolerance.
   suckers: {
-    size: 0.27, sizePower: 0.8, spacing: 2.3, elongation: 1.15, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
-    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f6bcf2', rim: '#f6bcf2', hollow: '#b860d8', glow: 2.5 },
+    size: 0.27, sizePower: 0.8, spacing: 2.3, elongation: 1.15, tilt: 20, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
+    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f6bcf2', rim: '#f6bcf2', hollow: '#b860d8', glow: 2 },
     // The cup pulse (spec 2.4, 7.5): root to tip in 0.75 s (speed 1.33), lighting 3 to 5 cups at once
-    // (wavelength 0.17); the leading cups electric cyan, the middle lavender, the tail the cup pink.
-    // Strength is a starting value: Task 6 tunes it against the 2.4 brightness cap.
-    pulse: { speed: 1.33, wavelength: 0.17, strength: 0.6, colours: ['#30e8ff', '#b8a0ff', '#f3afef'] },
+    // (wavelength 0.17); the leading cups electric cyan, the middle lavender, the tail a warmer pink.
+    // Task 6: at strength 0.6 the head read grey-cyan and the lavender and pink stages did not part
+    // from the resting pink cup; strength 0.85 with a deeper cyan, a bluer violet and a hotter pink
+    // makes each stage read. The 2.4 cap holds at P2 size (brightest pulsed cup 3x3: T2 @0.6
+    // 146, 115, 244; T7 @0.6 150, 124, 250): the pulse shifts the hue at the cup's own peak.
+    pulse: { speed: 1.33, wavelength: 0.17, strength: 0.85, colours: ['#20e0ff', '#9a78ff', '#ff8ce0'] },
   },
   // The overview's dome (P3): a wide capsule; Milestone 3 traces it.
   dome: { center: [0.1, 0.3], halfWidth: 1.6, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
@@ -228,7 +232,7 @@ export const FLUX: CharacterConfig = {
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#7f8cf8', crownHeight: 0.5, depth: '#3c56f4', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
+        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#7f8cf8', crownHeight: 0.5, depth: '#3e5af5', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
         sparkle: 50,
       },
     },
