@@ -15,8 +15,14 @@ LED faces. The towers and the rack module carry LED quads in a material slot nam
 is its own island, so its four vertices carry one colour (COLOR_0, from the `Col` colour
 attribute: mostly blue and cyan, some violet, under 10% amber, never red) and one blink phase (the
 custom per-vertex float `_PHASE`, random 0 to 1; glTF's exporter keeps it because the name starts
-with an underscore and `export_attributes` is on). Faces of other slots carry a neutral colour
-and `_PHASE` 0.
+with an underscore and `export_attributes` is on). The LED faces are then split off into their
+own top-level node, `<piece>_led` (and `<piece>_lod1_led`), in the piece's frame (ruling R22: the
+page draws every mesh under a node with one material, so stone and lights need two nodes). The
+piece keeps the stone, its colours and no `_PHASE`; the world attaches the LED node to it.
+
+Extras for the layout: each full piece carries its bounding radius on the ground plane (node extra
+`radius`, about the origin, which is the placement point), and `portal_disc` carries the ring's
+centre in its frame (`ring_centre`, glTF axes) for the packet path's end.
 
 Units: 1 = one stage unit. Pieces stand on z = 0 at the origin with their front faces looking
 down -Y, which glTF's Y-up export turns into +Z, toward the stage camera. They are exported at
@@ -231,6 +237,39 @@ def to_object(name, m, coll, mats, smooth=False):
     return ob
 
 
+def split_led(ob, coll, led_mat):
+    """Moves the faces of `ob` in the `led` slot into a new top-level object `<name>_led` in the
+    same frame (R22), on the `led` material alone, keeping their colour and `_PHASE`. `ob` keeps
+    every other face and its colours and loses `_PHASE` (its faces carried 0). Every LED face is
+    a small light, never a cap of the tower's cut (asserted)."""
+    src = ob.data
+    lights = src.copy()
+    lights.name = ob.name + "_led"
+    for me, keep_led in ((src, False), (lights, True)):
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        doomed = [f for f in bm.faces if (f.material_index == LED) != keep_led]
+        bmesh.ops.delete(bm, geom=doomed, context="FACES")
+        if keep_led:
+            assert bm.faces, f"{ob.name} has no LED faces"
+            for f in bm.faces:
+                assert f.calc_area() < 0.02, f"{ob.name}: an LED face of area {f.calc_area():.3f} is not a light"
+                f.material_index = 0
+        bm.to_mesh(me)
+        bm.free()
+    lights.materials.clear()
+    lights.materials.append(led_mat)
+    src.attributes.remove(src.attributes["_PHASE"])
+    led_ob = bpy.data.objects.new(ob.name + "_led", lights)
+    coll.objects.link(led_ob)
+    return led_ob
+
+
+def radius_xy(ob):
+    """How far the piece reaches from its origin on the ground plane (stage XZ)."""
+    return max(math.hypot(v.co.x, v.co.y) for v in ob.data.vertices)
+
+
 def sit_on_ground(m, floor=0.0):
     low = min(v.co.z for v in m.bm.verts)
     for v in m.bm.verts:
@@ -392,8 +431,9 @@ def build_tower(name, coll, mats, seed, count, lean, break_at, slip, cut_back, d
     for v in m.bm.verts:
         if v[m.col][3] == 0.0:
             v[m.col] = grey(0.55)  # the cut's new faces
-    # Loose modules fallen at the foot, each with an LED of its own.
-    for k in range(3 if detail == 0 else 2):
+    # Loose modules fallen at the foot, each with an LED of its own. Three at both levels: the page
+    # draws the full LED node over the lod1 too, so lod1 keeps every module the lights sit on.
+    for k in range(3):
         ang = rng.uniform(0, 2 * math.pi)
         dist = rng.uniform(0.95, 1.5)
         sc = rng.uniform(0.55, 0.85)
@@ -712,6 +752,9 @@ TOWERS = {
     "tower_c": (303, 12, (0.14, -0.05), 7, (0.18, -0.06, 0.1), 0.45),
 }
 ROCKS = {"rock_a": (11, (1.1, 0.9, 0.75)), "rock_b": (12, (0.8, 1.0, 0.9)), "rock_c": (13, (1.3, 0.85, 0.6))}
+# The pieces a layout places (src/worlds/flux/place/kit.ts lists the same); each carries `radius`.
+PLACED = (*TOWERS, "rack_module", "portal_plinth", "portal_disc", *(f"portal_arc_{q}" for q in range(1, 5)),
+          "bridge_deck", "bridge_pier", "bridge_arch", *ROCKS, "coral_a")
 
 
 def build_pieces(coll):
@@ -741,6 +784,14 @@ def build_pieces(coll):
     for name, (seed, scale) in ROCKS.items():
         both(name, build_rock, [rock], seed, scale)
     both("coral_a", build_coral, {"coral": coral}, 21)
+    # R22: the LED faces become their own nodes, `<piece>_led` and `<piece>_lod1_led`.
+    for name in (*TOWERS, "rack_module"):
+        full, far = built[name]
+        built[name + "_led"] = (split_led(full, coll, led), split_led(far, coll, led))
+    # Extras the layout test reads (placed pieces only; not the LED nodes).
+    for name in PLACED:
+        built[name][0]["radius"] = round(radius_xy(built[name][0]), 4)
+    built["portal_disc"][0]["ring_centre"] = [0.0, RING_Z, 0.0]  # glTF axes: up is y
     return built
 
 

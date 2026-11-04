@@ -3,10 +3,12 @@ exits non-zero if a required node is missing or an LED mesh lacks its attributes
 
     python blender/pipeline/verify_kit.py [public/flux/world/kit.glb]
 
-Checks: every required node name exists, with a `_lod1` twin; every primitive of the towers and
-the rack module that uses the material named `led` has COLOR_0 and a scalar `_PHASE` with the
-same count as POSITION (the LED colour mix is asserted by build_kit.py when it builds); and the
-portal disc is visible: looking down -Z from the camera side, the front-most surface at every
+Checks: every required node name exists, with a `_lod1` twin, and every full piece carries its
+`radius` extra (portal_disc also `ring_centre`); the LEDs of the towers and the rack module are
+their own nodes, `<piece>_led` and `<piece>_lod1_led` (R22), top level, whose every primitive uses
+the material named `led` and has COLOR_0 and a scalar `_PHASE` with the same count as POSITION,
+while no other node uses `led` (the LED colour mix is asserted by build_kit.py when it builds);
+and the portal disc is visible: looking down -Z from the camera side, the front-most surface at every
 sample inside radius 1.7 of the disc's centre uses the `portal_disc` material, not the bezel.
 That check needs geometry, and the glb's buffers are meshopt-compressed, so it decodes a copy with
 the repo's gltf-transform (`npx --no-install gltf-transform copy`) into a temp directory.
@@ -150,27 +152,41 @@ def main(path):
     mats = doc.get("materials", [])
     acc = doc["accessors"]
     report = []
-    for owner in LED_OWNERS:
-        for node in (owner, owner + "_lod1"):
-            if node not in nodes or "mesh" not in nodes[node]:
+    for name in REQUIRED:
+        extras = nodes.get(name, {}).get("extras", {})
+        if not extras.get("radius", 0) > 0:
+            problems.append(f"{name}: no `radius` extra")
+    if len(nodes.get("portal_disc", {}).get("extras", {}).get("ring_centre", [])) != 3:
+        problems.append("portal_disc: no `ring_centre` extra")
+    children = {c for n in doc["nodes"] for c in n.get("children", [])}
+    led_nodes = {f"{owner}{lod}_led" for owner in LED_OWNERS for lod in ("", "_lod1")}
+
+    def materials_of(node):
+        return [mats[p["material"]]["name"] if "material" in p else None for p in doc["meshes"][node["mesh"]]["primitives"]]
+
+    for name in sorted(led_nodes):
+        node = nodes.get(name)
+        if node is None or "mesh" not in node:
+            problems.append(f"missing LED node {name}")
+            continue
+        if doc["nodes"].index(node) in children:
+            problems.append(f"{name}: is a child node, not top level")
+        for prim, mat in zip(doc["meshes"][node["mesh"]]["primitives"], materials_of(node)):
+            if mat != "led":
+                problems.append(f"{name}: a primitive uses `{mat}`, not `led`")
                 continue
-            led_prims = 0
-            for prim in doc["meshes"][nodes[node]["mesh"]]["primitives"]:
-                mat = mats[prim["material"]]["name"] if "material" in prim else None
-                if mat != "led":
-                    continue
-                led_prims += 1
-                attrs = prim["attributes"]
-                for need in ("COLOR_0", "_PHASE"):
-                    if need not in attrs:
-                        problems.append(f"{node}: led primitive lacks {need}")
-                if "_PHASE" in attrs and "POSITION" in attrs:
-                    a, p = acc[attrs["_PHASE"]], acc[attrs["POSITION"]]
-                    if a["type"] != "SCALAR" or a["count"] != p["count"]:
-                        problems.append(f"{node}: _PHASE is {a['type']} x{a['count']}, POSITION x{p['count']}")
-                    report.append(f"{node}: led prim with {p['count']} verts, _PHASE componentType {a['componentType']} normalized={a.get('normalized', False)}")
-            if led_prims == 0:
-                problems.append(f"{node}: no primitive uses the `led` material")
+            attrs = prim["attributes"]
+            for need in ("COLOR_0", "_PHASE"):
+                if need not in attrs:
+                    problems.append(f"{name}: led primitive lacks {need}")
+            if "_PHASE" in attrs and "POSITION" in attrs:
+                a, p = acc[attrs["_PHASE"]], acc[attrs["POSITION"]]
+                if a["type"] != "SCALAR" or a["count"] != p["count"]:
+                    problems.append(f"{name}: _PHASE is {a['type']} x{a['count']}, POSITION x{p['count']}")
+                report.append(f"{name}: led prim with {p['count']} verts, _PHASE componentType {a['componentType']} normalized={a.get('normalized', False)}")
+    for name, node in nodes.items():
+        if name not in led_nodes and "mesh" in node and "led" in materials_of(node):
+            problems.append(f"{name}: uses `led` but is not an LED node (R22)")
     report += disc_front_check(path, problems)
     for line in report:
         print(line)
