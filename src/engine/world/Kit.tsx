@@ -310,7 +310,8 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation. Each
     // chain's LOD stands at its middle, so its distance is measured from there.
     const CHAIN_SCALE = 1.45;
-    const links = ['chain', 'chain_lod1'].map(name => bakedGeometry(piece(name) as THREE.Mesh).scale(CHAIN_SCALE, CHAIN_SCALE, CHAIN_SCALE));
+    // A world with no chains (an empty layout) need not carry the chain piece.
+    const links = (layout.chains.length === 0 ? [] : ['chain', 'chain_lod1']).map(name => bakedGeometry(piece(name) as THREE.Mesh).scale(CHAIN_SCALE, CHAIN_SCALE, CHAIN_SCALE));
     const chains = layout.chains.filter(chain => !(world.farPlate && isFarChain(chain, world.farPlate.cutZ))).map(({ from, to, sag }) => {
       const [full, far] = links.map(link => {
         const mesh = new THREE.Mesh(hangChain(link, 30 * 0.175 * CHAIN_SCALE, from, to, sag), iron);

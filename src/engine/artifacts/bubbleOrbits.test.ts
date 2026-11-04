@@ -173,3 +173,8 @@ test('the speed factor does not depend on the frame length', () => {
   for (let i = 0; i < 20; i++) orbitSpeed(true, 0.01, fast);
   expect(Math.abs(slow.x - fast.x)).toBeLessThan(0.01);
 });
+
+test('a placement with no shells lays out no orbits (nothing to divide the bubbles over)', () => {
+  expect(layoutOrbits(12, { ...PLACEMENT, shells: [] }, 'intro')).toEqual([]);
+  expect(layoutOrbits(0, PLACEMENT, 'overview')).toEqual([]);
+});

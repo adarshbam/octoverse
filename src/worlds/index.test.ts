@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { BundleError, validateBundle } from '../engine/types/bundle';
 import { DEFAULT_WORLD, WORLDS, resolveWorld } from './index';
 import { NOX_BUNDLE } from './nox/bundle';
+import { VEYRA_BUNDLE } from './veyra/bundle';
 
 /** The ids of the worlds that ship: the registry's own keys. */
 const SHIPPED_IDS = Object.keys(WORLDS);
@@ -23,6 +24,12 @@ test('?world=nox is Nox', () => {
   expect(resolveWorld('?stage=intro&world=nox&freeze').bundle).toBe(NOX_BUNDLE);
 });
 
+test('?world=veyra is Veyra, with no warning', () => {
+  const { bundle, warning } = resolveWorld('?world=veyra');
+  expect(bundle).toBe(VEYRA_BUNDLE);
+  expect(warning).toBeUndefined();
+});
+
 test('an unknown world falls back to Nox with a warning that names it', () => {
   const { bundle, warning } = resolveWorld('?world=nope');
   expect(bundle).toBe(NOX_BUNDLE);
@@ -36,7 +43,7 @@ test('an unknown world falls back to Nox with a warning that names it', () => {
 });
 
 test('the registry holds exactly the shipped worlds, each valid and under its own id', () => {
-  expect(Object.keys(WORLDS)).toEqual(['nox']);
+  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra']);
   for (const [id, bundle] of Object.entries(WORLDS)) {
     expect(bundle.id).toBe(id);
     expect(() => validateBundle(bundle, SHIPPED_IDS), id).not.toThrow();

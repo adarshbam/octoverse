@@ -86,3 +86,30 @@ Targets are carried unchanged in `targets.json`; these are what the painting giv
 - `npx vitest run src/worlds/veyra/review`: 6 tests pass.
 - `python scripts/check_stage.py public/veyra/ref/p2.png --stage intro --world-id veyra`: 13 colour samples, delta 0, PASS, exit 0.
 - `python scripts/check_stage.py public/veyra/ref/p2.png --world --stage intro --world-id veyra`: mean, saturation, brightness ok; 13 regions delta E 0.0, PASS, exit 0.
+
+## Task 2: the bundle on a stage backdrop
+
+Files: `src/worlds/veyra/{bundle,character,poses,swim,artifacts,theme}.ts`, `place/config.ts` (`VAULT_STAGE`), `sequences/{defaults,index}.ts` + `state.theatre.json`, `content/*`, `bundle.test.ts`; `public/veyra/world/stage.glb` (from `blender/vault/empty_kit.py`), `public/veyra/poster-intro.webp`; registry entry in `src/worlds/index.ts`. Engine changes (each with a test): `Padlock` title icon (`ui/titleIcons.ts`), `layoutOrbits` with no shells returns no orbits and `TechBubbles` draws and offers none (`artifacts/bubbleOrbits.ts`, `TechBubbles.tsx`), `Kit.tsx` builds the chain geometry only when the layout has chains (an empty kit has no `chain` piece), `react` and `cloudflare` logo slugs (`artifacts/logoTexture.ts`), `scripts/theatre-seed.mjs --world=<id>`.
+
+### Empty kit
+The engine needs no node name or extra for a kit with nothing in it, except that `Kit.tsx` asked for `chain` and `chain_lod1` unconditionally (a throw: "kit piece missing: chain"); that is now guarded by `layout.chains.length`. No `nox_bake` extras are needed (read only from a `near.glb`, and the world has none: the kit level without a baked near world is the real-time-lit level). `stage.glb` is 140 bytes: one empty scene.
+
+### Look (step 5, no owner gate)
+Stills (stage-capture, `intro`, frozen, 506 x 504 at scale 2): `docs/superpowers/reviews/assets/veyra/t2-intro.png`; beside P2: `docs/superpowers/reviews/assets/veyra/t2-intro-vs-p2.png` (left P2, right the render). A 1536 x 1024 capture is the no-WebGL poster, `public/veyra/poster-intro.webp`.
+
+What the render shows against `p2.png`: an eight-armed teal octopus in roughly the P2 pose, head leaning about ten degrees with the viewer's-left eye lower, large green-iris eyes with upper-left catchlights, peach blush on small cheek lobes, a small smile, a warm cream-green glow under the face, cream-gold cups on the arm undersides, T1 rising to the left with a hook, T2/T7 and T3/T6 spiralling out, T4/T5 hanging at the centre, title with a padlock and the nameplate in place, on a graded dark teal-blue water with light shafts and ambient bubbles. What it does not yet match, honestly:
+- **Material:** the head and arms are the matte opaque skin shader (Nox's), not jelly: no translucent depth term, no dense sparkles (a handful of specks), no soft wet highlight. Task 3.
+- **Arms:** slimmer and a little longer than P2's, so the span reads wider; the cups are small and sparse against P2's large scalloped cream frill; the tips are hooks of about three quarters of a turn, not rolled coils; the two centre arms are short and crowd the chin. P2 shows nine or ten arms; the eight clearest are traced. Tasks 4 and 7.
+- **Water:** one flat graded dark teal; P2 has dark rocks, kelp, plants, green glints and a darker, bluer mid water. Milestone 2.
+- **Colours** (my read of the capture at P2's sample positions on a rough registration, CIE76 against the measured native values): upper water 6.8, mid water 5.6, water outside the head 8.3 (all within 10); head crown 13.4 and arm top 10.6 (over 10: the head is matte and darker than the jelly crown); the face glow reads over-exposed (255, 255, 199 against 192, 211, 147 at the spot I sampled). Not a checked pass: the registration is approximate and `check_stage.py --world` needs a capture at 488 x 495. Task 7 does the real fit.
+- **Title block:** the engine's intro title shows the two-line introduction under the tagline, which P2 does not; the lock is smaller than P2's.
+
+### Decisions and flags for later tasks
+- `faceAnchor` returns `[x, y, z]`; the plan's `.y` test reads `[1]`.
+- `resolveWorld('?world=veyra')` and the unique project id are tested in `src/worlds/index.test.ts`: a world's files may not import the registry (boundary test).
+- Artifacts: zero shells and `choosableIn: []` (no orbs, no buttons) until Task 14; a single placeholder shell would have drawn 12 orbs over the face.
+- Entrance: a placeholder sheet with nothing keyed: she is present in the intro pose from the first frame (length 1 s). `spiral: true` is the engine's only path (Task 17). The head swell, blow and arrival sheets are Nox's keys, seeded into `state.theatre.json`.
+- Swim poses are copies of the intro arms (stretch 1).
+- AWS has no mark in `simple-icons`; its orb will show no logo (Task 14 decides).
+- Link addresses are placeholders (`example.com`); the screenshot media joins with the detail view. The poster is a capture of this backdrop, to be retaken with the finished look.
+- `check_stage.py` samples: the P3 and P5 panel boxes in `stage.panels` are read off the native panels at 100 px a unit from each panel's centre; Milestone 3 registers them on her face.

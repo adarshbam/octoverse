@@ -1,0 +1,213 @@
+import type { StageLighting } from '../../engine/config/lighting';
+import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
+
+// Veyra, the Keeper of Files: a calm guardian of glassy teal jelly with a warm cream face glow and
+// cream-gold cups (spec 7.1 to 7.3, 7.8). Every value here is a first fit to the native P2 panel
+// (src/worlds/veyra/review/targets.json: the measured samples are colour truth, ruling R-V7), the
+// start of the look, not the look: the jelly material, the face, the cups and the world's light
+// are tuned against P2 in the tasks that follow. There is no red anywhere in her.
+
+/**
+ * How the stage lights her: a cool white key from above left, a soft cream glow from below (the
+ * cups and the face glow, not Nox's red underglow), teal bounce from the water, and a teal-green
+ * haze that blends her far parts into the water.
+ */
+export const VEYRA_LIGHTING: StageLighting = {
+  key: { direction: [-0.3, 0.95, 0.1], color: '#e6fff8', intensity: 1.0, wrap: 0.2 },
+  underglow: { color: '#f2eaa0', intensity: 0.4, wrap: 0.6 },
+  ambient: { sky: '#1a9ab8', ground: '#0e5a58', intensity: 0.25 },
+  haze: { color: '#06303c', near: 0.15, far: 0.9, strength: 0.4 },
+};
+
+// Arms leave the body slightly slimmer than Nox's (spec 7.1). They fan out in depth as his do: the
+// top arms behind the head, the middle ones level, the lower ones in front, the centre pair
+// forward, so the stage camera still sees the trace.
+const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.165, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.0, 0.3] });
+// The two arms that hang down the centre (P2): their cups show along the outer edge of their curls.
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
+
+export const VEYRA: CharacterConfig = {
+  id: 'veyra',
+  lighting: VEYRA_LIGHTING,
+  // A tall round dome, wider and higher than Nox's (spec 2.2: half-width 0.92, top 0.48), over small
+  // cheek lobes that carry the blush. The dome's axis (centerX) is also the neck the head tilts
+  // about: the intro leans the head about 10 degrees (poses.ts), which carries the crown from the
+  // axis to P2's x 0.06. The eyes land at y -0.50 (faceOrigin y -0.40 plus the eyes' -0.10).
+  head: {
+    centerX: 0.25, halfWidth: 0.92, waist: -0.42, top: 0.48, bottom: -1.15, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.3, -0.4],
+    cheeks: { y: -0.8, distance: 0.55, angle: 72, radius: 0.1, blend: 0.08 },
+  },
+  glow: {
+    center: [0.3, -0.88, 0.6],
+    // The warm core under the face: cream-yellow at its heart, green-cream at its edge, fading into
+    // teal by the eyes' top line (spec 7.2). Its light in a world is the same cream-green.
+    core: '#f0eca0',
+    light: { color: '#d8ee98', intensity: 4, distance: 5, decay: 2 },
+    spreadX: 0.58,
+    reachUp: 0.45,
+    reachDown: 0.2,
+    ramp: [
+      [0, '#0a7e90'], [0.12, '#18a498'], [0.3, '#34bd8c'], [0.5, '#7ad47c'], [0.7, '#bce088'], [0.88, '#e6ea96'], [1, '#f4f0a4'],
+    ],
+    cheekWarmth: 0.7,
+    // No red oral band (spec 7.1): the undersides take a soft cream glow from the cups.
+    underside: 0.8,
+    // A cyan-teal outline round the head and arm tops, mint over the crown, a green-teal glow below the arms.
+    halo: { headWidth: 0.05, armWidth: 0.035, color: '#2fdcd8', crown: '#6af2ff', band: '#3adcaa', strength: 0.75, bandStrength: 0.6 },
+    // In a world (spec 7.2): teal near her and deep blue-green below, and the water within about
+    // 3 units darker and bluer than the brighter, greener water round the plants.
+    aura: { inner: '#06475a', low: '#083a40', belowStart: 0.75, radius: 3.6, strength: 0.4 },
+    grade: { color: '#05202c', radius: 4, strength: 0.8 },
+  },
+  // Start values from the measured P2 samples: head crown (5, 171, 188), head side (7, 124, 154),
+  // arm top (25, 185, 162), arm body (11, 180, 170), chin (49, 156, 126), cup rim (240, 234, 172).
+  palette: {
+    cheek: '#3aa890',
+    headEdge: '#14b0cc',
+    rimTop: '#62eaff',
+    rimLow: '#2cd2b4',
+    sky: '#18a6c4',
+    blotch: '#0a5a66',
+    tintCool: '#12bccc',
+    tintWarm: '#42d29e',
+    wet: '#7cf0ff',
+    armBody: '#14b8a8',
+    terminator: '#3ccfa4',
+    armGlow: '#c2f0a2',
+    belly: '#d8f0a4',
+    suckerEdge: '#d8c878',
+    suckerBody: '#f0e8ac',
+    suckerHot: '#fff4c4',
+    suckerHollow: '#8cc8a0',
+    suckerShadow: '#0a3a38',
+    domeTint: '#1a9eb4',
+    domeRim: '#5af0ff',
+    domeRimTop: '#a8fcff',
+    domeSheen: '#8af4ff',
+    orbFocus: '#3fe0c5',
+    effect: { halo: 'rgba(63,224,197,0.5)', stroke: '#3fe0c5', core: '#d8fff4' },
+    // The tints the shaders compile in, as linear light: a white-cyan rim line, the dome's reveal
+    // front, the cups' warm cream highlight, and what an orb's glass picks up: green plants'
+    // gold-green light from below, cyan from above, blue from the left.
+    rimHot: 'color(srgb-linear 0.8 1 1)',
+    domeRimHot: 'color(srgb-linear 0.8 1 1)',
+    suckerSpecular: 'color(srgb-linear 1 0.95 0.75)',
+    orbGlass: {
+      below: 'color(srgb-linear 0.5 1 0.3)',
+      above: 'color(srgb-linear 0.3 0.85 1)',
+      side: 'color(srgb-linear 0.3 0.6 1)',
+      base: 'color(srgb-linear 0.001 0.003 0.004)',
+    },
+  },
+  face: {
+    // Large round eyes, a little bigger than Nox's, set wide on the lower dome (P2: about 0.75
+    // apart); the layers follow Nox's parametric canvas at Veyra's own layout (spec 7.3).
+    eye: {
+      rx: 0.19,
+      ry: 0.2,
+      centers: [[-0.375, -0.1], [0.375, -0.1]],
+      border: { outer: 0.026, upperOuter: 0.036, top: 0.036, upperInner: 0.026, inner: 0.009, lowerInner: 0.009, bottom: 0.008, lowerOuter: 0.012 },
+      // The iris sits toward the nose and leaves a pale crescent of sclera on the outer side; the pupil is large and black.
+      iris: { rx: 0.78, ry: 0.92, inset: 0.28, rim: 0.1 },
+      pupil: { rx: 0.62, ry: 0.66, drop: 0.05, inner: { dx: -0.12, dy: 0.08, rx: 0.6, ry: 0.75 } },
+      // A large catchlight at the upper left and a small one low on the right.
+      catchlights: [{ x: -0.45, y: 0.42, r: 0.2 }, { x: 0.4, y: -0.45, r: 0.1 }],
+      glows: [
+        { x: -0.62, y: -0.38, rx: 0.34, ry: 0.4, strength: 0.9 },
+        { x: 0.66, y: -0.36, rx: 0.3, ry: 0.36, strength: 0.75 },
+        { x: 0, y: -0.72, rx: 0.55, ry: 0.26, strength: 0.8 },
+      ],
+      spot: { x: 0.05, y: -0.76, rx: 0.24, ry: 0.13 },
+      lid: { inner: 0.012, outer: 0.02 },
+      rim: 0.01,
+      fold: { width: 0.008, band: 0.016, from: -0.7, to: 0.7 },
+      // Two short lashes flick up at each outer corner.
+      lashes: [
+        { at: 0.62, length: 0.05, width: 0.018, angle: 70 },
+        { at: 0.84, length: 0.056, width: 0.02, angle: 42 },
+      ],
+    },
+    // Thin dark arcs set high and slightly raised: a friendly, open default.
+    brow: { inner: [0.27, 0.22], control: [0.36, 0.27], outer: [0.46, 0.2], thickness: 0.022 },
+    // A small closed smile with tiny dimples; the blush is a soft oval under each outer eye.
+    mouth: { center: [0.02, -0.32], halfWidth: 0.12, depth: 0.05, thickness: 0.014, dimple: 0.0095 },
+    blush: { centers: [[-0.52, -0.36], [0.52, -0.36]], rx: 0.13, ry: 0.065 },
+  },
+  facePalette: {
+    // Warm white eyes; a dark green iris rising to a bright green-gold at the bottom.
+    sclera: ['#8a7c6a', '#fff6e6', '#f6d4b8', '#b08c72'],
+    iris: ['#08240f', '#1c7436', '#a8dc58'],
+    irisRim: ['#04140a', '#1c5a2c'],
+    irisGlow: '#7ee06c',
+    irisPool: '#d6f08c',
+    irisPoolEdge: '#58c848',
+    pupil: ['#020a06', '#04140c'],
+    pupilRing: '#010503',
+    catchlight: '#ffffff',
+    lid: '#06201c',
+    border: ['#06201c', '#0e4a40', '#3ca898'],
+    lidFold: '#0e3a36',
+    lidSkin: '#2aa492',
+    outline: '#f6e8c4',
+    brow: '#052018',
+    // A dark teal-brown smile; an open one is warm pink inside.
+    mouth: '#2a1a12',
+    mouthInside: '#7a3a40',
+    tongue: '#f08a8e',
+    blush: '#ffb08c',
+    blushGlow: '#ff9c80',
+  },
+  arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
+  // Slimmer than Nox's at the root and tapering longer, so the spirals stay tidy (spec 7.1).
+  tipRadius: 0.036,
+  taperPower: 1.8,
+  armBend: 0.2,
+  armFlatten: 0.86,
+  // Cream-gold cups, larger against the arm than Nox's and packed into a scalloped frill (spec 7.1);
+  // Task 4 builds the cups to this and tunes it.
+  suckers: { size: 0.26, sizePower: 0.7, spacing: 2.2, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6 },
+  // The overview's wide translucent capsule (P3): a start from the same shape as Nox's, wider than the head.
+  dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The head swell's effect: none until the vault dial (spec 7.6).
+  headEffect: 'none',
+  // Jelly detail: fine bright sparkles over the head and arms, no blotchy skin (spec 2.3); the
+  // jelly material (Task 3) takes over the look, this is what the current skin shader reads.
+  skin: {
+    speckDensity: 0.5,
+    speckSize: [0.1, 0.3],
+    speckScale: 12,
+    blotchDensity: 0.04,
+    blotchScale: 3,
+    tint: 0.4,
+    translucency: 0.6,
+    wetness: 1.5,
+    gloss: 140,
+    streakScale: 1,
+    streakStrength: 0.2,
+  },
+  // The calm guardian (spec 7.8): blinks less often, glances softly, sways little, rolls tight
+  // coils, floats slowly, breathes slowly and swims in long glides.
+  personality: {
+    blinkInterval: [3.5, 8.5],
+    doubleBlinkChance: 0.12,
+    gazeOmega: 10,
+    headOmega: 2.4,
+    sway: 0.4,
+    curl: 1.4,
+    float: { amplitude: 0.06, period: 7.5 },
+    breathPeriod: 5.4,
+    swim: { recovery: 0.65, power: 0.26, glide: 1.0, fill: 0.04, squeeze: 0.06 },
+    micro: {
+      blink: { seconds: 0.17, doubleGap: 0.12 },
+      tracking: 3.5,
+      glance: { first: 2, wait: [2.0, 4.5], x: 0.45, y: 0.3, lift: 0.05 },
+      saccade: { first: 0.4, wait: [0.35, 1.25], x: 0.07, y: 0.05 },
+      startle: { duration: 0.6, lift: 0.05, armsIn: 0.12, eyes: 0.5, speed: 3.5, near: 0.55, cooldown: 3 },
+      // Settles at 60% of Nox's overshoot (spec 7.8) and arrives with a smaller, slower wiggle.
+      settle: { duration: 0.9, amount: 0.018, cycles: 1.5 },
+      arrival: { duration: 2.0, roll: 0.06, armWave: 0.1 },
+    },
+  },
+};

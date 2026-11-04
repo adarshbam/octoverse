@@ -167,6 +167,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     parts.items.forEach((item, i) => {
       const node = root.children[i];
       const orbit = orbits[i];
+      // A placement with no places (a world that has not laid its artifacts out yet) draws and offers none.
+      if (!orbit) {
+        node.visible = false;
+        bubbleLive.spots[i].visible = false;
+        return;
+      }
       placement.point(orbit, run.clock, s.swell, target, placementConfig);
       s.orbit[i]?.copy(target);
       const f = s.focus[i];

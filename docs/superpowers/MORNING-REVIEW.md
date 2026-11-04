@@ -25,3 +25,7 @@ What to check, in order:
 10. **Smaller things you may want to know:** frame rate is measured under load against the pre-refactor code (FINAL.md, "Performance"); the Poppins font must be reachable for the still gate (the captures warm it and refuse to save a still without it).
 
 Evidence paths: `docs/superpowers/evidence/engine-extraction/FINAL.md` (verdict), `BASELINE.md` (baseline numbers, drift rows), `baseline/` (stills), `floor.json`; the ledger with every ruling R-E1 to R-E15 and each review is `.superpowers/sdd/2026-11-03-engine-extraction/progress.md` (git-ignored).
+
+## Veyra
+
+- **Task 2 (bundle on a stage backdrop), no gate, a look for orientation.** `?world=veyra` loads a teal octopus in roughly the P2 pose on a graded water backdrop. Stills: `docs/superpowers/reviews/assets/veyra/t2-intro.png` and `t2-intro-vs-p2.png` (left P2, right the render). Water samples within delta E 10 (6.8, 5.6, 8.3 by my rough registration); the head and arms are Nox's matte skin until the jelly task. Notes and the honest gaps: `docs/superpowers/reviews/veyra.md`, "Task 2". Things to know: the project links are `example.com` placeholders; AWS has no logo mark in `simple-icons`; her artifacts have no places (no orbs) until the pendant task.
