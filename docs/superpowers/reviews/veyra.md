@@ -543,3 +543,13 @@ What the owner will see later, and what I could not fit:
 - **A mid-arm slot can hang over its own arm** (T4's second slot in the overview: the Cloudflare orb sits on the arm). `threadClearance` counts other arms and the face only, as the contract says.
 - **Suction-hold flare (carried note).** Choosing a pendant still runs Nox's suction hold: the nearest arm pulls the orb off its thread to its tip and flares its cups. Not judged here (no live review of the hold on pendants); Task 14 / 19 replace it with the arm lift.
 - Carried minor M1 (Task 12): `Octopus` gaze centre and `nearFace` used the unscaled face origin; now `toStage(faceOrigin, body)` (Veyra's overview 1.1; Nox's scale is 1 and its stills are bit-identical). M2 (`faceSpot` offsets in `OrbButtons.tsx`) is left for Task 14.
+
+### Task 13 fix round 1: items for Task 14's slot criteria and Task 19
+
+Code fixed: the pendant capacity is the smaller stage's slot count (a technology past it goes to the tray in every stage; Veyra's capacity is now 12), and the pendants forget their last attach points while hidden (no kick on reappearing). The rest are recorded, not changed:
+
+- (a) **Title and nameplate boxes.** Two intro orbs (Mongo and Rive, on T4 and T5, `artifacts.ts` intro slots) sit under the HTML nameplate (`t13-pendants-intro.png`, about x 760-830, y 900-930). Add the intro title and nameplate boxes to the slot criteria.
+- (b) **Same arm in both stages.** Going from the intro to the overview, 11 of 12 orbs jump arms (the intro has no T8 slot, so every technology after the first sits one arm along). Task 14 keeps each technology on the same arm in both stages.
+- (c) **Clearance across the swing envelope.** Test at plus and minus `maxAngle`, not only at rest and plus or minus 2 degrees; the intro is -0.008 at 25 degrees.
+- (d) **What drives the swing (note for Task 19).** The swing reads the content-space, arm-local motion of the attach point only: the body's float, the startle and a stage move never swing a pendant.
+- (e) **Own-arm overlap is unmeasured.** The second T4 slot in the overview hangs over its own arm, and the Rive orb sits under T5's curl. Task 14.
