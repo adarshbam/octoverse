@@ -1,5 +1,5 @@
 {
-  "_note": "The far plate (src/nox3d/world/farPlate.ts; blender/security/render_far.py). Pieces of layout.json beyond cutZ are drawn in the layer whose near/far range holds their z; `extras` are pieces only the plate has (layout.json has none beyond z -34). width/height are the card in world units (farCardSize; farPlate.test pins them); pixels is the layer image's size.",
+  "_note": "The far plate (src/engine/world/farPlate.ts; blender/security/render_far.py). Pieces of layout.json beyond cutZ are drawn in the layer whose near/far range holds their z; `extras` are pieces only the plate has (layout.json has none beyond z -34). width/height are the card in world units (farCardSize; farPlate.test pins them); pixels is the layer image's size.",
   "cutZ": -12,
   "fog": {
     "color": "#071535",

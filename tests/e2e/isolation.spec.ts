@@ -222,7 +222,7 @@ test('(f) under StrictMode a page instance mounted, unmounted and remounted regi
       }
     // One Theatre project, one load: the app's own promise is the loader's (a second call is that promise).
     const shared = await page.evaluate(async () => {
-      const loader = await import('/src/nox3d/sequences/nox.sequences.ts');
+      const loader = await import('/src/worlds/nox/sequences/index.ts');
       return loader.loadNoxSequences() === loader.loadNoxSequences();
     });
     expect(shared).toBe(true);

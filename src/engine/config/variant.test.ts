@@ -84,7 +84,7 @@ describe('a variant is configuration only', () => {
 });
 
 // Slow (a full vite build, up to ~280 s on a loaded machine), so it runs only when asked:
-//   NOX_BUILD_TEST=1 npx vitest run src/nox3d/config/variant.test.ts
+//   NOX_BUILD_TEST=1 npx vitest run src/engine/config/variant.test.ts
 describe.skipIf(!process.env.NOX_BUILD_TEST)('the production build has no fixtures', () => {
   // Builds into a scratch directory outside the repo, then greps every text file in it.
   it('leaves "dummy" out of every built asset', () => {

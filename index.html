@@ -18,7 +18,7 @@
       }
 
       /*
-       * The boot veil (src/nox3d/ui/bootVeil.ts): the water and the title, up from the first paint until the
+       * The boot veil (src/engine/ui/bootVeil.ts): the water and the title, up from the first paint until the
        * world is drawn. It sits under the stage (which comes later in the page), so the skip controls and
        * every other control stay above it, and it never takes a press or focus. While it is up the canvas is
        * clear; when the world is ready the canvas fades in over it (600 ms) and the node is removed.
@@ -193,6 +193,6 @@
       <div class="bv-dots"><i></i><i></i><i></i></div>
     </div>
     <div id="root"></div>
-    <script type="module" src="/src/nox3d/main.tsx"></script>
+    <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>

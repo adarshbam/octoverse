@@ -3,7 +3,7 @@
 The ruin beyond the near world (layout.json's pieces past far.json's cutZ, and far.json's extras,
 which only the plate has) as three transparent layers, rendered from the page's stage camera at
 rest (stage (0, 0, 12), looking down -z) with the film transparent. Each layer is a card the page
-hangs at the layer's z (src/nox3d/world/FarPlate.tsx); the image is the card's frustum slice, so a
+hangs at the layer's z (src/engine/world/farPlate.ts); the image is the card's frustum slice, so a
 pixel of it is the pixel the unmoved camera sees. The corridor's water is left empty (alpha 0): the
 page's fog and sky show through, and the entrance swim never passes behind a card.
 
@@ -44,7 +44,7 @@ from mathutils.bvhtree import BVHTree
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-FAR = ROOT / "src/nox3d/world/security/far.json"
+FAR = ROOT / "src/worlds/nox/place/far.json"
 OUT = ROOT / "public/nox/world/security"
 TMP = Path(tempfile.gettempdir()) / "nox-far-plate"
 KTX_BIN = os.environ.get("KTX_SOFTWARE_BIN", r"C:\Program Files\KTX-Software\bin")
