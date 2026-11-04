@@ -138,7 +138,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     const stoneHook: Hook = r => shader => withBakedLight(shader, r, reliefGate);
     stone.onBeforeCompile = stoneHook(relief('lod0'));
     const rock = new THREE.MeshStandardMaterial({
-      color: '#211a26',
+      color: palette.rock ?? '#211a26',
       roughness: 0.5,
       envMapIntensity: 0.35,
       vertexColors: true,
@@ -174,12 +174,13 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
         );
     };
     rock.onBeforeCompile = rockHook(relief('lod0'));
-    const pebble = new THREE.MeshStandardMaterial({ color: '#2a2230', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
+    const pebble = new THREE.MeshStandardMaterial({ color: palette.pebble ?? '#2a2230', roughness: 0.55, normalMap: rockMaps.normal, normalScale: new THREE.Vector2(1.2, 1.2) });
     pebble.onBeforeCompile = stoneHook(relief('seabed'));
     const iron = new THREE.MeshStandardMaterial({ color: '#2a2e3c', roughness: 0.38, metalness: 0.8 });
     // Coral glows from within, brightest at the tips (the baked colour), and is still shaded by
-    // the light round it, so its branches read as solid.
-    const coral = new THREE.MeshStandardMaterial({ vertexColors: true, color: '#7a0a18', roughness: 0.42, emissive: new THREE.Color(palette.coral).multiplyScalar(relics.coral) });
+    // the light round it, so its branches read as solid. A world may give the rock, pebble and
+    // coral body colours (`palette.rock`, `pebble`, `coralBody`); the literals are Nox's, for his world.
+    const coral = new THREE.MeshStandardMaterial({ vertexColors: true, color: palette.coralBody ?? '#7a0a18', roughness: 0.42, emissive: new THREE.Color(palette.coral).multiplyScalar(relics.coral) });
     coral.onBeforeCompile = shader => {
       shader.uniforms.uTime = coralTime.current;
       shader.uniforms.uMotion = coralMotion.current;

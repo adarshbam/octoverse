@@ -58,6 +58,49 @@ test('no red light: each light\'s red is below its green and its blue, but the c
   expect(r).toBeLessThan(b);
 });
 
+/** Every colour string in a value, with its path: `#rrggbb` and `color(srgb-linear r g b)`, at any depth. */
+function colours(value: unknown, path: string, out: { path: string; rgb: number[] }[] = []) {
+  if (typeof value === 'string') {
+    if (/^#[0-9a-f]{6}$/i.test(value)) out.push({ path, rgb: [1, 3, 5].map(i => parseInt(value.slice(i, i + 2), 16) / 255) });
+    const linear = /^color\(srgb-linear ([\d.]+) ([\d.]+) ([\d.]+)\)$/.exec(value);
+    if (linear) out.push({ path, rgb: linear.slice(1).map(Number) });
+  } else if (Array.isArray(value)) value.forEach((v, i) => colours(v, `${path}[${i}]`, out));
+  else if (value && typeof value === 'object') for (const [k, v] of Object.entries(value)) colours(v, path ? `${path}.${k}` : k, out);
+  return out;
+}
+
+/** HSL hue in degrees of an RGB triple (0 to 1 each). */
+function hue([r, g, b]: number[]) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const h = max === r ? ((g - b) / (max - min)) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
+  return (h * 60 + 360) % 360;
+}
+
+test('no red anywhere in the world: in no colour the world sets is red the strongest channel, but the coral\'s named orange', () => {
+  // The whole world config (palette, fog, water and environment, live colours, kit materials, lights,
+  // post, kelp, seagrass) and what of her character draws on the world: her grade and aura.
+  const all = [...colours(VAULT_WORLD, ''), ...colours({ grade: VEYRA.glow.grade, aura: VEYRA.glow.aura }, 'character')];
+  const coralLights = new Set(VAULT_WORLD.lights.points.flatMap((l, i) => (l.kind === 'coral_orange' ? [`lights.points[${i}].color`] : [])));
+  const exceptions = new Set(['palette.coral', 'palette.coralBody', ...coralLights]);
+  expect(all.length).toBeGreaterThan(40);
+  expect(all.map(c => c.path)).toEqual(expect.arrayContaining(['palette.waterFar', 'palette.rock', 'water.colours.fish', 'materials[0].params.edge', 'post.contactShadow.color', 'character.grade.color']));
+  for (const { path, rgb } of all) {
+    if (exceptions.has(path)) continue;
+    const [r, g, b] = rgb;
+    expect(r > g && r > b, `${path} (${rgb.map(v => v.toFixed(3)).join(', ')}) is red-led`).toBe(false);
+  }
+  // The exceptions are orange, not red: hue 20 to 50 degrees (red is under 15). The coral body
+  // passes "green at least half its red" by little (74 against 69), so the hue holds it explicitly.
+  expect(exceptions.size).toBe(2 + coralLights.size);
+  for (const path of exceptions) {
+    const { rgb } = all.find(c => c.path === path)!;
+    expect(hue(rgb), path).toBeGreaterThanOrEqual(20);
+    expect(hue(rgb), path).toBeLessThanOrEqual(50);
+  }
+});
+
 test('the membrane flows within [0, 1] at its own speed, and its flow holds while the world is still', () => {
   const membrane = VAULT_WORLD.materials!.find(m => m.node === 'membrane');
   expect(membrane?.material).toBe('membrane');

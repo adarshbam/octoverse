@@ -168,8 +168,9 @@ export type WorldRelics = Record<string, number> & { glyph: number; coral: numbe
 
 /**
  * The world's colours, `#rrggbb`, by name. The engine reads `stone`, `coral`, `floor` and
- * `waterFar` and the seabed's `floorGlow`; the rest are the colours a world names for its lights'
- * kinds and its relics, and the ones its floor variant declares (`FLOOR_MATERIALS`).
+ * `waterFar` and the seabed's `floorGlow`, and if a world gives them, the kit's `rock`, `pebble` and
+ * `coralBody` (unset, Nox's); the rest are the colours a world names for its lights' kinds and its
+ * relics, and the ones its floor variant declares (`FLOOR_MATERIALS`).
  */
 export interface WorldPalette {
   stone: string;
@@ -177,7 +178,13 @@ export interface WorldPalette {
   waterFar: string;
   floor: string;
   floorGlow: FloorGlow;
-  [name: string]: string | FloorGlow;
+  /** The rocks' albedo (the bake's too); unset, Nox's. */
+  rock?: string;
+  /** The small stones strewn over the seabed; unset, Nox's. */
+  pebble?: string;
+  /** The coral's body under its glow (the `coral` colour); unset, Nox's. */
+  coralBody?: string;
+  [name: string]: string | FloorGlow | undefined;
 }
 
 /**
