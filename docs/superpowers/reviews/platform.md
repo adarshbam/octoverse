@@ -197,3 +197,41 @@ The other samples read as in Task 3 round 2 (within 0.2). The misses are the sam
 5. Cuts for frame rate, in spec 7.16 order: coral lod0 to 45%, and snow off. The tier-low cuts (rays, motes) are already engine defaults, and a world cannot make tier-only cuts. Production ignores `tier=low`.
 6. `scripts/platform-capture.mjs` tolerates a kit error for octoverse, so it captures the level-2 world. Task 5's stills use `stage-capture.mjs` with `kitwait=90000`. The kitless tolerance should be retired.
 7. Fixed in passing: `bundle.test.ts` had a typecheck error (`placement.shells` on a union).
+
+## Task 6: the entering and How It Works poses (2026-11-05)
+
+Verdict: provisional, pending owner.
+
+### What landed
+
+- `src/worlds/octoverse/poses.ts`:
+  - `HOST_POSES.overview` traced from P3: body (-0.13, -0.52), scale 0.96, tilt -0.19 rad (the head's top leans right 10.9 degrees), `headMorph: 0`, the presenting face, every root the intro's.
+  - `techFocus` and `detail` equal the overview.
+  - `HOST_POSES.entering`: P1's trailing bundle (the swim's trail) on the intro body, with the welcome face.
+  - `HOW_IT_WORKS_CARDS`: the five spec 7.10 boxes from their shares of P3's panel, in stage units.
+  - The swim's open and trail shapes: generated from the intro roots at 1.15 times the intro length (`SWIM_STRETCH`), and built on first read.
+- `swim.ts` reads them. `bundle.ts` frames entering at P1 (5.10 x 5.08) and the overview, focus and detail at P3 (5.11 x 5.08).
+- `character.ts`: mantle crownHeight 0.45 to 0.58.
+- `scripts/host_panel_check.py`: the P3 and P1 samples, the overview head and the eye line.
+- Tests: `poses.test.ts` (20 tests); the swim placeholder test in `bundle.test.ts` is replaced.
+
+### Measured
+
+- The overview head:
+
+  | Measure | Pose | Still | Spec |
+  |---|---|---|---|
+  | Top | -0.198 | -0.20 | -0.24 ± 0.05 |
+  | Half-width | 0.813 | 0.80 | 0.81 ± 0.05 |
+  | Centre x | 0.002 | 0.00 | 0.03 ± 0.05 |
+
+- P3 samples: upper head (129, 95, 232) 9.4; face glow (255, 174, 172) 5.7.
+- P2: 12 of 17 within 10 (the same misses); crown B - R 140.2; IoU 0.856.
+- Gate in the intro: 0.230 against 0.712, unchanged.
+
+### Gaps
+
+1. The gate in the intro is engine-blocked. `StageFrame` is width and height only, and the camera sits on the stage axis. The narrowest frame that excludes the membrane (x 0.95 to 2.05) crops the 4.7 arm span (E02b or owner).
+2. P1's head place and profile belong to the entrance sheet (Task 12). The entering pose is P1's arm shapes only, as Nox's is.
+3. The face sits lower on the dome than P3 paints it, so the body is offset within tolerance to keep the face-glow sample on the chin.
+4. The crown change trades P2 crown margin for P3's upper head.

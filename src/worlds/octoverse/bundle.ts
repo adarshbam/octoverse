@@ -16,16 +16,23 @@ import type { WorldBundle } from '../../engine/types/bundle';
 // 2 gives it its character, the intro traced from P2 and a stage backdrop of open water.
 
 /**
- * What each stage frames: P2's whole native panel (512 x 508 px at 100 px a unit). The other stages
- * frame the same until Task 6 traces P3 and P1.
+ * What each stage frames: its storyboard panel's whole native size at 100 px a unit, each centred on
+ * the stage (the engine's frame is a size only: the camera stays on the stage's axis). P1 is 510 x
+ * 508, P2 512 x 508, P3 511 x 508; the technology focus and the detail (unreachable) frame as the
+ * overview does. Spec 7.7 wants the gate out of the intro's frame or a soft shape at its right edge:
+ * a frame cannot move the view sideways, and the narrowest frame that leaves the gate's membrane
+ * (x 0.95 to 2.05) out would cut the host's arms (span 4.7), so the gate stays soft beside the host
+ * in the intro (Task 6 report: engine-blocked, E02b or owner).
  */
+const P1_FRAME: StageFrame = { width: 5.1, height: 5.08 };
 const P2_FRAME: StageFrame = { width: 5.12, height: 5.08 };
+const P3_FRAME: StageFrame = { width: 5.11, height: 5.08 };
 export const HOST_STAGE_FRAMES: Record<StageId, StageFrame> = {
-  entering: P2_FRAME,
+  entering: P1_FRAME,
   intro: P2_FRAME,
-  overview: P2_FRAME,
-  techFocus: P2_FRAME,
-  detail: P2_FRAME,
+  overview: P3_FRAME,
+  techFocus: P3_FRAME,
+  detail: P3_FRAME,
 };
 
 /**

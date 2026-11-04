@@ -282,10 +282,14 @@ export const HOST: CharacterConfig = {
     // render shows about 110 on the front of the head and several hundred across the arms (spec 2.3
     // asks at least 30 and 50); denser reads as snow, not P2's fine sparkle. The rim is kept thin
     // (rimPower 6) so it never washes the crown or the chin lavender.
+    // Task 6: the crown cap starts higher (crownHeight 0.45 to 0.58). P3 (How It Works) is violet
+    // (141, 78, 212) 0.23 below the top of its smaller head, where the 0.45 cap still read blue
+    // (delta E 15.1); at 0.58 it reads 9.4, while P2's crown keeps B - R 140.2 (the floor is 140;
+    // 0.6 broke it at 137.8) and P2's crown and upper head samples stay within 10 (5.3 and 8.3).
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#b8b0ff', rimPower: 6, crown: '#5565fc', crownHeight: 0.45, depth: '#804ee6', depthStrength: 0.8, core: '#feafb5', coreCenter: [0, -0.1, -0.3], coreWarmth: 0.9 },
+        jelly: { rim: '#b8b0ff', rimPower: 6, crown: '#5565fc', crownHeight: 0.58, depth: '#804ee6', depthStrength: 0.8, core: '#feafb5', coreCenter: [0, -0.1, -0.3], coreWarmth: 0.9 },
         sparkle: 40,
       },
       arms: {

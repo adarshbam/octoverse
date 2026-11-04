@@ -64,9 +64,10 @@ describe('the host bundle', () => {
     for (const stage of STAGE_IDS) expect(HOST_POSES[stage].headMorph, stage).toBe(0);
   });
 
-  test('the swim poses are the intro arms for now (placeholders until the host swims)', () => {
-    expect(HOST_SWIM.open.arms).toEqual(HOST_POSES.intro.arms);
-    expect(HOST_SWIM.trail.arms).toEqual(HOST_POSES.intro.arms);
+  test("the swim is the host's own (Task 6, from P1): neither shape is the intro's arms (poses.test.ts checks their shapes)", () => {
+    expect(HOST_SWIM.open.arms).not.toEqual(HOST_POSES.intro.arms);
+    expect(HOST_SWIM.trail.arms).not.toEqual(HOST_POSES.intro.arms);
+    expect(HOST_BUNDLE.swim).toBe(HOST_SWIM);
   });
 
   test('the host has no head effect', () => {

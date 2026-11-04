@@ -63,3 +63,33 @@ Known gaps for the owner to rule on:
 - Magenta corals take a glow material, so they lose the engine's coral sway and rest drop; their heights are set by hand. A per-node coral colour (E02b) would fix this.
 - Cards are a glow approximation of glass.
 - Under load the production kit sometimes took longer than the engine's 15 s wait, and the world fell back to level 1.
+
+## PENDING OWNER REVIEW: M2, the entering and How It Works poses (Task 6)
+
+Commit on `claude/platform-overnight`: `feat(octoverse): entering and How It Works poses (pending owner review)`.
+
+Stills (`docs/superpowers/evidence/platform/m2/`, frozen, kit and far plate loaded):
+- `task6-overview-vs-p3.png`: `?world=octoverse&stage=overview&freeze` (1022 x 1016, P3's 511 x 508 frame) beside P3. `task6-overview-cards.png`: the same still with the five card boxes drawn in.
+- `task6-entering-t3-vs-p1.png`: `?stage=entering&t=3&freeze` (P1's 510 x 508 frame) beside P1. The entrance sheet is still the held-landed placeholder (Task 12), so this frame shows the intro pose on the stage spot, not P1's swim.
+- `task6-swim-sheet.png`: the host's new swim shapes (`?pose=swim-open`, `?pose=swim-trail`, and the trail at `&yaw=90`, the profile P1 shows).
+- `task6-intro.png`: the intro re-captured after the crown change below (P2 regression check).
+
+Numbers:
+- Overview head on the still (`python scripts/host_panel_check.py p3 <still>`): top -0.20, half-width 0.80, centre x 0.00 (spec -0.24, 0.81, +0.03, each ± 0.05). The head is turned 10.9 degrees: its top leans to the viewer's right, so the eye line falls to the right as P3's does (about 11 degrees).
+- P3 samples: upper head 9.4, face glow 5.7 (both within delta E 10).
+- P2 after the crown change: still 12 of 17 within 10, the same five misses; crown 3.2 to 5.3, upper head 8.9 to 8.3; crown B - R 140.2 (floor 140); IoU 0.856.
+- Gate in the intro: unchanged (0.230 against the face's 0.712). It cannot leave the intro frame: see the gaps below.
+
+What to check, live at `?world=octoverse&stage=overview`:
+1. Head turned and low: the host sits low and a little smaller, its head leaning right as P3's.
+2. T1 and T8 rising beside the cards: T1 under Veyra's column, T8 under Nox's, curling near y -0.5.
+3. Clear space for five cards: the lower six arms spread under the face, and no arm tip sits on a card box (the overlay still).
+4. Face clear: no card box covers the face.
+
+Known gaps for the owner to rule on:
+- "Turned 8 to 15 degrees right" is built as a lean of the head about its neck (the eye line's fall in P3). P3 shows no turn about the vertical; if anything its face sits left of the dome's middle. Say if a turn about the vertical was meant.
+- The host's face (P2's layout) sits lower and wider on its dome than P3 paints it. To land P3's face-glow sample on the chin and not the lip, the body sits 0.03 left and 0.04 higher than centred. That leaves the measured top at -0.20, 0.01 inside the tolerance.
+- The crown cap starts higher (crownHeight 0.45 to 0.58): P3's upper dome is violet nearer the top than P2's. P2's crown B - R margin is now 0.2.
+- P3's arms are longer and flow further out than these. The host's head is larger relative to its arms than P3 paints it.
+- The gate stands fully visible behind the Nox and gold cards in How It Works (P3 shows no gate). In the intro it stays soft beside the host: the engine's stage frame is a size only, centred on the stage, so it cannot move the view off the gate (E02b or owner: a frame offset, or a per-stage layout).
+- P1's head position at 3 s (spec 2.2: -0.36, -0.36, profile right) belongs to the entrance sheet (Task 12). Today the head sits at the intro spot (about 0, -0.2).
