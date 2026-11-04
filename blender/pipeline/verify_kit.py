@@ -8,7 +8,8 @@ Checks: every required node name exists, with a `_lod1` twin, and every full pie
 their own nodes, `<piece>_led` and `<piece>_lod1_led` (R22), top level, whose every primitive uses
 the material named `led` and has COLOR_0 and a scalar `_PHASE` with the same count as POSITION,
 while no other node uses `led` (the LED colour mix is asserted by build_kit.py when it builds);
-and the portal disc is visible: looking down -Z from the camera side, the front-most surface at every
+each ring arc's inlay is its own top-level node on `portal_inlay` (Task 9) and no other node uses
+it; the disc has its flow map (TEXCOORD_1); and the portal disc is visible: looking down -Z from the camera side, the front-most surface at every
 sample inside radius 1.7 of the disc's centre uses the `portal_disc` material, not the bezel.
 That check needs geometry, and the glb's buffers are meshopt-compressed, so it decodes a copy with
 the repo's gltf-transform (`npx --no-install gltf-transform copy`) into a temp directory.
@@ -187,6 +188,27 @@ def main(path):
     for name, node in nodes.items():
         if name not in led_nodes and "mesh" in node and "led" in materials_of(node):
             problems.append(f"{name}: uses `led` but is not an LED node (R22)")
+    # Task 9: each ring arc's inlay is its own top-level node on `portal_inlay`, and the arcs keep none.
+    inlays = {f"portal_arc_{q}_inlay" for q in range(1, 5)}
+    for name in sorted(inlays):
+        node = nodes.get(name)
+        if node is None or "mesh" not in node:
+            problems.append(f"missing inlay node {name}")
+            continue
+        if doc["nodes"].index(node) in children:
+            problems.append(f"{name}: is a child node, not top level")
+        if materials_of(node) != ["portal_inlay"]:
+            problems.append(f"{name}: materials {materials_of(node)}, not ['portal_inlay']")
+    for name, node in nodes.items():
+        if name not in inlays and "mesh" in node and "portal_inlay" in materials_of(node):
+            problems.append(f"{name}: uses `portal_inlay` but is not an inlay node")
+    # The disc's flow map (the membrane's second UV set).
+    for name in ("portal_disc", "portal_disc_lod1"):
+        node = nodes.get(name, {})
+        for prim in doc["meshes"][node["mesh"]]["primitives"] if "mesh" in node else []:
+            if "TEXCOORD_1" not in prim["attributes"]:
+                problems.append(f"{name}: a primitive lacks TEXCOORD_1 (the flow map)")
+    report.append(f"inlays: {sorted(n for n in inlays if n in nodes)}")
     report += disc_front_check(path, problems)
     for line in report:
         print(line)
