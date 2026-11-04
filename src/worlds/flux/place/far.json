@@ -1,0 +1,42 @@
+{
+  "_note": "The pipeline world's far plate (src/engine/world/farPlate.ts; blender/pipeline/render_far.py). Pieces of layout.json beyond cutZ are drawn in the layer whose near/far range holds their z; `extras` are pieces only the plate has: the sunken server city going on into the distance (towers and fallen rack modules on both flanks, taller and denser far off). `fish` are dark schools drawn into the layer that holds their z (centre x, y, z; how many; their spread; length; heading +1 right, -1 left). `shaft` is the surface's light falling from the upper right, laid over one layer (image space: u where it meets the top, its lean in u per unit of v, width in u, the most it covers). width/height are the card in world units (farCardSize at Flux's intro frame; config.test pins them); pixels is the layer image's size.",
+  "cutZ": -15,
+  "fog": {
+    "color": "#00102d",
+    "density": 0.034
+  },
+  "layers": [
+    { "z": -44, "near": -34, "far": null, "width": 62.428, "height": 54.802, "pixels": [1024, 900] },
+    { "z": -28, "near": -22, "far": -34, "width": 45.805, "height": 39.976, "pixels": [2048, 1788] },
+    { "z": -18.5, "near": -15, "far": -22, "width": 35.935, "height": 31.173, "pixels": [2048, 1776] }
+  ],
+  "extras": [
+    { "piece": "tower_c", "position": [-11.2, -2.45, -17.8], "rotY": 0.8, "scale": 1.3 },
+    { "piece": "rack_module", "position": [-5.6, -2.45, -15.9], "rotY": 0.5, "scale": 1.2 },
+    { "piece": "rack_module", "position": [4.4, -2.45, -16.4], "rotY": -0.7, "scale": 1.3 },
+    { "piece": "tower_b", "position": [13.6, -2.45, -18.2], "rotY": -0.9, "scale": 1.35 },
+
+    { "piece": "tower_a", "position": [-9.8, -2.45, -27.5], "rotY": 1.1, "scale": 1.6 },
+    { "piece": "tower_c", "position": [-2.2, -2.45, -30.5], "rotY": 0.4, "scale": 1.7 },
+    { "piece": "tower_b", "position": [3.6, -2.45, -26.0], "rotY": -0.3, "scale": 1.5 },
+    { "piece": "tower_a", "position": [12.4, -2.45, -24.8], "rotY": -1.4, "scale": 1.6 },
+    { "piece": "tower_c", "position": [17.5, -2.45, -31.0], "rotY": -0.6, "scale": 1.8 },
+    { "piece": "tower_b", "position": [-18.5, -2.45, -29.5], "rotY": 0.9, "scale": 1.7 },
+    { "piece": "rack_module", "position": [-6.2, -2.45, -24.4], "rotY": 2.1, "scale": 1.4 },
+    { "piece": "rack_module", "position": [8.2, -2.45, -28.6], "rotY": 0.2, "scale": 1.5 },
+
+    { "piece": "tower_a", "position": [-24.0, -2.45, -40.0], "rotY": 0.7, "scale": 2.1 },
+    { "piece": "tower_b", "position": [-15.5, -2.45, -45.0], "rotY": 1.6, "scale": 2.2 },
+    { "piece": "tower_c", "position": [-8.0, -2.45, -38.5], "rotY": 0.2, "scale": 1.9 },
+    { "piece": "tower_a", "position": [-1.5, -2.45, -48.0], "rotY": 2.4, "scale": 2.3 },
+    { "piece": "tower_b", "position": [5.5, -2.45, -41.0], "rotY": -0.5, "scale": 2.0 },
+    { "piece": "tower_c", "position": [12.0, -2.45, -46.5], "rotY": -1.2, "scale": 2.2 },
+    { "piece": "tower_a", "position": [19.5, -2.45, -39.0], "rotY": -0.8, "scale": 2.0 },
+    { "piece": "tower_b", "position": [27.0, -2.45, -47.0], "rotY": -1.9, "scale": 2.3 }
+  ],
+  "fish": [
+    { "center": [-5.5, 2.4, -27.0], "count": 26, "spread": [4.2, 1.1, 1.5], "length": 0.55, "heading": 1 },
+    { "center": [9.5, 4.2, -40.0], "count": 18, "spread": [3.4, 0.9, 1.5], "length": 0.7, "heading": -1 }
+  ],
+  "shaft": { "layer": 0, "top": 0.74, "lean": -0.16, "width": 0.07, "cover": 0.22 }
+}

@@ -2,7 +2,7 @@ import { FLUX_ARTIFACTS } from './artifacts';
 import { FLUX } from './character';
 import { fluxProject } from './content/fluxProject';
 import { fluxTechnologies } from './content/fluxTechnologies';
-import { PIPELINE_STAGE } from './place/config';
+import { PIPELINE_WORLD } from './place/config';
 import { FLUX_POSES } from './poses';
 import { FLUX_SEQUENCES } from './sequences/index';
 import { SWIM_POSES } from './swim';
@@ -12,7 +12,7 @@ import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/
 import type { WorldBundle } from '../../engine/types/bundle';
 
 // Flux's world as one bundle (spec 6.2): the one file that gathers his character, poses, swim,
-// artifacts, sequences, the pipeline world's stage backdrop, the stage's framing, his project and
+// artifacts, sequences, the pipeline world (place/config.ts), the stage's framing, his project and
 // his theme. The engine reads them only through the bundle (host/WorldHost.tsx).
 
 /**
@@ -48,7 +48,7 @@ export const FLUX_BUNDLE: WorldBundle = {
   swim: SWIM_POSES,
   artifacts: FLUX_ARTIFACTS,
   sequences: FLUX_SEQUENCES,
-  place: PIPELINE_STAGE,
+  place: PIPELINE_WORLD,
   stage: { frames: FLUX_STAGE_FRAMES, panels: FLUX_STAGE_PANELS, introTitle: FLUX_INTRO_TITLE },
   content: { project: fluxProject, technologies: fluxTechnologies },
   theme: FLUX_THEME,
