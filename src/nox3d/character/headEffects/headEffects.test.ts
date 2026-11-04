@@ -85,15 +85,22 @@ test('updating the glyphs writes the swell, the glass\'s size and the clock; no 
   runtime.dispose();
 });
 
-test('disposing the glyphs frees them once, and again does nothing', () => {
+test('disposing the glyphs frees what is uploaded each time: a StrictMode remount reusing the runtime leaks no crown', () => {
   stubCanvas();
   const runtime = HEAD_EFFECTS.glyphs.create(NOX.dome, NOX.palette);
   const mesh = runtime.root as THREE.InstancedMesh;
-  const freed = vi.fn();
-  mesh.geometry.addEventListener('dispose', freed);
+  const material = mesh.material as THREE.ShaderMaterial;
+  const map = material.uniforms.uMap.value as THREE.Texture;
+  const freed = { geometry: vi.fn(), material: vi.fn(), map: vi.fn() };
+  mesh.geometry.addEventListener('dispose', freed.geometry);
+  material.addEventListener('dispose', freed.material);
+  map.addEventListener('dispose', freed.map);
+  // StrictMode in development: mount, clean up (frees the GPU objects), mount again with the same
+  // memoised runtime, which is drawn again (three uploads it anew), then the real unmount.
   runtime.dispose();
+  runtime.update(1, frame(true), 1);
   runtime.dispose();
-  expect(freed).toHaveBeenCalledTimes(1);
+  for (const call of Object.values(freed)) expect(call).toHaveBeenCalledTimes(2);
 });
 
 test('a character with another palette colours the crown by it, and the hue is nowhere else', () => {

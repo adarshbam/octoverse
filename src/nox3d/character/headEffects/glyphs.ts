@@ -172,7 +172,6 @@ export const glyphsEffect: HeadEffectModule = {
   create(dome, palette) {
     const glyphs = createHeadGlyphs(dome, palette.effect);
     glyphs.mesh.position.set(dome.center[0], dome.center[1] - dome.halfHeight, 0);
-    let disposed = false;
     return {
       root: glyphs.mesh,
       update(swell, frame, clockSeconds) {
@@ -181,9 +180,10 @@ export const glyphsEffect: HeadEffectModule = {
         glyphs.uniforms.uEffect.value = swell;
         glyphs.uniforms.uTime.value = clockSeconds;
       },
+      // Every call frees the GPU objects (three's dispose is safe to repeat). No "already done" flag:
+      // StrictMode's development mount cleans the effect up and draws the same runtime again (three
+      // uploads it anew), and the real unmount must free that upload too.
       dispose() {
-        if (disposed) return;
-        disposed = true;
         glyphs.dispose();
       },
     };

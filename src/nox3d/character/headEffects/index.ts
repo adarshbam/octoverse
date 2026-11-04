@@ -15,7 +15,11 @@ export interface HeadEffectRuntime {
   readonly root: THREE.Object3D | null;
   /** `swell`: 0 to 1, how far the effect has come in (0 hides it); `clockSeconds`: its own clock, held at 0 with motion off. */
   update(swell: number, frame: DomeFrame, clockSeconds: number): void;
-  /** Frees the GPU objects; calling it again does nothing. */
+  /**
+   * Frees the GPU objects. Safe to call again, and the runtime may be drawn again after it (three
+   * uploads what it draws anew): React's StrictMode cleans an effect up and remounts with the same
+   * memoised runtime, so each call must free what is uploaded then, not only the first.
+   */
   dispose(): void;
 }
 
