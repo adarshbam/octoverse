@@ -3,6 +3,7 @@
 
 import type { ContactShadowSettings } from './contactShadowEffect';
 import type { FloorMaterialId } from './floors';
+import type { KitMaterialAssignment } from './kitMaterials';
 import type { LiveElementId } from './live';
 import type { PropDrive } from './props';
 
@@ -60,7 +61,22 @@ export interface WorldConfig {
    * The glTF file, the pieces in it the layout may name, and `nodes`: other named nodes of the file
    * that are not placed pieces (a padlock's ring) which `props` may drive.
    */
-  kit: { url: string; pieces: readonly string[]; nodes?: readonly string[] };
+  kit: {
+    url: string;
+    pieces: readonly string[];
+    nodes?: readonly string[];
+    /**
+     * Nodes of `nodes` that share a piece's frame (a doorway's membrane and lock, built in their
+     * arch's frame): each is drawn with every placement of `piece`, in that placement.
+     */
+    attached?: readonly { node: string; piece: string }[];
+  };
+  /**
+   * Kit nodes drawn with a kit-material variant (kitMaterials.ts) in place of their group's
+   * dressing: `node` names a piece (its lod1 too) or one of `kit.nodes`, `material` the variant and
+   * `params` its colours and motion. Nox assigns none.
+   */
+  materials?: readonly KitMaterialAssignment[];
   /**
    * The baked near world (blender/security/bake_world.py): the kit's pieces with a lightmap UV set,
    * their lightmaps and a record of the bake. When it is there the page loads it in place of the
