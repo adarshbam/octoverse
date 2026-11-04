@@ -26,3 +26,34 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Gap: `scripts/check_stage.py` hard-codes the Nox storyboard image for silhouette rows (engine owner).
 
 - Task 8b (layout.json + layout.test.ts) still to do after Veyra Task 8 lands.
+
+### Task 6: P2 look, Milestone 1 gate (PENDING OWNER REVIEW)
+
+- **Files:** `src/worlds/flux/character.ts`, `poses.ts`, `place/config.ts`.
+- **Stills** (all in `docs/superpowers/reviews/assets/flux/`):
+  - `p2-gate-sbs.webp`: P2 beside the render.
+  - `p2-gate-head-3x.webp`: the face at 3x.
+  - `p2-gate-pulse.webp`: pulse @0.35 and @0.6.
+  - `p2-gate-pulse-3x.webp`: the T2 curl at rest, @0.35 and @0.6.
+- **Live:** `/?world=flux&stage=intro&freeze&solo`.
+- **Numbers:**
+  - check_stage: 3 misses, down from 10: mouthInside 35.2 (engine tongue gap), armTopHighlight 31.8, cupGlow 25.8.
+  - IoU: 0.852, up from 0.805.
+  - Gradient: 90.
+  - Warm face: 198 / 88.
+  - Pulse T2 @0.6: (152, 116, 246), brightest - smallest 130. Pulse @0.35: brightest - smallest 60.
+  - Perf, under load: median 73.0 / 79.4 fps; slowest 10% 34.2 / 43.7 fps.
+- **Check:**
+  1. Blue crown, then violet, then warm pink face.
+  2. Glassy, not plastic.
+  3. Separate glowing cups.
+  4. The pulse reads as living light, not LEDs (live).
+  5. He is neither Nox nor Veyra.
+- **Known weak:**
+  - A blue root collar and a rim line under the mouth.
+  - The arms are darker and more saturated than P2.
+  - The T2 curl is small.
+  - Few cups show on the right.
+  - The sparkles are coarse.
+  - Without `&solo`, the placeholder orbs show (Task 12).
+- **Full entry:** `docs/superpowers/reviews/flux.md`, "Milestone 1 (P2 gate)".

@@ -193,7 +193,7 @@ export const FLUX: CharacterConfig = {
     // Task 6: at strength 0.6 the head read grey-cyan and the lavender and pink stages did not part
     // from the resting pink cup; strength 0.85 with a deeper cyan, a bluer violet and a hotter pink
     // makes each stage read. The 2.4 cap holds at P2 size (brightest pulsed cup 3x3: T2 @0.6
-    // 146, 115, 244; T7 @0.6 150, 124, 250): the pulse shifts the hue at the cup's own peak.
+    // 152, 116, 246; T7 @0.6 151, 124, 250): the pulse shifts the hue at the cup's own peak.
     pulse: { speed: 1.33, wavelength: 0.17, strength: 0.85, colours: ['#20e0ff', '#9a78ff', '#ff8ce0'] },
   },
   // The overview's dome (P3): a wide capsule; Milestone 3 traces it.

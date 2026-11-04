@@ -85,3 +85,110 @@ water samples included. `check_stage.py --world-id flux` now reads them (see the
 Early, partial. Done: engine drift check, P2 copy, mask, samples, targets, `targets.test.ts` (6 tests green).
 Follow-up (E02 landed): `check_stage.py public/flux/ref/p2.png --stage intro --world-id flux` exits 0 with all 14 colour
 samples at delta 0, after dropping `silhouetteRows` from `stage_samples.json` (finding above). Engine names re-checked.
+
+## Milestone 1 (P2 gate): PENDING OWNER REVIEW (Task 6, 2026-11-04)
+
+Ruled provisionally overnight; the owner was asleep. Nothing here is approved until the owner looks.
+Live: `/?world=flux&stage=intro` (add `&freeze` for the frozen pose, `&solo` to hide the Task 2 placeholder orbs and bubbles).
+
+### Stills (`docs/superpowers/reviews/assets/flux/`)
+
+- `p2-gate-sbs.webp`: P2 (left) beside the frozen render (right), same framing.
+- `p2-gate-head-3x.webp`: head and face, P2 at 3x beside the render at 3x.
+- `p2-gate-pulse.webp`: the two pulse stills, `pulse=t2@0.35` (left) and `pulse=t2@0.6` (right), at P2 size.
+- `p2-gate-pulse-3x.webp`: the T2 curl at 3x, at rest, @0.35 and @0.6.
+
+### Numbers (frozen intro, `tier=high&solo`)
+
+`check_stage.py --world --stage intro --world-id flux`: FAIL with 3 misses (baseline: 10 misses).
+- Mean (114, 93, 231), target (108, 93, 225) +-12: ok.
+- Saturation 0.623, band 0.617 to 0.697: ok, but the margin is thin.
+- Brightness 0.913: ok.
+
+Region delta E (the limit is 10):
+
+| Region | Before | After |
+|---|---|---|
+| crown | 9.7 | 4.2 |
+| headMiddle | | 3.6 |
+| headSide | 14.1 | 7.1 |
+| headRim | 24.7 | 2.7 |
+| faceGlow | 13.6 | 3.2 |
+| chin | 19.2 | 4.2 |
+| blush | 10.3 | 4.6 |
+| armBody | 34.7 | 8.5 |
+| auraWater | | 3.5 |
+| midWater | | 8.2 |
+| upperWater | 12.1 | 9.0 |
+| mouthInside | 26.7 | **MISS** 35.2 |
+| armTopHighlight | 23.4 | **MISS** 31.8 |
+| cupGlow | 75.8 | **MISS** 25.8 |
+
+Shape and gradients:
+- IoU against `p2-mask.png`: 0.852 (baseline 0.805; target 0.85).
+- Arm span: 4.00 units.
+- Head top: 0.29.
+- Half width at y 0: 0.62.
+- Gradient mid.r - crown.r: 90 (>= 70).
+- Warm face: face.r - crown.r 198 (>= 150), face.r - face.g 88 (>= 40).
+
+Pulse:
+- At P2 size, on the brightest pulsed cup (3x3 mean):
+
+  | Pulse | Colour | Brightest | Brightest - smallest |
+  |---|---|---|---|
+  | T2 @0.35 | (153, 146, 206) | 206 | 60 |
+  | T2 @0.6 | (152, 116, 246) | 246 | 130 |
+  | T7 @0.6 | (151, 124, 250) | 250 | |
+
+- At 3x:
+  - T2 @0.6 is (162, 139, 250).
+  - T7 @0.6 is (169, 160, 254). The resting curl cup there is already 254, so the 250 cap holds at P2 size but not at 3x.
+- Lit cups above half level: 3 at @0.6, but only 1 to 2 at @0.35, where T3 crosses T2's root cups.
+- The hue walks cyan, lavender, pink along the band.
+
+Perf (under load: the GPU is shared with other sessions), `scripts/perf.mjs --secs=8 "stage=intro&tier=low"`, two runs:
+
+| Run | Median | Slowest 10% |
+|---|---|---|
+| 1 | 73.0 fps | 34.2 fps |
+| 2 | 79.4 fps | 43.7 fps |
+
+The floor of 40 is met, so the spec 10.1 fallback was not applied.
+
+### Close-up at 3x (`p2-gate-head-3x.webp`, `.tmp/t6/closeup-*.png`)
+
+| Item | Result |
+|---|---|
+| eyes, lashes, brows, blush | yes |
+| mouth | partial: the D is shallower than P2's and the tongue is a sliver (engine gap below) |
+| rim, crown, middle, core | yes |
+| sparkles on the head front | yes: 73 at P2 size, 153 at 3x (need 40) |
+| cups per visible arm (need 10 each) | T1 about 10, T2 about 14, T3 about 12, T8 about 10, T7 about 9 to 10, T6 about 8 (borderline/no); T4 and T5 are partly behind the nameplate |
+| open tip curls | yes: 6 (T1, T2, T3, T6, T7, T8) |
+
+### Five things to look at
+
+1. Is the gradient blue crown, then violet, then a warm pink face? (Numbers say yes. Is the pink warm enough round the mouth?)
+2. Is it glassy, not plastic? Look at the rim and the core glow under the face.
+3. Are the cups separate and glowing? Look at the right-side arms, where fewer cups show than in P2.
+4. Does the pulse read as living light, not LEDs? Watch it live; @0.35 is faint where T3 crosses T2.
+5. Is he neither Nox nor Veyra? The round blue head, big eyes and pink face are his own.
+
+### Remaining weaknesses
+
+- A blue collar of arm roots sits under the mouth, with a bright rim line round the bottom of the head. P2 has a pink-violet skirt there.
+- The arms are a more saturated, darker blue than P2's luminous periwinkle, so armTopHighlight misses. A lower arm crown cap lifts it but pushes the overall saturation below its band.
+- The T2 curl is smaller than P2's. P2's big bright scallops in that curl are what cupGlow samples.
+- Fewer cups show on the right arms (T6 about 8).
+- The head sparkles are coarser and more numerous than P2's fine specks.
+- The intro placeholder orbs show without `&solo`, giving 5 misses on the page capture. This is the Task 2 placeholder; Task 12 fixes the intro orbs.
+- The saturation margin is thin: 0.623 against a floor of 0.617.
+
+### Engine-owner gaps (bundle values cannot fix these)
+
+- **Tongue size.** The tongue is fixed at rx 0.32 of the mouth width and a third of the opening. P2 needs about 0.6 of the width and 0.45 of the opening. This is the mouthInside miss.
+- **Jelly rim at the bottom of the head.** The rim cannot be suppressed at the head/neck bottom, which makes the bright line under the face.
+- **Core and ramp interaction.** The jelly core blends with `max(col, ramp(core))`. A core weaker than faceGlow pulls the ramp's violet-blue into the face and lifts the darks (pupil, mouth). Worked round here by centring the core under the mouth at warmth 1.
+- **Chin and face glow.** Both met with coreCenter, coreWarmth, the ramp and reachDown. No world light was added and the engine was not forked.
+- **Existing gaps.** Sparkle twinkle speed; the hard-coded silhouette reference in `check_stage.py`.
