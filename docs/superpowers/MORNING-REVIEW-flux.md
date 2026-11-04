@@ -16,11 +16,68 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Commits bbae5a0 (kit: LED nodes, radius extras), 2ad3ba9 (layout). Files: `src/worlds/flux/place/{kit.ts,kit.test.ts,layout.json,layout.test.ts}`, `blender/pipeline/{build_kit,verify_kit}.py`, `public/flux/world/kit.glb` (732,520 bytes, sha256 dd0c3e16..., same on two builds).
 - Ruling R22 (provisional): the LED faces of tower_a/b/c and rack_module are their own top-level nodes `<piece>_led` (+ `<piece>_lod1_led`), attached to the piece via `kit.attached`, `led` on them via `ledMaterials(params)`. The engine draws attached nodes at one level only, so the full `_led` node stands over the lod1 tower too; lod1 towers now keep all three fallen modules so the lights stay on the plates. The `_lod1_led` nodes are in the file but not drawn.
 - Ruling R15: no chain placeholder added; the engine already asks for `chain` only when the layout hangs chains (Flux hangs none).
-- Engine-owner question for Task 9: the portal arcs and disc sit in a plain stone group and share the `stone` material until the baked near world exists, so an `emissive` drive on one arc would light all stone; `validateWorld` forbids emissive drives on glow and led nodes, so the arcs cannot simply become glow nodes.
+- Engine-owner question for Task 9: the portal arcs and disc sit in a plain stone group and share the `stone` material until the baked near world exists, so an `emissive` drive on one arc would light all stone; `validateWorld` forbids emissive drives on glow and led nodes, so the arcs cannot simply become glow nodes. Resolved in Task 9: the arcs now have per-arc `_inlay` membrane nodes (see the Task 9 entry).
 - Not guarded by a test: rock_c at (-5.3, -5.4) scale 0.7 sits under the bridge deck flange (top 0.69 vs 0.71); re-check if the bridge or rocks change.
 - Stills (Blender Eevee, NOT the page: the world config is Task 9; flat stand-in materials, depth fog by distance, a violet blob for Flux, no camera tilt): `docs/superpowers/reviews/assets/flux/layout-wide.webp` (16:9 intro), `layout-wide-noflux.webp`, `layout-square.webp` (P2's square frame), `layout-plan.webp` (top-down: green corridor, cyan packet path, yellow reach circles).
 - Numbers: portal at (6.2, -11.2), rotY -0.42, scale 1.15 (disc centre screen x 3.3 at the z = 0 plane); near towers at x -3.0 / 2.9, z -3.6 (screen -2.3 / 2.2, as P2's edge racks); bridge 4 segments from (-23.4, -14.5) to a deck end 1.9 in front of the disc; packets climb 1.2 from the deck into the disc; corridor (-12, 0.6) to (0, 0) clears every reach by at least 0.197 (rock_c at (-6.1, 3.7)).
 - Check: 1) the portal right, partly hidden by the right rack (16:9) and off-frame on a square viewport (P2 shows none); 2) the bridge arch sits directly behind Flux's head in the intro (hidden there, visible in other stages); 3) the bridge reads as a mostly left-right pipe, arches seen at an angle, not a road into depth as in P1; 4) the packets' last hop rises from the deck into the disc; 5) towers are straight columns with little lean (kit look, Task 8a).
+### Task 9: baked pipeline world, far plate, PIPELINE_WORLD (PENDING OWNER REVIEW)
+- **Commits:**
+  - 0735d61: portal arc inlay nodes and disc flow map.
+  - ac60b27: config and scripts.
+  - The final commit, "feat(flux): baked pipeline world and far plate".
+- **Files:**
+  - `src/worlds/flux/place/{config.ts,config.test.ts,far.json}`, `src/worlds/flux/bundle.ts` (`place` is now `PIPELINE_WORLD`).
+  - `blender/pipeline/{bake_world,render_far}.py`.
+  - `public/flux/world/near.glb`: 3,860,600 bytes.
+  - `public/flux/world/far/far-{0,1,2}.ktx2`: 111,606 + 188,018 + 162,247 bytes.
+- **Stills** (all in `docs/superpowers/reviews/assets/flux/`; the page, Edge, 1280x720):
+  - `world-intro.webp`: `?world=flux&stage=intro&freeze`.
+  - `world-intro-solo.webp`: `&solo`.
+  - `world-overview-solo.webp`.
+  - `world-far-plate.webp`: the three far cards composited over a navy gradient, as the resting camera sees them.
+- **Live:** `/?world=flux&stage=intro&freeze&solo` and `/?world=flux&stage=intro`.
+- **Numbers:**
+  - Bake: 10 min 9 s on the CPU (Cycles; 256 direct / 96 indirect / 160 AO samples). Far plate: 5 min 13 s.
+  - Lightmaps: lod0 is a 1024 atlas at 17.6 texels per unit; lod1 is 512 at 10.7.
+  - Irradiance: up to 11.35, 0% over the encoding.
+  - Placements: 14 LED emitter sets; 9 of 44 placements unread (unlit, or beyond the cut).
+  - Far cards: 11.3%, 10.9% and 8.0% covered; mean fog 0.95, 0.81 and 0.64.
+  - Visitor download: near + far = 4.32 MB; with kit.glb, 5.07 MB (under the 6 MB test).
+  - Frame rate, under load: median 48.1 fps, slowest 10% 47.8 fps (intro, live, 240 frames).
+  - Clipping (channels at 254+): the world adds none. The world's cyan peaks at 240 (LEDs).
+  - Pixels at 254+ in two channels: 3,225 cup rims (R and B) and 2,662 white (eye highlights, title text). These counts are the same with the quick bake and the full bake.
+  - The portal and ring spill lights are 12+ units from Flux; their skin ranges are 3 and 2.5. The bloom is unchanged from Task 6.
+- **Rulings (provisional):**
+  - The Task 8b arc-emissive finding is resolved on the world side, with no engine edit.
+  - Each arc's inlay wedge is its own attached node, `portal_arc_<q>_inlay`, with its own `membrane` material (`inlayMaterials`). An `emissive` prop drive therefore lights one arc only.
+  - The disc is `membrane` with a "Flow" UV (TEXCOORD_1).
+  - Every non-LED emissive is below the face core (0.547).
+  - The LEDs' intensity times the brightest LED colour is below the cup-glow luminance.
+- **Check:**
+  1. Navy water, and a light shaft from the upper right over the towers.
+  2. The LED strips blink on the near towers (live) and do not outshine the cups.
+  3. The portal disc reads as a dim white-blue membrane with a soft spill glow. At close range its flow lines look like crack lines; check whether that reads as glass or as damage.
+  4. Far towers and two fish schools sit in the haze.
+  5. Pink corals in the foreground at both sides.
+  6. No red anywhere.
+- **Known weak / not seen:**
+  - The packets (cyan and lavender, on `paths.bridge`) are not visible in any stage frame. The bridge runs behind Flux's head, and the deck end is behind the right rack. Task 10 should judge whether they need a visible stretch.
+  - The violet-pink bridge spill shows only behind Flux's head in the overview.
+- **Engine-owner items:**
+  - No bubble density bias field, so "denser to the left" is not done (bubbles are uniform).
+  - Motes take no sprite set, so the glyph motes are dropped (spec 12.6); motes are 0.
+  - The far plate is KTX2, not webp (the engine loads only KTX2 cards).
+  - Fish off at the low tier is already the engine tier default.
+  - An `emissive` drive on a stone node is a no-op (the stone emissive is black).
+  - Task 15 props must name the `_inlay` nodes, not `portal_arc_N`.
+  - Membrane has no pulse, so the disc "breathes" only through its slow flow.
+  - The R15 placeholders in `stage.glb` are still there (`PIPELINE_STAGE` and layout.test still use them).
+  - `/favicon.ico` 404s on every page load; index.html has no icon link. This was there before Task 9.
+  - Under load, the kit loader's 15 s timeout tripped twice while Blender was baking. It passed on retry.
+- **Tests:** tsc clean, oxlint clean, flux 55/55.
+  - `src/worlds src/engine`: 842 passed and 5 timed out under load (reviewTooling x3, Nox entrance, flux targets). All 5 pass when their files are re-run alone.
+
 ### Task 1 (built early, steps 1-4; PENDING OWNER REVIEW)
 - Files: `public/flux/ref/p2.png` (byte-identical to native panel), `p2-mask.png`, `scripts/ref_mask.py`, `src/worlds/flux/review/*`, `docs/superpowers/reviews/flux.md` (commit a406f10).
 - Numbers: all 14 samples within 1/channel of spec 2.1; mean inside mask (108,93,225), sat 0.657; arm span 3.97 (inside 3.8-4.2).
