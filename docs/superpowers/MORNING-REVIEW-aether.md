@@ -56,6 +56,20 @@ What to check:
 4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
 5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
 
+### Observatory world: bake, far plate, membrane and world light (Task 9): PROVISIONAL, not approved
+
+The page now shows `OBSERVATORY_WORLD` (kit, baked `near.glb`, three far-plate layers, sand floor, membrane, glyph pulse, jellyfish, manta fish). Task 10 is the look review. Open `?world=aether` live; stills in `docs/superpowers/evidence/aether/m2/`:
+- `render-entering-t3.2-p1-framing.png`: `stage=entering&t=3.2&freeze`, 510x504. The stage camera does not frame P1: the portal (x 12.6) is out of shot.
+- `render-portal-view.png` and `p1-vs-portal-view.png`: the portal area framed directly (`view=1.59,2.96,7.99,-3.34`).
+- `render-wide-intro.webp` (wide view of the world) and `world-capture-intro.png` (P2 registration).
+
+Numbers (CIE76 against `public/aether/ref/p1.png`):
+- Membrane body: (15, 56, 133) against P1 (15, 56, 167), delta E **21.2**. Not within 10. The engine draws the body at 0.32 of `color` and blue is already at 1 (engine request below). With the brief's `#0f38a7` it read (5, 26, 91). At P1's own pixel (435, 235) the portal view lands on the glyph's cyan core (76, 125, 217), because the framing is not P1's.
+- P1 mid water (250, 120) in the entering frame: (29, 47, 117) against (2, 26, 74), delta E **16.3**. Not within 10. A light shaft crosses that pixel; the shafts fan from a fixed point at the top centre (engine request below).
+- P2 registration after the switch: her samples are unchanged and the mid water is within delta E 5.2. Four samples now land on world pieces: upper water on a tower, window light, jellyfish bell, and water outside the head on an orbit bead. Face glow G stays 215 to 218 (at most 235).
+
+What to check: the membrane's brightness and its line pattern, the amber windows and lanterns, the coral colours, the large foreground rocks (lighter than P1's near-black), and the jellyfish size.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -102,6 +116,20 @@ Please give the real names.
   - Wanted (optional, absent = today's look): `palette.domeTintLow` (the tint mixed in toward the seat, for example `mix(uTintLow, uTint, smoothstep(0.0, 0.6, up))`), `DomeShape.rimPower` and `rimStrength` (today 4 and 2.4), and `DomeShape.seat` (the seat line's strength, today 1.4; Aether would use about 0.3).
   - Aether widens its rim today with `dome.depth` 1.0 (Nox and Veyra 0.6), which also brightens the lower corners; with `rimPower` it could go back to 0.6.
   - Target: the three P3 dome samples stay within delta E 10, and (135, 230) and (360, 255) come within delta E 20 of P3.
+- **Membrane body level (Task 9).** `src/engine/world/membraneMaterial.ts` draws the body at `mix(color, edge, lit) * (0.32 + 0.68 * lit) * level`. A colour of P1's sample (#0f38a7) reads (5, 26, 91) on the page after the fog.
+  - Wanted: an optional `MembraneParams.body` (default 0.32) that replaces the 0.32.
+  - Aether would set `body: 1` and go back to `color: '#0f38a7'`. Today it uses `#2876ff`, which reads (15, 56, 133).
+  - Target: the membrane body is within delta E 10 of P1's (15, 56, 167).
+- **Emissive prop drive (Task 9).** No world prop on `'emissive'` is driven: only a sequence would drive it, and none targets the portal glyph. Its glow material cannot stand beside an emissive drive (validateWorld).
+  - Aether drops `portalGlyph` from the world's props and pulses the glyph with its glow material (`pulse` 0.55, `period` 7.5 s).
+  - Wanted: an idle drive for `'emissive'` props (a period and depth, like `bob`), or a validateWorld rule that lets a glow's own pulse stand with it.
+- **Ray origin per world (Task 9).** `GodRays` (`src/engine/world/Water.tsx`) fans its shafts from the fixed `SHAFT_TOP`, toward `across` in -5 to 5. Spec 7.7 and P1 want the rays from the upper right.
+  - Wanted: `water.raysFrom` (a stage point) and a `raysAcross` range.
+  - Target: P1's mid water (250, 120) in the entering frame comes within delta E 10 (16.3 now; a shaft crosses it).
+- **Mote twinkle (Task 9).** The star motes do not twinkle; the marine snow does (0.6 + 0.4 sin). Spec 7.7 asks for twinkling blue-white star specks. The world draws them with the snow (`snow: '#c8d8ff'`).
+  - Wanted: an optional `live.colours.motes.twinkle` (depth, 0 for today's look).
+- **Coral base albedo (Task 9).** `Kit.tsx`'s coral material and `bake_world.py`'s ALBEDO use the engine's `#7a0a18` (red) for coral bodies. Aether's coral bodies are dark and their glow is magenta, so no red shows on the page today.
+  - Wanted: `palette.coralBody` (optional), read by Kit.tsx and the bakes.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
 
 ## Questions for the owner (Task 4, face)
