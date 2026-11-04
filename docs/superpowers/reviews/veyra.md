@@ -318,6 +318,19 @@ Captured at P2's view box at 3x (1464 x 1485) beside the 3x panel:
 - **Cup frill:** cream raised cups in a touching row, smaller toward the tips, with darker hollows.
 - **Curls:** five arms with a full turn (T2, T3, T6, T7, T8), each seen closed on the rendered stills.
 
+## Task 9: the vault kit (no gate, geometry and layout only)
+
+`blender/vault/build_kit.py` builds `public/veyra/world/kit.glb` headless (about 25 s, 634 KB). Pieces (each also `_lod1`, about a quarter of the triangles): `arch`, `block_a` to `block_d`, `wall_broken`, `steps`, `rock_a` to `rock_c`, `coral_orange`, `glowplant_a`, `glowplant_b`. Other nodes: `membrane` (two UV sets: UV0 planar, UV1 the flow map, u round the doorway edge and v 0 at the edge to 1 in the middle), `padlock_body` (body, dial seat, shackle) and `padlock_ring` (origin at the ring's centre, so `rotateZ` turns it in place). The portal's four nodes share the arch's frame: a world places them with the arch's placement. Stone carries moss as a green vertex tint on up-facing faces (the page's stone colour multiplies it). Geometry is meshopt-compressed like Nox's (the kit loader decodes meshopt only; the plan's "Draco" is not what Nox does or what the loader reads). Each placed piece carries its ground-plane bounding radius as a node extra (`radius`), which `layout.test.ts` reads.
+
+`layout.json` (groups `portal`, `stone`, `rocks`, `corals`, `plants`; `floorY` -2.45): the arch at (4.2, -8.6) turned toward the stage; walls, blocks and steps both sides; foreground dark rocks at z 2 to 4; two orange corals low right (on the rocks); nine glow plants. `kit.ts` lists the pieces and nodes (the config will take them in Task 10) and the corridor: 2.4 wide, from (-10, -10) bending to the stage spot (0, 0), then on toward the doorway. `config.ts` is unchanged: the bundle is still the stage backdrop until Task 10 swaps in the kit.
+
+Stills (Workbench, not the world's look): `docs/superpowers/reviews/assets/veyra/t9-kit-contact-sheet.png` (every piece, seen from a little above; the portal's membrane and padlock bottom right) and `t9-layout-from-stage.png` (the layout from the stage camera, no light or colour).
+
+Things to know for Task 11:
+- Glow plants and the blocks, walls, steps and arch are plain stone to the engine (only the groups `pillars`, `rocks` and `corals` are dressed): plants will not glow until the engine or the look gives them a look.
+- The engine's kelp and seagrass flank both sides (|x| 2.6 to 9, z 2 to -26; seagrass from 1.4), so they stand through the arch, steps, walls and blocks and over the left half of the path. The kit does not avoid them; tune the strand count or `clear` in the look task.
+- Foreground rocks sit at |x| 2 to 5 (inside the frame, which is only about +-3.8 wide at z = 0).
+
 ## Task 12: notes carried in
 
 - The overview's opened dome (Task 3 review, minor 2): `jellyLook` runs after the HEAD shader's `capped` darkening and ignores `uMorph`, so in the overview the sunk mantle top still gets the full crown band and rim. Check it there and fix it if it shows.
