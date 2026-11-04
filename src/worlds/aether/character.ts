@@ -2,11 +2,13 @@ import type { StageLighting } from '../../engine/config/lighting';
 import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
 
 // Aether, the Curious Mind (spec 7.1 to 7.3, 7.8): a small, round, lavender jelly creature with a
-// pink-white glow in her face and big violet eyes. Everything here is a START value, measured
-// against panel 2 of her storyboard (public/aether/ref/p2.png, 100 px to a world unit, origin at
-// the panel's centre, +y up) and the colour samples in review/targets.json; the colours are tuned
-// in Task 3 (character look) and Task 6, the face and moments in Task 4 and Task 16. There is no
-// red anywhere in her: her light is lavender, pink-white and blue.
+// pink-white glow in her face and big violet eyes. Measured against panel 2 of her storyboard
+// (public/aether/ref/p2.png, 100 px to a world unit, origin at the panel's centre, +y up) and the
+// colour samples in review/targets.json. The intro look (colours, arm radii, glow, cups, skin) is
+// TUNED in Task 6 against the render, pending the owner's review: character.test.ts pins it to the
+// committed evidence capture. The face was set in Task 4; the moments and other stages' values are
+// still start values (Task 16 and later). There is no red anywhere in her: her light is lavender,
+// pink-white and blue.
 
 // Her arms leave the body at the same depths as Nox's slots: the upper side pair behind the head,
 // the second pair level, the third in front, the centre pair hanging down the front. Root radii
@@ -210,23 +212,27 @@ export const AETHER: CharacterConfig = {
     streakStrength: 0.2,
     // Veyra's jelly glass on both surfaces (spec 7.2), in Aether's colours from the P2 samples
     // (spec 2.1; tuned in Task 6 to delta E 10 on the render, see docs/superpowers/reviews/aether.md).
-    // The mantle: a lavender-pink rim that spreads wide (power 1.8) so the head sides stay violet,
+    // The mantle: a lavender-pink rim that spreads wide (power 1.6) so the head sides stay violet,
     // a blue-white crown sheen (147, 170, 248), a deep blue-violet middle where the dome faces the
     // camera (92, 80, 244), and the pink-white core (253, 212, 232) inside the lower face at the
     // glow's own centre, just below the mouth (y -0.95), set back into the jelly. The arms: the same
     // glass, a lavender-white top rim (224, 206, 248), a periwinkle-indigo body (75, 88, 231), a
     // white-pink cap along their tops and the lavender-pink underside glow. Star specks per square
-    // unit: Task 6 measured 26 on the front of the head and 123 across the arms at this density
-    // (spec 2.3 asks at least 15 and 60).
+    // unit: Task 6 measured 23 on the front of the head and 111 across the arms at this density
+    // (fix round 1 still, on the 3x front still; spec 2.3 asks at least 15 and 60).
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#e0bcf8', rimPower: 1.8, crown: '#a0bafc', crownHeight: 0.55, depth: '#5b4ef3', depthStrength: 1, core: '#fdd4e8', coreCenter: [0, 0, -0.35], coreWarmth: 0.4 },
+        // Fix round 1: rim power 1.8 to 1.6, the lavender rim a little wider, so the head sides keep a
+        // margin (7.8 / 6.4) with the higher bloom threshold.
+        jelly: { rim: '#e0bcf8', rimPower: 1.6, crown: '#a0bafc', crownHeight: 0.55, depth: '#5b4ef3', depthStrength: 1, core: '#fdd4e8', coreCenter: [0, 0, -0.35], coreWarmth: 0.4 },
         sparkle: 45,
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#e3d3fb', rimPower: 3, crown: '#f8e8fd', crownHeight: 0.42, depth: '#5c74e6', depthStrength: 0.4, core: '#eec6fa', coreCenter: [0, 0, -0.35], coreWarmth: 0.35 },
+        // Fix round 1: a deeper indigo depth (#505ce2 at 0.8, was #5c74e6 at 0.4) where the arms face the
+        // camera brings the mean inside her silhouette to P2's (158, 142, 237 against 154, 133, 228).
+        jelly: { rim: '#e3d3fb', rimPower: 3, crown: '#f8e8fd', crownHeight: 0.42, depth: '#505ce2', depthStrength: 0.8, core: '#eec6fa', coreCenter: [0, 0, -0.35], coreWarmth: 0.35 },
         sparkle: 45,
       },
     },

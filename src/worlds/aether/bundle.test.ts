@@ -109,7 +109,8 @@ test('her artifacts rest on the gold ring (the satellite placement), with the va
   const { ring } = placement;
   expect(ring).toMatchObject({ radius: 1.25, centreY: -0.28, tilt: 1.36, roll: 0.14, beadCount: 5, keepOut: Math.PI / 4 });
   expect(ring.sway).toEqual({ amplitude: 0.21, period: [6, 9] });
-  expect(ring.line).toMatchObject({ color: '#d99982', width: 1.5 });
+  // 1.4: the spec's 1.5 px limit measured 1.49 to 1.60 px with the anti-aliased fringe at 1.5 (Task 6).
+  expect(ring.line).toMatchObject({ color: '#d99982', width: 1.4 });
   expect(ring.beads).toEqual({ glass: '#93699a', rim: '#d99982', lit: [1, 3] });
   // Five homes, 54 degrees apart, evenly over the rear 270 degrees (the face's 90 degrees left clear).
   expect(ring.homes).toHaveLength(ring.beadCount);

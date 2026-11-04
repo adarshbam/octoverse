@@ -1,67 +1,73 @@
-# Task 6, P2 look gate: numbers (world capture at P2 registration, tier=high; on 1571dbd plus the Task 6 tuning, round c18)
+# Task 6, P2 look gate after fix round 1: numbers (world capture at P2 registration, tier=high; final config, round c34)
+
+Regenerate: WORLD=aether node scripts/world-capture.mjs intro docs/superpowers/evidence/aether/m1/world-capture-intro.png "tier=high&kitwait=90000" (vite on 127.0.0.1:5196, NOX_URL=http://127.0.0.1:5196)
 
 ## scripts/check_stage.py world-capture-intro.png --world --stage intro --world-id aether
-panel 2  mean (144, 125, 219)  saturation 0.482  brightness 0.863  (53622 px)
-capture  mean (169, 151, 239)  saturation 0.389  brightness 0.940  (53622 px)
-MISS mean        target (154, 133, 228) +-12
-MISS saturation  target 0.418 to 0.498
-MISS brightness  target 0.86 to 0.94
-ok  region Crown sheen        panel 2 #93aaf8 capture #aaa8fd deltaE   8.4  (max 10)
-ok  region Upper dome         panel 2 #5c50f4 capture #6254f6 deltaE   2.0  (max 10)
-ok  region Forehead           panel 2 #9b6cf8 capture #8263f7 deltaE   7.6  (max 10)
-ok  region Between the eyes   panel 2 #fab7f1 capture #fcbdf3 deltaE   2.6  (max 10)
-ok  region Face glow below eyes panel 2 #fdd4e8 capture #ffd7f3 deltaE   3.8  (max 10)
-ok  region Face glow below mouth panel 2 #fdd8ef capture #ffdafe deltaE   6.9  (max 10)
-ok  region Chin               panel 2 #c08af9 capture #bd8cf8 deltaE   1.8  (max 10)
-ok  region Head side left     panel 2 #8967e5 capture #7161ee deltaE   9.9  (max 10)
-ok  region Head side right    panel 2 #8379f7 capture #7865ec deltaE   9.6  (max 10)
-ok  region Blush              panel 2 #fab5cf capture #f7b4d8 deltaE   5.5  (max 10)
-ok  region Arm top rim        panel 2 #e0cef8 capture #d3c7fa deltaE   5.8  (max 10)
-MISS region Arm body upper     panel 2 #5a82e2 capture #5263f5 deltaE  33.5  (max 10)
-ok  region Arm body lower     panel 2 #4b58e7 capture #4d5df0 deltaE   2.9  (max 10)
-ok  region Arm underside glow panel 2 #e8c3f8 capture #dbbbf5 deltaE   4.3  (max 10)
-ok  region Cup                panel 2 #cdbcef capture #c2a9e1 deltaE   7.7  (max 10)
-ok  region Inside tip spiral  panel 2 #593f8d capture #4b428c deltaE   6.2  (max 10)
-MISS region Gold seed bead     panel 2 #dfa58d capture #191c68 deltaE  87.2  (max 10)
-MISS region Glass seed bead    panel 2 #956d9e capture #171b65 deltaE  43.8  (max 10)
-ok  region Water outside head panel 2 #0f1962 capture #191c6a deltaE   3.4  (max 10)
-ok  region Mid water          panel 2 #07154d capture #141c60 deltaE   7.8  (max 10)
-ok  region Upper water        panel 2 #022464 capture #163175 deltaE   6.2  (max 10)
-MISS region Jellyfish bell     panel 2 #9c7be1 capture #0b164f deltaE  51.5  (max 10)
-MISS region Ruin window light  panel 2 #b17979 capture #0c164f deltaE  64.2  (max 10)
-FAIL (8 misses)
+panel 2  mean (144, 124, 219)  saturation 0.482  brightness 0.863  (54459 px)
+capture  mean (158, 142, 237)  saturation 0.424  brightness 0.929  (54459 px)
+ok  mean        target (154, 133, 228) +-12
+ok  saturation  target 0.418 to 0.498
+ok  brightness  target 0.86 to 0.94
+ok  region Crown sheen        panel 2 #93aaf8 capture #b0abfe deltaE   8.9  (max 10)
+ok  region Upper dome         panel 2 #5c50f4 capture #6556f7 deltaE   3.2  (max 10)
+ok  region Forehead           panel 2 #9b6cf8 capture #8263f6 deltaE   7.8  (max 10)
+ok  region Between the eyes   panel 2 #fab7f1 capture #fbbdf3 deltaE   2.5  (max 10)
+ok  region Face glow below eyes panel 2 #fdd4e8 capture #ffd7f3 deltaE   4.1  (max 10)
+ok  region Face glow below mouth panel 2 #fdd8ef capture #ffdaff deltaE   7.2  (max 10)
+ok  region Chin               panel 2 #c08af9 capture #ac81f5 deltaE   6.1  (max 10)
+ok  region Head side left     panel 2 #8967e5 capture #7766ef deltaE   7.8  (max 10)
+ok  region Head side right    panel 2 #8379f7 capture #7f6bee deltaE   6.4  (max 10)
+ok  region Blush              panel 2 #fab5cf capture #f7b4d7 deltaE   5.3  (max 10)
+ok  region Arm top rim        panel 2 #e0cef8 capture #d1c4f7 deltaE   6.7  (max 10)
+MISS region Arm body upper     panel 2 #5a82e2 capture #4957f0 deltaE  39.4  (max 10)
+ok  region Arm body lower     panel 2 #4b58e7 capture #525def deltaE   2.7  (max 10)
+ok  region Arm underside glow panel 2 #e8c3f8 capture #d6b7f2 deltaE   6.0  (max 10)
+ok  region Cup                panel 2 #cdbcef capture #e4ccfa deltaE   7.1  (max 10)
+ok  region Inside tip spiral  panel 2 #593f8d capture #483f8a deltaE   5.9  (max 10)
+MISS region Gold seed bead     panel 2 #dfa58d capture #141967 deltaE  89.0  (max 10)
+MISS region Glass seed bead    panel 2 #956d9e capture #131864 deltaE  45.1  (max 10)
+ok  region Water outside head panel 2 #0f1962 capture #141969 deltaE   4.2  (max 10)
+ok  region Mid water          panel 2 #07154d capture #101a5f deltaE   8.2  (max 10)
+ok  region Upper water        panel 2 #022464 capture #143175 deltaE   6.0  (max 10)
+MISS region Jellyfish bell     panel 2 #9c7be1 capture #07144e deltaE  51.9  (max 10)
+MISS region Ruin window light  panel 2 #b17979 capture #08144e deltaE  65.3  (max 10)
+FAIL (5 misses)
 
 ## measure (four checks, IoU with public/aether/ref/p2-mask.png, shape)
-ok   warm core: glow R 255 - dome R 98 = 157 (>=120)
+ok   warm core: glow R 255 - dome R 101 = 154 (>=120)
 ok   pink not white (below eyes): R-G 40 (>=25), G 215 (<=235)
 ok   pink not white (below mouth): R-G 37 (>=25), G 218 (<=235)
-ok   periwinkle arm upper: B 245 (>=200), B-R 164 (>=90)
-ok   periwinkle arm lower: B 240 (>=200), B-R 163 (>=90)
-ok   indigo water: B 96 (>=60), B-R 76 (>=55)
-MISS IoU 0.7963  (nameplate box left out of both: 0.8335)  render px 53622  P2 px 51793  render-only 6892  P2-only 5063
-head top 0.19 (0.14..0.22)  half-width 0.745 at y -0.38 (0.69..0.77)  centre x 0.065 (0.03..0.11)  arm span 3.85 (3.69..3.99)
-eye L: centre x -0.225 y -0.650  (525 dark px)
-eye R: centre x 0.484 y -0.653  (557 dark px)
+ok   periwinkle arm upper: B 240 (>=200), B-R 166 (>=90)
+ok   periwinkle arm lower: B 239 (>=200), B-R 158 (>=90)
+ok   indigo water: B 95 (>=60), B-R 79 (>=55)
+MISS IoU 0.8123  (nameplate box left out of both: 0.8505)  render px 54459  P2 px 51793  render-only 6834  P2-only 4168
+head top 0.19 (0.14..0.22)  half-width 0.745 at y -0.38 (0.69..0.77)  centre x 0.065 (0.03..0.11)  arm span 3.88 (3.69..3.99)
+eye L: centre x -0.234 y -0.656  (560 dark px)
+eye R: centre x 0.470 y -0.647  (544 dark px)
+IoU with P2's two rear stubs also left out of the P2 mask (2675 px beside the head): 0.8757
+
+## pupils (darkest quarter of a 9 x 9 box at each eye centre; P2: [6, 2, 15] and [0, 1, 7] on the 3x panel)
+pupils darkest quarter (1x world capture): [[15, 9, 34], [11, 7, 28]]
+3x front still: [17, 12, 35] and [12, 8, 28]
+
+## seed beads (warm blobs in the capture; P2 samples: gold (1.06, -0.13), glass (-1.04, -0.03))
+bead blob area  184 px (356, 250)  world (0.99, 0.02)  rgb [187, 131, 112]
+bead blob area  182 px (167, 277)  world (-0.90, -0.25)  rgb [188, 133, 113]
 
 ## close-up, 3x front still (render-intro-front-3x)
-threshold 28.0: head-front specks 26 (>=15), arm specks 123 (>=60)
-box 1085,745-1125,790: 66 crossings, median width 4.47 px at 3x = 1.49 px at 1x
-box 415,845-455,880: 44 crossings, median width 4.80 px at 3x = 1.60 px at 1x
-box 540,790-560,815: 29 crossings, median width 4.47 px at 3x = 1.49 px at 1x
+threshold 28.0: head-front specks 23 (>=15), arm specks 111 (>=60)
+box 1085,745-1125,790: 65 crossings, median width 4.00 px at 3x = 1.33 px at 1x
+box 415,845-455,880: 43 crossings, median width 4.47 px at 3x = 1.49 px at 1x
+box 540,790-560,815: 28 crossings, median width 4.47 px at 3x = 1.49 px at 1x
 T1: 15 pts, curl turning 348 deg 
-T2: 16 pts, curl turning 391 deg FULL
-T3: 12 pts, curl turning 433 deg FULL
+T2: 16 pts, curl turning 379 deg FULL
+T3: 12 pts, curl turning 420 deg FULL
 T4: 12 pts, curl turning 306 deg 
-T5: 13 pts, curl turning 283 deg 
-T6: 14 pts, curl turning 399 deg FULL
+T5: 13 pts, curl turning 261 deg 
+T6: 14 pts, curl turning 387 deg FULL
 T7: 18 pts, curl turning 420 deg FULL
-T8: 14 pts, curl turning 276 deg 
+T8: 14 pts, curl turning 249 deg 
 
-## perf, WORLD=aether node scripts/perf.mjs "stage=intro&tier=low", twice back to back (under load: dev server, other apps running)
-stage=intro&tier=low                     median  65.8 fps  slow10  35.0 fps  mean  57.6 fps  (346 frames)
-stage=intro&tier=low                     median  64.9 fps  slow10  27.0 fps  mean  53.1 fps  (319 frames)
-
-## IoU with P2's two painted rear stubs left out of the P2 mask
-P2-only blobs beside the head: x -1.02..-0.50, y -0.22..-0.94 (1438 px) and x 0.67..1.21, y -0.33..-0.89 (1237 px).
-Aether has exactly eight arms (spec 7.4), so these are not in her silhouette.
-IoU raw 0.8343; nameplate box and stubs left out 0.8753 (target 0.85).
+## perf, WORLD=aether node scripts/perf.mjs "stage=intro&tier=low", twice back to back (under load: dev server, other sessions on the same GPU)
+stage=intro&tier=low                     median  62.1 fps  slow10  30.3 fps  mean  57.0 fps  (344 frames)
+stage=intro&tier=low                     median  52.6 fps  slow10  29.6 fps  mean  51.3 fps  (308 frames)

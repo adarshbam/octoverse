@@ -39,7 +39,9 @@ const palette = {
  */
 const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#0a0830' },
-  bloom: { luminanceThreshold: 0.8, luminanceSmoothing: 0.25, intensity: 0.8, radius: 0.85 },
+  // Fix round 1: threshold 0.8 to 0.95, so the pink-white face (luminance about 0.9) no longer blooms over the
+  // pupils (they read 30 to 40 per channel at 0.8, 11 to 15 at 0.95); only near-white highlights bloom now.
+  bloom: { luminanceThreshold: 0.95, luminanceSmoothing: 0.25, intensity: 0.8, radius: 0.85 },
   vignette: { offset: 0.3, darkness: 0.4 },
 };
 

@@ -27,7 +27,10 @@ export const AETHER_ARTIFACTS: ArtifactConfig = {
       sway: { amplitude: 0.21, period: [6, 9] },
       keepOut: Math.PI / 4,
       // Spec 2.3: a thin gold line, at most 1.5 px at P2's size; faint gold constellation lines between neighbours.
-      line: { color: '#d99982', width: 1.5, constellation: '#d99982', flicker: 0.5 },
+      // 1.4, not 1.5: measured on the render with its anti-aliased fringe, 1.5 read 1.49 to 1.60 px; 1.4 reads 1.33 to 1.49 (Task 6).
+      // The beads stay on the spec's homes and roll: P2's two bead samples (1.06, -0.13 and -1.04, -0.03) need the
+      // left side about 4 degrees higher (roll -4 degrees), against spec 2.2's right side 8 degrees higher (Task 6 fix round 1).
+      line: { color: '#d99982', width: 1.4, constellation: '#d99982', flicker: 0.5 },
       // Spec 7.2: lavender glass with a warm gold rim; two of the five glow gold-amber.
       beads: { glass: '#93699a', rim: '#d99982', lit: [1, 3] },
     },
