@@ -83,6 +83,29 @@ function checkLeaves(value: unknown, path: string, colours: boolean) {
   }
 }
 
+/** The parts of the place (`WorldConfig`) that validateWorld and the host read without a guard of their own: each is there, as an object or a list, or a BundleError names it. */
+function checkPlacePresent(place: WorldBundle['place'], need: (field: string, value: unknown, what?: string) => void) {
+  const parts = place as unknown as Record<string, unknown>;
+  for (const part of ['kit', 'layout', 'camera', 'post', 'relics', 'palette', 'lights', 'glow', 'water', 'live']) need(`place.${part}`, parts[part]);
+  const list = (field: string, value: unknown) => {
+    if (!Array.isArray(value)) throw new BundleError(field, 'is missing (a list is needed here)');
+  };
+  list('place.kit.pieces', place.kit.pieces);
+  for (const group of ['pillars', 'rocks', 'corals', 'chains', 'coralLights'] as const) list(`place.layout.${group}`, place.layout[group]);
+  need('place.camera.hover', place.camera.hover);
+  for (const part of ['contactShadow', 'bloom', 'vignette'] as const) need(`place.post.${part}`, place.post[part]);
+  need('place.lights.surface', place.lights.surface);
+  need('place.lights.fill', place.lights.fill);
+  list('place.lights.points', place.lights.points);
+  place.lights.points.forEach((light, i) => need(`place.lights.points[${i}]`, light));
+  for (const group of ['pillars', 'rocks', 'corals'] as const) place.layout[group].forEach((item, i) => need(`place.layout.${group}[${i}]`, item));
+  place.layout.chains.forEach((item, i) => need(`place.layout.chains[${i}]`, item));
+  if (place.farPlate !== undefined) {
+    need('place.farPlate', place.farPlate);
+    list('place.farPlate.layers', place.farPlate.layers);
+  }
+}
+
 /**
  * Every part of the bundle the checks below (and the host) read is there, and of the form it is read
  * in, or a BundleError names the field: a missing part must not surface later as a TypeError.
@@ -97,6 +120,7 @@ function checkPresent(bundle: WorldBundle) {
   if (!Array.isArray(arms)) throw new BundleError('character.arms', 'is missing (a character has exactly eight arms)');
   if (arms.length !== ARM_IDS.length || arms.some((arm, i) => arm?.id !== ARM_IDS[i])) throw new BundleError('character.arms', `needs exactly the eight arms ${ARM_IDS.join(', ')}, in order`);
   need('place', bundle.place);
+  checkPlacePresent(bundle.place, need);
   need('poses', bundle.poses);
   need('swim', bundle.swim);
   need('artifacts', bundle.artifacts);
@@ -106,6 +130,7 @@ function checkPresent(bundle: WorldBundle) {
   if (!Array.isArray(bundle.artifacts.choosableIn)) throw new BundleError('artifacts.choosableIn', 'is missing (the stages a technology can be chosen in, as a list)');
   need('sequences', bundle.sequences);
   need('sequences.defaults', bundle.sequences.defaults);
+  if (typeof bundle.sequences.projectId !== 'string' || bundle.sequences.projectId === '') throw new BundleError('sequences.projectId', 'is missing (the sequences belong to a Theatre project, named by this id)');
   need('theme', bundle.theme);
   need('stage', bundle.stage);
   need('stage.frames', bundle.stage.frames);
@@ -120,7 +145,10 @@ function checkPoses(poses: unknown) {
   for (const stage of STAGE_IDS) {
     const pose = poses[stage];
     if (!record(pose) || !record(pose.arms)) throw new BundleError(`poses.${stage}`, 'is missing (every stage needs a pose with its arms)');
-    if (!record(pose.body)) throw new BundleError(`poses.${stage}.body`, 'is missing (every pose places the body: x, y, z and scale)');
+    if (!record(pose.body)) throw new BundleError(`poses.${stage}.body`, 'is missing (every pose places the body: x, y, scale and yaw)');
+    for (const key of ['x', 'y', 'scale', 'yaw'] as const) {
+      if (!finite(pose.body[key])) throw new BundleError(`poses.${stage}.body.${key}`, 'is missing (every pose places the body: x, y, scale and yaw, as numbers)');
+    }
     const keys: string[] = Object.keys(pose.arms);
     const missing = ARM_IDS.filter(id => !keys.includes(id));
     if (missing.length > 0) throw new BundleError(`poses.${stage}.arms`, `is missing ${missing.join(', ')} (a pose has exactly the arms ${ARM_IDS.join(', ')})`);

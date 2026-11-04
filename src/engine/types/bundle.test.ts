@@ -186,3 +186,38 @@ test('an arm list that is not exactly T1..T8 in order is named character.arms; a
   expect(error.field).toBe('character');
   expect(error.message).toMatch(/WorldBundle character:/);
 });
+
+test('the parts of the place, the sequences project id and a pose body that a creator bundle may lack are BundleErrors naming the field', () => {
+  for (const field of [
+    'place.kit', 'place.kit.pieces', 'place.layout', 'place.layout.pillars', 'place.layout.rocks', 'place.layout.corals', 'place.layout.chains', 'place.layout.coralLights',
+    'place.camera', 'place.camera.hover', 'place.post', 'place.post.contactShadow', 'place.post.bloom', 'place.post.vignette', 'place.relics', 'place.palette',
+    'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.live',
+    'sequences.projectId', 'poses.intro.body.x', 'poses.intro.body.y', 'poses.overview.body.scale', 'poses.detail.body.yaw',
+  ]) {
+    expect(refusal(without(field)).field, field).toBe(field);
+  }
+  // Items of a list are objects too.
+  const lights = copyOf(NOX_BUNDLE) as unknown as { place: { lights: { points: unknown[] }; layout: { pillars: unknown[] } } };
+  lights.place.lights.points[1] = null;
+  expect(refusal(lights as unknown as WorldBundle).field).toBe('place.lights.points[1]');
+  const pillars = copyOf(NOX_BUNDLE) as unknown as { place: { layout: { pillars: unknown[] } } };
+  pillars.place.layout.pillars[0] = 7;
+  expect(refusal(pillars as unknown as WorldBundle).field).toBe('place.layout.pillars[0]');
+  // Wrong form, not just missing.
+  expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, projectId: '' } }).field).toBe('sequences.projectId');
+  expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, projectId: 7 as unknown as string } }).field).toBe('sequences.projectId');
+  expect(refusal(withPoses(poses => ((poses.intro as { body?: unknown }).body = { x: 0, y: Number.NaN, scale: 1, yaw: 0 }))).field).toBe('poses.intro.body.y');
+  expect(refusal(withPoses(poses => ((poses.intro as { body?: unknown }).body = { x: '0', y: 0, scale: 1, yaw: 0 }))).field).toBe('poses.intro.body.x');
+});
+
+test('a far plate with no cut, or a layer with no url, is refused by validateBundle (place), and one without a plate validates', () => {
+  const plate = NOX_BUNDLE.place.farPlate!;
+  const place = (farPlate: unknown) => ({ ...NOX_BUNDLE, place: { ...NOX_BUNDLE.place, farPlate } }) as WorldBundle;
+  const error = refusal(place({ ...plate, cutZ: Number.NaN }));
+  expect(error.field).toBe('place.farPlate.cutZ');
+  expect(refusal(place({ ...plate, cutZ: undefined })).field).toBe('place');
+  expect(refusal(place({ ...plate, layers: undefined })).field).toBe('place.farPlate.layers');
+  expect(refusal(place({ cutZ: -5, layers: [{ url: '', z: -9 }] })).message).toContain('farPlate.layers[0] has no url');
+  expect(refusal(place(7)).field).toBe('place.farPlate');
+  expect(() => validateBundle(place(undefined))).not.toThrow();
+});

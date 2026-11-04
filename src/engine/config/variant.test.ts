@@ -87,7 +87,7 @@ describe('a variant is configuration only', () => {
 //   NOX_BUILD_TEST=1 npx vitest run src/engine/config/variant.test.ts
 describe.skipIf(!process.env.NOX_BUILD_TEST)('the production build has no fixtures', () => {
   // Builds into a scratch directory outside the repo, then greps every text file in it.
-  it('leaves "dummy" out of every built asset', () => {
+  it('leaves "dummy" and the development-only world switch out of every built asset', () => {
     const out = join(tmpdir(), `nox3d-variant-build-${process.pid}`);
     try {
       execSync(`npx vite build --outDir "${out}" --emptyOutDir`, { stdio: 'pipe', timeout: 280_000, env: { ...process.env, NODE_ENV: 'production' } });
@@ -96,6 +96,11 @@ describe.skipIf(!process.env.NOX_BUILD_TEST)('the production build has no fixtur
       // basis_transcoder is the vendored Basis Universal build, whose C++ glue names a `dummy` variable.
       const hits = (readdirSync(dir, { recursive: true }) as string[]).filter(f => !f.includes('basis_transcoder') && /\.(js|mjs|css|html|json|svg|txt|map)$/.test(f) && /dummy/i.test(readFileSync(join(dir, f), 'utf8')));
       expect(hits).toEqual([]);
+      // The world switch and its test world (`?testworld=1`, `nox-b`, `__octoSwitchWorld`) are development-only; `?world=` itself ships.
+      const files = (readdirSync(dir, { recursive: true }) as string[]).filter(f => /\.(js|mjs|html)$/.test(f));
+      const text = files.map(f => readFileSync(join(dir, f), 'utf8')).join(' ');
+      expect(files.filter(f => /nox-b|__octoSwitchWorld|testworld/.test(readFileSync(join(dir, f), 'utf8')))).toEqual([]);
+      expect(text).toContain('Unknown world');
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

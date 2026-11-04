@@ -348,3 +348,20 @@ test('the world values that moved out of the code are checked: skin accent, caus
   expect(bad({ post: { ...post, bloom: { ...post.bloom, intensity: Number.NaN } } })).toContain('post.bloom.intensity');
   expect(bad({ post: { ...post, vignette: { ...post.vignette, darkness: -1 } } })).toContain('post.vignette.darkness');
 });
+
+test('a far plate needs a finite cut and layers with a url and a depth', () => {
+  const plate = SECURITY_WORLD.farPlate;
+  expect(plate).toBeDefined();
+  const bad = (farPlate: unknown) => validateWorld({ ...SECURITY_WORLD, farPlate } as WorldConfig).join('\n');
+  expect(bad(plate)).toBe('');
+  expect(bad({ ...plate, cutZ: Number.NaN })).toContain('farPlate.cutZ');
+  expect(bad({ ...plate, cutZ: '-5' })).toContain('farPlate.cutZ');
+  expect(bad({ ...plate, cutZ: undefined })).toContain('farPlate.cutZ');
+  expect(bad({ ...plate, layers: 'none' })).toContain('farPlate.layers is not a list');
+  expect(bad({ cutZ: -5, layers: [{ url: '', z: -9 }] })).toContain('farPlate.layers[0] has no url');
+  expect(bad({ cutZ: -5, layers: [{ url: 'a.png', z: Number.POSITIVE_INFINITY }] })).toContain('farPlate.layers[0].z');
+  expect(bad({ cutZ: -5, layers: [null] })).toContain('farPlate.layers[0] has no url');
+  // A world with no far plate has nothing to check.
+  const { farPlate: _none, ...bare } = SECURITY_WORLD;
+  expect(validateWorld(bare as WorldConfig)).toEqual([]);
+});

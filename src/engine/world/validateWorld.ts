@@ -121,6 +121,16 @@ export function validateWorld(world: WorldConfig): string[] {
   if (finite(contactShadow.near) && finite(contactShadow.far) && contactShadow.near >= contactShadow.far) problems.push('post.contactShadow.near must be before far');
   for (const [name, value] of Object.entries(bloom)) if (!finite(value) || value < 0) problems.push(`post.bloom.${name} must be 0 or more`);
   for (const [name, value] of Object.entries(vignette)) if (!finite(value) || value < 0) problems.push(`post.vignette.${name} must be 0 or more`);
+  if (world.farPlate) {
+    const { cutZ, layers } = world.farPlate;
+    if (!finite(cutZ)) problems.push('farPlate.cutZ is not a number');
+    if (!Array.isArray(layers)) problems.push('farPlate.layers is not a list');
+    else
+      layers.forEach((layer, i) => {
+        if (typeof layer?.url !== 'string' || layer.url === '') problems.push(`farPlate.layers[${i}] has no url`);
+        if (!finite(layer?.z)) problems.push(`farPlate.layers[${i}].z is not a number`);
+      });
+  }
   for (const [name, share] of Object.entries(live)) if (!finite(share) || share < 0 || share > 1) problems.push(`live.${name} must be between 0 and 1`);
   return problems;
 }
