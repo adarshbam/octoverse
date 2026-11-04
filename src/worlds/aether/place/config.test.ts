@@ -9,7 +9,7 @@ import { membraneFlow } from '../../../engine/world/membraneMaterial';
 import type { Vec3 } from '../../../engine/world/types';
 import { validateWorld } from '../../../engine/world/validateWorld';
 import { AETHER_STAGE_FRAMES } from '../bundle';
-import { AMBER_CORALS, CORAL_RISE, MANTA_SILHOUETTE, MEMBRANE_COLOR, OBSERVATORY_STAGE, OBSERVATORY_WORLD, PORTAL_LOCAL, WINDOW_GLOW } from './config';
+import { AMBER_CORALS, CORAL_RISE, MANTA_SILHOUETTE, OBSERVATORY_STAGE, OBSERVATORY_WORLD, PORTAL_LOCAL, WINDOW_GLOW } from './config';
 import farData from './far.json';
 import { OBSERVATORY_PATH, RUBBLE_PIECES, WINDOWED_PIECES } from './kit';
 
@@ -51,16 +51,40 @@ test('the observatory world and the stage backdrop validate', () => {
   expect(validateWorld(OBSERVATORY_STAGE)).toEqual([]);
 });
 
-test('no red: no light, palette or kit material colour within 20 degrees of red at a saturation above 0.5 (spec 7.7)', () => {
-  const { surface, fill, points } = OBSERVATORY_WORLD.lights;
-  const colours: [string, string][] = [
-    ['surface', surface.color],
-    ['fill', fill.color],
-    ...points.map(l => [l.kind, l.color] as [string, string]),
-    ...Object.entries(OBSERVATORY_WORLD.palette).flatMap(([k, v]) => (typeof v === 'string' ? [[k, v] as [string, string]] : Object.entries(v).map(([g, c]) => [`floorGlow.${g}`, c] as [string, string]))),
-    ...(OBSERVATORY_WORLD.materials ?? []).flatMap(m => Object.entries(m.params).filter(([, v]) => typeof v === 'string').map(([k, v]) => [`${m.node}.${k}`, v as string] as [string, string])),
-  ];
-  expect(points.length).toBeGreaterThan(0);
+/**
+ * Every colour anywhere in a config, by its path: the whole object walked. A `#rrggbb` string is
+ * taken as it is, a `color(srgb-linear r g b)` string (the skin accent) turned into `#rrggbb`.
+ * Any other string that looks like a colour (`#`, `rgb`, `hsl`, `color(`) and any number under a
+ * colour-like key fail loud: the config uses neither today, and a new form must be parsed here.
+ */
+function allColours(value: unknown, path: string, out: [string, string][] = []): [string, string][] {
+  if (typeof value === 'string') {
+    if (/^#[0-9a-f]{6}$/i.test(value)) out.push([path, value]);
+    else {
+      const lin = /^color\(srgb-linear\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/.exec(value);
+      if (lin) out.push([path, `#${new THREE.Color().setRGB(Number(lin[1]), Number(lin[2]), Number(lin[3]), THREE.LinearSRGBColorSpace).getHexString()}`]);
+      else if (/^(#|rgb|hsl|color\()/i.test(value)) throw new Error(`${path}: a colour form the no-red walk does not parse: ${value}`);
+    }
+  } else if (typeof value === 'number') {
+    if (/(colou?r|tint|rim|glow|hot|bell|filament|edge)$/i.test(path)) throw new Error(`${path}: a numeric colour the no-red walk does not parse: ${value}`);
+  } else if (Array.isArray(value)) value.forEach((item, i) => allColours(item, `${path}[${i}]`, out));
+  else if (typeof value === 'object' && value !== null) for (const [key, item] of Object.entries(value)) allColours(item, `${path}.${key}`, out);
+  return out;
+}
+
+/** The fewest colours the walk finds in OBSERVATORY_WORLD (60 at Task 9's fix round 1): fewer means a refactor hid colours from it. */
+const MIN_WORLD_COLOURS = 60;
+
+test('no red: no colour anywhere in the world config within 20 degrees of red at a saturation above 0.5 (spec 7.7)', () => {
+  const colours = allColours(OBSERVATORY_WORLD, 'world');
+  expect(colours.length).toBeGreaterThanOrEqual(MIN_WORLD_COLOURS);
+  // The walk reaches every part the spec names: lights, palette and floor, kit materials, live colours, jellyfish, water, skin accent and post.
+  const paths = colours.map(([path]) => path);
+  for (const part of [
+    'world.lights.surface.color', 'world.lights.fill.color', 'world.lights.points[0].color', 'world.palette.sand', 'world.palette.rock', 'world.palette.floorGlow.cracks',
+    'world.materials[0].params.color', 'world.materials[1].params.color', 'world.live.colours.motes.color', 'world.live.colours.snow', 'world.live.elements.jellyfish.bell',
+    'world.live.elements.jellyfish.filament', 'world.water.colours.rays', 'world.water.environment.top', 'world.skinAccent', 'world.post.contactShadow.color',
+  ]) expect(paths, part).toContain(part);
   for (const [name, colour] of colours) expect(isRed(colour), `${name} ${colour}`).toBe(false);
   // And every light the bake lays on the stone.
   for (const [kind, value] of Object.entries(readBake().lights)) {
@@ -73,8 +97,10 @@ test('the membrane: deep blue (P1), a cyan edge, and a flow within [0, 1] that h
   const membrane = OBSERVATORY_WORLD.materials!.find(m => m.node === 'portal_membrane');
   expect(membrane?.material).toBe('membrane');
   const params = membrane!.params as { color: string; edge: string; flowSpeed: number; flowScale: number; flash: number };
-  // Deep blue (config.ts MEMBRANE_COLOR: P1's #0f38a7 raised for the engine's 0.32 body level and the fog).
-  expect(params.color).toBe(MEMBRANE_COLOR);
+  // P1's membrane sample is #0f38a7 (15, 56, 167), but the engine draws the body at 0.32 of its
+  // colour (membraneMaterial.ts) and the fog darkens it further: #0f38a7 reads (5, 26, 91) on the
+  // page. #2876ff is the closest the engine allows (blue at 1); it reads (15, 56, 133).
+  expect(params.color).toBe('#2876ff');
   const body = new THREE.Color(params.color);
   expect(body.b).toBeGreaterThan(body.g);
   expect(body.g).toBeGreaterThan(body.r);
