@@ -1,0 +1,77 @@
+/* The entrance's skip control: bottom right, quiet until pointed at. */
+.skip-entrance {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 160, 200, 0.4);
+  background: rgba(12, 6, 22, 0.6);
+  color: #ece4f3;
+  font: 500 14px/1 'Poppins', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  animation: skip-in 600ms ease 300ms backwards;
+  transition: opacity 400ms ease, visibility 0s linear 0s, border-color 200ms ease, background-color 200ms ease;
+}
+
+.skip-entrance svg {
+  width: 12px;
+  height: 12px;
+}
+
+.skip-entrance:hover {
+  border-color: rgba(255, 190, 215, 0.75);
+  background-color: rgba(24, 10, 38, 0.75);
+}
+
+.skip-entrance:focus-visible {
+  outline: 2px solid var(--oct-focus-ring, #ffd0dc);
+  outline-offset: 3px;
+}
+
+/* Gone once the intro comes: it fades, then leaves the page's focus order and accessibility tree. */
+.skip-entrance.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  animation: none;
+  transition: opacity 400ms ease, visibility 0s linear 400ms;
+}
+
+@keyframes skip-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-entrance {
+    animation: none;
+  }
+}
+
+/* "Skip to project details": off the page until it has focus. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: var(--oct-focus-ring, #ffd0dc);
+  color: #1a0710;
+  font: 600 15px/1.2 'Poppins', system-ui, sans-serif;
+  text-decoration: none;
+  transform: translateY(-300%);
+}
+
+.skip-link:focus {
+  transform: none;
+  outline: 3px solid #1a0710;
+  outline-offset: 2px;
+}

@@ -5,5 +5,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"]
   },
-  "include": ["src/nox3d"]
+  "include": ["src/engine", "src/worlds", "src/app"]
 }
