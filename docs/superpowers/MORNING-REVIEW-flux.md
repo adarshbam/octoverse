@@ -18,4 +18,11 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Check: look at p2-mask.png beside p2.png (mask ignores title, nameplate, racks, bubbles; arm tips behind nameplate are cut at y 440).
 - Still to do: `check_stage.py --world-id flux` run (waits on `E02 landed`).
 
+### Task 2: Flux bundle, intro pose, stage backdrop (built early; PENDING OWNER REVIEW)
+- Commit 6257acb. Capture `.tmp/flux-intro.png` (not committed; regenerate with the stage capture): eight arms in roughly the P2 pose on dark navy water; body is flat blue until Task 3; IoU vs P2 mask 0.79 (first trace, Task 6 tunes to >= 0.85).
+- Check: arm layout against P2 (T1/T8 up beside head, T2/T7 wide, T3/T6 low, T4/T5 hang).
+- Rulings to check: title icon is the flame placeholder (engine has no `gear` icon yet: engine-owner gap); tagline is the P5 subtitle with the spec sentence as the introduction (avoids a duplicate third line on the intro); orbs are one plain shell placeholder until Task 12.
+- Gap: E02 baseline stills compared clean on 8 of 14 and the six Nox e2e specs were not run (Nox kit loader times out under load). Task 2 changed no engine code; rerun when quiet.
+- Gap: `scripts/check_stage.py` hard-codes the Nox storyboard image for silhouette rows (engine owner).
+
 - Task 8b (layout.json + layout.test.ts) still to do after Veyra Task 8 lands.
