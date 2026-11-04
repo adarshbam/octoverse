@@ -13,10 +13,15 @@ It rebuilds the "AetherKit" scene from scratch and touches nothing outside it, t
 pieces to public/aether/world/kit.glb. Set AETHER_PREVIEW=<png path> to also render a lineup of
 the pieces (a preview collection that is not exported) for looking at the shapes.
 
+It reads the world's layout, src/worlds/aether/place/layout.json (the same file the page imports),
+checks that every piece the layout names is built, and lays the world out in a collection that is
+not exported (`place_instances`).
+
 Units: 1 = one stage unit. Pieces stand on z = 0 at the origin with their fronts looking down -Y,
 which glTF's Y-up export turns into +Z, toward the stage camera. They are exported at the origin
-because the page places them: this step builds geometry only; placing instances from layout data
-is the later task (see `place_instances`).
+because the page places them from layout.json; the script's own placement (`place_instances`) is a
+preview in Blender only. Each placed piece carries its bounding radius on the XZ plane as the node
+extra `radius` (about the origin, which is the placement point), for the layout test.
 
 The `portal_*` pieces share ONE frame (the arch centre is at z = PORTAL_Z, the membrane and glyph
 sit in the arch's plane), so the page places all five with the same transform and they assemble.
@@ -36,17 +41,20 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector, noise
+from mathutils.bvhtree import BVHTree
 
 try:
     ROOT = Path(__file__).resolve().parents[2]
 except NameError:  # exec() without __file__
     ROOT = Path.cwd()
+LAYOUT = ROOT / "src/worlds/aether/place/layout.json"
 OUT = ROOT / "public/aether/world/kit.glb"
 RAW = Path(tempfile.gettempdir()) / "aether-kit-raw.glb"
 
 SCENE = "AetherKit"
 PIECES = "AetherKit pieces"  # exported
 PREVIEW = "AetherKit preview"  # a lineup for looking at the pieces in Blender; not exported
+WORLD = "AetherKit world"  # the layout, for looking at it in Blender; not exported
 # Blender names must be unique in the file; the prefix is stripped from the exported names.
 PREFIX = "aether."
 
@@ -60,7 +68,7 @@ def kit_scene():
     """The kit's own scene and its two collections, emptied of what an earlier run made."""
     scene = bpy.data.scenes.get(SCENE) or bpy.data.scenes.new(SCENE)
     colls = []
-    for name in (PIECES, PREVIEW):
+    for name in (PIECES, PREVIEW, WORLD):
         coll = bpy.data.collections.get(name) or bpy.data.collections.new(name)
         if scene.collection.children.get(name) is None:
             scene.collection.children.link(coll)
@@ -72,7 +80,7 @@ def kit_scene():
             if data.name.startswith(PREFIX) and data.users == 0:
                 store.remove(data)
     scene.render.resolution_x, scene.render.resolution_y = 1800, 900
-    return scene, colls[0], colls[1]
+    return scene, colls[0], colls[1], colls[2]
 
 
 def material(name, rgb, rough=0.85, metal=0.0, emit=None, strength=0.0, alpha=1.0):
@@ -124,6 +132,11 @@ def to_object(name, bm, coll, mats=(), smooth=False):
 def triangles(ob):
     own = sum(len(p.vertices) - 2 for p in ob.data.polygons) if ob.type == "MESH" else 0
     return own + sum(triangles(child) for child in ob.children)
+
+
+def radius_xy(ob):
+    """How far the piece reaches from its origin on the ground plane (stage XZ)."""
+    return max(math.hypot(v.co.x, v.co.y) for v in ob.data.vertices)
 
 
 def box_uvs(bm):
@@ -635,17 +648,80 @@ def build_pieces(coll):
         add(build_coral(f"coral_fan_{LETTERS[i]}", coll, mats, "coral_fan", seed, size, fan=True))
     for i, (seed, size) in enumerate(((61, 1.1), (62, 1.4), (63, 0.9))):
         add(build_coral(f"coral_amber_{LETTERS[i]}", coll, mats, "coral_amber", seed, size, fan=False))
+    for name, ob in built.items():
+        if name == "portal_arch" or not name.startswith("portal_"):
+            ob["radius"] = round(radius_xy(ob), 4)
     return built
 
 
-# --- Placement (later task) --------------------------------------------------------------------
+# --- Placement ---------------------------------------------------------------------------------
 
-def place_instances(built, world_coll):
-    """THE SPOT FOR PLACING THE KIT FROM LAYOUT DATA. A later task, once the engine contract and
-    `WorldLayout.groups` have landed, reads the layout and makes a preview of the world here from
-    linked copies of `built[name]`; the page places the same pieces itself from the same data.
-    Until then the kit is geometry only: nothing is placed and nothing is read."""
-    return None
+# The portal's other nodes share the arch's frame: they are placed wherever the arch is.
+PORTAL_PARTS = ("portal_steps", "portal_membrane", "portal_glyph", "portal_lanterns")
+
+
+def read_layout():
+    return json.loads(LAYOUT.read_text(encoding="utf-8"))
+
+
+def check_layout(layout, built):
+    named = {p["piece"] for group in layout["groups"].values() for p in group}
+    missing = sorted(named - set(built))
+    if missing:
+        raise RuntimeError(f"layout.json names pieces the kit does not build: {missing}")
+    if layout["chains"]:
+        raise RuntimeError("layout.json has chains, but the kit has no chain piece")
+
+
+def stage_matrix(p, y=None):
+    """A placement's matrix in Blender space. Stage is Y-up with the camera down -Z; Blender is
+    Z-up: stage (x, y, z) is Blender (x, -z, y). Turning about stage Y is turning about Blender Z;
+    the tilt about stage Z is a turn about Blender -Y. Applied as on the page: tilt, then turn."""
+    x, sy, z = p["position"]
+    s = p.get("scale", 1)
+    sx, ssy, sz = (s, s, s) if isinstance(s, (int, float)) else s
+    return (
+        Matrix.Translation((x, -z, sy if y is None else y))
+        @ Matrix.Rotation(p.get("rotY", 0.0), 4, "Z")
+        @ Matrix.Rotation(-p.get("tilt", 0.0), 4, "Y")
+        @ Matrix.Diagonal((sx, sz, ssy, 1.0))
+    )
+
+
+def place_instances(built, world_coll, layout):
+    """The world as layout.json places it, from linked copies of the pieces (the page places the
+    same pieces from the same data): the portal's parts with the arch, coral dropped onto the
+    highest stone below it or the floor. A floor plane is added for looking at it. Not exported."""
+    floor_y = layout["floorY"]
+    solids = []
+
+    def place(name, matrix, label):
+        ob = bpy.data.objects.new(f"{PREFIX}world.{label}", built[name].data)
+        ob.matrix_world = matrix
+        world_coll.objects.link(ob)
+        return ob
+
+    for group, items in layout["groups"].items():
+        if group == "corals":
+            continue
+        for i, p in enumerate(items):
+            m = stage_matrix(p)
+            ob = place(p["piece"], m, f"{group}{i}")
+            if group == "portal":
+                for part in PORTAL_PARTS:
+                    place(part, m, f"{group}{i}.{part}")
+            if group != "rubble":
+                mw = ob.matrix_world
+                solids.append(BVHTree.FromPolygons([mw @ v.co for v in ob.data.vertices], [tuple(q.vertices) for q in ob.data.polygons]))
+    for i, p in enumerate(layout["groups"].get("corals", [])):
+        x, _, z = p["position"]
+        hits = [t.ray_cast(Vector((x, -z, 12.0)), Vector((0, 0, -1)))[0] for t in solids]
+        y = max([h.z for h in hits if h is not None] + [floor_y]) - 0.04
+        place(p["piece"], stage_matrix(p, y), f"corals{i}")
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=1.0)
+    bmesh.ops.transform(bm, matrix=Matrix.Translation((0, -8, floor_y)) @ Matrix.Diagonal((16, 32, 1, 1)), verts=bm.verts)
+    to_object("world.floor", bm, world_coll, [material("preview_floor", (0.02, 0.02, 0.06), 1.0)], smooth=False)
 
 
 def lay_out_preview(built, coll):
@@ -758,11 +834,13 @@ def export(coll):
 
 
 def build():
-    scene, pieces_coll, preview_coll = kit_scene()
+    scene, pieces_coll, preview_coll, world_coll = kit_scene()
     # Everything below evaluates and exports the kit's own scene, whatever scene Blender shows.
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
         built = build_pieces(pieces_coll)
-        place_instances(built, preview_coll)
+        layout = read_layout()
+        check_layout(layout, built)
+        place_instances(built, world_coll, layout)
         total = 0
         for name, ob in built.items():
             tris = triangles(ob)
@@ -775,6 +853,7 @@ def build():
         print(f"exported {OUT}: {OUT.stat().st_size} bytes")
         shot = os.environ.get("AETHER_PREVIEW")
         if shot:
+            world_coll.hide_render = True
             scene.camera = lay_out_preview(built, preview_coll)
             render_preview(scene, shot)
 

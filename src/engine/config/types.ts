@@ -4,6 +4,7 @@
 
 import type { AppearId, SelectId } from '../artifacts/strategies';
 import type { Shell } from '../artifacts/bubbleOrbits';
+import type { RingStyle } from '../artifacts/satellite';
 import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
 import type { HeadEffectId } from '../character/headEffects';
 import type { StageLighting } from './lighting';
@@ -529,7 +530,7 @@ export interface DomeShape {
 // approved; Nox's is `'glyphs'`, glowing red runes.
 
 /** Where the artifacts sit: a closed union, one member per placement in the engine's PLACEMENTS table (`pendant` joins in F01). */
-export type PlacementConfig = {
+export type PlacementConfig = | {
   kind: 'orbit';
   /** The rings the artifacts circle on (artifacts/bubbleOrbits.ts). */
   shells: readonly Shell[];
@@ -542,10 +543,19 @@ export type PlacementConfig = {
   squareness: number;
   /** How far a full swell pushes the rings out, as a fraction of their size. */
   swellPush: number;
+} | {
+  kind: 'satellite';
+  /**
+   * The ring round the head the artifacts rest on (artifacts/satellite.ts), drawn in the intro and
+   * the detail. Its active form (pendant slots, sizes and tether) joins with the pendant code.
+   */
+  ring: RingStyle;
 };
 
 /** The orbit placement's settings. */
 export type OrbitPlacement = Extract<PlacementConfig, { kind: 'orbit' }>;
+/** The satellite placement's settings. */
+export type SatellitePlacement = Extract<PlacementConfig, { kind: 'satellite' }>;
 
 /**
  * How a world's artifacts (its technologies' orbs) are placed, appear and are chosen: three

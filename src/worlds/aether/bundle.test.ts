@@ -4,7 +4,10 @@ import { dirname, resolve } from 'node:path';
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
-import { layoutOrbits } from '../../engine/artifacts/bubbleOrbits';
+import { PLACEMENTS, choiceRemoved, choosableNow } from '../../engine/artifacts/strategies';
+import { beadAngles, ringLineVisible, ringPoint } from '../../engine/artifacts/satellite';
+import { CAMERA_Z } from '../../engine/config/stage';
+import targets from './review/targets.json';
 import { AETHER_BUNDLE } from './bundle';
 import { AETHER } from './character';
 import { AETHER_POSES } from './poses';
@@ -100,16 +103,66 @@ test('there is no red anywhere in her character, place or theme (spec 7.7), and 
   expect(all.filter(([, value]) => isRed(srgb(value)!))).toEqual([]);
 });
 
-test('the placeholder orbit lays out any count without a visible bubble (the engine cannot take an empty shell list)', () => {
+test('her artifacts rest on the gold ring (the satellite placement), with the values of spec 2.2 and 7.5', () => {
   const { placement } = AETHER_BUNDLE.artifacts;
-  if (placement.kind !== 'orbit') throw new Error('the placeholder is the orbit placement');
-  for (const count of [1, 10, 15, 16, 20]) {
-    for (const stage of ['intro', 'overview'] as const) {
-      const orbits = layoutOrbits(count, placement, stage);
-      expect(orbits).toHaveLength(count);
-      expect(orbits.every(o => o.size === 0 && Number.isFinite(o.radius))).toBe(true);
-    }
+  if (placement.kind !== 'satellite') throw new Error('Aether places her artifacts on the satellite ring');
+  const { ring } = placement;
+  expect(ring).toMatchObject({ radius: 1.25, centreY: -0.28, tilt: 1.36, roll: 0.14, beadCount: 5, keepOut: Math.PI / 4 });
+  expect(ring.sway).toEqual({ amplitude: 0.21, period: [6, 9] });
+  // 1.4: the spec's 1.5 px limit measured 1.49 to 1.60 px with the anti-aliased fringe at 1.5 (Task 6).
+  expect(ring.line).toMatchObject({ color: '#d99982', width: 1.4 });
+  expect(ring.beads).toEqual({ glass: '#93699a', rim: '#d99982', lit: [1, 3] });
+  // Five homes, 54 degrees apart, evenly over the rear 270 degrees (the face's 90 degrees left clear).
+  expect(ring.homes).toHaveLength(ring.beadCount);
+  ring.homes.forEach((home, i) => expect((home * 180) / Math.PI).toBeCloseTo(45 + 27 + 54 * i, 9));
+  // The roll is the 8 degree lift of the right side.
+  expect((ring.roll * 180) / Math.PI).toBeCloseTo(8, 0);
+  // No bead ever reaches the face's sector, swaying or not.
+  for (let t = 0; t <= 60; t += 1 / 60) for (const a of beadAngles(t, ring, false)) expect(Math.abs(Math.atan2(Math.sin(a), Math.cos(a)))).toBeGreaterThan(ring.keepOut);
+});
+
+test("seen from P2's camera, the ring's centre and half-width are within the review targets, and it never crosses the eyes or the mouth", () => {
+  const { placement } = AETHER_BUNDLE.artifacts;
+  if (placement.kind !== 'satellite') throw new Error('Aether places her artifacts on the satellite ring');
+  const { ring } = placement;
+  const x0 = AETHER.head.centerX;
+  const seen = Array.from({ length: 720 }, (_, i) => {
+    const angle = (i / 720) * 2 * Math.PI;
+    const [x, y, z] = ringPoint(angle, ring);
+    const f = CAMERA_Z / (CAMERA_Z - z);
+    return { angle, x: (x0 + x) * f, y: y * f };
+  });
+  const xs = seen.map(p => p.x);
+  const ys = seen.map(p => p.y);
+  const halfWidth = (Math.max(...xs) - Math.min(...xs)) / 2;
+  const centreY = (Math.max(...ys) + Math.min(...ys)) / 2;
+  const [cLow, cHigh] = targets.ring.centreY;
+  const [wLow, wHigh] = targets.ring.halfWidth;
+  expect(centreY).toBeGreaterThanOrEqual(cLow);
+  expect(centreY).toBeLessThanOrEqual(cHigh);
+  expect(halfWidth).toBeGreaterThanOrEqual(wLow);
+  expect(halfWidth).toBeLessThanOrEqual(wHigh);
+  // Where the line shows at all, it stays clear of the eyes (their centres +- the eye's size) and the mouth.
+  const [fx, fy] = AETHER.head.faceOrigin;
+  const { eye, mouth } = AETHER.face;
+  const eyes = eye.centers.map(([ex, ey]) => [fx + ex, fy + ey] as const);
+  for (const p of seen) {
+    if (ringLineVisible(p.angle, ring) === 0) continue;
+    for (const [ex, ey] of eyes) expect(Math.hypot((p.x - ex) / (eye.rx * 1.6), (p.y - ey) / (eye.ry * 1.6)), `angle ${p.angle}`).toBeGreaterThan(1);
+    expect(Math.hypot(p.x - (fx + mouth.center[0]), p.y - (fy + mouth.center[1]))).toBeGreaterThan(mouth.halfWidth * 1.5);
   }
+});
+
+test('the intro offers no technology choice (spec 7.5, 8 item 14): no buttons, no tray, no ring bead to choose; the overview does', () => {
+  const { artifacts } = AETHER_BUNDLE;
+  expect(artifacts.choosableIn).toEqual(['overview']);
+  expect(choosableNow('intro', artifacts)).toBe(false);
+  expect(choiceRemoved('intro', artifacts)).toBe(true);
+  expect(choosableNow('overview', artifacts)).toBe(true);
+  // The beads are the ring's own: the placement lays out no artifact (no orb, button or bubbleLive spot) for them.
+  const { placement } = artifacts;
+  if (placement.kind !== 'satellite') throw new Error('Aether places her artifacts on the satellite ring');
+  for (const stage of ['intro', 'overview'] as const) expect(PLACEMENTS.satellite.layout(AETHER_BUNDLE.content.technologies.length, placement, stage)).toEqual([]);
 });
 
 test('the fifteen-technology test set is not in the bundle path: no source the bundle imports names it', () => {

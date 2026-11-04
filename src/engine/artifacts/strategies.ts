@@ -1,9 +1,12 @@
+import type { ComponentType } from 'react';
 import type * as THREE from 'three';
-import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PlacementConfig, type StageId, isChoosingStage } from '../config/types';
+import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbGlass, type OrbitPlacement, type PlacementConfig, type SatellitePlacement, type StageId, isChoosingStage } from '../config/types';
 import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosition } from '../sequences/bubbleBlow';
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
+import { SatelliteRing } from './SatelliteRing';
+import { layoutSatellite, satellitePoint } from './satellite';
 import { HOLD_BEATS, HoldChoreography, nearestArm, pullPosition } from './suctionHold';
 
 // The artifact strategies (spec 9.2): where a world's artifacts sit (placement), how they appear
@@ -18,6 +21,21 @@ export type ArtifactStage = ChoosingStage;
 
 // --- Placement -------------------------------------------------------------------------------
 
+/** What a placement's own drawing is given each frame (A1 9.2): the stage, the head's swell (0..1), and whether motion is off. */
+export interface PlacementFrame {
+  stage: StageId;
+  swell: number;
+  still: boolean;
+}
+
+/** A placement's own drawing, beside the artifacts: its config, its frame, the orb glass's surroundings and the head it sits round. */
+export interface PlacementFormProps<C> {
+  config: C;
+  frame: () => PlacementFrame;
+  glass: OrbGlass;
+  head: HeadShape;
+}
+
 export interface PlacementModule<C> {
   /** `count` artifacts' paths, sized for the stage's framing. */
   layout(count: number, config: C, stage: ArtifactStage): Orbit[];
@@ -25,6 +43,8 @@ export interface PlacementModule<C> {
   point(orbit: Orbit, t: number, swell: number, out: THREE.Vector3, config: C): THREE.Vector3;
   /** The clock's speed factor (1 at full pace), eased to 0 while `hot` (an artifact is hovered or held). `state` carries the spring between frames. */
   pace(hot: boolean, dt: number, state: { x: number; v: number }): number;
+  /** What the placement draws of its own, in the head's space (the satellite's ring); a placement without one draws only its artifacts. */
+  readonly Form?: ComponentType<PlacementFormProps<C>>;
 }
 
 /** Artifacts circling the character on rings (artifacts/bubbleOrbits.ts). */
@@ -34,8 +54,24 @@ const orbitPlacement = {
   pace: orbitSpeed,
 } satisfies PlacementModule<OrbitPlacement>;
 
-export const PLACEMENTS = { orbit: orbitPlacement } as const;
+/** A ring of seed beads round the head at rest (artifacts/satellite.ts); its active form comes with the pendant code. */
+const satellitePlacement = {
+  layout: layoutSatellite,
+  point: satellitePoint,
+  pace: orbitSpeed,
+  Form: SatelliteRing,
+} satisfies PlacementModule<SatellitePlacement>;
+
+export const PLACEMENTS = { orbit: orbitPlacement, satellite: satellitePlacement } as const;
 export type PlacementKind = keyof typeof PLACEMENTS;
+
+/**
+ * The placement module a config names, typed to take that config. (One cast: the table and the
+ * config union are keyed by the same kinds, which TypeScript cannot correlate through a lookup.)
+ */
+export function placementOf(config: PlacementConfig): PlacementModule<PlacementConfig> {
+  return PLACEMENTS[config.kind] as unknown as PlacementModule<PlacementConfig>;
+}
 
 // --- Appear ----------------------------------------------------------------------------------
 
@@ -113,8 +149,8 @@ const suctionSelect = {
   choreography: armFor => new HoldChoreography(armFor),
   nearestArm,
   position: pullPosition,
-  // The middle of the orbits: the artifacts swing round where their rings are centred.
-  centre: placement => ({ x: 0, y: placement.centreY }),
+  // The middle of the orbits (or of the satellite's ring): the artifacts swing round where their rings are centred.
+  centre: placement => ({ x: 0, y: placement.kind === 'orbit' ? placement.centreY : placement.ring.centreY }),
   // How far beyond the arm's tip a held bubble's centre sits, in bubble radii: its glass meets the tip clear of the logo.
   offTip: 1.25,
   arm: HOLD_ARM,

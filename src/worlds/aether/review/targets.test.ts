@@ -65,13 +65,33 @@ describe('Aether reference targets', () => {
       n++;
       for (let c = 0; c < 3; c++) sum[c] += p2.data[i * p2.channels + c];
     }
-    expect(n).toBeGreaterThan(40000);
-    expect(n).toBeLessThan(65000);
+    // Hand-corrected in Task 6: 51 793 px.
+    expect(n).toBeGreaterThan(48000);
+    expect(n).toBeLessThan(56000);
     sum.forEach((v, c) => expect(Math.abs(v / n - targets.meanInside.rgb[c]), `mask mean channel ${c}`).toBeLessThanOrEqual(1));
   });
 
+  test('the P2 mask hand corrections hold: tips below the nameplate line, no nameplate, no ruin spur', () => {
+    const mask = readPng(join(ROOT, 'public', 'aether', 'ref', 'p2-mask.png'));
+    const on = (x: number, y: number) => mask.data[(y * mask.width + x) * mask.channels] > 127;
+    const count = (x0: number, y0: number, x1: number, y1: number) => {
+      let k = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) k += on(x, y) ? 1 : 0;
+      return k;
+    };
+    // The lower-right tip spiral hangs to about y 462 and the lower-left arm to about 450 (no flat cut at 439).
+    expect(count(345, 445, 410, 466), 'lower-right tip spiral below y 445').toBeGreaterThan(300);
+    expect(count(140, 440, 184, 466), 'lower-left arm below y 440').toBeGreaterThan(100);
+    // The nameplate (x 183 to 339 from y 440) is not her.
+    expect(count(184, 441, 339, 504), 'nameplate').toBe(0);
+    // The ruin glow column above the outer-left arm (x 100 to 140, top edge about y 320) is cleared.
+    expect(count(100, 295, 140, 318), 'ruin spur').toBe(0);
+    // Her body under the spur is kept.
+    expect(on(110, 330)).toBe(true);
+  });
+
   test('shape targets are well-formed ranges', () => {
-    const ranges = [targets.head.centreX, targets.head.halfWidth, targets.head.top, targets.eyesY, targets.armSpan, targets.ring.centreY, targets.ring.halfWidth, targets.dome.halfWidth];
+    const ranges = [targets.head.centreX, targets.head.halfWidth, targets.head.top, targets.eyesY, targets.armSpan, targets.ring.centreY, targets.ring.halfWidth, targets.dome.halfWidth, targets.dome.top];
     for (const [lo, hi] of ranges) expect(lo).toBeLessThan(hi);
     expect(targets.iou).toBe(0.85);
   });

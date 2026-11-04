@@ -1,0 +1,48 @@
+{
+  "floorY": -2.45,
+  "groups": {
+    "portal": [
+      { "piece": "portal_arch", "position": [12.6, -2.45, -9.5], "rotY": -0.7, "scale": 1.1 }
+    ],
+    "towers": [
+      { "piece": "tower_a", "position": [-5.2, -2.45, -14.5], "rotY": 0.35, "scale": 1.05 },
+      { "piece": "tower_d", "position": [5.0, -2.45, -14.0], "rotY": -0.5, "scale": 1.15 },
+      { "piece": "tower_c", "position": [-11.5, -2.45, -4.0], "rotY": 0.55, "scale": 1.1 },
+      { "piece": "tower_b", "position": [13.5, -2.45, -19.0], "rotY": -0.3, "scale": 1.2 }
+    ],
+    "walls": [
+      { "piece": "wall_a", "position": [-10.2, -2.45, -1.2], "rotY": 0.9, "scale": 1.2 },
+      { "piece": "wall_b", "position": [-1.8, -2.45, -19.5], "rotY": 0.1, "scale": 1.5 },
+      { "piece": "wall_c", "position": [9.0, -2.45, -17.0], "rotY": -0.6, "scale": 1.4 },
+      { "piece": "wall_c", "position": [-13.5, -2.45, -14.0], "rotY": 0.7, "scale": 1.3 }
+    ],
+    "rubble": [
+      { "piece": "rubble_float_a", "position": [-8.0, 2.6, -9.0], "rotY": 0.6, "tilt": 0.2, "scale": 1.3 },
+      { "piece": "rubble_float_b", "position": [-9.6, 0.9, -12.0], "rotY": 2.1, "tilt": -0.3, "scale": 1.5 },
+      { "piece": "rubble_float_c", "position": [7.6, 3.0, -11.0], "rotY": 1.2, "tilt": 0.25, "scale": 1.4 },
+      { "piece": "rubble_float_d", "position": [5.2, 0.6, -6.5], "rotY": -0.8, "tilt": -0.15, "scale": 1.2 },
+      { "piece": "rubble_float_e", "position": [-9.4, 3.6, -15.5], "rotY": 0.3, "tilt": 0.35, "scale": 1.6 }
+    ],
+    "rocks": [
+      { "piece": "rock_a", "position": [-3.4, -2.55, 2.9], "rotY": 0.4, "scale": [1.4, 1.2, 1.2] },
+      { "piece": "rock_c", "position": [-5.6, -2.6, 1.3], "rotY": 1.1, "scale": [1.5, 1.2, 1.2] },
+      { "piece": "rock_d", "position": [-2.4, -2.5, 4.3], "rotY": 2.0, "scale": 0.7 },
+      { "piece": "rock_b", "position": [3.6, -2.6, 3.0], "rotY": -0.5, "scale": [1.5, 1.2, 1.2] },
+      { "piece": "rock_e", "position": [5.8, -2.55, 1.2], "rotY": -0.9, "scale": [1.4, 1.15, 1.15] },
+      { "piece": "rock_a", "position": [8.2, -2.55, -0.6], "rotY": -1.2, "scale": 1.3 },
+      { "piece": "rock_e", "position": [-8.8, -2.55, -1.4], "rotY": 1.4, "scale": 1.3 },
+      { "piece": "rock_b", "position": [-7.4, -2.5, -4.3], "rotY": 0.2, "scale": 1.1 },
+      { "piece": "rock_c", "position": [4.6, -2.5, -0.4], "rotY": 0.9, "scale": 0.9 }
+    ],
+    "corals": [
+      { "piece": "coral_fan_b", "position": [-4.2, 0, 1.7], "rotY": 0.35, "scale": 0.9 },
+      { "piece": "coral_fan_a", "position": [4.1, 0, 1.9], "rotY": -0.3, "scale": 0.9 },
+      { "piece": "coral_fan_c", "position": [-6.8, 0, -1.0], "rotY": 0.6, "scale": 1.1 },
+      { "piece": "coral_amber_a", "position": [-2.9, 0, 2.5], "rotY": 0.8 },
+      { "piece": "coral_amber_b", "position": [5.0, 0, 2.7], "rotY": -0.4, "scale": 1.1 },
+      { "piece": "coral_amber_c", "position": [-7.6, 0, -3.0], "rotY": 1.7, "scale": 1.2 }
+    ]
+  },
+  "chains": [],
+  "coralLights": []
+}

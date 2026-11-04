@@ -2,15 +2,15 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
 import { NOX } from '../../worlds/nox/character';
-import type { ArtifactConfig } from '../config/types';
+import type { ArtifactConfig, OrbitPlacement } from '../config/types';
 import { blowMouth } from '../sequences/bubbleBlow';
 import type { AppearSheet, SequenceId } from '../sequences/keys';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { APPEARS, PLACEMENTS, SELECTS, choiceRemoved, choosableNow } from './strategies';
 import { HOLD_BEATS } from './suctionHold';
 
-test("each table holds Nox's one entry, and the id unions follow the tables", () => {
-  expect(Object.keys(PLACEMENTS)).toEqual(['orbit']);
+test("each table holds Nox's entry (and the placements Aether's satellite), and the id unions follow the tables", () => {
+  expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'satellite']);
   expect(Object.keys(APPEARS)).toEqual(['blow']);
   expect(Object.keys(SELECTS)).toEqual(['suctionHold']);
   expect(NOX_ARTIFACTS.placement.kind in PLACEMENTS).toBe(true);
@@ -83,8 +83,11 @@ const AT_REST = [[1.8, 0.25, 0], [0.8912978400928262, 1.749003275612806, 0], [-1
 const LATER = [[0.20269201036727807, 1.7992619094572588, -0.4792428687345521], [-1.8694732883018574, 1.012057828413452, 0], [-1.523520547817049, -1.0703756385007466, -0.40844004808973255], [1.2182487861478841, -1.1196525873048786, 0.4236831946250082], [1.9003531070056752, 0.9020635564561028, 0]];
 const SWOLLEN = [[0.21120507480270376, 1.8643309096544638, -0.4993710692214033], [-1.9479911664105356, 1.0440642572068168, 0], [-1.5875084108253652, -1.125831415317778, -0.4255945301095013], [1.2694152351660952, -1.1771779959716837, 0.44147788879925853], [1.9801679374999135, 0.9294502258272591, 0]];
 
+/** Nox's placement, the orbit (the config union also holds the satellite). */
+const NOX_ORBIT = NOX_ARTIFACTS.placement as OrbitPlacement;
+
 test('the orbit placement lays out and moves five bubbles exactly as before', () => {
-  const { placement } = NOX_ARTIFACTS;
+  const placement = NOX_ORBIT;
   const orbits = PLACEMENTS.orbit.layout(5, placement, 'intro');
   expect(orbits).toEqual(FIVE_INTRO);
   // The layout function itself, given Nox's placement (it takes the shells and sizes from it).
@@ -105,7 +108,7 @@ test('the orbit placement lays out and moves five bubbles exactly as before', ()
 });
 
 test('a placement with other shells and sizes lays out by them', () => {
-  const placement = { ...NOX_ARTIFACTS.placement, shells: [{ radius: 3, tilt: 0.1, speed: 0.5 }], sizes: { intro: 0.3, overview: 0.4 } };
+  const placement = { ...NOX_ORBIT, shells: [{ radius: 3, tilt: 0.1, speed: 0.5 }], sizes: { intro: 0.3, overview: 0.4 } };
   const orbits = PLACEMENTS.orbit.layout(3, placement, 'overview');
   expect(orbits.map(o => [o.shell, o.radius, o.tilt, o.speed, o.size])).toEqual([[0, 3, 0.1, 0.5, 0.4], [0, 3, 0.1, 0.5, 0.4], [0, 3, 0.1, 0.5, 0.4]]);
   // A taller ring reaches higher, and a centre moved up moves it up.
@@ -131,7 +134,7 @@ test('the blow and the suction hold are the shared modules, reached through the 
   expect(SELECTS.suctionHold.offTip).toBe(1.25);
   // The swing's centre is the middle of the world's rings: Nox's is where the old constant held it (0, 0.25).
   expect(SELECTS.suctionHold.centre(NOX_ARTIFACTS.placement)).toEqual({ x: 0, y: 0.25 });
-  expect(SELECTS.suctionHold.centre({ ...NOX_ARTIFACTS.placement, centreY: 0.6 })).toEqual({ x: 0, y: 0.6 });
+  expect(SELECTS.suctionHold.centre({ ...NOX_ORBIT, centreY: 0.6 })).toEqual({ x: 0, y: 0.6 });
   const chosen: number[] = [];
   const choreography = SELECTS.suctionHold.choreography(bubble => (chosen.push(bubble), 3));
   choreography.choose(2, 0);

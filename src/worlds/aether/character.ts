@@ -2,21 +2,23 @@ import type { StageLighting } from '../../engine/config/lighting';
 import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
 
 // Aether, the Curious Mind (spec 7.1 to 7.3, 7.8): a small, round, lavender jelly creature with a
-// pink-white glow in her face and big violet eyes. Everything here is a START value, measured
-// against panel 2 of her storyboard (public/aether/ref/p2.png, 100 px to a world unit, origin at
-// the panel's centre, +y up) and the colour samples in review/targets.json; the colours are tuned
-// in Task 3 (character look) and Task 6, the face and moments in Task 4 and Task 16. There is no
-// red anywhere in her: her light is lavender, pink-white and blue.
+// pink-white glow in her face and big violet eyes. Measured against panel 2 of her storyboard
+// (public/aether/ref/p2.png, 100 px to a world unit, origin at the panel's centre, +y up) and the
+// colour samples in review/targets.json. The intro look (colours, arm radii, glow, cups, skin) is
+// TUNED in Task 6 against the render, pending the owner's review: character.test.ts pins it to the
+// committed evidence capture. The face was set in Task 4; the moments and other stages' values are
+// still start values (Task 16 and later). There is no red anywhere in her: her light is lavender,
+// pink-white and blue.
 
 // Her arms leave the body at the same depths as Nox's slots: the upper side pair behind the head,
-// the second pair level, the third in front, the centre pair hanging down the front. Slightly
-// thinner roots than Nox's: they read as jelly ribbons (spec 7.1).
-const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.62] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.165, z: [0.05, -0.32] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.17, z: [0.0, 0.3] });
+// the second pair level, the third in front, the centre pair hanging down the front. Root radii
+// fitted to the P2 mask in Task 6 (the arms are broad ribbons at the root in P2, 0.2 to 0.26).
+const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.25, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.21, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.26, z: [0.0, 0.3] });
 // The centre pair shows its cups along the outer edges (panel 2: the left arm's on its left, the
 // right arm's on its right), the opposite of Nox's V, starting where they clear the chin.
-const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.17, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.2, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
 
 /**
  * How the stage lights her: Nox's key, but the warm underglow is lavender, not red, and the bounce
@@ -32,38 +34,44 @@ export const AETHER_LIGHTING: StageLighting = {
 export const AETHER: CharacterConfig = {
   id: 'aether',
   lighting: AETHER_LIGHTING,
-  // A round ball, slightly wider than its height to the chin, the dome 0.73 out to either side and
-  // topping out at y +0.18 (P2 mask: widest 0.755 at y -0.4, top +0.19, centre x +0.065). The face
+  // A round ball, slightly wider than its height to the chin, the dome 0.745 out to either side and
+  // topping out at y +0.19 (P2 mask: widest 0.755 at y -0.4, top +0.19, centre x +0.065). The face
   // sits low: its origin is where the eyes' centre line (y -0.68 in world) meets x +0.12. Small cheek
   // lobes at the face sides, no more than 0.06 outside the dome line (spec 2.2).
   head: {
-    centerX: 0.07, halfWidth: 0.73, waist: -0.42, top: 0.18, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.12, -0.58],
+    centerX: 0.07, halfWidth: 0.745, waist: -0.42, top: 0.19, bottom: -1.2, topPower: 2.3, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.12, -0.58],
     cheeks: { y: -0.88, distance: 0.52, angle: 72, radius: 0.06, blend: 0.08 },
   },
   glow: {
     // The pink-white core sits just below the mouth (mouth y -0.90, glow centre about -0.95).
     center: [0.13, -0.95, 0.6],
-    core: '#ffc8ec',
+    // The additive core card, kept dim (Task 6): any brighter and the glow below the mouth clips
+    // to white (P2 keeps it pink: R - G >= 25, G <= 235).
+    core: '#6a4060',
     light: { color: '#d8a0ff', intensity: 5, distance: 6, decay: 2 },
     spreadX: 0.58,
-    reachUp: 0.5,
-    reachDown: 0.2,
+    reachUp: 0.72,
+    reachDown: 0.16,
     // Deep indigo above, blue-violet, violet, then near-white pink in the lower face: the P2
     // samples (upper dome 91,78,243; forehead 155,108,247; between the eyes 250,184,242; below the
-    // eyes 253,212,232). Start values, fitted in Task 3.
+    // eyes 253,212,232). Fitted in Task 3; Task 6 lifts the glow higher (reachUp 0.72) so the
+    // forehead and between-the-eyes samples land, and ends the ramp pink, not white.
     ramp: [
       [0, '#0a0d2c'], [0.1, '#2a1f8a'], [0.25, '#5b4ef3'], [0.4, '#9b6cf7'], [0.55, '#c690f7'],
-      [0.7, '#fab8f2'], [0.88, '#fdd4e8'], [1, '#fee3f2'],
+      [0.7, '#fab8f2'], [0.88, '#fdd4e8'], [1, '#fdd2ec'],
     ],
     cheekWarmth: 0.6,
-    // No red underside band (spec 7.1): her undersides glow lavender-pink from the arms' jelly core
-    // and the pink-white cups, never from Nox's oral band.
-    underside: 0,
-    // A soft violet-blue halo round the silhouette, pinker under the face (spec 7.2).
-    halo: { headWidth: 0.05, armWidth: 0.035, color: '#8f7cff', crown: '#7aa0ff', band: '#d890ff', strength: 0.75, bandStrength: 0.6 },
+    // No red underside band (spec 7.1): the engine's underside band is on (Task 6, P2 sample
+    // "Arm underside glow" 232, 195, 248), but in her colours, the periwinkle terminator into the
+    // lavender-pink belly, never Nox's red.
+    underside: 1.1,
+    // A soft violet-blue halo round the silhouette, pinker under the face (spec 7.2). The arm halo
+    // doubled in Task 6: P2's arms carry a wide soft glow that the mask includes.
+    halo: { headWidth: 0.05, armWidth: 0.07, color: '#8f7cff', crown: '#7aa0ff', band: '#d890ff', strength: 0.75, bandStrength: 0.6 },
     // In the water: an indigo-violet aura round her, pink-violet below, and the water near her
-    // a little darker and bluer than the lit water at the top.
-    aura: { inner: '#201a8a', low: '#8a3ad0', belowStart: 0.75, radius: 3.6, strength: 1 },
+    // a little darker and bluer than the lit water at the top. Half strength since Task 6: at full
+    // strength the water samples beside her came out too violet.
+    aura: { inner: '#201a8a', low: '#8a3ad0', belowStart: 0.75, radius: 3.6, strength: 0.5 },
     grade: { color: '#050a3a', radius: 3, strength: 0.7 },
   },
   palette: {
@@ -77,7 +85,7 @@ export const AETHER: CharacterConfig = {
     tintWarm: '#a878f0',
     wet: '#9ab0ff',
     armBody: '#4a60e0',
-    terminator: '#9a78f0',
+    terminator: '#7a9cf0',
     armGlow: '#f0b8fa',
     belly: '#f4c0f8',
     suckerEdge: '#d4a0f8',
@@ -85,10 +93,18 @@ export const AETHER: CharacterConfig = {
     suckerHot: '#fff2ff',
     suckerHollow: '#a688e8',
     suckerShadow: '#1e1470',
-    // The overview dome: blue-violet glass, a lavender-blue rim, a blue-white sheen (P3 samples).
-    domeTint: '#2a44c8',
-    domeRim: '#7a9aff',
-    domeRimTop: '#c4dcff',
+    // The overview dome: blue glass, a rim and a blue-white sheen across the top, tuned in Task 11 on
+    // the settled overview (bare `?freeze`, never `?swell=1`) against the three P3 samples (interior
+    // upper 59,94,226: delta E 7.9; rim 73,106,209: 8.4; top sheen 164,202,253: 3.4; reviews/aether.md).
+    // The engine adds the rim over the tint, and P3's rim sample is less blue than its interior, so the
+    // rim token is a near-neutral white: every lavender-blue rim tried (#d0d8ff, #b8c4ff, #e8e0ff,
+    // #f4f4ff) misses that sample (11.0 to 18.9), while P3's bright rim line, measured at nine points,
+    // barely changes with it (mean 12.0 to 14.3); #f4fff4 is the closest to that line that keeps the
+    // sample (12.8). On the glass the rim line reads lavender-white. P3's glass darkens toward the
+    // bottom; the engine's dome has one tint (an engine request, MORNING-REVIEW-aether.md).
+    domeTint: '#0644f0',
+    domeRim: '#f4fff4',
+    domeRimTop: '#c8f4ff',
     domeSheen: '#a4caff',
     // The in-focus orb's lavender-white rim (P4: 228,217,248).
     orbFocus: '#e4d9f8',
@@ -107,15 +123,17 @@ export const AETHER: CharacterConfig = {
   face: {
     // Large round eyes at y -0.68 (rel. y -0.10 from the face origin), 0.345 either side of the face
     // (P2: left eye centre about (236, 320) px, right about (305, 318)). Violet irises, two catchlights
-    // (large upper left, small lower right), a dark lash line and two short lashes at each outer corner.
+    // (a large one upper left, a small one upper right: P2, P3 and P4 at 3x all put both high on the
+    // pupil), a dark lash line and two short lashes at each outer corner. The pupil is large and
+    // round, nearly filling the dark top of the iris (P2 at 3x).
     eye: {
-      rx: 0.15,
-      ry: 0.17,
+      rx: 0.168,
+      ry: 0.16,
       centers: [[-0.345, -0.1], [0.345, -0.1]],
       border: { outer: 0.023, upperOuter: 0.031, top: 0.032, upperInner: 0.022, inner: 0.008, lowerInner: 0.008, bottom: 0.0075, lowerOuter: 0.011 },
       iris: { rx: 0.84, ry: 0.97, inset: 0.18, rim: 0.1 },
-      pupil: { rx: 0.5, ry: 0.55, drop: 0.12, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
-      catchlights: [{ x: -0.4, y: 0.42, r: 0.2 }, { x: 0.34, y: -0.3, r: 0.1 }],
+      pupil: { rx: 0.62, ry: 0.58, drop: 0.06, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
+      catchlights: [{ x: -0.36, y: 0.4, r: 0.2 }, { x: 0.36, y: 0.36, r: 0.1 }],
       glows: [
         { x: -0.62, y: -0.38, rx: 0.34, ry: 0.4, strength: 0.9 },
         { x: 0.66, y: -0.36, rx: 0.3, ry: 0.36, strength: 0.75 },
@@ -159,22 +177,40 @@ export const AETHER: CharacterConfig = {
     blush: '#fab7ce',
     blushGlow: '#f090d0',
   },
+  // Her faces, as overrides of the engine's base table (amendment A1, G1: no new ids). `gentle` is
+  // the intro's soft closed smile (P2), `happy` the overview's open smile with the tongue just
+  // showing (P3), and `curious` her wonder (P4, spec 7.3): brows up, eyes open, a wide "ooh"-smile
+  // with the tongue showing and a little more blush. Every other face is the engine's.
+  expressions: {
+    gentle: { mouthOpen: 0 },
+    happy: { mouthCurve: 0.75, mouthOpen: 0.35, blush: 0.4 },
+    curious: { browLift: 0.55, browTilt: 0.1, lidRest: 0, mouthCurve: 0.85, mouthOpen: 0.7, blush: 0.35 },
+  },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', -1), lower('T5', 1), side('T6'), middle('T7'), rear('T8')],
-  // Jelly ribbons: a soft, fairly even taper, a little thinner than Nox's, tips that roll loosely.
-  tipRadius: 0.04,
+  // Jelly ribbons: broad roots, a soft taper (power 2) to fine tips that roll loosely (Task 6 fit).
+  tipRadius: 0.045,
   taperPower: 2,
   armBend: 0.16,
   armFlatten: 0.86,
   // Rounded scallop cups, packed so their edges read as a beaded frill, shrinking toward the tip.
   // Veyra's frill cups in pink-white (amendment A1): a lavender-white glowing rim (P2 cup sample
-  // 222, 208, 245) over a pink wall (the underside glow, 238, 198, 250), round a dark mauve hollow
-  // (inside a tip spiral, 90, 63, 144). Start values; Task 6 tunes them against P2.
+  // 222, 208, 245) over a pink wall (the underside glow, 238, 198, 250), round a mauve hollow.
+  // Task 6: bigger cups, tilted further toward the camera, a wider and brighter rim, and a lighter
+  // hollow, because the P2 "Cup" sample (205, 188, 239) averages rim and hollow at render size.
   suckers: {
-    size: 0.21, sizePower: 0.7, spacing: 2.15, elongation: 1.1, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
-    style: { rimWidth: 0.22, scallop: 0.6, edge: '#eec6fa', rim: '#ded0f5', hollow: '#5a3f90', glow: 1.0 },
+    size: 0.3, sizePower: 0.7, spacing: 2.15, elongation: 1.1, tilt: 45, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
+    style: { rimWidth: 0.4, scallop: 0.6, edge: '#eec6fa', rim: '#f4e8ff', hollow: '#a888d8', glow: 1.3 },
   },
-  // The overview dome, a wide glossy capsule round the head (P3: half-width 1.38; refined in Task 11).
-  dome: { center: [0.035, 0.272], halfWidth: 1.4, halfHeight: 0.62, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The overview dome, a wide glossy capsule round the head (Task 11, P3 traced at the overview's
+  // registration, world (x, y) = ((px - 254.5) / 100, (252 - py) / 100)): the glass spans x 118 to
+  // 395 px and y 105 to 266 px, so in world units x -1.365 to 1.405 and y -0.14 to 1.47, over the
+  // body placed at (-0.05, 0.31) (poses.ts). Authored in the head's space: centre x 0.07 is the
+  // head's own axis. Its seat sits just above the eyes (P3: eye line at y 289 px), and the mantle
+  // sinks to just inside it (-0.42 against the seat's -0.45), so the face rises into the glass with
+  // no gap and the eyes stay whole below it (the face decal is cut above the sunk top). Depth 1.0
+  // (Nox and Veyra use 0.6): the deeper glass turns its sides from the camera over a wider band, so
+  // the engine's fresnel rim reaches P3's rim sample 15 px inside the edge (at 0.6 it stayed 16.8 to 28.6 away whatever the rim colour).
+  dome: { center: [0.07, 0.355], halfWidth: 1.38, halfHeight: 0.805, depth: 1.0, power: 3.2, mantleTop: -0.42 },
   // The synapse effect arrives in Task 20; until then the dome swells alone.
   headEffect: 'none',
   // Jelly skin with fine star specks and a lavender-pink glow through it; tuned in Task 6.
@@ -191,24 +227,29 @@ export const AETHER: CharacterConfig = {
     streakScale: 1,
     streakStrength: 0.2,
     // Veyra's jelly glass on both surfaces (spec 7.2), in Aether's colours from the P2 samples
-    // (spec 2.1; start values, Task 6 tunes them to delta E 10 on the render). The mantle: a bright
-    // lavender-white rim all round, a blue-white crown sheen (145, 168, 247), a deep blue-violet
-    // middle where the dome faces the camera (91, 78, 243), and the pink-white core (253, 212, 232)
-    // inside the lower face at the glow's own centre, just below the mouth (y -0.95), set back into
-    // the jelly. The arms: the same glass set thinner, a lavender-white top rim (227, 211, 251), a
-    // periwinkle body (94, 138, 228), a light blue cap along their tops and the lavender-pink
-    // underside glow (238, 198, 250) warming the roots. Star specks per square unit: enough for at
-    // least 15 on the front of the head and 60 across the arms at P2 size (spec 2.3).
+    // (spec 2.1; tuned in Task 6 to delta E 10 on the render, see docs/superpowers/reviews/aether.md).
+    // The mantle: a lavender-pink rim that spreads wide (power 1.6) so the head sides stay violet,
+    // a blue-white crown sheen (147, 170, 248), a deep blue-violet middle where the dome faces the
+    // camera (92, 80, 244), and the pink-white core (253, 212, 232) inside the lower face at the
+    // glow's own centre, just below the mouth (y -0.95), set back into the jelly. The arms: the same
+    // glass, a lavender-white top rim (224, 206, 248), a periwinkle-indigo body (75, 88, 231), a
+    // white-pink cap along their tops and the lavender-pink underside glow. Star specks per square
+    // unit: Task 6 measured 23 on the front of the head and 111 across the arms at this density
+    // (fix round 1 still, on the 3x front still; spec 2.3 asks at least 15 and 60).
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#ebe2fb', rimPower: 3.5, crown: '#91a8f7', crownHeight: 0.55, depth: '#5b4ef3', depthStrength: 1, core: '#fdd4e8', coreCenter: [0, 0, -0.35], coreWarmth: 0.4 },
-        sparkle: 30,
+        // Fix round 1: rim power 1.8 to 1.6, the lavender rim a little wider, so the head sides keep a
+        // margin (7.8 / 6.4) with the higher bloom threshold.
+        jelly: { rim: '#e0bcf8', rimPower: 1.6, crown: '#a0bafc', crownHeight: 0.55, depth: '#5b4ef3', depthStrength: 1, core: '#fdd4e8', coreCenter: [0, 0, -0.35], coreWarmth: 0.4 },
+        sparkle: 45,
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#e3d3fb', rimPower: 5, crown: '#8ab0f8', crownHeight: 0.5, depth: '#5e8ae4', depthStrength: 0.6, core: '#eec6fa', coreCenter: [0, 0, -0.35], coreWarmth: 0.35 },
-        sparkle: 35,
+        // Fix round 1: a deeper indigo depth (#505ce2 at 0.8, was #5c74e6 at 0.4) where the arms face the
+        // camera brings the mean inside her silhouette to P2's (158, 142, 237 against 154, 133, 228).
+        jelly: { rim: '#e3d3fb', rimPower: 3, crown: '#f8e8fd', crownHeight: 0.42, depth: '#505ce2', depthStrength: 0.8, core: '#eec6fa', coreCenter: [0, 0, -0.35], coreWarmth: 0.35 },
+        sparkle: 45,
       },
     },
   },

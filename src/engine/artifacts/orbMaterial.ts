@@ -28,8 +28,15 @@ export function createOrbMaterial(tint: string, focusColour: string, glass: OrbG
       varying vec3 vV;
       varying vec3 vLocal;
       void main() {
-        vec4 world = modelMatrix * vec4(position, 1.0);
-        vN = normalize(mat3(modelMatrix) * normal);
+        vec4 local = vec4(position, 1.0);
+        vec3 n = normal;
+        // Instanced (a satellite ring's seed beads, artifacts/SatelliteRing.tsx): each its own place and size.
+        #ifdef USE_INSTANCING
+          local = instanceMatrix * local;
+          n = mat3(instanceMatrix) * n;
+        #endif
+        vec4 world = modelMatrix * local;
+        vN = normalize(mat3(modelMatrix) * n);
         vV = normalize(cameraPosition - world.xyz);
         vLocal = position;
         gl_Position = projectionMatrix * viewMatrix * world;
@@ -128,8 +135,14 @@ export function createOrbHaloMaterial(tint: string, focusColour: string) {
       varying vec3 vN;
       varying vec3 vV;
       void main() {
-        vec4 world = modelMatrix * vec4(position, 1.0);
-        vN = normalize(mat3(modelMatrix) * normal);
+        vec4 local = vec4(position, 1.0);
+        vec3 n = normal;
+        #ifdef USE_INSTANCING
+          local = instanceMatrix * local;
+          n = mat3(instanceMatrix) * n;
+        #endif
+        vec4 world = modelMatrix * local;
+        vN = normalize(mat3(modelMatrix) * n);
         vV = normalize(cameraPosition - world.xyz);
         gl_Position = projectionMatrix * viewMatrix * world;
       }

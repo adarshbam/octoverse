@@ -4,12 +4,12 @@ import { asWorldLayout } from '../../../engine/world/validateWorld';
 // The drowned observatory's stage backdrop (spec 7.7): for now only the water. The kit is an
 // empty glb and the layout has no pieces, so the stage shows Aether in indigo water, with the
 // engine's own live elements (star motes, bubbles, rays). The ruin towers, the brain portal, the
-// coral, the jellyfish and the path arrive with Task 8 onward (`place/layout.json` then). There is
+// coral, the jellyfish and the path arrive with Task 8 onward: `place/layout.json` and `kit.glb` (Task 8) are checked by `layout.test.ts`, and Task 9 switches this stage to them. There is
 // no lava and no red light anywhere in her world: the seabed's glow is black (none), no point
 // lights, no embers.
 
 /** An empty layout (no pieces), checked against the schema like a full one, so a later edit fails by name. */
-const layout = asWorldLayout({ floorY: -2.45, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] });
+const layout = asWorldLayout({ floorY: -2.45, groups: {}, chains: [], coralLights: [] });
 
 /**
  * The seabed's own light: none. Black is no glow (types.ts `FloorGlow`); the world's own look
@@ -23,7 +23,8 @@ const palette = {
   // The brain glyph's neon violet-blue, the coral's magenta and an amber lantern, for the pieces to come.
   glyph: '#6a5aff',
   coral: '#c02ad0',
-  lava: '#ffb040',
+  // The warm amber of the lanterns and lit windows, a relic the world names (`relics.amber`).
+  amber: '#ffb040',
   // The water at the horizon: P2's mid water (5, 19, 75).
   waterFar: '#05134b',
   floor: '#0a0f33',
@@ -33,12 +34,16 @@ const palette = {
 /**
  * Post-processing: contact shadows and bloom as Nox's (her glow is the brightest thing in frame, so
  * the bloom threshold keeps the pink-white core from washing out: Task 3 and 6 tune it), and a
- * lighter vignette, since P2's corners are lit by the ruin and its rays.
+ * lighter vignette, since P2's corners are lit by the ruin and its rays. Task 6: vignette 0.8 to 0.4
+ * (the water samples away from her were too dark) and a higher, softer bloom (threshold 0.66 to 0.8,
+ * intensity 1.05 to 0.8: the face glow bloomed to white below the mouth).
  */
 const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#0a0830' },
-  bloom: { luminanceThreshold: 0.66, luminanceSmoothing: 0.25, intensity: 1.05, radius: 0.85 },
-  vignette: { offset: 0.3, darkness: 0.8 },
+  // Fix round 1: threshold 0.8 to 0.95, so the pink-white face (luminance about 0.9) no longer blooms over the
+  // pupils (they read 30 to 40 per channel at 0.8, 11 to 15 at 0.95); only near-white highlights bloom now.
+  bloom: { luminanceThreshold: 0.95, luminanceSmoothing: 0.25, intensity: 0.8, radius: 0.85 },
+  vignette: { offset: 0.3, darkness: 0.4 },
 };
 
 /**
@@ -80,7 +85,7 @@ export const OBSERVATORY_STAGE: WorldConfig = {
   post: POST,
   // No lava, back lights or crevice glow; the rays and the surface's opening are Nox's strength.
   glow: { lava: 0, back: 0, crevice: 0, floor: 0, embers: 0, top: 1.2, rays: 1.2 },
-  relics: { glyph: 1, coral: 1, spill: 1 },
+  relics: { glyph: 1, coral: 1, spill: 1, amber: 1 },
   palette,
   lights: {
     // Cool blue-white rays from the upper right (spec 7.7), and a cool fill from overhead.
