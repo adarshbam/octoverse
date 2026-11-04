@@ -135,3 +135,85 @@ Verdict, by eye, honest:
 - **Rear bead: hidden, not dimmed.** Her jelly head is opaque to depth, so the bead at 180 degrees and the ring's back arc are hidden behind the head rather than seen dimmed through it (no extra pass, as ruled). P2 also hides the back arc behind the head.
 - **Line: pass.** Thin warm gold, continuous; a little more tan than P2's brighter white-gold glow, which is the bloom's and Task 6's.
 - **Back view (`t5-intro-back.png`, `yaw=180`): pass.** The ring and all five beads circle the back of the head; the line runs unbroken across the back and fades only on the face's side.
+
+## Task 6: P2 look gate (Milestone 1), tuned to the targets; owner review PROVISIONAL
+
+Base `992338f` (the gold ring); the hand-corrected mask is `1571dbd` (see Reference checks). Config only: `character.ts`, `poses.ts` (intro traces), `place/config.ts` (post). No engine file changed. Nox untouched; `boundary.test.ts` green.
+
+How it was measured: `WORLD=aether node scripts/world-capture.mjs intro <out>.png "tier=high&kitwait=90000"` (514 x 504 at P2's registration, with its silhouette mask), then `python scripts/check_stage.py <out>.png --world --stage intro --world-id aether` (CIE76 on 7 x 7 px patches at the 23 spec 2.1 points; the brief's command lacks `--world`, and without it the panel mode's max-channel delta is used instead). The four checks, IoU with `public/aether/ref/p2-mask.png`, and head, eyes and span came from a scratch script using the rules of spec 2.1 and `targets.json`. Close-ups: `VIEW=506x504 SCALE=3 WORLD=aether node scripts/stage-capture.mjs intro <out> "tier=high&kitwait=90000[&yaw=35]"`. Vite on 127.0.0.1:5196 only. Evidence: `docs/superpowers/evidence/aether/m1/` (stills and `numbers.txt`). No videos.
+
+### Rounds (samples within delta E 10, of 23; IoU raw / nameplate box left out)
+
+The "Change" column for c1 to c5 groups several edits per round; only the round's numbers were logged, not a diff per edit. The final values are in the config and pinned by `character.test.ts`.
+
+| Round | Change | Samples ok | IoU | Notes |
+|---|---|---|---|---|
+| r0 | Task 5 state, new mask | 1 | 0.714 / 0.749 | below the mouth G 255 (white): the pink check fails; forehead 18.7, between the eyes 35.9, top rim 59.5, underside 46.3, cup 42.8 |
+| s1 | arms thicker, head 0.745 wide, top 0.19 | (shape only) | 0.745 / 0.789 | |
+| s2 | traces refitted to the mask (offline fit 1), root radii 0.24 / 0.21 / 0.26 / 0.2, tip 0.045 | (shape only) | 0.790 / 0.828 | |
+| s3 | fit 2, rear roots 0.25, taper power 2, head top power 2.3 | (shape only) | 0.795 / 0.833 | P2's two painted rear stubs cost 2675 px; edge error within 2 px is about 4400 px |
+| c1 | glow ramp, reach up 0.72, core card dimmed, bloom threshold 0.8, vignette 0.4 | 7 | | head mostly in, water in |
+| c2 | mantle depth and rim, aura 0.5 | 12 | | all head samples in |
+| c3 | crown height 0.32 | | | crown too broad, reverted |
+| c4 | T1 retraced, arm halo 0.07, underside band on (1.1, periwinkle to pink), cups bigger and tilted | | | underside, cup, spiral and arm body lower in |
+| c5 | arm rim power 3 | | | top rim in |
+| c6, c7 | cyan crown; T1 lowered | | | both regressed, reverted |
+| c8 | arm crown white-pink, cup rim 0.4, hollow lighter | 18 | 0.793 / 0.830 | all four checks pass |
+| c9 to c12 | arms lighter and more saturated, to chase the mean inside | 14 to 16 | | arm samples broke, reverted to c8 |
+| c13 to c15 | mantle rim recoloured (#e0bcf8, power 1.8), sparkle 45 on both | 18 | 0.793 / 0.830 | head sides 9.9 / 9.6, thin |
+| c16 | one more curl point on T1, T2, T3, T7 | 17 | 0.795 / 0.832 | top rim 10.6 (T1's taper moved) |
+| c17 | T1 back, T6 instead | 18 | 0.796 / 0.833 | four full curls |
+| **c18** | T7's bend at x 1.04 eased | **18** | **0.796 / 0.834** | **final** |
+| c19 | core card off (test) | 18 | | pupils unchanged (35 / 30): the card is not what greys them; reverted |
+| c20 | bloom off (test) | 16 | | pupils near-black (11, 5, 31 / 7, 3, 25), but head sides 10.4 / 10.1 and the glow loses its softness; reverted |
+| c21 | bloom 0.5, radius 0.6 (test) | 17 | | pupils 32 / 26, head side left 10.3; reverted |
+
+### Final numbers (c18, `numbers.txt`)
+
+| Sample | delta E | Sample | delta E |
+|---|---|---|---|
+| Crown sheen | 8.4 | Arm top rim | 5.8 |
+| Upper dome | 2.0 | **Arm body upper** | **33.5** |
+| Forehead | 7.6 | Arm body lower | 2.9 |
+| Between the eyes | 2.6 | Arm underside glow | 4.3 |
+| Face glow below eyes | 3.8 | Cup | 7.7 |
+| Face glow below mouth | 6.9 | Inside tip spiral | 6.2 |
+| Chin | 1.8 | **Gold seed bead** | **87.2** |
+| Head side left / right | 9.9 / 9.6 | **Glass seed bead** | **43.8** |
+| Blush | 5.5 | Water outside head / mid / upper | 3.4 / 7.8 / 6.2 |
+| | | **Jellyfish bell / Ruin window light** | **51.5 / 64.2** |
+
+18 of 23 are within 10. The five open ones, and why:
+- **Arm body upper** (-1.03, -0.95): in P2 this point sits where T1 meets a painted rear stub (a ninth and tenth tentacle beside the head; Aether has exactly eight, spec 7.4). P2's two arm-body samples are 34.5 apart, so no single arm material meets both. The lower one is met (2.9).
+- **Gold and glass seed beads**: the spec 2.2 ring (right side rolled up, beads at 72 to 288 degrees) puts the beads elsewhere than P2 paints them, so these points land on open water. Owner call: move the beads to P2's places, or drop these two samples.
+- **Jellyfish bell, ruin window light**: backdrop pieces that arrive in Task 8 and later.
+
+Checks (all pass): warm core 157 (>= 120). Pink not white: below the eyes R-G 40, G 215; below the mouth R-G 37, G 218 (needs >= 25 and <= 235; it was G 255 at r0). Periwinkle arms: B 245 / B-R 164 and B 240 / B-R 163. Indigo water: B 96, B-R 76.
+
+Shape (all in range): head top 0.19, half-width 0.745 at y -0.38, centre x 0.065, arm span 3.85, eyes at y -0.65.
+
+**IoU: 0.796 raw, 0.834 with the nameplate box left out. Below 0.85.** With P2's two rear stubs also left out it is 0.875. The stubs are the P2-only blobs beside the head, x -1.02 to -0.50 and 0.67 to 1.21, 2675 px. The rest of the gap is edge error of 1 to 2 px along the arms. Owner call: take the stubs out of the mask (they are not Aether's), or keep them in and keep 0.85 as the bar (meeting it would need a ninth and tenth arm, against spec 7.4).
+
+**Mean inside the silhouette: misses.** Capture (169, 151, 239), saturation 0.389, brightness 0.940. Target (154, 133, 228), 0.458, 0.900. On average the arms read lighter and less saturated than P2's, whose arm interiors are darker indigo between bright edges. Darkening the arm body to fix this (c9 to c12) broke the arm samples, so the samples won. Spec 2.1 records the mean when H01 starts.
+
+### Close-up checklist at 3x (front and three-quarter, yaw 35)
+
+Stills: `render-intro-front-3x.webp`, `render-intro-three-quarter-yaw35-3x.webp`. Side by sides, P2's 3x panel on the left: `p2-vs-render-head-3x.png`, `p2-vs-render-left-arms-3x.png`, `p2-vs-render-right-arms-3x.png`, `p2-vs-render-full-1.5x.png`.
+- **Eyes: pass in kind, pupils not black.** Violet irises, two catchlights, a lash line. On the 3x still the pupils' darkest quarter reads (39, 36, 53) and (33, 29, 45); P2's is near-black (6, 2, 15). Better than Task 4 (54 to 76), but still grey-violet. The cause is bloom spilling from the bright face (c20: with bloom off they read 7 to 11), not the core card (c19). A fix that keeps the soft glow needs the bloom to leave the face decal alone: an engine follow-up.
+- **Lashes, brows, blush, smile: pass.** The blush is a little smaller and fainter than P2's.
+- **Face glow: pass.** Pink, not white, below the eyes and below the mouth.
+- **Crescent crown sheen: miss.** The crown sheen colour lands (8.4), but the sheen is a symmetric cap. P2's is a blue-white crescent on the upper left. This needs an engine crown direction (follow-up).
+- **Specks: pass.** 26 on the head front and 123 on the arms (white top-hat peaks on the 3x still, eye catchlights excluded; at a stricter threshold, 17 and 107).
+- **Cups: pass in count and spacing, different in look.** Separate rounded cups shrinking toward the tip: pink-white rims round mauve hollows. They stand proud as round beads, where P2's read as a flat, bright scalloped edge. Owner to judge.
+- **Curls: pass.** Four arms (T2, T3, T6, T7) turn 391 to 433 degrees at the tip. T1 turns 348, T4 306, T5 283, T8 276.
+- **Ring: pass, at the limit.** Line width 1.49 to 1.60 px at 1x (median band crossing on the 3x still, anti-aliased fringe included; config 1.5).
+- **Head shape: note.** At 3x the dome reads a little boxier than P2's (flatter top, straighter sides), though top, width and centre are in range.
+- **Arms: note.** T7 shows a visible bend near x 1.0 (eased once in c18). In the three-quarter view the ring line passes just beside the left cheek.
+
+### Budget
+
+`WORLD=aether node scripts/perf.mjs "stage=intro&tier=low"`, twice back to back, under load (dev server, other sessions on the same Intel UHD): median **65.8 fps** (slow10 35.0) and **64.9 fps** (slow10 27.0). The 40 fps target is met; the speck lever was not needed (sparkle stays 45).
+
+### Verdict, honest (not an approval)
+
+In colour the character is close to P2: every head, face, arm, cup and water sample but one meets delta E 10, and the four checks pass. It is not yet P2 in three places a viewer will see: the pupils are grey-violet rather than black, the crown has no crescent, and the cups stand out as beads instead of a flat bright frill. The silhouette misses the 0.85 IoU bar, mostly because of P2's two extra stubs. The owner's live check decides.

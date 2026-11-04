@@ -4,7 +4,24 @@ Branch: `claude/aether-world-overnight`. Nothing pushed, nothing merged. Frame r
 
 ## PENDING OWNER REVIEW
 
-_(none yet; the build is gated on E02 and Veyra landings)_
+### P2 look gate (Task 6, Milestone 1): PROVISIONAL, not approved
+
+Open the intro (`?world=aether`) live, and compare with P2. Stills in `docs/superpowers/evidence/aether/m1/` (P2's 3x panel on the left in each side by side):
+- `p2-vs-render-head-3x.png`, `p2-vs-render-left-arms-3x.png`, `p2-vs-render-right-arms-3x.png`, `p2-vs-render-full-1.5x.png`
+- `render-intro-front-3x.webp`, `render-intro-three-quarter-yaw35-3x.webp`
+- `world-capture-intro.png` (+ `-mask.png`), and all numbers in `numbers.txt`
+
+Numbers: 18 of 23 P2 samples within delta E 10. The open ones: arm body upper 33.5 (a painted stub P2 has and Aether does not), the two seed beads 87.2 / 43.8 (spec ring roll against P2's bead places), jellyfish 51.5 and ruin 64.2 (not built yet). All four checks pass: warm core 157; below the mouth R-G 37, G 218 (pink, not white); arms B 245 / 240; water B 96. Head, eyes and span are in range. IoU **0.796** (0.834 with the nameplate left out, 0.875 with P2's two rear stubs left out too); the target is 0.85. Mean inside the silhouette: too light (169, 151, 239 against 154, 133, 228). Under load: 65.8 and 64.9 fps median at tier low. Full rounds: `docs/superpowers/reviews/aether.md`, Task 6.
+
+What to check:
+1. **Face glow pink, not white**, below the eyes and the mouth.
+2. **Arms periwinkle** with a lavender-white top rim and a lavender-pink underside, no red anywhere.
+3. **Ring placement**: brow height, right side higher, nothing over the eyes. The beads sit where the spec puts them, not where P2 paints them. Which do you want?
+4. **Eyes**: the pupils read grey-violet (about 30 to 40 per channel; P2 is near-black). Bloom spill causes it (bloom off makes them black, but loses the soft glow). Acceptable for now?
+5. **Cups**: separate, shrinking, pink-white. They stand out as round beads; P2's are a flatter bright scalloped edge. Close enough?
+6. Also: no crescent on the crown (engine), the dome a little boxier than P2's, and a visible bend on the right middle arm (T7).
+
+Decisions wanted: take P2's two rear stubs out of the mask (IoU then 0.875)? Drop or move the bead samples?
 
 ## Placeholder names for the five unnamed P3/P4 icons
 
@@ -23,6 +40,12 @@ Please give the real names.
 - **Empty orbit shells.** `layoutOrbits` (`artifacts/bubbleOrbits.ts`) crashes on `shells: []` (`i % 0`); Aether's placeholder uses one zero-radius shell with size 0 until Task 5.
 - **Kit stubs.** `Kit.tsx` requires `chain` and `chain_lod1` nodes even when the layout has no chains.
 - **Logo marks.** `LOGO_SLUGS` has no mark for OpenAI, React, Next.js, PostgreSQL, AWS or Vector DB (lettered fallback).
+- **Crown crescent (Task 6).** The jelly crown term in `skinMaterial.ts` is a symmetric cap (`smoothstep(crownHeight, crownHeight + 0.4, N.y)`). P2's sheen is a blue-white crescent on the upper left. It needs a crown direction (a tilt vector, and a width for the crescent) in `JellyLook`.
+- **Bloom greys the pupils (Task 6).** With bloom on, the pupils read 30 to 40 per channel; with bloom off, 7 to 11 (P2: near-black). A way to keep the face decal's darks out of the bloom (a bloom mask, or a selective bloom on the glow only) would let Aether keep her soft glow and black pupils.
+- **IoU bar against P2's stubs (Task 6).** P2 paints two extra rear stubs beside the head (2675 px). With them in the mask, an eight-armed Aether tops out near 0.83 (nameplate left out); without them, 0.875. The review target needs an owner decision, not engine work.
+- **Ring beads against P2 (Task 6).** The spec 2.2 roll and bead angles put the beads away from P2's painted places, so the two bead samples cannot be met by tuning. Spec or samples should change.
+- **Backdrop samples (Task 6).** Jellyfish bell and ruin window light wait for Task 8 and later.
+- **Mean inside the silhouette (Task 6).** Too light on the arms (169, 151, 239 against 154, 133, 228). Darkening the arm body breaks the arm samples. This may need a darker arm interior between bright edges (a stronger fresnel split in the arm jelly), which is engine shading.
 
 ## Questions for the owner (Task 4, face)
 

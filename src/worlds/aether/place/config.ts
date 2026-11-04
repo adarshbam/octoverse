@@ -33,12 +33,14 @@ const palette = {
 /**
  * Post-processing: contact shadows and bloom as Nox's (her glow is the brightest thing in frame, so
  * the bloom threshold keeps the pink-white core from washing out: Task 3 and 6 tune it), and a
- * lighter vignette, since P2's corners are lit by the ruin and its rays.
+ * lighter vignette, since P2's corners are lit by the ruin and its rays. Task 6: vignette 0.8 to 0.4
+ * (the water samples away from her were too dark) and a higher, softer bloom (threshold 0.66 to 0.8,
+ * intensity 1.05 to 0.8: the face glow bloomed to white below the mouth).
  */
 const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#0a0830' },
-  bloom: { luminanceThreshold: 0.66, luminanceSmoothing: 0.25, intensity: 1.05, radius: 0.85 },
-  vignette: { offset: 0.3, darkness: 0.8 },
+  bloom: { luminanceThreshold: 0.8, luminanceSmoothing: 0.25, intensity: 0.8, radius: 0.85 },
+  vignette: { offset: 0.3, darkness: 0.4 },
 };
 
 /**
