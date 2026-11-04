@@ -132,3 +132,23 @@ Known gaps for the owner to rule on:
 - The face-clearance e2e measures against a geometry model (`window.__platform.faceRect`), not pixels; the six landing stills were overlaid by hand. A pixel or probe check is planned for the final pass (Task 21).
 - Bare `/` is now the landing; Nox's own specs open `/?world=nox` (commit 312361a, test files only).
 - Reef: the glass cards do not bob and there is no jellyfish yet (engine drives landed on Aether's branch; waiting on its engine sync); the gate glyph reads like an atom/React-style mark, not the octopus logo; fps 40.2 / 29.0 / 37.5 under load against a floor of 40.
+
+## PENDING OWNER REVIEW: M3, profile, Explore and not found (Task 9)
+
+Commits on `claude/platform-overnight`: `feat(platform): profile, explore and not-found compositions (pending owner review)` (and its fix commits, if any, after it). Static compositions with engine stills; the live previews (hero, tile hover) are Task 13 and the real routes are Task 14. Reach them now at `/?page=profile&handle=veyra` (also `flux`, `nox`, `aether`), `/?page=explore` and `/?page=notfound` (a temporary switch in `src/platform/App.tsx`, removed in Task 14).
+
+Stills (`docs/superpowers/evidence/platform/m3/`, 1536 x 1024, 768 x 1024, 390 x 844): `profile-<handle>-<w>x<h>.png` for all four handles, `explore-<w>x<h>.png`, `notfound-<w>x<h>.png`. Compare beside P5 (`docs/design/references/Octoverse/native-panels/05 - ...png`). Captured by `scripts/platform-pages-capture.mjs`.
+
+Numbers: unit 39 tests in 5 files (`showcase.test.ts`, `tabKeys.test.ts`, `profile.test.tsx`, `explore.test.tsx` and the boundary test with its new allowlist cases); e2e `tests/e2e/platform-pages.spec.ts` 37 of 37 (each of the 7 pages at 360, 390, 768, 1024 and 1536: no horizontal scroll and every link, button and tab at least 44 x 44; the tabs by arrow keys, Home and End; the tile and Enter-button reading order). Whole suite 135 files, 1099 passed, 3 skipped; typecheck clean (src/platform and its tests checked through a temporary tsconfig too).
+
+What to check:
+1. Profile against P5: the hero card (rounded glass, an engine still with the world's accent border) left, identity right (name, "Showcase" badge where P5 has "Pro", epithet, the project tagline, "Enter <name>'s world"), the tab pills Projects (1), About, Tech Stack, and the project card (screenshot or the dashed "No screenshot yet" placeholder, title, tagline, first five technology chips). Gone from P5 on purpose: Follow, location, link, counts, search, Sign in, Get Started.
+2. Explore: five glass tiles with each world's accent border and still, in the order Veyra, Flux, Nox, Aether, Your Octopus (the gold glyph card); each world tile says name, epithet, project title, the first three chips and "Showcase". The page reads calm, not a dashboard: one heading, the grid, the footer line.
+3. Not found: "This part of the ocean is unexplored" in the title gradient on a glass card, with Back to OctoVerse and Explore.
+4. Tabs by keyboard: Tab to the tab list, Left and Right wrap, Home and End jump, one tab stop.
+
+Known gaps for the owner to rule on:
+- The reef's water behind these pages is CSS (indigo, a cyan glow top right, a violet glow low left, soft light shafts), not a captured still of the reef's far water: no such still exists in the pipeline yet. The not-found page has no host picture for the same reason (Task 14 wires the real host).
+- Nothing in the content supplies a profile link or a location, so the profile shows neither. Veyra and Flux have no screenshot, so their project card shows the placeholder; Nox's screenshot (the owner's supplied content) shows a site headed "VAULT" under the title Security Lab, and Aether's is the storyboard's placeholder screenshot (its alt text says so).
+- Tech Stack notes: only three technologies have a usage note in the content (GitHub Actions, Kali Linux, OpenAI, each the storyboard's panel 4 text flagged as a placeholder); the others show their category only, nothing invented. About is the content's introduction and summary, which the content flags as storyboard placeholder text.
+- Tile pictures are the 738 x 614 stills cropped a little; at 1536 the five tiles are about 245 px wide, so the page leaves a lot of empty water below them.

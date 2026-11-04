@@ -271,7 +271,8 @@ test('the scan finds a hue where there is one (the pattern is not dead)', () => 
 //   - nothing under src/worlds/<id>/ is reached except the host's own folder (src/worlds/octoverse/**),
 //     the registry (src/worlds/index) and the four showcase worlds' content modules
 //     (src/worlds/<id>/content/<id>.ts: a bare data file, for the epithets; never a world's bundle,
-//     so the landing's chunk holds no other world's kit or Theatre state);
+//     so the landing's chunk holds no other world's kit or Theatre state) and, for the showcase
+//     fixtures, that world's <id>Project.ts and <id>Technologies.ts (more bare data files);
 //   - engine imports are an explicit allowlist (below): a new deep engine import fails here.
 // ---------------------------------------------------------------------------------------------
 
@@ -301,6 +302,10 @@ function platformViolation(where: string): string | null {
   if (bare.startsWith('worlds/')) {
     if (bare === 'worlds/index' || bare.startsWith('worlds/octoverse/')) return null;
     if (/^worlds\/(nox|veyra|flux|aether)\/content\/(nox|veyra|flux|aether)$/.test(bare) && bare.split('/')[1] === bare.split('/')[3]) return null;
+    // Platform Task 9 (showcase fixtures): the same world's own project and technology lists, also bare data modules (they import
+    // only their sibling content and engine types, never a bundle or a kit). The pages need the project id (the route slug), its
+    // screenshot and the technologies in declared order, and the content module (<id>.ts) holds none of them.
+    if (/^worlds\/(nox|veyra|flux|aether)\/content\/(nox|veyra|flux|aether)(Project|Technologies)$/.test(bare) && bare.split('/')[1] === bare.split('/')[3].replace(/(Project|Technologies)$/, '')) return null;
     return "a world's folder other than the host's, the registry or a content module";
   }
   return null;
@@ -332,8 +337,11 @@ test('the platform rule fails on a deep engine import, a world bundle, multi-lin
   expect(at("const m = await import('../../engine/sequences/theatre');")).toEqual(['an engine module outside the allowlist']);
   expect(at("import { NOX_BUNDLE } from '../../worlds/nox/bundle';")).toHaveLength(1);
   expect(at("const m = import('../../worlds/veyra/bundle');")).toHaveLength(1);
-  expect(at("import { nox } from '../../worlds/nox/content/noxProject';")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/nox/content/noxPlaceholders';")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/nox/content/placeholders';")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/veyra/content/noxProject';")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/nox/content/veyraTechnologies';")).toHaveLength(1);
   expect(at("import { nox } from '../../worlds/veyra/content/nox';")).toHaveLength(1);
   // What is allowed.
-  expect(at("import { HOST_BUNDLE } from '../../worlds/octoverse/bundle';\nimport { nox } from '../../worlds/nox/content/nox';\nimport { WORLDS } from '../../worlds';\nimport { WorldHost } from '../../engine/host/WorldHost';")).toEqual([null, null, null, null]);
+  expect(at("import { HOST_BUNDLE } from '../../worlds/octoverse/bundle';\nimport { nox } from '../../worlds/nox/content/nox';\nimport { noxProject } from '../../worlds/nox/content/noxProject';\nimport { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';\nimport { WORLDS } from '../../worlds';\nimport { WorldHost } from '../../engine/host/WorldHost';")).toEqual([null, null, null, null, null, null]);
 });

@@ -262,3 +262,19 @@ Verdict: provisional, pending owner.
 3. Bare `/` is now the landing: Nox's own specs that load `/` with no query (`entrance.spec.ts`, `fallback.spec.ts` `/`, `world.spec.ts`, `worldSwitch.spec.ts`) reach the landing, not Nox. They need `/?world=nox` (not changed here: the plan's Task 14/final suite says "unchanged").
 4. The engine's `ui: 'none'` has no "entrance settling" signal, so the intro's words come in when the stage becomes the intro (the engine's own overlay fades in a beat earlier). The skip control is the platform's own button; any click or key skips too.
 5. Stills use `object-fit: cover` at `50% 64%` on a 70% picture; the headroom the stills carry is trimmed, not regenerated.
+
+## Task 9: showcase fixtures, profile, Explore and not found (2026-11-05)
+
+**Verdict: provisional, pending owner.** Static compositions with engine stills (live previews come in Task 13, routes in Task 14). Unit tests pass (`showcase`, `tabKeys`, `profile`, `explore` and the boundary allowlist cases), e2e 37 of 37 (`platform-pages.spec.ts`: no horizontal scroll at 360, 390, 768, 1024 and 1536 and 44 px targets on all seven pages, the tabs by keyboard). Stills in `docs/superpowers/evidence/platform/m3/`; review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
+
+### What landed
+
+- `fixtures/worldContent.ts` reads each world's own content (`<id>.ts`, `<id>Project.ts`, `<id>Technologies.ts`) into what the pages say; `fixtures/showcase.ts` builds the deep-frozen `SHOWCASE` (veyra, flux, nox, aether, one project each) and `profileFor`. No text is copied: the slugs are the projects' ids (`vault-os`, `github-pipeline-engine`, `security-lab`, `ai-playground`).
+- `pages/Profile.tsx` (hero still, identity, `Enter <name>'s world`, an accessible tab list: `Tabs.tsx` with the pure keyboard rule in `tabKeys.ts`), `Explore.tsx`, `NotFound.tsx`, the shared frame in `parts.tsx` and the look in `pages.css`. A temporary `?page=profile&handle=...|explore|notfound` switch in `App.tsx` (Task 14 removes it).
+- Boundary: the platform may now also import a showcase world's own `<id>Project.ts` and `<id>Technologies.ts` (test-only edit to the allowlist in `src/engine/boundary.test.ts`, with a comment and cases that still fail on another world's, a bundle or `placeholders.ts`). The content module `<id>.ts` holds no project id, screenshot or technology list.
+
+### Gaps
+
+1. The reef water is CSS, and the not-found page has no host picture: no still of the reef's far water or of the host exists yet.
+2. No profile link or location in any content, so none shows. Usage notes exist for three technologies only (storyboard panel 4 text, flagged placeholder).
+3. Hero and tiles are stills; the "alive" behaviour (live preview on hover, the arm reaching for the card) waits for Task 13.

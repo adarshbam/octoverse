@@ -1,0 +1,583 @@
+/*
+ * The static pages (platform spec 7.8, 7.11, 7.12, 2.5, 7.15): profile, explore and not found. Floating glass over the reef's water,
+ * the same glass, glow and focus as the landing (glass.css), never a dashboard. The water is a still, drawn in CSS (a stand-in for a
+ * captured still of the reef's far water): deep indigo, the cyan-blue glow toward the top right, a violet glow low left, and a few
+ * soft light shafts. No live host here (Task 13 adds the previews).
+ */
+.oct-page {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  --oct-water: #0e1650;
+  background: var(--oct-water);
+  isolation: isolate;
+}
+
+/* The water stays put while the page scrolls over it. */
+.oct-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 55% 42% at 88% -4%, rgba(32, 168, 255, 0.4), transparent 72%),
+    radial-gradient(ellipse 60% 46% at 8% 104%, rgba(124, 74, 226, 0.34), transparent 72%),
+    repeating-linear-gradient(104deg, transparent 0 150px, rgba(150, 196, 255, 0.035) 150px 214px, transparent 214px 330px),
+    linear-gradient(180deg, #141e5f 0%, #0e1650 52%, #0a1038 100%);
+}
+
+/* The nav floats over the page as it scrolls (landing.css places it at the top centre; here it stays there). */
+.oct-page .oct-nav {
+  position: fixed;
+  z-index: 20;
+}
+
+.oct-page-main {
+  box-sizing: border-box;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 92px 24px 24px;
+  outline: none;
+}
+
+.oct-page-main.is-centered {
+  display: grid;
+  place-items: center;
+  max-width: none;
+}
+
+.oct-page-footer {
+  padding: 20px 24px 36px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--oct-ink-soft);
+}
+
+.oct-page-title {
+  margin: 0 0 24px;
+  font-size: clamp(30px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  background: var(--oct-title-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255, 170, 238, 0.3));
+}
+
+/* ---- shared: badge and chips ---------------------------------------------------------------- */
+
+.oct-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 205, 255, 0.55);
+  background: rgba(150, 120, 255, 0.28);
+  color: var(--oct-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.oct-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-chip {
+  padding: 5px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(190, 172, 255, 0.4);
+  background: rgba(40, 30, 100, 0.55);
+  color: var(--oct-ink);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.oct-page .oct-still {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 62%;
+}
+
+/* ---- the profile (P5) ----------------------------------------------------------------------- */
+
+.oct-profile {
+  box-sizing: border-box;
+  padding: 28px;
+  border-radius: 28px;
+}
+
+.oct-profile-top {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 36px;
+  align-items: center;
+}
+
+.oct-hero {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 2px solid color-mix(in srgb, var(--accent, #b08dff) 80%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent, #b08dff) 40%, transparent), inset 0 0 18px color-mix(in srgb, var(--accent, #b08dff) 18%, transparent);
+}
+
+.oct-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.oct-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.oct-name-row h1 {
+  margin: 0;
+  font-size: clamp(34px, 4.4vw, 48px);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.oct-epithet {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--oct-ink-soft);
+}
+
+.oct-project-tagline {
+  margin: 0;
+  max-width: 28em;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.oct-profile-location,
+.oct-profile-link {
+  margin: 0;
+  font-size: 16px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-profile-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+
+.oct-enter {
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* ---- tabs ----------------------------------------------------------------------------------- */
+
+.oct-tabs {
+  margin-top: 28px;
+}
+
+.oct-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(190, 172, 255, 0.28);
+}
+
+.oct-tab {
+  box-sizing: border-box;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(190, 172, 255, 0.35);
+  background: transparent;
+  color: var(--oct-ink-soft);
+  font: 500 16px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.oct-tab:hover {
+  background: rgba(150, 120, 255, 0.2);
+  color: var(--oct-ink);
+}
+
+.oct-tab[aria-selected='true'] {
+  background: rgba(150, 120, 255, 0.32);
+  border-color: rgba(220, 205, 255, 0.85);
+  color: var(--oct-ink);
+  box-shadow: 0 0 16px rgba(150, 120, 255, 0.35);
+}
+
+.oct-tabpanel {
+  padding-top: 20px;
+  outline-offset: 4px;
+}
+
+.oct-tabpanel[hidden] {
+  display: none;
+}
+
+/* ---- projects ------------------------------------------------------------------------------- */
+
+.oct-projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 360px));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-project {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--oct-glass-border);
+  background: var(--oct-glass-strong);
+  box-shadow: 0 0 20px rgba(150, 120, 255, 0.2);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.oct-project:hover,
+.oct-project:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 0 30px rgba(170, 140, 255, 0.45);
+}
+
+.oct-shot {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(40, 30, 100, 0.6);
+}
+
+.oct-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* No screenshot in the content: an honest placeholder that says so, never a made-up picture. */
+.oct-shot-missing {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-bottom: 1px dashed rgba(190, 172, 255, 0.4);
+  background: repeating-linear-gradient(135deg, rgba(150, 120, 255, 0.08) 0 12px, rgba(150, 120, 255, 0.02) 12px 24px);
+  color: var(--oct-ink-soft);
+  font-size: 14px;
+  letter-spacing: 0.03em;
+}
+
+.oct-project-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 18px;
+}
+
+.oct-project-body h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.oct-project-body p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--oct-ink-soft);
+}
+
+/* The whole card is the link (the title's anchor stretches over it). */
+.oct-project-link {
+  display: block;
+  /* A 44 px target (spec 2.5) without moving the title: the padding is taken back by the margin. */
+  padding: 10px 0;
+  margin: -10px 0;
+  color: var(--oct-ink);
+  text-decoration: none;
+}
+
+.oct-project-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.oct-project-link:focus-visible {
+  outline: none;
+}
+
+.oct-project:has(.oct-project-link:focus-visible) {
+  outline: 3px solid var(--oct-focus);
+  outline-offset: 3px;
+}
+
+/* ---- about and tech stack ------------------------------------------------------------------- */
+
+.oct-about {
+  max-width: 44em;
+}
+
+.oct-about p {
+  margin: 0 0 12px;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.oct-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-stack-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(190, 172, 255, 0.35);
+  background: rgba(40, 30, 100, 0.5);
+}
+
+.oct-stack-item b {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.oct-stack-category {
+  font-size: 13px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-stack-item p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--oct-ink-soft);
+}
+
+/* ---- explore -------------------------------------------------------------------------------- */
+
+.oct-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-tile-item {
+  display: flex;
+}
+
+.oct-tile {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 2px solid color-mix(in srgb, var(--accent) 80%, transparent);
+  background: var(--oct-glass);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 38%, transparent), inset 0 0 16px color-mix(in srgb, var(--accent) 16%, transparent);
+  backdrop-filter: blur(10px);
+  color: var(--oct-ink);
+  text-decoration: none;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.oct-tile:hover,
+.oct-tile:focus-visible {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 0 18px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.oct-tile-picture {
+  position: relative;
+  display: block;
+  aspect-ratio: 738 / 560;
+  overflow: hidden;
+}
+
+.oct-tile-picture .oct-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(16, 12, 48, 0.8);
+}
+
+.oct-tile-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 18px;
+}
+
+.oct-tile-body b {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.oct-tile-epithet {
+  font-size: 15px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-tile-project {
+  margin: 6px 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ---- not found ------------------------------------------------------------------------------ */
+
+.oct-notfound {
+  box-sizing: border-box;
+  display: grid;
+  gap: 26px;
+  justify-items: center;
+  width: min(100%, 560px);
+  padding: 44px 32px;
+  border-radius: 28px;
+  text-align: center;
+}
+
+.oct-notfound h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 38px);
+  font-weight: 600;
+  line-height: 1.2;
+  text-wrap: balance;
+  background: var(--oct-title-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255, 170, 238, 0.3));
+}
+
+.oct-notfound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* ---- narrower windows (spec 7.15) ----------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .oct-page-main {
+    padding: 76px 16px 16px;
+  }
+
+  .oct-profile {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .oct-profile-top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .oct-identity {
+    align-items: stretch;
+  }
+
+  .oct-project-tagline,
+  .oct-about p {
+    font-size: 16px;
+  }
+
+  .oct-tablist {
+    gap: 6px;
+  }
+
+  .oct-tab {
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .oct-projects {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oct-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    gap: 14px;
+  }
+}
+
+/* Five tiles: three and two on a tablet, all five in a row on a wide window (never four and one). */
+@media (min-width: 768px) {
+  .oct-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .oct-page-main:has(.oct-tiles) {
+    max-width: 1360px;
+  }
+
+  .oct-tiles {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-tab,
+  .oct-project,
+  .oct-tile {
+    transition: none;
+  }
+
+  .oct-project:hover,
+  .oct-project:focus-within,
+  .oct-tile:hover,
+  .oct-tile:focus-visible {
+    transform: none;
+  }
+}
