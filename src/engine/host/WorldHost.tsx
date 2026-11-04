@@ -3,7 +3,7 @@ import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessi
 import { type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SELECTS, choosableNow } from '../artifacts/strategies';
+import { SELECTS, choosableNow, placementCapacity } from '../artifacts/strategies';
 import { resolveExpressions } from '../behavior/expressions';
 import { FOCUS_BEATS } from '../behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from '../behavior/poseBlend';
@@ -291,7 +291,7 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
   const { state, dispatch, reducedMotion } = useStage(project, { worldId: instance.id, mode, options, choosableIn: artifacts.choosableIn, initial, request: stageRequest, onChange: onStageChange });
   const quality = useQuality(options);
   // What this instance shows of the project, and its Theatre sheets: its own, made here and not at module load.
-  const model = useMemo(() => createProjectModel(project, technologies), [project, technologies]);
+  const model = useMemo(() => createProjectModel(project, technologies, placementCapacity(artifacts.placement)), [project, technologies, artifacts.placement]);
   const { orbs, tech, usage, order, overflow, trayItem } = model;
   // Without WebGL (or `?nowebgl`) the instance is the poster under the HTML overlays; the entrance has nothing to play on.
   const webgl = useMemo(() => !options.noWebgl && hasWebgl2(), [options.noWebgl]);

@@ -314,10 +314,17 @@ The shared parts do not vary: orb glass look, logo textures, HTML buttons that f
 ```ts
 export type PlacementConfig =
   | { kind: 'orbit'; shells: readonly Shell[]; sizes: Record<'intro' | 'overview', number>; centreY: number; halfHeight: number; squareness: number; swellPush: number }
-  | { kind: 'pendant'; slots: Record<'intro' | 'overview', readonly PendantSlot[]>; maxPerArm: 2; sizes: Record<'intro' | 'overview', number>; tether: TetherStyle /* length may be 0: a cap only */ };
+  | { kind: 'pendant'; slots: Record<'intro' | 'overview', readonly PendantSlot[]>; maxPerArm: 2; sizes: Record<'intro' | 'overview', number>; tether: TetherStyle /* length may be 0: a cap only */; swing?: SwingLimits /* default 25 degrees, 1.2 s (A2 X2) */; reveal?: PendantReveal /* seconds; absent: the appear's own timing (A2 X3) */ };
 
 /** A glass orb hangs on a short tether from the arm at arc fraction `at` (0 root, 1 tip); `order` is the technology's rank for the slot. */
 export interface PendantSlot { arm: ArmId; at: number; order: number }
+
+/** The thread and its cap: `length` runs from the arm to the cap (0: a cap only), `width` is its diameter, `sag` its sideways bow at the middle as a fraction of `length`; `color` and `cap` are config, never engine literals. */
+export interface TetherStyle { length: number; color: string; width: number; sag: number; cap: string }
+/** Radians and seconds: the largest swing from vertical, and the time it takes to settle once the arm stops. */
+export interface SwingLimits { maxAngle: number; settle: number }
+/** Seconds: the first pendant's start, how long one takes, the delay between pendants in `order`. */
+export interface PendantReveal { start: number; span: number; step: number }
 
 export interface ArtifactConfig {
   placement: PlacementConfig;
@@ -335,6 +342,7 @@ export interface ArtifactConfig {
 - **Every appear runs after the entrance settles**, on one trigger for all worlds. Anything that moves with the head swell belongs to the placement: each placement module receives `{ stage, swell, dt }` each frame, as `orbit` reads the swell today (`BubbleState.swell` pushes the shells out). Aether's `satellite` uses it for the flight between its ring and its pendant slots.
 - **Combinations are independent.** Nothing requires a placement to pair with one appear or select; a world may mix (for example, orbit placement with `armLift`). The tooltip, buttons and tray read positions from the instance's `bubbleLive` whichever strategy writes them.
 - **Slot rules.** The pendant slots map arms to technologies by `order` in the project's declared technology order. With more technologies than slots (at most 16 slots against the 15 primary technologies), the extras go to the tray, as today.
+- **Built: the `pendant` placement (Veyra's Task 13, engine commit `feat(engine): pendant placement and tethers`).** `PLACEMENTS = { orbit, pendant }`. Each entry carries `capacity(config)` (orbit 15; pendant: the larger of the stages' slot counts; `createProjectModel(project, technologies, capacity)` takes it, so a project's technologies past it go to the tray) and `driver(config, count)`, the per-instance run TechBubbles steps each frame with `{ stage, swell, dt, hot, still }` and the character's live arms (`BubbleState.arms`, ARM_IDS order); the orbit driver is Nox's clock and ring maths unchanged. The pure parts are exported for `satellite` (A1): `assignPendants`, `pendantSwing`, `swingLimits`, `idleSway`, `threadClearance`, `armPoint`, `layoutPendants` from `artifacts/pendant.ts` and `tetherCurve`, `capRadius` from `artifacts/tether.ts`. `tetherCurve(attach, angle, style, radius = 0)` takes the orb's radius as an optional fourth argument (the orb hangs a radius past the cap, so its top is the cap); `threadClearance(pose, slots, faceRect, geometry?)` takes the thread, orb radius, arm thickness, swing angles and, where the rig's rest bend moves the arms off the pose's curves, the drawn arm lines (`armLines`), as an optional fourth argument; without it only the attach points are measured. The swing is a damped sine in phasor form (exact at any frame rate), kicked by the attach point's sideways travel (1.5 radians a unit), its envelope decaying so that under 1 degree is left `settle` seconds after the arm stops, the swing and its speed each held to `maxAngle` less the idle sway (at most 2 degrees, a slow sine, a different phase for each pendant); with reduced motion or `?freeze` the angle is 0. The threads are one `InstancedMesh` of 5 tube segments a pendant and a second of cap beads, in `tether.color` and `tether.cap`. The suction hold stands in for `armLift` until Task 19: the thread is hidden while an arm holds the orb, and the hold swings about the body's middle. `validateBundle` checks the slots (arm, `at` in [0, 1], whole unique `order`, at most two an arm), sizes, tether (colours must parse) and the optional swing and reveal by field name.
 - **Built in F01.** E02 ships the three tables with Nox's entries only and the `PlacementConfig` union with `orbit`; the `pendant`, `bloom` and `armLift` modules are added in F01 with Veyra (spec 14.1).
 
 ## 10. Coordinate conventions
