@@ -2,9 +2,11 @@
 Usage: python scripts/check_stage.py render.png --panel N
        (panels 3 to 5: composition only, from the capture's mask, against stage_samples.json's baseline)
        python scripts/check_stage.py capture.png --world [--stage intro] [--mask mask.png]
-Both take --world-id <id> (default nox): the world whose samples are read, from
-src/worlds/<id>/review/stage_samples.json and world_samples.json. (--world means "the world scene
-mode" and keeps that meaning; --world-id says which world's samples.)
+Both take --world-id <id> (default: the OCTO_WORLD or WORLD environment variable, then nox): the world whose
+samples are read, from src/worlds/<id>/review/stage_samples.json and world_samples.json, and (--world) whose
+reference image and its registration come from world_reference.json beside them. (--world means "the world
+scene mode" and keeps that meaning; --world-id says which world's samples.) A world with no samples or no
+reference is refused by name.
 Colour: mean of a small patch at each sample point, max channel delta. A panel whose samples
 name an "hq" reference is read from that high-quality image instead, through its registration
 (world (x, y) -> px (origin + pxPerUnit * (x, -y))), and from a capture of any size framing `frame`
@@ -23,7 +25,7 @@ Registered, panel 2 reads (118, 26, 89), saturation 0.867, brightness 0.538. The
 from a mask misregistered by (16, -14) px; the targets are kept as approved and panel 2 passes them.
 With --stage intro it also compares 7 x 7 px patches at the named world points with panel 2 by
 CIE76 delta E."""
-import json, sys, pathlib
+import json, os, sys, pathlib
 import numpy as np
 from PIL import Image
 
@@ -49,20 +51,42 @@ def half_width(lum, s, wy, w, h, threshold):
     if not xs: return None
     return ((xs[-1] - xs[0]) / s / 100) / 2
 
-WORLD_HQ = {'image': 'public/spike/nox-panel2-hq.jpg', 'origin': (783.6, 495.4), 'pxPerUnit': 204.5}
 WORLD_PATCH = 3  # radius: 7 x 7 px
 
 def option(name):
+    """The value after `name` on the command line; None if the option is absent; exit 2 if it has no value."""
     a = sys.argv[1:]
-    return a[a.index(name) + 1] if name in a else None
+    if name not in a: return None
+    i = a.index(name) + 1
+    if i >= len(a) or a[i].startswith('--'):
+        print(f'{name} needs a value')
+        sys.exit(2)
+    return a[i]
+
+def world_id():
+    """The world whose review files are read: --world-id, else OCTO_WORLD, else WORLD, else nox."""
+    return option('--world-id') or os.environ.get('OCTO_WORLD') or os.environ.get('WORLD') or 'nox'
 
 def samples_path(name):
-    """The world's review samples file (--world-id, default nox): src/worlds/<id>/review/<name>."""
-    path = pathlib.Path('src/worlds') / (option('--world-id') or 'nox') / 'review' / name
+    """The world's review file: src/worlds/<id>/review/<name>."""
+    path = pathlib.Path('src/worlds') / world_id() / 'review' / name
     if not path.exists():
-        print(f'no {name} for world {option("--world-id") or "nox"!r}: expected {path}')
+        print(f'no {name} for world {world_id()!r}: expected {path}')
         sys.exit(2)
     return path
+
+def world_reference():
+    """The world's reference image and how world units register on it (world_reference.json): image, origin (px of world 0,0), pxPerUnit."""
+    path = samples_path('world_reference.json')
+    ref = json.loads(path.read_text())
+    missing = [k for k in ('image', 'origin', 'pxPerUnit') if k not in ref]
+    if missing:
+        print(f'{path} has no {", ".join(missing)}')
+        sys.exit(2)
+    if not pathlib.Path(ref['image']).exists():
+        print(f"the reference image {ref['image']} named by {path} does not exist")
+        sys.exit(2)
+    return ref
 
 def silhouette_stats(img, mask):
     """Mean RGB, mean per-pixel HSV saturation and mean per-pixel HSV value over the mask pixels."""
@@ -80,20 +104,21 @@ def srgb_to_lab(rgb):
     f = np.where(f > 216 / 24389, np.cbrt(f), (24389 / 27 * f + 16) / 116)
     return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
 
-def world_patch(img, wx, wy, r=WORLD_PATCH):
-    ox, oy = WORLD_HQ['origin']
-    cx, cy = round(ox + WORLD_HQ['pxPerUnit'] * wx), round(oy - WORLD_HQ['pxPerUnit'] * wy)
+def world_patch(img, ref, wx, wy, r=WORLD_PATCH):
+    ox, oy = ref['origin']
+    cx, cy = round(ox + ref['pxPerUnit'] * wx), round(oy - ref['pxPerUnit'] * wy)
     return np.asarray(img.crop((cx - r, cy - r, cx + r + 1, cy + r + 1)), dtype=float).reshape(-1, 3).mean(0)
 
 def world():
     spec = json.loads(samples_path('world_samples.json').read_text())
+    ref = world_reference()
     target = spec['target']
     render_path = sys.argv[1]
     mask_path = pathlib.Path(option('--mask') or render_path.replace('.png', '-mask.png'))
     if not mask_path.exists():
         print(f'no silhouette mask at {mask_path}: capture with scripts/world-capture.mjs, or pass --mask')
         sys.exit(1)
-    hq = Image.open(WORLD_HQ['image']).convert('RGB')
+    hq = Image.open(ref['image']).convert('RGB')
     ren = Image.open(render_path).convert('RGB')
     mask_img = Image.open(mask_path).convert('L')
     if not ren.size == mask_img.size == hq.size:
@@ -118,7 +143,7 @@ def world():
             print(f"{'ok ' if ok else 'MISS'} {name:11} {note}")
     if option('--stage') == 'intro':
         for name, (wx, wy) in spec['regions'].items():
-            a, b = world_patch(hq, wx, wy), world_patch(ren, wx, wy)
+            a, b = world_patch(hq, ref, wx, wy), world_patch(ren, ref, wx, wy)
             de = float(np.linalg.norm(srgb_to_lab(a) - srgb_to_lab(b)))
             ok = de <= target['deltaE']
             misses += not ok
