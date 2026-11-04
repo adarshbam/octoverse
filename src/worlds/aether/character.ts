@@ -56,8 +56,9 @@ export const AETHER: CharacterConfig = {
       [0.7, '#fab8f2'], [0.88, '#fdd4e8'], [1, '#fee3f2'],
     ],
     cheekWarmth: 0.6,
-    // Her cups glow lavender-pink and white, not red: a weaker underside band than Nox's.
-    underside: 1.2,
+    // No red underside band (spec 7.1): her undersides glow lavender-pink from the arms' jelly core
+    // and the pink-white cups, never from Nox's oral band.
+    underside: 0,
     // A soft violet-blue halo round the silhouette, pinker under the face (spec 7.2).
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#8f7cff', crown: '#7aa0ff', band: '#d890ff', strength: 0.75, bandStrength: 0.6 },
     // In the water: an indigo-violet aura round her, pink-violet below, and the water near her
@@ -165,12 +166,18 @@ export const AETHER: CharacterConfig = {
   armBend: 0.16,
   armFlatten: 0.86,
   // Rounded scallop cups, packed so their edges read as a beaded frill, shrinking toward the tip.
-  suckers: { size: 0.21, sizePower: 0.7, spacing: 2.15, elongation: 1.1, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6 },
+  // Veyra's frill cups in pink-white (amendment A1): a lavender-white glowing rim (P2 cup sample
+  // 222, 208, 245) over a pink wall (the underside glow, 238, 198, 250), round a dark mauve hollow
+  // (inside a tip spiral, 90, 63, 144). Start values; Task 6 tunes them against P2.
+  suckers: {
+    size: 0.21, sizePower: 0.7, spacing: 2.15, elongation: 1.1, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
+    style: { rimWidth: 0.22, scallop: 0.6, edge: '#eec6fa', rim: '#ded0f5', hollow: '#5a3f90', glow: 1.0 },
+  },
   // The overview dome, a wide glossy capsule round the head (P3: half-width 1.38; refined in Task 11).
   dome: { center: [0.035, 0.272], halfWidth: 1.4, halfHeight: 0.62, depth: 0.6, power: 3.2, mantleTop: -0.32 },
   // The synapse effect arrives in Task 20; until then the dome swells alone.
   headEffect: 'none',
-  // Jelly skin with fine star specks and a lavender-pink glow through it; tuned in Task 3.
+  // Jelly skin with fine star specks and a lavender-pink glow through it; tuned in Task 6.
   skin: {
     speckDensity: 0.35,
     speckSize: [0.1, 0.3],
@@ -183,6 +190,27 @@ export const AETHER: CharacterConfig = {
     gloss: 120,
     streakScale: 1,
     streakStrength: 0.2,
+    // Veyra's jelly glass on both surfaces (spec 7.2), in Aether's colours from the P2 samples
+    // (spec 2.1; start values, Task 6 tunes them to delta E 10 on the render). The mantle: a bright
+    // lavender-white rim all round, a blue-white crown sheen (145, 168, 247), a deep blue-violet
+    // middle where the dome faces the camera (91, 78, 243), and the pink-white core (253, 212, 232)
+    // inside the lower face at the glow's own centre, just below the mouth (y -0.95), set back into
+    // the jelly. The arms: the same glass set thinner, a lavender-white top rim (227, 211, 251), a
+    // periwinkle body (94, 138, 228), a light blue cap along their tops and the lavender-pink
+    // underside glow (238, 198, 250) warming the roots. Star specks per square unit: enough for at
+    // least 15 on the front of the head and 60 across the arms at P2 size (spec 2.3).
+    surfaces: {
+      mantle: {
+        mode: 'jelly',
+        jelly: { rim: '#ebe2fb', rimPower: 3.5, crown: '#91a8f7', crownHeight: 0.55, depth: '#5b4ef3', depthStrength: 1, core: '#fdd4e8', coreCenter: [0, 0, -0.35], coreWarmth: 0.4 },
+        sparkle: 30,
+      },
+      arms: {
+        mode: 'jelly',
+        jelly: { rim: '#e3d3fb', rimPower: 5, crown: '#8ab0f8', crownHeight: 0.5, depth: '#5e8ae4', depthStrength: 0.6, core: '#eec6fa', coreCenter: [0, 0, -0.35], coreWarmth: 0.35 },
+        sparkle: 35,
+      },
+    },
   },
   // The curious mind (spec 7.8): bright and attentive, quick to notice, floaty, a jellyfish's pulse.
   personality: {

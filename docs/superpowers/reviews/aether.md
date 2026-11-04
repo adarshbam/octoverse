@@ -55,3 +55,37 @@ Not as the brief wrote it (all because `src/engine/**` is not this task's to cha
 - **Zero shells** crashes the engine (`layoutOrbits`: `i % shells.length` gives `shells[NaN]`). The placeholder is one shell of radius 0 with bubble size 0, so nothing is drawn; Task 5 replaces it.
 - **`kit piece missing: chain`**: `Kit.tsx` looks up the `chain` and `chain_lod1` nodes even when the layout has no chain, so `stage.glb` carries those two names as one-triangle stubs.
 - The engine's logo table has no marks for OpenAI, React, Next.js, PostgreSQL, AWS or Vector DB: those orbs will show the lettered fallback until `LOGO_SLUGS` gains them.
+
+## Task 3: jelly mantle and arms, star specks, pink-white cups
+
+Aether now runs on Veyra's landed variants: `skin.surfaces` jelly on the mantle and the arms with sparkle, the cups' frill `style`, and `glow.underside` 0 (no red band). Start values are the spec 2.1 samples (the brief's hexes); Task 6 tunes to delta E 10 on the render.
+
+Stills (intro, frozen, `WORLD=aether node scripts/stage-capture.mjs intro .tmp/aether-t3-intro.png`, vite on 127.0.0.1:5196): `docs/superpowers/reviews/assets/aether/t3-intro.png`; close-ups at 3x, P2 on the left: `t3-head-3x-vs-p2.png`, `t3-arm-left-3x-vs-p2.png`. The full side by side is `.tmp/aether-t3-intro-vs-p2.png` (not committed). No videos.
+
+Sample delta E (CIE76, 11 x 11 capture px patch at each spec 2.1 P2 point, P2 px (x, y) to capture px ((x - 4) * 2, y * 2)), Task 2 still, then this one:
+
+| Sample | Task 2 | Task 3 |
+|---|---|---|
+| Crown sheen | 41.2 | 5.4 |
+| Upper dome | 44.3 | 6.4 |
+| Forehead | 24.3 | 19.4 |
+| Between the eyes | 31.7 | 35.6 |
+| Face glow below eyes | 6.6 | 8.0 |
+| Face glow below mouth | 20.3 | 20.3 (clipped white, unchanged) |
+| Chin | 16.7 | 18.4 |
+| Head side left / right | 20.3 / 33.5 | 15.6 / 13.3 |
+| Blush | 4.7 | 4.4 |
+| Arm body upper / lower | 56.5 / 14.0 | 21.6 / 22.5 |
+| Arm top rim | 91.4 | 61.0 |
+| Arm underside glow | 20.2 | 36.6 |
+| Cup | 70.7 | 71.5 |
+| Inside tip spiral | 23.3 | 14.8 |
+
+The arm, rim, underside, cup and spiral points land on whatever the render's arm has at that pixel (the pose is not registered to P2's arms point for point), so read those rows as a rough guide, not a measure. `check_stage.py --panel 2 --world-id aether`: FAIL, 18 misses of 23 (max channel delta; exit 1 by design until Task 6), crown sheen, upper dome, face glow below the eyes, blush and arm body lower within its tolerance. The water, ruins, jellyfish and seed beads are later tasks.
+
+Verdict, by eye, honest:
+- **Mantle: better, not yet P2.** The dome now reads as blue-violet glass with a bright lavender-white rim all round, where Task 2 was dark navy. The upper dome and the crown hit their samples. Missing: P2's blue-white crescent sheen on the upper left (the crown term is a symmetric cap, so the whole top lightens evenly); the violet-to-pink band from the forehead down to the eyes is too narrow, so the face reads blue-violet down to the brows and then jumps to pink-white (forehead and between-the-eyes still 19 and 36 off). The face glow below the mouth clips to white (as in Task 2: the glow ramp and bloom, Task 6).
+- **Star specks:** fine white specks over the head and along the arms, a few larger. A rough peak count on the still: about 22 on the head front between the crown and the brows (spec: at least 15). Along the arms well over 60 by eye (the automated count, about 220, also picks up cup rim highlights, so it is not a clean number).
+- **Arms:** periwinkle glass with a thin lavender-white top rim and specks: right in kind. Body a little darker and more saturated than P2's. The lavender-pink underside glow P2 shows along each arm is mostly gone now the red band is off (`underside` 0): the jelly core warms only the roots. Task 6 needs another source for it (the cups' glow and translucency, or the halo band).
+- **Cups:** pink-white rings round dark mauve hollows, separate and shrinking to the tip, along the outer edge of the curls. They read as small pale rings, not P2's bright glowing beaded frill: too small, too dim, the hollow too large for the rim. Task 6: cup size and spacing, `glow`, `rimWidth`.
+- Nox and Veyra: no file of theirs and no engine file changed; their unit tests pass (Nox's skin program hash test included). No Nox/Veyra still compare was run for this task.
