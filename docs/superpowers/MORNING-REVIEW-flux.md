@@ -4,7 +4,7 @@ Branch `claude/flux-world-overnight`. Overnight run: every owner gate was ruled 
 Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 
 ## Status
-- 2026-11-04 setup done. Waiting on gate: Milestone 1 (E02 + Veyra Tasks 3, 4, 5). Task 8a (kit) built early; everything else waits on the gate.
+- 2026-11-04 Milestone 1 complete (Tasks 1-6 plus early Task 8a), provisional owner gate. Waiting on gate: Milestone 2 (Veyra Tasks 8 and 10, plus the shared sand floor).
 
 ## Items
 ### Task 8a: pipeline kit (built early, PENDING OWNER REVIEW)
@@ -59,3 +59,10 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   - Pulse @0.35 lights only 1 to 2 cups, below the 3 to 5 target (T3 hides T2's root cups).
   - At 3x the resting T7 curl cup is 254, above the 250 brightness cap (holds at P2 size).
 - **Full entry:** `docs/superpowers/reviews/flux.md`, "Milestone 1 (P2 gate)".
+
+### Tasks 3, 4, 5: character, face, cup pulse (PENDING OWNER REVIEW)
+- Task 3 (start values): mantle, arm and cup values per spec 7.8; sparkle density 70 (mantle) and 50 (arms), set above Veyra's so the jelly reads as Flux.
+- Task 4 (face): two lashes, brow thickness 0.034, iris, blush, `happy` and `focused` expressions. Check the face against the P2 close-up.
+- Task 5 (engine change, for the engine owner): one commit, 52d49ee, adds the travelling cup pulse (`src/engine/character/cupPulse.ts`, shader term only when a world configures `suckers.pulse`, idle value -1e4). Nox and Veyra shader programs are unchanged. Check: baseline stills were bit-identical except the known techFocus difference.
+- Engine-owner gaps found while building Flux (worked around in the bundle): no tongue size field; `TITLE_ICONS` has only `flame` (Flux uses it as a placeholder); zero shells crashes (one plain shell used); `Kit.tsx` requires `chain` and `chain_lod1` nodes (placeholder triangles in `stage.glb`); no sparkle "twinkle faster" field; the jelly rim cannot be turned off at the bottom of the head; the core blends with the colour ramp through `max()`; `scripts/check_stage.py` silhouetteRows compared against a hard-coded `public/spike/Nox.jpeg` (Flux silhouetteRows removed).
+- Pre-existing, not caused by Flux: `world.spec:101` fails alone on the pre-change tree; the Nox kit loader times out at 15 s under shared-GPU load.
