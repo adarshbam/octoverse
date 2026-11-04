@@ -96,7 +96,7 @@ export interface WorldConfig {
    * the stone round them. The WorldLight data for Nox's accents does not rise with them.
    */
   relics: { glyph: number; coral: number; spill: number };
-  palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string };
+  palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string; floorGlow: FloorGlow };
   lights: {
     /** From the surface, high above and beyond the stage: shadows, and caustics in its cookie. */
     surface: { color: string; intensity: number; position: Vec3; target: Vec3 };
@@ -122,6 +122,21 @@ export interface WorldConfig {
   water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number; colours: WaterColours; environment: WaterEnvironment };
   /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */
   live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number };
+}
+
+/**
+ * The seabed's own light (Floor.tsx, and the rocks' pores in Kit.tsx), each a colour the shader
+ * compiles in (`#rrggbb`, or `color(srgb-linear r g b)` for an amount of light hex cannot say;
+ * colour.ts): `cracks` glows in the floor's cracks and round them, `lava` under the rubble at the
+ * sides, `sheen` is that glow mirrored by the wet puddles, `pores` the glow in the rocks' pores.
+ * Black is no glow; the sheen also goes with `glow.floor` at 0 (nothing to mirror). Each is
+ * scaled by its `glow.*` fix (floor or crevice), the sheen by none.
+ */
+export interface FloorGlow {
+  cracks: string;
+  lava: string;
+  sheen: string;
+  pores: string;
 }
 
 /** The water's own colours (Water.tsx), each `#rrggbb`. */

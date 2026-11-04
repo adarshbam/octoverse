@@ -63,10 +63,16 @@ const record = (value: unknown): value is Record<string, unknown> => typeof valu
  * The string fields of the character and the place that are not colours: ids, the arms' depth
  * layer, the head effect, file urls, kinds, and the kit's piece names. Every other string in them
  * is a colour and must parse (`isColour`): a field added later is checked as one until it is named
- * here, so a colour three would draw black never passes unnoticed. `skinAccent` has its own grammar
- * (world/colour.ts `isWorldColour`).
+ * here, so a colour three would draw black never passes unnoticed. The fields WORLD_COLOUR names
+ * have the world's grammar (world/colour.ts `isWorldColour`).
  */
 const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece)$|\.pieces\[\d+\]$/;
+
+/**
+ * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g
+ * b)` (world/colour.ts `isWorldColour`): the skin accent and the colours a shader compiles in.
+ */
+const WORLD_COLOUR = /\.skinAccent$|\.floorGlow\.[a-zA-Z]+$/;
 
 /** Every number in `value` is finite and every colour parses, or a BundleError names the field. */
 function checkLeaves(value: unknown, path: string, colours: boolean) {
@@ -74,7 +80,7 @@ function checkLeaves(value: unknown, path: string, colours: boolean) {
     if (!Number.isFinite(value)) throw new BundleError(path, `${value} is not a finite number`);
   } else if (typeof value === 'string') {
     if (!colours || NOT_COLOUR.test(path)) return;
-    const ok = path.endsWith('.skinAccent') ? isWorldColour(value) : isColour(value);
+    const ok = WORLD_COLOUR.test(path) ? isWorldColour(value) : isColour(value);
     if (!ok) throw new BundleError(path, `"${value}" is not a colour three can read`);
   } else if (Array.isArray(value)) {
     value.forEach((item, i) => checkLeaves(item, `${path}[${i}]`, colours));
@@ -95,6 +101,7 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   need('place.camera.hover', place.camera.hover);
   need('place.water.colours', place.water.colours);
   need('place.water.environment', place.water.environment);
+  need('place.palette.floorGlow', place.palette.floorGlow);
   for (const part of ['contactShadow', 'bloom', 'vignette'] as const) need(`place.post.${part}`, place.post[part]);
   need('place.lights.surface', place.lights.surface);
   need('place.lights.fill', place.lights.fill);

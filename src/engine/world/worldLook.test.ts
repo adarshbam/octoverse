@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { glslColour, glslFloat } from './colour';
+import { floorGlowGlsl } from './floorGlow';
 import { createWaterEnvironmentMaterial } from './textures';
 import type { WorldConfig } from './types';
 import { validateWorld } from './validateWorld';
@@ -55,4 +56,34 @@ test('a colour compiled into a shader keeps the text it had: linear components a
   expect(glslColour('#ffffff')).toBe('vec3(1.0, 1.0, 1.0)');
   expect(glslFloat(1e-7)).not.toContain('e');
   expect(Number(glslFloat(1e-7))).toBeCloseTo(1e-7, 12);
+});
+
+/** The `vec3(r, g, b)`s in a GLSL text, as numbers. */
+const vec3s = (glsl: string) => [...glsl.matchAll(/vec3\(([^,()]+),([^,()]+),([^,()]+)\)/g)].map(m => [Number(m[1]), Number(m[2]), Number(m[3])]);
+
+test("the floor's glow is the world's: Nox's GLSL is the text it held, word for word", () => {
+  const glow = floorGlowGlsl(SECURITY_WORLD.palette.floorGlow, SECURITY_WORLD.glow.floor);
+  expect(glow.cracks).toBe('vec3(1.0, 0.09, 0.05)');
+  expect(glow.lava).toBe('vec3(1.0, 0.12, 0.04)');
+  expect(glow.sheen).toContain('totalEmissiveRadiance += vec3(1.0, 0.1, 0.05) * puddle * (0.03 + 0.12 * side);');
+  expect(glslColour(SECURITY_WORLD.palette.floorGlow.pores)).toBe('vec3(1.0, 0.16, 0.05)');
+});
+
+test('a floor with its glow zeroed draws no red: a black sheen adds nothing, and no floor glow drops the sheen line', () => {
+  const black = 'color(srgb-linear 0 0 0)';
+  const zeroed = floorGlowGlsl({ cracks: black, lava: black, sheen: black, pores: black }, SECURITY_WORLD.glow.floor);
+  for (const [r, g, b] of vec3s(`${zeroed.cracks} ${zeroed.lava} ${zeroed.sheen}`)) expect([r, g, b]).toEqual([0, 0, 0]);
+  expect(vec3s(zeroed.sheen)).toHaveLength(1);
+  // Nox's colours, but no floor glow (glow.floor 0): the puddles mirror nothing.
+  const dark = floorGlowGlsl(SECURITY_WORLD.palette.floorGlow, 0);
+  expect(dark.sheen).not.toContain('totalEmissiveRadiance');
+  expect(vec3s(dark.sheen)).toEqual([]);
+});
+
+test('validateWorld names each floor glow colour that is missing or not a colour, and takes a linear one', () => {
+  const palette = SECURITY_WORLD.palette;
+  expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: { ...palette.floorGlow, sheen: 'reddish' } } })).toContain('palette.floorGlow.sheen');
+  expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: { ...palette.floorGlow, pores: undefined as unknown as string } } })).toContain('palette.floorGlow.pores');
+  expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: undefined as unknown as WorldConfig['palette']['floorGlow'] } })).toContain('palette.floorGlow is missing');
+  expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: { cracks: '#000000', lava: 'color(srgb-linear 0 0 0)', sheen: '#000', pores: '#102030' } } })).toBe('');
 });

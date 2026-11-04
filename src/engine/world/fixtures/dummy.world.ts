@@ -11,7 +11,16 @@ const mirror = (p: Placement): Placement => ({ ...p, position: [-p.position[0], 
  */
 export function dummyWorld(world: WorldConfig): WorldConfig {
   const base = world.layout;
-  const palette = { stone: '#3c4a3c', glyph: '#30e0c0', coral: '#e8b010', lava: '#e89c10', waterFar: '#052a30', floor: '#14201c' };
+  const palette = {
+    stone: '#3c4a3c',
+    glyph: '#30e0c0',
+    coral: '#e8b010',
+    lava: '#e89c10',
+    waterFar: '#052a30',
+    floor: '#14201c',
+    // A gold glow in the cracks and pores, no sheen on the puddles.
+    floorGlow: { cracks: 'color(srgb-linear 0.9 0.6 0.08)', lava: 'color(srgb-linear 0.9 0.5 0.06)', sheen: 'color(srgb-linear 0 0 0)', pores: 'color(srgb-linear 0.9 0.55 0.1)' },
+  };
   // No pillar is lit (so no glyph lights); each coral light keeps a lava light.
   const layout = {
     ...base,

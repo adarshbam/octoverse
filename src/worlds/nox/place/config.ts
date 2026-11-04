@@ -18,6 +18,16 @@ const palette = {
   lava: '#ff3418',
   waterFar: '#071535',
   floor: '#1d1218',
+  /**
+   * The seabed's lava light as linear amounts (colour.ts): the cracks' glow, the lava under the
+   * rubble, the puddles' red sheen, and the glow in the rocks' pores.
+   */
+  floorGlow: {
+    cracks: 'color(srgb-linear 1 0.09 0.05)',
+    lava: 'color(srgb-linear 1 0.12 0.04)',
+    sheen: 'color(srgb-linear 1 0.1 0.05)',
+    pores: 'color(srgb-linear 1 0.16 0.05)',
+  },
 };
 
 /**

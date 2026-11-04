@@ -1,5 +1,5 @@
 import { isWorldColour } from './colour';
-import type { Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
+import type { FloorGlow, Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const vec3 = (v: unknown): v is Vec3 => Array.isArray(v) && v.length === 3 && v.every(finite);
@@ -8,6 +8,9 @@ const record = (v: unknown): v is Record<string, unknown> => typeof v === 'objec
 
 /** The water's own colours (`WorldConfig['water']['colours']`), every one required. */
 const WATER_COLOURS = ['deep', 'zenith', 'glow', 'opening', 'rays', 'raysWide', 'fish'] as const satisfies readonly (keyof WaterColours)[];
+
+/** The seabed's glow colours (`WorldConfig['palette']['floorGlow']`), every one required. */
+const FLOOR_GLOW = ['cracks', 'lava', 'sheen', 'pores'] as const satisfies readonly (keyof FloorGlow)[];
 
 /** Optional placement fields and what each must hold when present. */
 const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
@@ -106,7 +109,10 @@ export function validateWorld(world: WorldConfig): string[] {
   if (lavaLights !== layout.coralLights.length) problems.push(`${layout.coralLights.length} coral lights but ${lavaLights} lava lights`);
 
   for (const [name, value] of Object.entries(world.relics)) if (!finite(value) || value <= 0) problems.push(`relics.${name} must be above 0`);
-  for (const [name, value] of Object.entries(palette)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
+  const { floorGlow, ...flat } = palette;
+  for (const [name, value] of Object.entries(flat)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
+  if (!record(floorGlow)) problems.push('palette.floorGlow is missing (cracks, lava, sheen, pores)');
+  else for (const name of FLOOR_GLOW) if (!isWorldColour(floorGlow[name])) problems.push(`palette.floorGlow.${name} is not a colour (#rrggbb, or color(srgb-linear r g b); black for none)`);
   if (!colour(lights.surface.color) || !colour(lights.fill.color)) problems.push('the surface and fill lights need #rrggbb colours');
   if (!vec3(lights.surface.position) || !vec3(lights.surface.target) || !vec3(lights.fill.position)) problems.push('the surface and fill lights need positions');
   if (!vec3(water.surfaceDir) || water.surfaceDir.every(n => n === 0)) problems.push('water.surfaceDir needs a direction');
