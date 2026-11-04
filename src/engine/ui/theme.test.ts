@@ -122,3 +122,12 @@ test('the padlock title icon is drawn in the theme button gradient and carries n
   expect(markup).toContain('var(--oct-button-to)');
   expect(markup).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
 });
+
+test("the nameplate's fill is a theme token (--oct-plate), Nox's violet-black its value and the stylesheet's fallback", () => {
+  expect(THEME_VARS.plate).toBe('--oct-plate');
+  expect(NOX_THEME.plate).toBe('rgba(12, 6, 18, 0.78)');
+  expect(themeVars({ ...NOX_THEME, plate: 'rgba(2, 46, 52, 0.82)' })['--oct-plate']).toBe('rgba(2, 46, 52, 0.82)');
+  const intro = sheets.find(sheet => sheet.name === 'intro.css')!.css;
+  const rule = /\.nameplate\s*\{([^}]*)\}/.exec(intro)![1];
+  expect(rule).toContain('background: var(--oct-plate, rgba(12, 6, 18, 0.78));');
+});

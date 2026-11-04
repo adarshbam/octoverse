@@ -26,9 +26,9 @@ export interface BakeRecord {
   /**
    * Each placement as layout.json had it, its rect in the lod0 and lod1 atlases, and where the bake
    * stood it: its matrix in stage space (column-major, as three's `Matrix4.elements`) and, for coral,
-   * what it came to rest on.
+   * what it came to rest on. One list per layout group, by the group's name.
    */
-  instances: Record<'pillars' | 'rocks' | 'corals', { placement: Placement; lod0: LightRect; lod1: LightRect; matrix: number[]; restsOn?: 'rock' | 'seabed' }[]>;
+  instances: Record<string, { placement: Placement; lod0: LightRect; lod1: LightRect; matrix: number[]; restsOn?: 'rock' | 'seabed' }[]>;
   /** The seabed grid the bake built, and heights it sampled from its copy of floorHeight: [x, z, y]. */
   seabed: { width: number; nearZ: number; farZ: number; segments: [number, number]; samples: [number, number, number][] };
   /** The lights baked: glyph and lava as point lights, the fill, and the surface light (its bounce only). */
@@ -57,11 +57,12 @@ export function asBakeRecord(data: unknown): BakeRecord {
   if (!r || typeof r !== 'object') throw new Error('near.glb has no bake record (scene extras nox_bake)');
   if (typeof r.intensity !== 'number' || !(r.intensity > 0)) problems.push('intensity');
   if (!r.atlases || !['lod0', 'lod1', 'seabed'].every(k => typeof r.atlases?.[k as keyof BakeRecord['atlases']] === 'string')) problems.push('atlases');
-  for (const group of ['pillars', 'rocks', 'corals'] as const) {
-    const list = r.instances?.[group];
-    const placed = (i: BakeRecord['instances'][typeof group][number]) => Array.isArray(i?.matrix) && i.matrix.length === 16 && (group !== 'corals' || i.restsOn === 'rock' || i.restsOn === 'seabed');
-    if (!Array.isArray(list) || !list.every(i => i?.placement && isRect(i.lod0) && isRect(i.lod1) && placed(i))) problems.push(`instances.${group}`);
-  }
+  if (!r.instances || typeof r.instances !== 'object') problems.push('instances');
+  else
+    for (const [group, list] of Object.entries(r.instances)) {
+      const placed = (i: BakeRecord['instances'][string][number]) => Array.isArray(i?.matrix) && i.matrix.length === 16 && (group !== 'corals' || i.restsOn === 'rock' || i.restsOn === 'seabed');
+      if (!Array.isArray(list) || !list.every(i => i?.placement && isRect(i.lod0) && isRect(i.lod1) && placed(i))) problems.push(`instances.${group}`);
+    }
   if (!Array.isArray(r.seabed?.samples) || !Array.isArray(r.seabed?.segments)) problems.push('seabed');
   if (!Array.isArray(r.lights?.glyph) || !Array.isArray(r.lights?.lava) || !Array.isArray(r.lights?.back) || !r.lights?.fill || !r.lights?.surface) problems.push('lights');
   if (typeof r.spill !== 'number') problems.push('spill');
@@ -91,9 +92,11 @@ export interface BakedLight {
 /** The baked light in near.glb's scene; throws if it was baked from another layout than `layout`. */
 export function bakedLightOf(scene: THREE.Object3D, layout: WorldLayout): BakedLight {
   const record = asBakeRecord(scene.userData.nox_bake);
-  for (const group of ['pillars', 'rocks', 'corals'] as const) {
-    const baked = record.instances[group].map(i => i.placement.piece).join();
-    if (baked !== layout[group].map(p => p.piece).join()) throw new Error(`near.glb was baked from another layout (${group}): run blender/security/bake_world.py`);
+  // The same groups, with the same pieces in each, as the layout has.
+  const names = new Set([...Object.keys(record.instances), ...Object.keys(layout.groups)]);
+  for (const group of names) {
+    const baked = (record.instances[group] ?? []).map(i => i.placement.piece).join();
+    if (baked !== (layout.groups[group] ?? []).map(p => p.piece).join()) throw new Error(`near.glb was baked from another layout (${group}): run blender/security/bake_world.py`);
   }
   const quad = (name: string, slot: 'emissiveMap' | 'normalMap') => {
     const map = ((scene.getObjectByName(name) as THREE.Mesh | undefined)?.material as THREE.MeshStandardMaterial | undefined)?.[slot];

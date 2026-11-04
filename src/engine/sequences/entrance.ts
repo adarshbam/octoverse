@@ -244,7 +244,7 @@ export function pathClearance(frame: (s: number) => EntranceFrame, layout: World
   for (let i = 0; i < samples; i++) {
     const f = frame((i / Math.max(1, samples - 1)) * until);
     const reach = armHalfSpan(f, geometry);
-    for (const pillar of layout.pillars) least = Math.min(least, pillarDistance(f.position, pillar, geometry.pillarHalf) - reach);
+    for (const pillar of layout.groups.pillars ?? []) least = Math.min(least, pillarDistance(f.position, pillar, geometry.pillarHalf) - reach);
   }
   return least;
 }

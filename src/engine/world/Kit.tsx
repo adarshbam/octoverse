@@ -8,7 +8,7 @@ import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, st
 import { glslColour } from './colour';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
-import { applyPlacement, coralRest, withLod } from './placement';
+import { DRESSED_GROUPS, applyPlacement, coralRest, withLod } from './placement';
 import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
@@ -228,7 +228,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // lightmap atlas: a copy of its material per placement and level, sharing shader and textures.
     // With a hook, it also reads that level's relief map.
     const litMaterials: (THREE.Material | THREE.Texture)[] = reliefMaps ? Object.values(reliefMaps) : [];
-    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: keyof BakeRecord['instances'], index: number, level: number, hook?: Hook) => {
+    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: string, index: number, level: number, hook?: Hook) => {
       if (!light) return base;
       const material = base.clone() as M;
       material.onBeforeCompile = hook ? hook(relief(level === 0 ? 'lod0' : 'lod1')) : base.onBeforeCompile;
@@ -259,7 +259,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // layout (the bake records their squares by index) but are not built here.
     const near = (p: Placement) => !(world.farPlate && isFarPlacement(p, world.farPlate.cutZ));
 
-    const pillars = layout.pillars.flatMap((p, index) => {
+    const pillars = (layout.groups.pillars ?? []).flatMap((p, index) => {
       if (!near(p)) return [];
       return [placedLod(p, (level, levelIndex) => {
         const material = lit(stone, baked, 'pillars', index, levelIndex, stoneHook);
@@ -277,7 +277,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       })];
     });
 
-    const rocks = layout.rocks.flatMap((p, index) => {
+    const rocks = (layout.groups.rocks ?? []).flatMap((p, index) => {
       if (!near(p)) return [];
       return [placedLod(p, (level, levelIndex) => {
         const mesh = level as THREE.Mesh;
@@ -299,13 +299,31 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return new THREE.Mesh(geometry, material);
     };
     const rockSurfaces = rocks.map(lod => lod.levels[0].object);
-    const corals = layout.corals.flatMap((p, index) => {
+    const corals = (layout.groups.corals ?? []).flatMap((p, index) => {
       if (!near(p)) return [];
       const object = withLod(coralLevel(p.piece, lit(coral, baked, 'corals', index, 0)), coralLevel(`${p.piece}_lod1`, lit(coral, baked, 'corals', index, 1)));
       const [x, , z] = p.position;
       applyPlacement(object, { ...p, position: [x, coralRest(x, z, layout.floorY, rockSurfaces).y, z] });
       return [object];
     });
+
+    // Any other group of the layout is plain stone: the stone material, lit from its own bake rects.
+    const stoneGroups = Object.entries(layout.groups)
+      .filter(([name]) => !(DRESSED_GROUPS as readonly string[]).includes(name))
+      .flatMap(([name, list]) =>
+        list.flatMap((p, index) => {
+          if (!near(p)) return [];
+          return [placedLod(p, (level, levelIndex) => {
+            const material = lit(stone, baked, name, index, levelIndex, stoneHook);
+            level.traverse(child => {
+              if (!(child instanceof THREE.Mesh)) return;
+              child.material = material;
+              child.castShadow = p.position[2] > -12;
+              child.receiveShadow = true;
+            });
+          })];
+        }),
+      );
 
     // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation. Each
     // chain's LOD stands at its middle, so its distance is measured from there.
@@ -357,7 +375,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       pebbles,
     ];
 
-    return { pillars, rocks, corals, chains, pebbles, lights, disposables };
+    return { pillars, rocks, corals, stoneGroups, chains, pebbles, lights, disposables };
   }, [kit, world, reliefGate]);
   useDisposables(built.disposables);
 
@@ -374,7 +392,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     <group ref={group}>
       {built.pillars.map((o, i) => <primitive key={`p${i}`} object={o} />)}
       {built.rocks.map((o, i) => <primitive key={`r${i}`} object={o} />)}
-      {built.corals.map((o, i) => <primitive key={`c${i}`} object={o} />)}
+      {[...built.corals, ...built.stoneGroups].map((o, i) => <primitive key={`c${i}`} object={o} />)}
       {built.chains.map((o, i) => <primitive key={`ch${i}`} object={o} />)}
       {built.lights.map((o, i) => <primitive key={`l${i}`} object={o} />)}
       <primitive object={built.pebbles} />

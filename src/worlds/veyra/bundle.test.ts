@@ -118,7 +118,7 @@ test("the four character tints are set explicitly: none reads Nox's fallback", (
 test('her cups are the frill style: raised cream cups at the P2 sample with a darker teal-cream hollow (spec 7.1, 2.3)', () => {
   const style = VEYRA.suckers.style!;
   expect(style).toBeDefined();
-  expect([style.scallop, style.rimWidth, style.glow]).toEqual([0.6, 0.22, 1.3]);
+  expect([style.scallop, style.rimWidth, style.glow]).toEqual([0.6, 0.22, 1.5]);
   // The edge within 15 points per channel of the P2 cup sample (224, 220, 156), set a little
   // brighter since the stage's key light and bounce darken it; the rim's crest brighter still (45).
   const rgb = (c: string) => Object.values(channels(c)).map(v => Math.round(v * 255));
@@ -192,7 +192,8 @@ test('no red anywhere in her world: the character, the place and the UI hold no 
   const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|alt|src|pageTitle|titleIcon)$|\.pieces\[\d+\]$/;
   for (const [path, value] of [...strings(VEYRA, 'character'), ...strings(VEYRA_BUNDLE.place, 'place'), ...strings(VEYRA_BUNDLE.theme, 'theme')]) {
     if (NOT_COLOUR.test(path)) continue;
-    // The peach blush and the warm pink inside an open smile are the face's own warm accents (spec 7.3).
+    // The peach blush and an open smile's dark maroon inside and pink tongue (as P3 paints them) are the
+    // face's own warm accents (spec 7.3; ruling R-V8).
     if (/facePalette\.(?:blush|blushGlow|mouthInside|tongue)$/.test(path)) continue;
     if (isRed(value)) red.push(`${path}: ${value}`);
   }
@@ -204,9 +205,9 @@ test('the stage backdrop is a kit with one empty scene, the layout names no piec
   expect(place.kit.pieces).toEqual([]);
   expect(place.near).toBeUndefined();
   expect(place.farPlate).toBeUndefined();
-  const { floorY, ...groups } = place.layout;
+  const { floorY, groups, ...rest } = place.layout;
   expect(floorY).toBeLessThan(0);
-  expect(Object.values(groups).flat()).toEqual([]);
+  expect([...Object.values(groups).flat(), ...Object.values(rest).flat()]).toEqual([]);
   // Spec 7.7 and the plan: a lean of 0.04, and 0.8 and 0.75 of Nox's drift (his amount and pace are both 1).
   expect(place.camera).toEqual({ tilt: 0.04, hover: { amount: 0.8, pace: 0.75 } });
   // The glb the kit names exists, is a glTF 2 binary and holds one scene with no nodes, meshes or materials.

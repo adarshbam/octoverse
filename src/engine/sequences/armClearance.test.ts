@@ -87,7 +87,7 @@ test('the real arms stay clear of every pillar as they open and all through the 
           const z = cp * chain.pz[k] + sp * y;
           const wx = f.position[0] + drift.x + BODY_X + cy * x + sy * z;
           const wz = f.position[2] - sy * x + cy * z;
-          for (const pillar of SECURITY_WORLD.layout.pillars) {
+          for (const pillar of SECURITY_WORLD.layout.groups.pillars) {
             // To the arm's surface: its radius there (the arm thins toward its tip).
             const gap = pillarGap(wx, wz, pillar) - armRadius(k / N, specs[a], NOX);
             if (gap < least) {

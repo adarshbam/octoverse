@@ -42,6 +42,35 @@ export const CORAL_SWAY_GLSL = `
   transformed.x += sin(uTime * 1.1 + phase + position.y * 2.5) * ${CORAL_SWAY.x} * h * h * uMotion;
   transformed.z += cos(uTime * 0.8 + phase * 1.3) * ${CORAL_SWAY.z} * h * h * uMotion;`;
 
+/**
+ * The kelp's and seagrass's sway (live/strands.ts, Kelp.tsx): one slow swing, `speed` radians a
+ * second, so a period of about seven seconds. A strand's tip leans along its yaw by at most the
+ * config's `sway` stage units, and across it by `across` of that a quarter beat later.
+ */
+export const KELP = { speed: 0.9, periodSeconds: (2 * Math.PI) / 0.9, across: 0.5 };
+
+/** The lean of a strand's tip at time `t`, between `-sway` and `sway` stage units: periodic, with `phase` its own (strands of a bed do not sway together). */
+export function kelpSway(t: number, phase: number, sway: number) {
+  return sway * Math.sin(t * KELP.speed + phase);
+}
+
+/** The lean of the point `h` (0 root to 1 tip) up a strand, along and across it: the tip's lean scaled by h squared, never past `sway` in all. */
+export function kelpLean(t: number, phase: number, sway: number, h: number, motion: number) {
+  const bend = h * h * motion;
+  return {
+    x: kelpSway(t, phase, sway) * bend + 0,
+    z: kelpSway(t, phase + Math.PI / 2, sway) * KELP.across * bend + 0,
+  };
+}
+
+/** The vertex term for a strand instance (`uSway` the config's sway, `uMotion` as ever; the geometry's y is its h, the instance's position its phase). */
+export const KELP_SWAY_GLSL = `
+  float kPhase = instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 0.9;
+  float kH = clamp(position.y, 0.0, 1.0);
+  float kBend = kH * kH * uMotion;
+  transformed.x += uSway * sin(uTime * ${KELP.speed} + kPhase) * kBend;
+  transformed.z += uSway * ${KELP.across} * sin(uTime * ${KELP.speed} + kPhase + 1.5707963) * kBend;`;
+
 /** 1 while the world's own motion runs, 0 when it holds still: for `useFrame` callbacks inside a `WorldScene`. */
 export function useMotionAmount() {
   return motionAmount(useContext(MotionContext));

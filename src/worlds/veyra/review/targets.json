@@ -169,5 +169,51 @@
     ],
     "tolerance": 12,
     "satTolerance": 0.04
+  },
+  "measured": {
+    "note": "Task 7: how the render is compared with the painting for the shape numbers. head.halfWidth and head.top are CONFIG ranges (the authored dome); the rest is like for like on the picture.",
+    "segmentation": "G>=95 and G-R>=40 and B>=0.7G, or R>150 and G>150; rows 196-427 (title and nameplate out); bubble r17 at (432, 392) out; 3x3 close, largest component, holes filled. On P2 itself it gives IoU 0.992 with p2-mask.png on rows 196-427. Run: python scripts/veyra_shape.py <capture.png>.",
+    "visibleHalfWidth": {
+      "rows": [
+        196,
+        427
+      ],
+      "atY": [
+        0.175,
+        0.075,
+        -0.025,
+        -0.125
+      ],
+      "p2": [
+        0.72,
+        0.77,
+        0.8,
+        0.835
+      ],
+      "tolerance": 0.03,
+      "reason": "The config halfWidth (0.88) is the dome before the rim fades and the halo widens it; the visible dome half-width is measured the same way on both pictures at four heights and held to 0.03 world units (3 px at the native panel, the painting edge soft over about 3 px)."
+    },
+    "armSpan": {
+      "p2Segmented": 3.75,
+      "tolerance": 0.05,
+      "reason": "The 3.75 floor is the painting measured with its halo glow, which widens the reach by about 0.03 to 0.05; the render is segmented the same way and held to 0.05 of the painting."
+    },
+    "iouExcluding": {
+      "boxes": [
+        [
+          140,
+          385,
+          178,
+          427
+        ],
+        [
+          312,
+          385,
+          340,
+          427
+        ]
+      ],
+      "reason": "The painting shows nine or ten arms; Veyra has eight (spec 2.5). The two boxes hold the extra hanging arms (between T5 and T6, and behind T3); the iou target is met with them left out of both masks."
+    }
   }
 }

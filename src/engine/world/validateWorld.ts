@@ -1,4 +1,7 @@
 import { isWorldColour } from './colour';
+import { DEFAULT_FLOOR, FLOOR_MATERIALS } from './floors';
+import { LIVE_ELEMENT_IDS, MAX_STRANDS } from './live';
+import { PROP_DRIVE_IDS } from './props';
 import type { FloorGlow, Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
@@ -11,6 +14,10 @@ const WATER_COLOURS = ['deep', 'zenith', 'glow', 'opening', 'rays', 'raysWide', 
 
 /** The seabed's glow colours (`WorldConfig['palette']['floorGlow']`), every one required. */
 const FLOOR_GLOW = ['cracks', 'lava', 'sheen', 'pores'] as const satisfies readonly (keyof FloorGlow)[];
+
+/** The palette colours the engine reads by name (the rest are named by lights, relics or the floor), and the relics it reads. */
+const ENGINE_PALETTE = ['stone', 'coral', 'floor', 'waterFar'] as const;
+const ENGINE_RELICS = ['glyph', 'coral', 'spill'] as const;
 
 /** Optional placement fields and what each must hold when present. */
 const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
@@ -29,7 +36,7 @@ const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
 export function layoutProblems(data: unknown): string[] {
   if (!record(data)) return ['the layout is not an object'];
   const problems: string[] = [];
-  const known = ['floorY', 'pillars', 'rocks', 'corals', 'chains', 'coralLights'];
+  const known = ['floorY', 'groups', 'chains', 'coralLights'];
   for (const key of Object.keys(data)) if (!known.includes(key)) problems.push(`the layout has an unknown key "${key}"`);
   if (!finite(data.floorY)) problems.push('floorY is not a number');
 
@@ -52,9 +59,13 @@ export function layoutProblems(data: unknown): string[] {
       else if (!check(value)) problems.push(`${at}.${key} is not valid`);
     }
   };
-  list('pillars', placement);
-  list('rocks', placement);
-  list('corals', placement);
+  if (!record(data.groups)) problems.push('groups is not an object (a list of placements for each group name)');
+  else
+    for (const [name, items] of Object.entries(data.groups)) {
+      if (name === '') problems.push('groups has a group with no name');
+      if (!Array.isArray(items)) problems.push(`groups.${name} is not a list`);
+      else items.forEach((item, i) => placement(item, `groups.${name}[${i}]`));
+    }
   list('chains', (item, at) => {
     if (!record(item) || !vec3(item.from) || !vec3(item.to) || !finite(item.sag) || item.sag < 0) problems.push(`${at} needs from, to and a sag of 0 or more`);
     else for (const key of Object.keys(item)) if (!['from', 'to', 'sag'].includes(key)) problems.push(`${at} has an unknown key "${key}"`);
@@ -75,15 +86,14 @@ export function validateWorld(world: WorldConfig): string[] {
   const problems: string[] = [];
   const { layout, lights, palette, water, live, camera, post } = world;
   const pieces = new Set(world.kit.pieces);
+  const groups = Object.entries(layout.groups);
 
   const placements = (group: string, list: readonly Placement[]) =>
     list.forEach((p, i) => {
       if (!pieces.has(p.piece)) problems.push(`${group}[${i}] names "${p.piece}", which is not in the kit`);
       if (!vec3(p.position)) problems.push(`${group}[${i}] has no valid position`);
     });
-  placements('pillars', layout.pillars);
-  placements('rocks', layout.rocks);
-  placements('corals', layout.corals);
+  for (const [name, list] of groups) placements(name, list);
 
   if (!finite(layout.floorY)) problems.push('layout.floorY is not a number');
   if (layout.chains.length > 0 && !pieces.has('chain')) problems.push('chains need a "chain" piece in the kit');
@@ -102,17 +112,30 @@ export function validateWorld(world: WorldConfig): string[] {
     if (!colour(light.color)) problems.push(`${name} has no valid colour`);
   });
   // Each lit pillar carries one glyph light, and each coral light one lava light.
-  const litPillars = layout.pillars.filter(p => p.light).length;
+  // Only pillars are lit: the kit dresses glyph panels, and the bake lights, the `pillars` group alone.
+  for (const [name, list] of groups) if (name !== 'pillars') list.forEach((p, i) => p.light && problems.push(`${name}[${i}] is lit, but only pillars carry glyph lights`));
+  const litPillars = (layout.groups.pillars ?? []).filter(p => p.light).length;
   const glyphLights = lights.points.filter(l => l.kind === 'glyph').length;
   if (glyphLights !== litPillars) problems.push(`${litPillars} pillars are lit but there are ${glyphLights} glyph lights`);
   const lavaLights = lights.points.filter(l => l.kind === 'lava').length;
   if (lavaLights !== layout.coralLights.length) problems.push(`${layout.coralLights.length} coral lights but ${lavaLights} lava lights`);
 
   for (const [name, value] of Object.entries(world.relics)) if (!finite(value) || value <= 0) problems.push(`relics.${name} must be above 0`);
+  for (const name of ENGINE_RELICS) if (!(name in world.relics)) problems.push(`relics.${name} is missing (the engine reads it)`);
   const { floorGlow, ...flat } = palette;
   for (const [name, value] of Object.entries(flat)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
+  for (const name of ENGINE_PALETTE) if (!(name in flat)) problems.push(`palette.${name} is missing (the engine reads it)`);
   if (!record(floorGlow)) problems.push('palette.floorGlow is missing (cracks, lava, sheen, pores)');
   else for (const name of FLOOR_GLOW) if (!isWorldColour(floorGlow[name])) problems.push(`palette.floorGlow.${name} is not a colour (#rrggbb, or color(srgb-linear r g b); black for none)`);
+  // The palette's other colours are the ones lights, relics and the floor name: a colour nothing names is a mistake.
+  const floorMaterial = world.floor?.material ?? DEFAULT_FLOOR;
+  if (!Object.hasOwn(FLOOR_MATERIALS, floorMaterial)) problems.push(`floor.material "${String(floorMaterial)}" is not one of ${Object.keys(FLOOR_MATERIALS).join(', ')}`);
+  else {
+    const floorColours: readonly string[] = FLOOR_MATERIALS[floorMaterial].palette;
+    for (const name of floorColours) if (!(name in flat)) problems.push(`palette.${name} is missing (the ${floorMaterial} floor reads it)`);
+    const named = new Set<string>([...ENGINE_PALETTE, ...lights.points.map(l => l.kind), ...Object.keys(world.relics), ...floorColours]);
+    for (const name of Object.keys(flat)) if (!named.has(name)) problems.push(`palette.${name} is named by no light, relic or floor`);
+  }
   if (!colour(lights.surface.color) || !colour(lights.fill.color)) problems.push('the surface and fill lights need #rrggbb colours');
   if (!vec3(lights.surface.position) || !vec3(lights.surface.target) || !vec3(lights.fill.position)) problems.push('the surface and fill lights need positions');
   if (!vec3(water.surfaceDir) || water.surfaceDir.every(n => n === 0)) problems.push('water.surfaceDir needs a direction');
@@ -148,7 +171,28 @@ export function validateWorld(world: WorldConfig): string[] {
         if (!finite(layer?.z)) problems.push(`farPlate.layers[${i}].z is not a number`);
       });
   }
-  const { colours: liveColours, ...shares } = live;
+  const nodes = new Set([...world.kit.pieces, ...(world.kit.nodes ?? [])]);
+  const propIds = new Set<string>();
+  (world.props ?? []).forEach((prop, i) => {
+    const at = `props[${i}] (${prop.id})`;
+    if (typeof prop.id !== 'string' || prop.id === '') problems.push(`props[${i}] has no id`);
+    else if (propIds.has(prop.id)) problems.push(`${at} repeats the id "${prop.id}"`);
+    propIds.add(prop.id);
+    if (!nodes.has(prop.node)) problems.push(`${at} names the kit node "${prop.node}", which is not in the kit`);
+    if (!PROP_DRIVE_IDS.includes(prop.drive)) problems.push(`${at} has drive "${String(prop.drive)}", which is not one of ${PROP_DRIVE_IDS.join(', ')}`);
+  });
+  const { colours: liveColours, elements, ...shares } = live;
+  for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {
+    const at = `live.elements.${id}`;
+    if (!(LIVE_ELEMENT_IDS as string[]).includes(id)) problems.push(`${at} is not a live element (${LIVE_ELEMENT_IDS.join(', ')})`);
+    else if (!record(strand)) problems.push(`${at} needs count, height, sway and color`);
+    else {
+      if (!finite(strand.count) || !Number.isInteger(strand.count) || strand.count < 0) problems.push(`${at}.count must be a whole number, 0 or more`);
+      else if (strand.count > MAX_STRANDS) problems.push(`${at}.count must be at most ${MAX_STRANDS}`);
+      for (const name of ['height', 'sway'] as const) if (!finite(strand[name]) || strand[name] < 0) problems.push(`${at}.${name} must be 0 or more`);
+      if (!colour(strand.color)) problems.push(`${at}.color is not a #rrggbb colour`);
+    }
+  }
   for (const [name, share] of Object.entries(shares)) if (!finite(share) || share < 0 || share > 1) problems.push(`live.${name} must be between 0 and 1`);
   if (!record(liveColours)) problems.push('live.colours is missing (bubbles, embers, motes, snow)');
   else {
