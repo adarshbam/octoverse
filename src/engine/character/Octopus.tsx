@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
@@ -382,6 +382,22 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     document.documentElement.addEventListener('mouseleave', leave);
     return () => document.documentElement.removeEventListener('mouseleave', leave);
   }, [instance.mode]);
+
+  // The pointer cursor over the head, for the page's instance only (a preview shares the page's body and must not set its cursor);
+  // given back when the pointer leaves, when the head stops being pickable, and when the instance goes.
+  const pointing = useRef(false);
+  const point = useCallback(
+    (on: boolean) => {
+      if (instance.mode !== 'page' || pointing.current === on) return;
+      pointing.current = on;
+      document.body.style.cursor = on ? 'pointer' : '';
+    },
+    [instance.mode],
+  );
+  useEffect(() => {
+    if (!onSelect) point(false);
+  }, [onSelect, point]);
+  useEffect(() => () => point(false), [point]);
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 20);
@@ -804,8 +820,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
                 position={[faceX, faceY, 0]}
                 castShadow={castShadow}
                 onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
-                onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
-                onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
+                onPointerOver={onSelect && (() => point(true))}
+                onPointerOut={onSelect && (() => point(false))}
               >
                 {!silhouette && <mesh geometry={rig.haloGeometry} material={rig.headHalo} />}
               </mesh>
