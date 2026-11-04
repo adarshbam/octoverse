@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { headMorphVertex } from './headMorph';
 import type { StageLighting } from '../config/lighting';
 import type { CharacterConfig } from '../config/types';
+import { glslColour } from '../world/colour';
 import { cheekCentres } from './headGeometry';
 import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
 
@@ -154,7 +155,8 @@ const skinVertex = /* glsl */ `
   }
 `;
 
-const skinFragment = /* glsl */ `
+/** The skin's fragment shader, with the white-hot rim colour (`palette.rimHot`) compiled in. */
+const skinFragment = (rimHot: string) => /* glsl */ `
   uniform sampler2D uGlowRamp;
   uniform vec3 uGlowPos;
   uniform vec3 uGlowShape;
@@ -317,7 +319,7 @@ const skinFragment = /* glsl */ `
       // No neon line over the glowing neck, where the arms rise out of the body.
       float rimFade = (1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow));
       col += rim * rimLine * 3.0 * rimFade * (1.0 - 0.4 * headShade);
-      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.3) * pow(1.0 - ndv, 14.0) * 1.6 * rimFade;
+      col += mix(rim, ${rimHot}, 0.3) * pow(1.0 - ndv, 14.0) * 1.6 * rimFade;
       col += uRimLow * pow(1.0 - ndv, 7.0) * 0.6 * (1.0 - join);
     #else
       col = texture2D(uGlowRamp, vec2(clamp(faceGlow, 0.0, 1.0), 0.5)).rgb;
@@ -329,7 +331,7 @@ const skinFragment = /* glsl */ `
       float belowChin = smoothstep(uGlowPos.y - 0.05, uGlowPos.y + 0.15, vWorld.y);
       col += uHeadEdge * pow(1.0 - ndv, 2.0) * 0.32 * (1.0 - faceGlow) * belowChin;
       col += rim * pow(1.0 - ndv, 7.0) * 4.0 * (1.0 - faceGlow * 0.6) * mix(0.6, 1.0, smoothstep(-0.45, 0.1, vWorld.y)) * belowChin;
-      col += mix(rim, vec3(1.0, 0.85, 1.0), 0.6) * pow(1.0 - ndv, 16.0) * 1.6 * belowChin;
+      col += mix(rim, ${rimHot}, 0.6) * pow(1.0 - ndv, 16.0) * 1.6 * belowChin;
       // Crown sheen: a tight highlight toward the upper left; the forehead stays dark navy.
       col += uHeadEdge * pow(max(dot(N, normalize(vec3(-0.5, 0.7, 0.5))), 0.0), 14.0) * 0.22 * (1.0 - faceGlow);
       // Light glowing through the thin edge of the mantle.
@@ -531,7 +533,8 @@ const skinFragment = /* glsl */ `
 
 export type SkinKind = 'HEAD' | 'ARM' | 'BODY';
 
-export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, face?: { texture: THREE.Texture; rect: THREE.Vector4 }) {
+/** A skin surface of `kind`, on the character's shared `uniforms`, its rim's white-hot line in `rimHot` (the character's `palette.rimHot`). */
+export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHot: string, face?: { texture: THREE.Texture; rect: THREE.Vector4 }) {
   return new THREE.ShaderMaterial({
     defines: { [kind]: '' },
     uniforms: {
@@ -540,6 +543,6 @@ export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, face?
       uFaceRect: { value: face?.rect ?? new THREE.Vector4(0, 0, 1, 1) },
     },
     vertexShader: skinVertex,
-    fragmentShader: skinFragment,
+    fragmentShader: skinFragment(glslColour(rimHot)),
   });
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Palette, SuckerSettings } from '../config/types';
+import { glslColour } from '../world/colour';
 import type { SkinUniforms } from './skinMaterial';
 import { CUP_EMBED, CUP_FACE, type SuckerRow } from './suckerRow';
 
@@ -160,7 +161,7 @@ export function createSuckerMaterial(palette: Palette, light: CupLighting) {
         // A small wet highlight on the rim.
         float rim = smoothstep(0.5, 0.72, r) * (1.0 - smoothstep(0.85, 0.97, r));
         float spec = pow(max(dot(N, normalize(L + V)), 0.0), 40.0);
-        c += uKeyLight * vec3(1.0, 0.9, 0.84) * spec * 0.5 * rim;
+        c += uKeyLight * ${glslColour(palette.suckerSpecular)} * spec * 0.5 * rim;
         c *= uBoost;
         // Far cups fade into the water like the skin they sit on.
         c = mix(c, uHazeColor, smoothstep(uHaze.x, uHaze.y, -vWorld.z) * uHaze.z);

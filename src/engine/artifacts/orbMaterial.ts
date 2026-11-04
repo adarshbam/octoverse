@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { OrbGlass } from '../config/types';
+import { glslColour } from '../world/colour';
 
 /**
  * A technology orb's glass, as in panel 3: a dark, clear interior that holds the scene behind it
@@ -9,9 +11,10 @@ import * as THREE from 'three';
  */
 /**
  * `focusColour` is the hot ring a technology's orb glows with while it is in focus (panel 4): the
- * character's `palette.orbFocus`.
+ * character's `palette.orbFocus`. `glass` is what the edge picks up round it and the centre's
+ * faint floor (the character's `palette.orbGlass`), compiled in.
  */
-export function createOrbMaterial(tint: string, focusColour: string) {
+export function createOrbMaterial(tint: string, focusColour: string, glass: OrbGlass) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTint: { value: new THREE.Color(tint) },
@@ -53,8 +56,8 @@ export function createOrbMaterial(tint: string, focusColour: string) {
         float ndv = clamp(dot(N, V), 0.0, 1.0);
 
         // The surroundings round the edge, in distinct colours, mostly the logo's own.
-        vec3 env = mix(vec3(1.0, 0.42, 0.12), vec3(0.62, 0.36, 1.0), smoothstep(-0.55, 0.55, N.y));
-        env = mix(env, vec3(0.25, 0.55, 1.0), smoothstep(0.25, 0.9, -N.x) * smoothstep(0.6, -0.2, N.y) * 0.7);
+        vec3 env = mix(${glslColour(glass.below)}, ${glslColour(glass.above)}, smoothstep(-0.55, 0.55, N.y));
+        env = mix(env, ${glslColour(glass.side)}, smoothstep(0.25, 0.9, -N.x) * smoothstep(0.6, -0.2, N.y) * 0.7);
         env = mix(env, uTint, 0.8);
         // In focus, the edge glows hot red-pink.
         env = mix(env, uFocusColour, uFocus * 0.85);
@@ -69,7 +72,7 @@ export function createOrbMaterial(tint: string, focusColour: string) {
         float ringLevel = min(1.0, 0.3 / max(dot(env, vec3(0.2126, 0.7152, 0.0722)), 1e-3));
         // In focus the ring thickens and brightens into the painting's bold neon circle.
         float ring = pow(1.0 - ndv, 5.0 - 1.4 * uFocus) * 1.9 * ringLevel * (1.0 + 1.9 * uFocus);
-        vec3 col = uTint * 0.006 + vec3(0.002, 0.0015, 0.004) + env * ring + env * fresnel * 1.2 * ringLevel
+        vec3 col = uTint * 0.006 + ${glslColour(glass.base)} + env * ring + env * fresnel * 1.2 * ringLevel
           + env * pow(1.0 - ndv, 2.5) * 0.18 * ringLevel
           + mix(env, vec3(1.0), 0.25) * pow(1.0 - ndv, 18.0) * 0.9;
 

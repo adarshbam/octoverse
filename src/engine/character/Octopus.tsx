@@ -222,7 +222,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const centre = a === 'T4' && b === 'T5';
       return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u), centre ? 0.14 : 0.2, centre ? 0 : undefined);
     });
-    const webMaterial = createSkinMaterial('ARM', uniforms);
+    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot);
     webMaterial.side = THREE.DoubleSide;
     // The cups and their contact shadows share one set of placements and bends.
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
@@ -254,8 +254,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       suckers,
       cupShadows,
       suckerBend,
-      headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
-      armMaterial: createSkinMaterial('ARM', uniforms),
+      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }),
+      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot),
       coreGlow: createGlowMaterial(config.glow.core, CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
@@ -791,7 +791,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

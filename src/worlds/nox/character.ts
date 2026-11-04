@@ -82,6 +82,18 @@ export const NOX: CharacterConfig = {
     // The in-focus orb's edge (panel 4) and the red runes of the head swell (moved from literals).
     orbFocus: '#ff2e5a',
     effect: { halo: 'rgba(255,24,44,0.5)', stroke: '#ff2c3c', core: '#ffb49c' },
+    // The tints the shaders compiled in (moved from literals, linear light): the skin rim's
+    // white-hot line (pink-white), the dome's reveal front, the cups' warm wet highlight, and what
+    // an orb's glass picks up: the lava's orange below, violet above, blue from the left.
+    rimHot: 'color(srgb-linear 1 0.85 1)',
+    domeRimHot: 'color(srgb-linear 1 0.85 0.95)',
+    suckerSpecular: 'color(srgb-linear 1 0.9 0.84)',
+    orbGlass: {
+      below: 'color(srgb-linear 1 0.42 0.12)',
+      above: 'color(srgb-linear 0.62 0.36 1)',
+      side: 'color(srgb-linear 0.25 0.55 1)',
+      base: 'color(srgb-linear 0.002 0.0015 0.004)',
+    },
   },
   face: {
     // Placed and sized from panel 2; border, lid and iris layers traced from the

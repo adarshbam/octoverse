@@ -72,7 +72,7 @@ const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece)$|\.pieces\[\d
  * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g
  * b)` (world/colour.ts `isWorldColour`): the skin accent and the colours a shader compiles in.
  */
-const WORLD_COLOUR = /\.skinAccent$|\.floorGlow\.[a-zA-Z]+$/;
+const WORLD_COLOUR = /\.skinAccent$|\.floorGlow\.[a-zA-Z]+$|^character\.palette\.(?:rimHot|domeRimHot|suckerSpecular|orbGlass\.[a-zA-Z]+)$/;
 
 /** Every number in `value` is finite and every colour parses, or a BundleError names the field. */
 function checkLeaves(value: unknown, path: string, colours: boolean) {

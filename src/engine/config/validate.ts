@@ -1,7 +1,7 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
-import { isColour } from '../world/colour';
+import { isColour, isWorldColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
-import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type Palette } from './types';
+import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type OrbGlass, type Palette } from './types';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -19,6 +19,8 @@ const unit = (value: number, fallback: number) => clamp(value, 0, 1, fallback);
  * as it does for a number; `validateBundle` refuses such a value by name before it gets here.
  */
 const colour = (value: unknown, fallback: string): string => (isColour(value) ? value : fallback);
+/** A colour a shader compiles in (world/colour.ts `isWorldColour`: `#rrggbb` or `color(srgb-linear r g b)`); anything else reads `fallback`. */
+const linear = (value: unknown, fallback: string): string => (isWorldColour(value) ? value : fallback);
 
 /**
  * What a config written before these fields existed reads in their place: Nox's own values, so
@@ -30,6 +32,11 @@ const LEGACY = {
   belowStart: 0.75,
   orbFocus: '#ff2e5a',
   effect: { halo: 'rgba(255,24,44,0.5)', stroke: '#ff2c3c', core: '#ffb49c' } as EffectColours,
+  // The shader tints fix wave A moved from literals into the palette (linear light, as they were compiled in).
+  rimHot: 'color(srgb-linear 1 0.85 1)',
+  domeRimHot: 'color(srgb-linear 1 0.85 0.95)',
+  suckerSpecular: 'color(srgb-linear 1 0.9 0.84)',
+  orbGlass: { below: 'color(srgb-linear 1 0.42 0.12)', above: 'color(srgb-linear 0.62 0.36 1)', side: 'color(srgb-linear 0.25 0.55 1)', base: 'color(srgb-linear 0.002 0.0015 0.004)' } as OrbGlass,
 };
 
 /**
@@ -49,11 +56,18 @@ const DEFAULTS = {
   personality: { sway: 0.5, curl: 1.1, floatAmplitude: 0.045, floatPeriod: 6.2, breathPeriod: 4.6, blinkInterval: [2.6, 7.0] },
 } as const;
 
-/** A config as an older creator wrote it: the fields Task 4 added may be missing. */
+/** A config as an older creator wrote it: the fields Task 4 (and fix wave A's shader tints) added may be missing. */
 export type LegacyCharacterConfig = Omit<CharacterConfig, 'lighting' | 'glow' | 'palette'> & {
   lighting?: StageLighting;
   glow: Omit<GlowShape, 'core' | 'light' | 'aura'> & { core?: string; light?: GlowLightSettings; aura: Omit<AuraSettings, 'belowStart'> & { belowStart?: number } };
-  palette: Omit<Palette, 'orbFocus' | 'effect'> & { orbFocus?: string; effect?: EffectColours };
+  palette: Omit<Palette, 'orbFocus' | 'effect' | 'rimHot' | 'domeRimHot' | 'suckerSpecular' | 'orbGlass'> & {
+    orbFocus?: string;
+    effect?: EffectColours;
+    rimHot?: string;
+    domeRimHot?: string;
+    suckerSpecular?: string;
+    orbGlass?: OrbGlass;
+  };
 };
 
 function clampLighting(l: StageLighting, d: StageLighting = INTRO_LIGHTING): StageLighting {
@@ -107,6 +121,7 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
   const light = config.glow.light ?? LEGACY.light;
   const expressions = clampExpressions(config.expressions);
   const effect = config.palette.effect ?? LEGACY.effect;
+  const glass = config.palette.orbGlass ?? LEGACY.orbGlass;
   return {
     ...config,
     lighting: clampLighting(config.lighting ?? INTRO_LIGHTING),
@@ -129,6 +144,10 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       ...config.palette,
       orbFocus: colour(config.palette.orbFocus, LEGACY.orbFocus),
       effect: { halo: colour(effect.halo, LEGACY.effect.halo), stroke: colour(effect.stroke, LEGACY.effect.stroke), core: colour(effect.core, LEGACY.effect.core) },
+      rimHot: linear(config.palette.rimHot, LEGACY.rimHot),
+      domeRimHot: linear(config.palette.domeRimHot, LEGACY.domeRimHot),
+      suckerSpecular: linear(config.palette.suckerSpecular, LEGACY.suckerSpecular),
+      orbGlass: { below: linear(glass.below, LEGACY.orbGlass.below), above: linear(glass.above, LEGACY.orbGlass.above), side: linear(glass.side, LEGACY.orbGlass.side), base: linear(glass.base, LEGACY.orbGlass.base) },
     },
     armBend: clamp(config.armBend, 0, 0.3, DEFAULTS.armBend),
     armFlatten: clamp(config.armFlatten, 0.7, 1, DEFAULTS.armFlatten),
