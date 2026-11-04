@@ -4,7 +4,7 @@ Branch `claude/flux-world-overnight`. Overnight run: every owner gate was ruled 
 Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 
 ## Status
-- 2026-11-04 Milestone 1 complete (Tasks 1-6 plus early Task 8a), provisional owner gate. Waiting on gate: Milestone 2 (Veyra Tasks 8 and 10, plus the shared sand floor).
+- Milestones 1 and 2 complete (Tasks 1-10, plus early Task 8a and Task 11). Stopped at the Milestone 3 boundary: waiting on Veyra Task 13, Aether Task 12 (orbStyle) and E02 choosableIn. Everything below is PENDING OWNER REVIEW.
 - 2026-11-05 Task 10 (Milestone 2 world look) ruled provisionally; PENDING OWNER REVIEW.
 - 2026-11-05 Task 11 (overview pose and dome, run early) ruled provisionally; PENDING OWNER REVIEW.
 
