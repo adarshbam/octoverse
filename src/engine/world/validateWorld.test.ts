@@ -6,13 +6,15 @@ import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
 import { asBakeRecord, reliefOf, stoneLights, type BakedLight, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
+import { layoutPieces } from './placement';
+import golden from './fixtures/nox.pieces.golden.json';
 import { SEABED, floorHeight } from './seabed';
 import layoutData from '../../worlds/nox/place/layout.json';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import type { Vec3, WorldConfig } from './types';
 import { asWorldLayout, layoutProblems, validateWorld } from './validateWorld';
 
-const placements = (world: WorldConfig) => [...world.layout.pillars, ...world.layout.rocks, ...world.layout.corals];
+const placements = (world: WorldConfig) => [...world.layout.groups.pillars, ...world.layout.groups.rocks, ...world.layout.groups.corals];
 
 const PUBLIC = new URL('../../../public/', import.meta.url);
 const KIT_FILE = new URL('nox/world/security/kit.glb', PUBLIC);
@@ -140,7 +142,7 @@ test('near.glb is baked from layout.json and the world’s lights', () => {
   const { layout, lights } = SECURITY_WORLD;
   // Every placement as layout.json has it, so a layout edit without a new bake fails here.
   for (const group of ['pillars', 'rocks', 'corals'] as const) {
-    expect(baked.instances[group].map(i => i.placement), group).toEqual(layout[group]);
+    expect(baked.instances[group].map(i => i.placement), group).toEqual(layout.groups[group]);
   }
   const close = (a: Vec3, b: Vec3, digits: number) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], digits));
   const glyphs = lights.points.filter(l => l.kind === 'glyph');
@@ -165,7 +167,7 @@ test('near.glb is baked from layout.json and the world’s lights', () => {
   for (const light of baked.lights.back) {
     expect(light.intensity).toBeCloseTo(lava[0].intensity * SECURITY_WORLD.glow.back, 9);
     expect(light.position[1]).toBeLessThan(layout.floorY + 1);
-    expect(light.position[2]).toBeLessThan(layout.rocks.map(r => r.position[2]).reduce((a, b) => Math.max(a, b)));
+    expect(light.position[2]).toBeLessThan(layout.groups.rocks.map(r => r.position[2]).reduce((a, b) => Math.max(a, b)));
   }
   expect(baked.lights.fill).toEqual(lights.fill);
   expect(baked.lights.surface).toEqual(lights.surface);
@@ -246,12 +248,17 @@ test('layout.json matches the WorldLayout schema', () => {
   expect(asWorldLayout(layoutData)).toBe(layoutData);
   // Each kind of mistake is named: a missing field, a short position, an unknown key (Blender
   // reads the same file, so a misspelt key would be silently ignored there), a wrong type.
-  const [pillar, ...pillars] = layoutData.pillars;
+  const [pillar, ...pillars] = layoutData.groups.pillars;
+  const { groups } = layoutData;
   const broken = (change: object) => layoutProblems({ ...layoutData, ...change }).join('\n');
   expect(broken({ floorY: undefined })).toContain('floorY');
-  expect(broken({ pillars: [{ ...pillar, position: [1, 2] }, ...pillars] })).toContain('pillars[0]');
-  expect(broken({ pillars: [{ ...pillar, rotZ: 0.2 }, ...pillars] })).toContain('rotZ');
-  expect(broken({ rocks: [{ piece: 'rock_0', position: [0, 0, 0], scale: 'big' }] })).toContain('rocks[0]');
+  expect(broken({ groups: { ...groups, pillars: [{ ...pillar, position: [1, 2] }, ...pillars] } })).toContain('groups.pillars[0]');
+  expect(broken({ groups: { ...groups, pillars: [{ ...pillar, rotZ: 0.2 }, ...pillars] } })).toContain('rotZ');
+  expect(broken({ groups: { ...groups, rocks: [{ piece: 'rock_0', position: [0, 0, 0], scale: 'big' }] } })).toContain('groups.rocks[0]');
+  expect(broken({ groups: [] })).toContain('groups is not an object');
+  expect(broken({ groups: { ...groups, rocks: 'none' } })).toContain('groups.rocks is not a list');
+  // The old top-level lists are an unknown key now: the groups are where they went.
+  expect(broken({ pillars: [] })).toContain('unknown key "pillars"');
   expect(broken({ chains: [{ from: [0, 0, 0], to: [1, 1, 1] }] })).toContain('chains[0]');
   expect(broken({ coralLights: [[0, 0]] })).toContain('coralLights[0]');
   expect(broken({ lights: [] })).toContain('lights');
@@ -259,7 +266,7 @@ test('layout.json matches the WorldLayout schema', () => {
 });
 
 test('pillars keep the open corridor: no pillar inside |x| < 2.9 for z between -30 and 2', () => {
-  const inCorridor = SECURITY_WORLD.layout.pillars.filter(p => {
+  const inCorridor = SECURITY_WORLD.layout.groups.pillars.filter(p => {
     const [x, , z] = p.position;
     return z >= -30 && z <= 2 && Math.abs(x) < 2.9;
   });
@@ -275,7 +282,7 @@ test('the intro draws its front lit pillars at full detail: each is inside the k
   // 19 units away) are far enough back to draw their lod1.
   const camera: Vec3 = [0, 0, CAMERA_Z];
   const fullDetail = KIT_LOD_DISTANCE * (1 - LOD_HYSTERESIS);
-  const lit = SECURITY_WORLD.layout.pillars.filter(p => p.light);
+  const lit = SECURITY_WORLD.layout.groups.pillars.filter(p => p.light);
   for (const side of [-1, 1]) {
     const distances = lit.filter(p => Math.sign(p.position[0]) === side).map(p => Math.hypot(...p.position.map((v, i) => v - camera[i])));
     expect(distances.length, `lit pillars at x ${side < 0 ? '< 0' : '> 0'}`).toBeGreaterThan(0);
@@ -284,8 +291,8 @@ test('the intro draws its front lit pillars at full detail: each is inside the k
 });
 
 test('a world with an unknown piece or a light without skinRange is reported', () => {
-  const [first, ...rest] = SECURITY_WORLD.layout.rocks;
-  const unknown: WorldConfig = { ...SECURITY_WORLD, layout: { ...SECURITY_WORLD.layout, rocks: [{ ...first, piece: 'rock_99' }, ...rest] } };
+  const [first, ...rest] = SECURITY_WORLD.layout.groups.rocks;
+  const unknown: WorldConfig = { ...SECURITY_WORLD, layout: { ...SECURITY_WORLD.layout, groups: { ...SECURITY_WORLD.layout.groups, rocks: [{ ...first, piece: 'rock_99' }, ...rest] } } };
   expect(validateWorld(unknown).join('\n')).toContain('rock_99');
   const [light, ...others] = SECURITY_WORLD.lights.points;
   const unranged: WorldConfig = {
@@ -296,7 +303,7 @@ test('a world with an unknown piece or a light without skinRange is reported', (
 });
 
 test('one glyph light per lit pillar', () => {
-  const lit = SECURITY_WORLD.layout.pillars.filter(p => p.light).length;
+  const lit = SECURITY_WORLD.layout.groups.pillars.filter(p => p.light).length;
   const glyphs = SECURITY_WORLD.lights.points.filter(l => l.kind === 'glyph');
   expect(glyphs).toHaveLength(lit);
   const dropped: WorldConfig = { ...SECURITY_WORLD, lights: { ...SECURITY_WORLD.lights, points: SECURITY_WORLD.lights.points.slice(1) } };
@@ -305,7 +312,7 @@ test('one glyph light per lit pillar', () => {
 
 test('each glyph light stands before its lit pillar, at the height of that piece’s glyph column in the kit', () => {
   const { byName } = readKit();
-  const lit = SECURITY_WORLD.layout.pillars.filter(p => p.light);
+  const lit = SECURITY_WORLD.layout.groups.pillars.filter(p => p.light);
   const glyphs = SECURITY_WORLD.lights.points.filter(l => l.kind === 'glyph');
   lit.forEach((pillar, i) => {
     const [px, py, pz] = pillar.position;
@@ -322,7 +329,7 @@ test('each glyph light stands before its lit pillar, at the height of that piece
 
 test('the layout carries the test scene: 14 pillars, 16 rocks, 11 corals, 4 chains, 4 coral lights', () => {
   const { layout } = SECURITY_WORLD;
-  expect([layout.pillars.length, layout.rocks.length, layout.corals.length, layout.chains.length, layout.coralLights.length]).toEqual([14, 16, 11, 4, 4]);
+  expect([layout.groups.pillars.length, layout.groups.rocks.length, layout.groups.corals.length, layout.chains.length, layout.coralLights.length]).toEqual([14, 16, 11, 4, 4]);
   expect(layout.floorY).toBe(-2.45);
 });
 
@@ -364,4 +371,83 @@ test('a far plate needs a finite cut and layers with a url and a depth', () => {
   // A world with no far plate has nothing to check.
   const { farPlate: _none, ...bare } = SECURITY_WORLD;
   expect(validateWorld(bare as WorldConfig)).toEqual([]);
+});
+
+// --- World groups, string-keyed palette and relics, floor material, live elements, props (Task 8) ---
+
+const withLayout = (groups: WorldConfig['layout']['groups'], extra: Partial<WorldConfig> = {}): WorldConfig => ({ ...SECURITY_WORLD, layout: { ...SECURITY_WORLD.layout, groups }, ...extra });
+
+test('Nox’s layout is groups of the same names, and the loader reads them to the piece list it had before', () => {
+  expect(Object.keys(SECURITY_WORLD.layout.groups)).toEqual(['pillars', 'rocks', 'corals']);
+  expect(layoutProblems(layoutData)).toEqual([]);
+  // The golden file is the pre-change output (pillars, rocks, corals, in order, each placement's
+  // matrix), written from the old layout before it moved into groups.
+  // (Through JSON as the golden file was, which writes a matrix's -0 as 0.)
+  expect(JSON.parse(JSON.stringify(layoutPieces(SECURITY_WORLD.layout)))).toEqual(golden);
+  expect(golden).toHaveLength(14 + 16 + 11);
+});
+
+test('a group may have any name: the loader reads it, and validateWorld checks its pieces against the kit', () => {
+  const [pillar] = SECURITY_WORLD.layout.groups.pillars;
+  const world = withLayout({ ...SECURITY_WORLD.layout.groups, blocks: [{ ...pillar, light: undefined, position: [1, -2.45, -3] }] });
+  expect(validateWorld(world)).toEqual([]);
+  const pieces = layoutPieces(world.layout);
+  expect(pieces.at(-1)).toMatchObject({ group: 'blocks', index: 0, piece: pillar.piece });
+  expect(pieces).toHaveLength(golden.length + 1);
+  const missing = withLayout({ blocks: [{ piece: 'block_z', position: [0, 0, 0] }] });
+  expect(validateWorld(missing).join('\n')).toContain('blocks[0] names "block_z"');
+  // A world with no groups at all is a world with an empty stage, which is valid.
+  expect(layoutProblems({ ...layoutData, groups: {} })).toEqual([]);
+  expect(layoutPieces({ ...SECURITY_WORLD.layout, groups: {} })).toEqual([]);
+});
+
+test('palette and relics are string-keyed: the engine’s names are required, the others are named by a light, a relic or the floor', () => {
+  const bad = (change: Partial<WorldConfig>) => validateWorld({ ...SECURITY_WORLD, ...change }).join('\n');
+  const { stone: _stone, ...noStone } = SECURITY_WORLD.palette;
+  expect(bad({ palette: noStone as WorldConfig['palette'] })).toContain('palette.stone is missing');
+  const { glyph: _glyph, ...noGlyphRelic } = SECURITY_WORLD.relics;
+  expect(bad({ relics: noGlyphRelic as WorldConfig['relics'] })).toContain('relics.glyph is missing');
+  expect(bad({ relics: { ...SECURITY_WORLD.relics, portal: 0 } })).toContain('relics.portal must be above 0');
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, portal: 'cyan' } })).toContain('palette.portal is not a #rrggbb colour');
+  // A palette colour nothing names is reported; naming it with a light kind or a relic makes it valid.
+  const extra = { ...SECURITY_WORLD.palette, portal: '#3fe0ff' };
+  expect(bad({ palette: extra })).toContain('palette.portal is named by no light, relic or floor');
+  expect(bad({ palette: extra, relics: { ...SECURITY_WORLD.relics, portal: 1.5 } })).toBe('');
+  const light = { ...SECURITY_WORLD.lights.points[0], kind: 'portal' };
+  expect(bad({ palette: extra, lights: { ...SECURITY_WORLD.lights, points: [...SECURITY_WORLD.lights.points, light] } })).toBe('');
+});
+
+test('a world with a moss floor and a kelp live element validates, and each is checked', () => {
+  const moss: WorldConfig = {
+    ...SECURITY_WORLD,
+    floor: { material: 'moss' },
+    palette: { ...SECURITY_WORLD.palette, moss: '#2c5a3a' },
+    live: { ...SECURITY_WORLD.live, elements: { kelp: { count: 80, height: 3.4, sway: 0.2, color: '#2f6b46' }, seagrass: { count: 300, height: 0.6, sway: 0.06, color: '#3f8a52' } } },
+  };
+  expect(validateWorld(moss)).toEqual([]);
+  const bad = (change: Partial<WorldConfig>) => validateWorld({ ...moss, ...change }).join('\n');
+  // The moss floor reads palette.moss; the lava floor does not, so the colour is then named by nothing.
+  const { moss: _moss, ...noMoss } = moss.palette;
+  expect(bad({ palette: noMoss as WorldConfig['palette'] })).toContain('palette.moss is missing (the moss floor reads it)');
+  expect(bad({ floor: { material: 'lava-cracks' } })).toContain('palette.moss is named by no light, relic or floor');
+  expect(bad({ floor: { material: 'sand' as 'moss' } })).toContain('floor.material "sand" is not one of lava-cracks, moss');
+  const kelp = (change: object) => bad({ live: { ...moss.live, elements: { kelp: { ...moss.live.elements!.kelp!, ...change } } } });
+  expect(kelp({ count: 2.5 })).toContain('live.elements.kelp.count');
+  expect(kelp({ height: -1 })).toContain('live.elements.kelp.height');
+  expect(kelp({ sway: Number.NaN })).toContain('live.elements.kelp.sway');
+  expect(kelp({ color: 'green' })).toContain('live.elements.kelp.color');
+  expect(bad({ live: { ...moss.live, elements: { jellyfish: moss.live.elements!.kelp! } as never } })).toContain('live.elements.jellyfish is not a live element (kelp, seagrass)');
+});
+
+test('a prop naming a missing kit node fails validation with the node name in the message', () => {
+  const world = (props: WorldConfig['props'], nodes?: readonly string[]): WorldConfig => ({ ...SECURITY_WORLD, kit: { ...SECURITY_WORLD.kit, nodes }, props });
+  expect(validateWorld(world([{ id: 'lock', node: 'rock_0', drive: 'rotateZ' }]))).toEqual([]);
+  const missing = validateWorld(world([{ id: 'ring', node: 'padlock_ring', drive: 'rotateZ' }])).join('\n');
+  expect(missing).toContain('padlock_ring');
+  expect(missing).toContain('props[0] (ring)');
+  // A node of the kit file that is not a placed piece is listed in kit.nodes.
+  expect(validateWorld(world([{ id: 'ring', node: 'padlock_ring', drive: 'rotateZ' }], ['padlock_ring']))).toEqual([]);
+  expect(validateWorld(world([{ id: 'ring', node: 'rock_0', drive: 'spin' as 'rotateZ' }])).join('\n')).toContain('drive "spin"');
+  expect(validateWorld(world([{ id: 'ring', node: 'rock_0', drive: 'rotateZ' }, { id: 'ring', node: 'rock_1', drive: 'emissive' }])).join('\n')).toContain('repeats the id "ring"');
+  expect(validateWorld(world([{ id: '', node: 'rock_0', drive: 'rotateZ' }])).join('\n')).toContain('props[0] has no id');
 });

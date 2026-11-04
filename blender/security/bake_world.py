@@ -484,7 +484,7 @@ def point_light(coll, name, light, shadow):
 def lights(coll, layout, centres):
     floor_y = layout["floorY"]
     glyph, lava = [], []
-    for p in layout["pillars"]:
+    for p in layout["groups"]["pillars"]:
         if not p.get("light"):
             continue
         x, y, z = p["position"]
@@ -494,7 +494,7 @@ def lights(coll, layout, centres):
     for position in layout["coralLights"]:
         lava.append({"position": list(position), "color": LAVA["color"], "intensity": LAVA["intensity"] * LAVA_RISE, "distance": LAVA["distance"]})
     back = []
-    for p in layout["rocks"]:
+    for p in layout["groups"]["rocks"]:
         x, y, z = p["position"]
         if z < BACK_HEAPS[0] or abs(x) < BACK_HEAPS[1]:
             continue
@@ -594,7 +594,7 @@ def setup():
             unwrap(ob)
             kinds[(name, level)] = (kind, ob, *areas(ob.data))
 
-    groups = [("pillars", p) for p in layout["pillars"]] + [("rocks", p) for p in layout["rocks"]] + [("corals", p) for p in layout["corals"]]
+    groups = [("pillars", p) for p in layout["groups"]["pillars"]] + [("rocks", p) for p in layout["groups"]["rocks"]] + [("corals", p) for p in layout["groups"]["corals"]]
     squares = {}
     for level in LEVELS:
         needs = [kinds[(p["piece"], level)][2] * area_scale(p) / kinds[(p["piece"], level)][3] for _, p in groups]

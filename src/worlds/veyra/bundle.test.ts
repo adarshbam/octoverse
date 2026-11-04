@@ -205,9 +205,9 @@ test('the stage backdrop is a kit with one empty scene, the layout names no piec
   expect(place.kit.pieces).toEqual([]);
   expect(place.near).toBeUndefined();
   expect(place.farPlate).toBeUndefined();
-  const { floorY, ...groups } = place.layout;
+  const { floorY, groups, ...rest } = place.layout;
   expect(floorY).toBeLessThan(0);
-  expect(Object.values(groups).flat()).toEqual([]);
+  expect([...Object.values(groups).flat(), ...Object.values(rest).flat()]).toEqual([]);
   // Spec 7.7 and the plan: a lean of 0.04, and 0.8 and 0.75 of Nox's drift (his amount and pace are both 1).
   expect(place.camera).toEqual({ tilt: 0.04, hover: { amount: 0.8, pace: 0.75 } });
   // The glb the kit names exists, is a glTF 2 binary and holds one scene with no nodes, meshes or materials.

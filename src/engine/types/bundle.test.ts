@@ -119,7 +119,7 @@ test('the artifact kinds, the sheets they play, the title icon, the world and th
   expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, defaults: noBlow } }).field).toBe('sequences.defaults.bubbleBlow');
   const icon = { ...NOX_BUNDLE, theme: { ...NOX_BUNDLE.theme, titleIcon: 'moon' } };
   expect(refusal(icon as unknown as WorldBundle).field).toBe('theme.titleIcon');
-  const world = { ...NOX_BUNDLE, place: { ...NOX_BUNDLE.place, layout: { ...NOX_BUNDLE.place.layout, pillars: [{ piece: 'nope', position: [0, 0, 0] as const }] } } };
+  const world = { ...NOX_BUNDLE, place: { ...NOX_BUNDLE.place, layout: { ...NOX_BUNDLE.place.layout, groups: { ...NOX_BUNDLE.place.layout.groups, pillars: [{ piece: 'nope', position: [0, 0, 0] as const }] } } } };
   expect(refusal(world).field).toBe('place');
   const project = { ...NOX_BUNDLE, content: { ...NOX_BUNDLE.content, technologies: [] } };
   expect(refusal(project).field).toBe('content.project');
@@ -188,7 +188,7 @@ test('an arm list that is not exactly T1..T8 in order is named character.arms; a
 
 test('the parts of the place, the sequences project id and a pose body that a creator bundle may lack are BundleErrors naming the field', () => {
   for (const field of [
-    'place.kit', 'place.kit.pieces', 'place.layout', 'place.layout.pillars', 'place.layout.rocks', 'place.layout.corals', 'place.layout.chains', 'place.layout.coralLights',
+    'place.kit', 'place.kit.pieces', 'place.layout', 'place.layout.groups', 'place.layout.chains', 'place.layout.coralLights',
     'place.camera', 'place.camera.hover', 'place.post', 'place.post.contactShadow', 'place.post.bloom', 'place.post.vignette', 'place.relics', 'place.palette',
     'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.water.colours', 'place.water.environment', 'place.palette.floorGlow', 'place.live', 'place.live.colours',
     'sequences.projectId', 'poses.intro.body.x', 'poses.intro.body.y', 'poses.overview.body.scale', 'poses.detail.body.yaw',
@@ -196,12 +196,15 @@ test('the parts of the place, the sequences project id and a pose body that a cr
     expect(refusal(without(field)).field, field).toBe(field);
   }
   // Items of a list are objects too.
-  const lights = copyOf(NOX_BUNDLE) as unknown as { place: { lights: { points: unknown[] }; layout: { pillars: unknown[] } } };
+  const lights = copyOf(NOX_BUNDLE) as unknown as { place: { lights: { points: unknown[] }; layout: { groups: { pillars: unknown[] } } } };
   lights.place.lights.points[1] = null;
   expect(refusal(lights as unknown as WorldBundle).field).toBe('place.lights.points[1]');
-  const pillars = copyOf(NOX_BUNDLE) as unknown as { place: { layout: { pillars: unknown[] } } };
-  pillars.place.layout.pillars[0] = 7;
-  expect(refusal(pillars as unknown as WorldBundle).field).toBe('place.layout.pillars[0]');
+  const pillars = copyOf(NOX_BUNDLE) as unknown as { place: { layout: { groups: { pillars: unknown[]; rocks: unknown } } } };
+  pillars.place.layout.groups.pillars[0] = 7;
+  expect(refusal(pillars as unknown as WorldBundle).field).toBe('place.layout.groups.pillars[0]');
+  pillars.place.layout.groups.pillars.length = 0;
+  pillars.place.layout.groups.rocks = 'none';
+  expect(refusal(pillars as unknown as WorldBundle).field).toBe('place.layout.groups.rocks');
   // Wrong form, not just missing.
   expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, projectId: '' } }).field).toBe('sequences.projectId');
   expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, projectId: 7 as unknown as string } }).field).toBe('sequences.projectId');

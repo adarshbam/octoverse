@@ -8,14 +8,13 @@ import type { WorldConfig } from '../../../engine/world/types';
 // no lava and no red light anywhere. Tasks 7 to 9 replace this with the vault: the kit, the bake,
 // the far plate and the light; the water's colours and fog are fitted again there.
 
-const layout: WorldConfig['layout'] = { floorY: -2.45, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] };
+const layout: WorldConfig['layout'] = { floorY: -2.45, groups: {}, chains: [], coralLights: [] };
 
 const palette = {
   stone: '#22403f',
   glyph: '#3fe0c5',
   // The one warm accent the vault will carry (orange-yellow coral).
   coral: '#e8a030',
-  lava: '#1fb890',
   // The fog and the sky's horizon: the mid water of P2, a little lifted so it reads at a distance.
   waterFar: '#020b10',
   floor: '#0c1c20',

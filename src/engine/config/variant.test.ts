@@ -71,7 +71,7 @@ describe('a variant is configuration only', () => {
 
   it('the world differs from the security world in palette and layout', () => {
     expect(DUMMY_WORLD.palette.waterFar).not.toBe('#071535');
-    expect(DUMMY_WORLD.layout.pillars.length).not.toBe(14);
+    expect(DUMMY_WORLD.layout.groups.pillars.length).not.toBe(14);
   });
 
   it("the fixtures import no world's files: each is made over the base it is given (D7)", () => {
