@@ -1,0 +1,193 @@
+{
+  "samples": [
+    {
+      "name": "crown",
+      "x": 241,
+      "y": 243,
+      "size": 5,
+      "rgb": [
+        48,
+        68,
+        239
+      ]
+    },
+    {
+      "name": "headMiddle",
+      "x": 243,
+      "y": 275,
+      "size": 5,
+      "rgb": [
+        156,
+        87,
+        239
+      ]
+    },
+    {
+      "name": "headSide",
+      "x": 191,
+      "y": 272,
+      "size": 5,
+      "rgb": [
+        46,
+        65,
+        229
+      ]
+    },
+    {
+      "name": "headRim",
+      "x": 181,
+      "y": 282,
+      "size": 5,
+      "rgb": [
+        61,
+        116,
+        233
+      ]
+    },
+    {
+      "name": "faceGlow",
+      "x": 243,
+      "y": 316,
+      "size": 5,
+      "rgb": [
+        254,
+        171,
+        207
+      ]
+    },
+    {
+      "name": "chin",
+      "x": 246,
+      "y": 355,
+      "size": 5,
+      "rgb": [
+        214,
+        125,
+        243
+      ]
+    },
+    {
+      "name": "blush",
+      "x": 203,
+      "y": 335,
+      "size": 5,
+      "rgb": [
+        249,
+        156,
+        207
+      ]
+    },
+    {
+      "name": "mouthInside",
+      "x": 256,
+      "y": 339,
+      "size": 5,
+      "rgb": [
+        246,
+        96,
+        127
+      ]
+    },
+    {
+      "name": "armBody",
+      "x": 151,
+      "y": 340,
+      "size": 5,
+      "rgb": [
+        55,
+        75,
+        242
+      ]
+    },
+    {
+      "name": "armTopHighlight",
+      "x": 116,
+      "y": 325,
+      "size": 5,
+      "rgb": [
+        110,
+        126,
+        247
+      ]
+    },
+    {
+      "name": "cupGlow",
+      "x": 81,
+      "y": 326,
+      "size": 5,
+      "rgb": [
+        243,
+        175,
+        239
+      ]
+    },
+    {
+      "name": "auraWater",
+      "x": 168,
+      "y": 250,
+      "size": 5,
+      "rgb": [
+        0,
+        24,
+        80
+      ]
+    },
+    {
+      "name": "midWater",
+      "x": 103,
+      "y": 200,
+      "size": 5,
+      "rgb": [
+        0,
+        16,
+        45
+      ]
+    },
+    {
+      "name": "upperWater",
+      "x": 393,
+      "y": 90,
+      "size": 5,
+      "rgb": [
+        1,
+        74,
+        136
+      ]
+    }
+  ],
+  "deltaE": 10,
+  "gradient": {
+    "from": "crown",
+    "to": "headMiddle",
+    "minRed": 70
+  },
+  "warm": {
+    "minRedOverCrown": 150,
+    "minRedOverGreen": 40
+  },
+  "head": {
+    "halfWidth": [
+      0.7,
+      0.78
+    ],
+    "top": [
+      0.22,
+      0.3
+    ]
+  },
+  "armSpan": [
+    3.8,
+    4.2
+  ],
+  "iou": 0.85,
+  "meanInside": {
+    "rgb": [
+      108,
+      93,
+      225
+    ],
+    "saturation": 0.657,
+    "tolerance": 12,
+    "satTolerance": 0.04
+  }
+}
