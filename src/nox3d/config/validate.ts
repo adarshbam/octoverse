@@ -1,4 +1,5 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
+import { isColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
 import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type Palette } from './types';
 
@@ -12,9 +13,12 @@ const finite = (value: unknown): value is number => typeof value === 'number' &&
 const clamp = (value: number, min: number, max: number, fallback: number) => (finite(value) ? Math.min(max, Math.max(min, value)) : fallback);
 const unit = (value: number, fallback: number) => clamp(value, 0, 1, fallback);
 
-/** A colour three and the canvas both read: #rgb, #rrggbb, or rgb(), rgba(), hsl() or hsla() with plain numbers. */
-const COLOUR = /^(?:#(?:[0-9a-f]{3}|[0-9a-f]{6})|(?:rgba?|hsla?)\(\s*[-\d.%\s,/]+\))$/i;
-const colour = (value: unknown, fallback: string): string => (typeof value === 'string' && COLOUR.test(value) ? value : fallback);
+/**
+ * A colour three and the canvas both read (world/colour.ts `isColour`: what three's `Color.set`
+ * reads, CSS colour names included); anything else reads `fallback`. The clamp falls back quietly,
+ * as it does for a number; `validateBundle` refuses such a value by name before it gets here.
+ */
+const colour = (value: unknown, fallback: string): string => (isColour(value) ? value : fallback);
 
 /**
  * What a config written before these fields existed reads in their place: Nox's own values, so

@@ -14,6 +14,22 @@ export function isWorldColour(text: unknown): text is string {
   return typeof text === 'string' && (HEX.test(text) || LINEAR.test(text));
 }
 
+// What three's `Color.set` (setStyle) reads, written out so a value can be checked without a
+// renderer or a canvas, in Node as in the browser: #rgb and #rrggbb; rgb() and rgba() with whole
+// 0-255 numbers or whole percentages, comma separated; hsl() and hsla() as hue, saturation %,
+// lightness %; and the CSS colour names three knows (`THREE.Color.NAMES`). The alpha is read and
+// ignored by three, kept by a canvas or a stylesheet. The canvas reads more (#rrggbbaa, space
+// separated rgb(), hsl(deg), oklch()): those are refused here, loudly, by `validateBundle`, since
+// three would draw them black and leave a warning.
+const STYLE_HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+const STYLE_RGB = /^rgba?\(\s*(?:\d+\s*,\s*\d+\s*,\s*\d+|\d+%\s*,\s*\d+%\s*,\s*\d+%)\s*(?:,\s*\d*\.?\d+\s*)?\)$/;
+const STYLE_HSL = /^hsla?\(\s*\d*\.?\d+\s*,\s*\d*\.?\d+%\s*,\s*\d*\.?\d+%\s*(?:,\s*\d*\.?\d+\s*)?\)$/;
+
+/** Whether `text` is a colour three's `Color.set` reads (see above): the colours a character's config, a world's palette or a UI theme may hold. */
+export function isColour(text: unknown): text is string {
+  return typeof text === 'string' && (STYLE_HEX.test(text) || STYLE_RGB.test(text) || STYLE_HSL.test(text) || Object.hasOwn(THREE.Color.NAMES, text.toLowerCase()));
+}
+
 /** Sets `target` to the colour `text` names (see above); `text` must pass `isWorldColour`. */
 export function setWorldColour(target: THREE.Color, text: string): THREE.Color {
   const linear = LINEAR.exec(text);

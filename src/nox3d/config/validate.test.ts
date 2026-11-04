@@ -150,7 +150,7 @@ test('a NaN reaches neither the aura shader\'s below-start nor the point light',
 });
 
 test('a colour string that does not parse reads the Nox default for its field; ones that do pass as given', () => {
-  const bad = { ...NOX, lighting: { ...NOX.lighting, key: { ...NOX.lighting.key, color: 'violet' }, haze: { ...NOX.lighting.haze, color: '#12' } }, glow: { ...NOX.glow, core: 'not a colour', light: { ...NOX.glow.light, color: '' } }, palette: { ...NOX.palette, orbFocus: 12 as unknown as string, effect: { halo: 'rgba(1,2,3,0.5', stroke: '#gggggg', core: '#ffb49c' } } };
+  const bad = { ...NOX, lighting: { ...NOX.lighting, key: { ...NOX.lighting.key, color: 'violetish' }, haze: { ...NOX.lighting.haze, color: '#12' } }, glow: { ...NOX.glow, core: 'not a colour', light: { ...NOX.glow.light, color: '' } }, palette: { ...NOX.palette, orbFocus: 12 as unknown as string, effect: { halo: 'rgba(1,2,3,0.5', stroke: '#gggggg', core: '#ffb49c' } } };
   const c = clampCharacterConfig(bad);
   expect(c.glow.core).toBe(NOX.glow.core);
   expect(c.glow.light.color).toBe(NOX.glow.light.color);
@@ -162,6 +162,12 @@ test('a colour string that does not parse reads the Nox default for its field; o
   expect(fine.glow.core).toBe('#abc');
   expect(fine.glow.light.color).toBe('rgb(10, 20, 30)');
   expect(fine.palette.effect).toEqual({ halo: 'rgba(10,20,30,0.25)', stroke: 'hsl(120, 50%, 50%)', core: '#A1B2C3' });
+  // What three's Color.set reads, and only that: CSS names pass; spellings three would draw black do not.
+  const named = clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, core: 'violet' }, palette: { ...NOX.palette, orbFocus: 'Teal' } });
+  expect([named.glow.core, named.palette.orbFocus]).toEqual(['violet', 'Teal']);
+  for (const spelling of ['#ff4a3080', 'rgb(255 0 0)', 'rgb(1.5, 2, 3)', 'hsl(350deg, 90%, 50%)', 'oklch(0.6 0.2 20)', 'color(srgb-linear 0.1 0.2 0.3)']) {
+    expect(clampCharacterConfig({ ...NOX, glow: { ...NOX.glow, core: spelling } }).glow.core, spelling).toBe(NOX.glow.core);
+  }
 });
 
 test('the light direction is copied, and a bad one reads the default', () => {
