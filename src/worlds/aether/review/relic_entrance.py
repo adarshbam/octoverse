@@ -22,14 +22,22 @@ relative luminance Y of the sRGB pixel (Rec. 709, linearised).
   portal draws the same pixels in every frozen still (the entrance's eight and the intro), while the bubbles and
   specks move with each still's world time and her light moves with her. The per-pixel median over those nine stills
   (her silhouette, grown by HER_MARGIN px for her bloom, left out of each; at least five stills a pixel) is the
-  portal's own frozen light. A frame's pixel more than TRANSIENT_DY above it is transient: not the portal's own.
+  portal's own frozen light.
+- Excluded as bubbles and specks (small_transients): a pixel more than TRANSIENT_DY above the portal's own light whose
+  connected patch is under BLOB_MIN px and whose own light is under OWN_DARK (and, for the held stone of the pulse
+  check, more than BLOOM_PX from every glowing node's hull). Everything else in the region counts, light above the
+  median included: a large patch, light on a lit part of the portal, stone near a glow. Each frame and the pulse check
+  print how many pixels were above the portal's own light and how many were excluded, with their bounding boxes.
+  LIMIT: a light the portal shows in four or fewer of the nine frozen stills (a state-gated glow, a flash, her light)
+  has a near-dark median; it counts only if its patch reaches BLOB_MIN px or it lies on a lit part of the portal. A
+  smaller one on dark stone or membrane is excluded as a bubble would be (relic4's offline control (d) shows it).
 - Her face glow: inside her silhouette, the largest connected patch of pink-white pixels (R >= 200, B >= 170,
   R - G >= 15), if it has at least FACE_MIN_PX pixels; its brightest pixel is the face glow's.
 - Her face glow's trough: the engine (Octopus.tsx) scales the face glow by 1 + 0.06 sin(breath) + 0.025 sin(0.37 t +
   1.3) while she moves and holds it at 1 when frozen, so every frozen still shows it at its middle. face-NNN.png, the
   running intro clipped to her face for longer than the 17 s drift, gives its dimmest reading. In the intro her face
   glow's brightest pixel is clipped (Y 0.908, R and B at 255 over a thousand pixels) and holds through the swing, so
-  the patch's FACE_LEVEL quantile, which is not clipped, stands for it (its dip is the larger: see face_trough). Those
+  the patch's FACE_LEVEL quantile, which is not clipped, stands for it (see face_trough for why and its limit). Those
   stills may miss the true trough (both terms at their lowest at once, between two stills) by at most `missed` of the
   glow's strength, so the measured drop below the frozen intro's level is scaled by swing / (swing - missed),
   swing = 0.085: the trough factor r is the frozen level's share left at that bound, and it scales every face glow
@@ -40,11 +48,11 @@ What each comparison is (directory mode):
 - The frames: frames.json names ENTRANCE_T; every entering-t<t>.png and -mask.png of that set must be there, none
   other, all written after the run's start (a stale frame from an older run fails). Her silhouette must hold at least
   FACE_MIN_PX in every frame.
-- entering-t<t>.png, each frozen moment (both at mid level): the frame's brightest region pixel, its owners and the
-  portal's own light there, against her face glow in that same frame. A transient pixel at a ratio of 1 or more is
-  printed as NOTE (not the portal's own) and not counted; the portal's own at 1 or more fails. Only a frame of FAR_T
-  may lack a face glow (she is far in the murk): it is compared with the dimmest face glow measured in any frame and
-  marked UNVERIFIED, with her own brightest pixel in that frame printed beside it.
+- entering-t<t>.png, each frozen moment: the frame's brightest region pixel, its owners and the portal's own light
+  there, against her face glow in that same frame (printed; a line starting `area` when that pixel is excluded); then
+  the brightest pixel left once the excluded are taken out, against that face glow at its trough (x r): counted.
+  Only a frame of FAR_T may lack a face glow (she is far in the murk): it is compared with the dimmest face glow
+  measured in any frame and marked UNVERIFIED, with her own brightest pixel in that frame printed beside it.
 - pulse-NNN.png, the running intro over more than one glyph period (clips at pulse-times.json's offset): the portal
   at its brightest over a whole pulse. A plain per-pixel maximum over the stills is not the portal's: the bubbles and
   specks rising past it are near white (Y 1.0) and sweep most of its pixels. So each pixel's reading is the maximum
@@ -57,7 +65,9 @@ What each comparison is (directory mode):
   and is raised by that share: for these bright pixels, in the tone curve's shoulder, the shown luminance grows by
   less than the emission does, so the raised figure is an upper bound. LIMIT: the filter hides anything on the portal
   lit for less than about 2 * HOLD s (a membrane flash, if a sequence ever drives one); the plain (unfiltered)
-  maximum is printed beside it, with its owners and the portal's own light there, for that reason.
+  maximum is printed beside it, with its owners and the portal's own light there, for that reason. In each window the
+  held stone is screened as above before the maximum over time is taken, so a moving slow bubble is judged by its
+  size in one window, not by the trail it leaves over all of them; the glowing nodes' hulls are never screened.
   The peak is compared with the dimmest face glow measured in any frame times the trough factor r: the portal at its
   brightest while her face glow is at its lowest.
 The worst counted ratio is printed last.
@@ -99,6 +109,18 @@ TRANSIENT_DY = 0.05
 STONE_NODES = ('portal_arch', 'portal_steps')
 # Her silhouette grown by this many pixels when the portal's own light is taken (her bloom spills past it).
 HER_MARGIN = 8
+# A patch above the portal's own light this large or larger is not a bubble: it counts. Measured (relic4 run): the
+# bubbles and specks in the portal's area are discs, at most 374 px (about 22 px across) in the frozen entrance stills
+# and at most 806 px (32 px across, filling 0.76 to 0.82 of their box, as a disc does) in the running windows, where
+# bubbles near the camera pass. Her light on the lower-left lantern makes patches of 511 to 962 px, but those pixels
+# are lit parts of the portal (own light 0.4 and more), which OWN_DARK counts whatever their size.
+BLOB_MIN = 850
+# A pixel whose own frozen light is this bright or brighter is a lit part of the portal: light above it always counts.
+OWN_DARK = 0.2
+# The glowing nodes' bloom: the stone's own light shows no halo past their hulls (median 0.012 at 1 to 4 px, 0.007 to
+# 0.013 farther), and its brightest pixels reach 0.18 to 0.23 within 16 px but at most 0.15 from 17 px on; past this
+# many pixels a held stone pixel may be excluded.
+BLOOM_PX = 20
 # The face glow's swing while she moves (Octopus.tsx: uGlowStrength = (1 + 0.06 b + 0.025 sin(0.37 t + 1.3)) ...).
 BREATH_AMP, DRIFT_AMP, DRIFT_RATE = 0.06, 0.025, 0.37
 # The face stills must end before her rest can begin (40 s idle in the intro), less a margin.
@@ -133,22 +155,69 @@ def breath_period():
     return float(m[1])
 
 
-def held_map(lums, times):
+def held_map(lums, times, guard=None):
     """Each pixel's maximum over time of its minimum over a window: the stills within HOLD s either side and always the
-    one before and the one after; centres only where the window is whole. (the map, each pixel's centre time, the centres' span)."""
+    one before and the one after; centres only where the window is whole. With `guard` (a window's held map to the
+    pixels it excludes and those above their own light), each window's excluded pixels are dropped before the maximum
+    is taken, so a moving slow bubble is judged by its size in one window, not by the trail it leaves over all of them.
+    (the map, each pixel's centre time, the centres' span, the excluded pixels and the pixels above their own light over
+    all windows; the last two empty without `guard`)."""
     lums, times = np.asarray(lums), np.asarray(times)
     centres = [i for i, t in enumerate(times) if 0 < i < len(times) - 1 and t - HOLD >= times[0] - 1e-9 and t + HOLD <= times[-1] + 1e-9]
     if not centres:
         fail(f'the pulse stills span {times[-1] - times[0]:.2f} s: too short for a {2 * HOLD} s window')
     best = np.full(lums.shape[1:], -1.0)
     when = np.zeros(lums.shape[1:])
+    dropped = np.zeros(lums.shape[1:], bool)
+    raised = np.zeros(lums.shape[1:], bool)
     for i in centres:
         sel = (times >= times[i] - HOLD - 1e-9) & (times <= times[i] + HOLD + 1e-9)
         sel[i - 1] = sel[i + 1] = True
         held = lums[sel].min(0)
+        if guard is not None:
+            excluded, above = guard(held)
+            dropped |= excluded
+            raised |= above
+            held = np.where(excluded, -1.0, held)
         when = np.where(held > best, times[i], when)
         best = np.maximum(best, held)
-    return best, when, float(times[centres[-1]] - times[centres[0]])
+    return best, when, float(times[centres[-1]] - times[centres[0]]), dropped, raised
+
+
+def components(mask):
+    """The connected patches of `mask` (4-connected), largest first."""
+    out, left = [], mask.copy()
+    while left.any():
+        patch = largest_component(left)
+        out.append(patch)
+        left &= ~patch
+    return out
+
+
+def small_transients(lum, own, region, far=None):
+    """The pixels excluded as bubbles and specks, and every region pixel above the portal's own light. A pixel above its
+    own frozen light by more than TRANSIENT_DY is excluded only when its connected patch is under BLOB_MIN px, its own
+    light is under OWN_DARK and (with `far`) it lies where `far` holds; anything else above its own light counts."""
+    above = region & ~np.isnan(own) & (lum - np.nan_to_num(own) > TRANSIENT_DY)
+    dark = ~np.isnan(own) & (np.nan_to_num(own) < OWN_DARK)
+    excluded = np.zeros_like(above)
+    for patch in components(above):
+        if patch.sum() < BLOB_MIN:
+            excluded |= patch & dark & (far if far is not None else True)
+    return excluded, above
+
+
+def largest_patch(mask):
+    """The largest connected patch of `mask`, in pixels (0 for an empty mask)."""
+    return int(largest_component(mask).sum()) if mask.any() else 0
+
+
+def extent(mask, dx=0, dy=0):
+    """A mask's pixel count and bounding box (offset by dx, dy), in words."""
+    if not mask.any():
+        return '0 px'
+    ys, xs = np.nonzero(mask)
+    return f'{int(mask.sum())} px in x {xs.min() + dx} to {xs.max() + dx}, y {ys.min() + dy} to {ys.max() + dy}'
 
 
 def peak_in(held, when, region):
@@ -386,8 +455,10 @@ def face_trough(folder, intro, intro_her):
     """The trough factor r: the share of the frozen face glow (intro, same window) left at her dimmest. Her face glow's
     brightest pixel is clipped in the intro (R and B at 255 over a thousand pixels and more), so it holds still through
     the swing and cannot show the trough; the FACE_LEVEL quantile of the patch is not clipped, and its dip is taken as the
-    face glow's (a brighter pixel sits deeper in the tone curve's shoulder and dips less, so this is the larger dip; her
-    sway and the patch's changing size dip it too, which only adds)."""
+    face glow's (a brighter pixel sits deeper in the tone curve's shoulder and dips less). The patch's size changes with
+    her sway, and that moves the quantile both ways: a larger patch takes in dim fringe and lowers it, a smaller one
+    drops its fringe and raises it, which could hide part of a dip. The reading is a measurement of the clipped glow's
+    unclipped body, not a proven bound."""
     reference = face_level(intro, intro_her)[1]
     timing = folder / 'face-times.json'
     if not timing.exists():
@@ -475,37 +546,34 @@ def directory(folder):
         portal = brightest(img, region)
         if portal is None:
             fail(f'the portal\'s region is empty in entering-t{t}.png')
+        lum = luminance(img)
+        excluded, above = small_transients(lum, own_light, region)
         x, y = portal[1]
-        own = own_light[y, x]
-        transient = not np.isnan(own) and portal[0] - own > TRANSIENT_DY
-        what = (f'transient: the portal\'s own light there is Y {own:.3f} (a bubble, speck or her light, not the portal\'s own)' if transient
-                else 'the portal\'s own light' if not np.isnan(own) else 'her silhouette covers it in most stills: counted as the portal\'s own')
         face = faces[t]
         if face is not None:
             ref, against = face[0], f'her face glow in this frame ({face[3]} px) Y {face[0]:.3f}'
         else:
             ref, against = dimmest[0], f'the dimmest face glow measured (t {dimmest[1]}) Y {dimmest[0]:.3f}'
         ratio = portal[0] / ref
+        what = ('excluded: ' if excluded[y, x] else 'counted: ') + (f'the portal\'s own frozen light there is Y {own_light[y, x]:.3f}' if not np.isnan(own_light[y, x]) else 'her silhouette covers it in most stills')
         line = f'entrance t {t:>4}: brightest in the portal\'s area Y {portal[0]:.3f} at ({x}, {y}) {hx(portal[2])} in {owners(nodes, (x, y))}, {what}; vs {against}: ratio {ratio:.3f}'
         if face is None:
-            her_max = luminance(img)[her].max()
+            her_max = lum[her].max()
             line += f'. UNVERIFIED: no face glow of {FACE_MIN_PX} px in this frame (silhouette {int(her.sum())} px); her own brightest pixel here is Y {her_max:.3f} (ratio {portal[0] / her_max:.3f})'
             unverified.append(t)
-        if transient:
-            # Not the portal's own: reported, never decides the verdict.
+        if excluded[y, x]:
             area.append((ratio, f'entrance t {t}'))
-            print(f'area {line}')
-        else:
-            counted.append((ratio, f'entrance t {t}, the portal\'s own pixel'))
-            print(f'{"ok  " if ratio < 1 else "MISS"} {line}')
-        # The portal's own frozen light in this frame (where she does not cover it) against her face glow's trough.
-        mine = np.where(region & ~np.isnan(own_light), own_light, -1.0)
-        oy, ox = np.unravel_index(mine.argmax(), mine.shape)
-        if mine[oy, ox] < 0:
-            fail(f'no pixel of the portal\'s own light is known in entering-t{t}.png')
-        own_ratio = mine[oy, ox] / (ref * r)
-        counted.append((own_ratio, f'the portal\'s own light at t {t} vs her trough'))
-        print(f'{"ok  " if own_ratio < 1 else "MISS"}   the portal\'s own brightest here Y {mine[oy, ox]:.3f} at ({ox}, {oy}) in {owners(nodes, (ox, oy))}, '
+        print(f'{"area" if excluded[y, x] else "    "} {line}')
+        print(f'       above the portal\'s own light: {extent(above)} (largest patch {largest_patch(above)} px); '
+              f'excluded as bubbles and specks (patch under {BLOB_MIN} px, own light under {OWN_DARK}): {extent(excluded)} (largest patch {largest_patch(excluded)} px)')
+        # The portal's light in this frame: every region pixel not excluded, against that face glow at its trough.
+        kept = brightest(img, region & ~excluded)
+        if kept is None:
+            fail(f'every pixel of the portal\'s region is excluded in entering-t{t}.png')
+        kx, ky = kept[1]
+        own_ratio = kept[0] / (ref * r)
+        counted.append((own_ratio, f'the portal\'s light at t {t} vs her trough'))
+        print(f'{"ok  " if own_ratio < 1 else "MISS"}   the portal\'s brightest counted here Y {kept[0]:.3f} at ({kx}, {ky}) in {owners(nodes, (kx, ky))} (own frozen light {own_light[ky, kx]:.3f}), '
               f'vs that face glow at its trough (x r {r:.3f}) Y {ref * r:.3f}: ratio {own_ratio:.3f}{" (UNVERIFIED)" if face is None else ""}')
 
     timing = folder / 'pulse-times.json'
@@ -540,35 +608,40 @@ def directory(folder):
     at = (int(px + c['x']), int(py + c['y']))
     print(f'pulse: {len(clips)} running stills over {span:.2f} s (widest gap {gap:.2f} s); portal glows {", ".join(f"{n} pulse {p} period {T} s" for n, (p, T) in pulses.items())}')
     print(f'     unfiltered per-pixel maximum Y {plain[py, px]:.3f} at {at} in {owners(nodes, at)}; the portal\'s own frozen light there Y {own_light[at[1], at[0]]:.3f} (not compared: the bubbles and specks rising past)')
-    held, when, covered = held_map(lums, times)
+    # The stone (a pixel only the arch's or the steps' hull holds) has no material of its own: no glow, no pulse, no
+    # flow, so it draws its frozen light whenever the world runs, bar the bloom of a glowing node beside it. In each
+    # window, a held stone pixel above that by TRANSIENT_DY is excluded as a slow bubble or speck only when it is also
+    # small (its patch in that window under BLOB_MIN), dark of its own (under OWN_DARK) and more than BLOOM_PX from
+    # every glowing node's hull. Every pixel a glowing node's hull holds counts as held, however it got there.
+    glowing = np.zeros_like(clip_region)
+    for name, own in nodes.items():
+        if name not in STONE_NODES:
+            glowing |= own[window]
+    own_clip = own_light[window]
+    far = ~grown(glowing, BLOOM_PX)
+    held_any, when_any, covered, _, _ = held_map(lums, times)
+    held, when, _, slow, stone_above = held_map(lums, times, guard=lambda h: small_transients(h, own_clip, clip_region & ~glowing, far=far))
+    print(f'     held stone above its own light in some window: {extent(stone_above, c["x"], c["y"])}; '
+          f'excluded in some window as slow bubbles and specks: {extent(slow, c["x"], c["y"])}')
     if covered < longest:
         fail(f'the filtered stills cover {covered:.2f} s of world time, less than the longest portal pulse ({longest} s): capture longer')
     # The still nearest a pulse's peak is at most gap / 2 from it, and its window reaches HOLD (or a gap, for the
     # neighbours it always takes) further.
     reach = max(HOLD, gap) + gap / 2
     loss = max(p / 2 * (1 - math.cos(2 * math.pi * reach / T)) for p, T in pulses.values())
-    # The stone (a pixel only the arch's or the steps' hull holds) has no material of its own: no glow, no pulse, no
-    # flow, so it draws its frozen light whenever the world runs. A held stone pixel above that by TRANSIENT_DY is a slow
-    # bubble or speck. Every pixel a glowing node's hull holds (STONE_NODES aside) counts as held, however it got there.
-    glowing = np.zeros_like(clip_region)
-    for name, own in nodes.items():
-        if name not in STONE_NODES:
-            glowing |= own[window]
-    own_clip = own_light[window]
-    slow = clip_region & ~glowing & ~np.isnan(own_clip) & (held - np.nan_to_num(own_clip) > TRANSIENT_DY)
     def put(p):
         return (p[1][0] + c['x'], p[1][1] + c['y'])
-    peak_px = peak_in(held, when, clip_region & ~slow)
-    any_px = peak_in(held, when, clip_region)
+    peak_px = peak_in(held, when, clip_region)
+    any_px = peak_in(held_any, when_any, clip_region)
     peak = peak_px[0] / (1 - loss)
     a = put(any_px)
     print(f'     filtered (held over each window), anything in the area: Y {any_px[0]:.3f} at {a} in {owners(nodes, a)} around {any_px[2]:.2f} s, '
-          f'the portal\'s own frozen light there Y {own_light[a[1], a[0]]:.3f}{" (a slow bubble or speck on the stone)" if slow[any_px[1][1], any_px[1][0]] else ""}')
+          f'the portal\'s own frozen light there Y {own_light[a[1], a[0]]:.3f}{" (excluded in some window: a slow bubble or speck on the stone)" if slow[any_px[1][1], any_px[1][0]] else ""}')
     p = put(peak_px)
-    print(f'     filtered, the portal\'s own (the glowing nodes\' hulls, and the stone at its own light): Y {peak_px[0]:.3f} at {p} in {owners(nodes, p)} around {peak_px[2]:.2f} s; '
+    print(f'     filtered, counted (all but the excluded): Y {peak_px[0]:.3f} at {p} in {owners(nodes, p)} around {peak_px[2]:.2f} s; '
           f'over {covered:.2f} s of centres; raised by the most a pulse loses within {reach:.2f} s of its peak ({loss:.3f}): Y {peak:.3f}')
     for name, own in nodes.items():
-        h = peak_in(held, when, own[window] & ~slow)
+        h = peak_in(held, when, own[window])
         if h:
             print(f'       {name:16} held Y {h[0]:.3f} at {put(h)} around {h[2]:.2f} s')
     trough = dimmest[0] * r

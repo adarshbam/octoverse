@@ -735,7 +735,7 @@ The brightest pixel in the portal's area is still printed for every frame, with 
 - Frozen stills show strength 1.0. The entrance swings it from 0.915 to 1.085.
 - Measured from 69 running-intro stills of her face over 17.36 s. That is longer than the 17 s drift; the page age was 23.4 s, so before any rest.
   - Her face glow's brightest pixel holds at Y 0.908 (#fff0ff) in every still. It is clipped: R and B are at 255 over 2000 to 2900 px of the patch.
-  - The patch's 90% level is not clipped. It runs from Y 0.801 to 0.845, against 0.838 frozen. It dips with her breath, her sway and the patch's size, so its dip is the larger.
+  - The patch's 90% level is not clipped. It runs from Y 0.801 to 0.845, against 0.838 frozen. It moves with her breath, her sway and the patch's size. (Fix round 3 correction: the patch's size can move it either way, since a smaller patch drops its dim fringe and raises the quantile. So this is a measurement of the glow's unclipped body, not a proven bound.)
   - The stills may miss the joint trough by 0.013 of the strength: a breath trough within 2.5 s of the drift's trough, plus half a 0.48 s gap. So the drop is scaled by 0.085 / 0.072.
   - Trough factor **r = 0.949** (0.944 in the earlier run).
 - The entrance frames' face-glow maxima are not all clipped (t 3.2's is a single pixel), so r is applied to every face glow the portal's own light is compared with.
@@ -798,3 +798,80 @@ Commands (dev server on 127.0.0.1:5196; exit 0 on a pass, exit 1 with a `FAIL` l
 - Re-run on the real entrance, with `ENTRANCE_T` and `FAR_T` set to its beats.
 - Check whether the stage camera frames the portal at the early, far moments (t 1 here is unverified, and there the bubbles outshine her).
 - Add a frame at a membrane or glyph flash's peak if a sequence drives one.
+
+### Task 10, fix round 3 (re-review of 19ebcd6): positive controls, blob guard, bloom-aware exclusion
+
+Scripts only (`relic_entrance.py`). No change to config, layout or the engine, and no new capture: every run below reads the relic4 capture from fix round 2. Output: `t10-fix3-relic-check.txt`.
+
+**The classifier now.** A pixel in the portal's region is excluded as a bubble or speck only when all of these hold:
+- It sits more than 0.05 above the portal's own frozen light (the median over the nine frozen stills).
+- Its connected patch is under **BLOB_MIN = 850 px**.
+- Its own light is under **OWN_DARK = 0.2**, so it is not on a lit part of the portal.
+- For the held stone in the pulse check: it lies more than **BLOOM_PX = 20 px** from every glowing node's hull.
+
+Everything else counts, light above the median included. Each frame now counts the brightest pixel left after exclusion, against her face glow at its trough (x r). Before, only the median map was compared. So her light on the portal counts now.
+
+Each frame and the pulse check print:
+- how many pixels sit above the portal's own light, with their bounding box and largest patch;
+- how many were excluded, with the same.
+
+**Why these thresholds (measured on relic4):**
+
+- **BLOB_MIN 850.** The bubbles and specks in the portal's area are discs:
+  - at most 374 px (about 22 px across) in the frozen entrance stills;
+  - at most 806 px (32 px across, filling 0.76 to 0.82 of their box, as a disc does) in the running windows, where bubbles near the camera pass.
+
+  Her light on the lower-left lantern makes patches of 511 to 962 px. Those pixels sit on lit portal (own light 0.4 and more), so OWN_DARK counts them whatever their size.
+- **OWN_DARK 0.2.** The dark stone and the membrane body sit at 0.005 to 0.15. The lit parts (lanterns, glyph lines, the membrane's centre) sit at 0.2 and more, mostly 0.4 and more.
+- **BLOOM_PX 20.** The stone's own light shows no halo past the glowing hulls: median 0.012 at 1 to 4 px, 0.007 to 0.013 farther. Its brightest pixels reach 0.18 to 0.23 within 16 px of a hull, but at most 0.15 from 17 px on.
+- **The pulse guard runs per window.** Over all windows, the union of a slow bubble's positions is a trail: 6434 px held above the frozen light in relic4, the bubble chain on the left plus the swaying coral before the steps. Judged on that union, the slow bubble counted, at 0.999. Judged in each window before the maximum over time, it is one disc under 850 px on dark stone (held Y 0.800 around 9.03 s) and is excluded. The glowing nodes' hulls are never screened.
+
+**1. Positive controls** (`t10-fix2-relic-negative-runs.txt`, after the eight negative inputs; all on copies of relic4). Each paints a disc of sRGB (249, 249, 249), Y 0.946, into frozen stills:
+
+| control | disc | stills | result |
+|---|---|---|---|
+| (a) | radius 20 (1257 px) on the glyph at (1010, 437) | all nine | **exit 1**: 1.143 at t 3.2 |
+| (b) | the same disc | t 6.5, 7.5, 8.4 only (a late, state-gated light) | **exit 1**: 1.099 at t 8.4 |
+| (c) | radius 12 (441 px) on the glyph | the same three | **exit 1**: part of it is on lit glyph lines (OWN_DARK) |
+| (e) | radius 17 (901 px) on the dark membrane under the glyph at (1065, 475), own light at most 0.131 | the same three | **exit 1**: the size guard alone catches it |
+| (d) LIMIT | radius 12 (441 px) at (1065, 475) | the same three | **exit 0**: bubble-sized and on dark membrane, so excluded as a bubble would be |
+
+Under fix round 2's rule, (b)'s light had a near-dark median and would have been labelled transient. (d) is the classifier's stated limit, shown rather than hidden.
+
+**2. State-dependent light: limits, stated.**
+- **5 of 9:** the portal's own light is a median over nine frozen stills, needing at least five valid. A light the portal shows in four or fewer of them (an opening glow gated late in the entrance, a flash, her light) has a near-dark median. It still counts when its patch reaches 850 px or it lies on a lit part of the portal, as in (b), (c) and (e). A smaller one on dark stone or membrane is excluded, as in (d).
+- **0.9 s:** the pulse filter hides anything on the portal lit for less than about 0.9 s. The unfiltered maximum is printed beside the filtered one.
+- **Bloom:** stone within 20 px of a glowing hull is never excluded.
+
+**3. Bloom-aware stone exclusion.** The pulse check prints:
+- held stone above its own light in some window: 6434 px, x 798 to 1146, y 354 to 574;
+- excluded in some window: 4090 px, same box.
+
+The slow bubble on the arch (held 0.800 at (852, 421), own light 0.008, more than 20 px from every glowing hull) is excluded per window. The counted pulse peak is unchanged from fix round 2: 0.652 at (956, 352) in membrane/lanterns/arch, raised to 0.674, **ratio 0.813**.
+
+**Results (relic4, exit 0):**
+
+| t | brightest in area (ratio to her face glow, same frame) | what it is | portal's light counted, vs her trough |
+|---|---|---|---|
+| 1 | 0.676 (0.774, UNVERIFIED) | bubble, excluded | 0.445 at (908, 424), lantern: 0.537 (UNVERIFIED) |
+| 2 | 0.745 (0.836) | bubble, excluded | 0.442, lantern: 0.523 |
+| 3.2 | 0.668 (0.765) | bubble, excluded | 0.457, membrane: 0.551 |
+| 4.5 | 0.689 (0.768) | bubble, excluded | 0.475, lantern: 0.559 |
+| 5.5 | 0.722 (0.805) | bubble, excluded | 0.595 at (898, 473) on the arch, own light 0.089, inside a 932 px patch above its own light, counted by size: 0.700 |
+| 6.5 | 0.504 (0.555) | her light on the lantern, **counted** | 0.504: 0.585 |
+| 7.5 | 0.864 (0.952) | speck, excluded | 0.734 at (908, 460), her light on the lantern (own light 0.412): **0.852** |
+| 8.4 | 0.749 (0.824) | bubble, excluded | 0.441, lantern: 0.512 |
+| pulse | unfiltered 1.000 (bubble); filtered, anything: 0.800 (slow bubble, excluded per window) | | 0.674: 0.813 |
+
+- **Worst counted ratio 0.852**: t 7.5, her own light on the lantern, against her face glow's trough. The earlier capture (relic3) gives 0.873, its pulse peak.
+- t 1 stays UNVERIFIED.
+
+**Owner look note (spec 7.7; also in MORNING-REVIEW).** The bubbles and specks crossing in front of the portal are the brightest things near it:
+- against her face glow at its trough they reach 0.95 (the t 7.5 speck) to 0.999 (the slow bubble);
+- the brightest running pixel is pure white, Y 1.0.
+
+The relic rule holds for the portal, but world elements near it can outshine her face glow. Keeping them or dimming them near the portal is the owner's call.
+
+**Doc fixes.**
+- The face-trough wording no longer claims that a changing patch size only adds to the dip (both in the script and in fix round 2 above).
+- MORNING-REVIEW no longer calls t 6.5 a bubble: it is her light on the lantern, and it counts.
