@@ -125,7 +125,9 @@ export function validateWorld(world: WorldConfig): string[] {
 
   for (const [name, value] of Object.entries(world.relics)) if (!finite(value) || value <= 0) problems.push(`relics.${name} must be above 0`);
   for (const name of ENGINE_RELICS) if (!(name in world.relics)) problems.push(`relics.${name} is missing (the engine reads it)`);
-  const { floorGlow, ...flat } = palette;
+  // A key set to undefined counts as left out (the optional kit colours allow it).
+  const { floorGlow, ...given } = palette;
+  const flat = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined));
   for (const [name, value] of Object.entries(flat)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
   for (const name of ENGINE_PALETTE) if (!(name in flat)) problems.push(`palette.${name} is missing (the engine reads it)`);
   if (!record(floorGlow)) problems.push('palette.floorGlow is missing (cracks, lava, sheen, pores)');

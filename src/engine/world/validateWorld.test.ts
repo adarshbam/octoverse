@@ -420,6 +420,9 @@ test('palette and relics are string-keyed: the engine’s names are required, th
   for (const name of ['rock', 'pebble', 'coralBody'] as const) expect(SECURITY_WORLD.palette[name]).toBeUndefined();
   expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: '#14242a', pebble: '#1c2c30', coralBody: '#8a4a14' } })).toBe('');
   expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: 'teal' } })).toContain('palette.rock is not a #rrggbb colour');
+  // A palette key set to undefined is the same as one left out (the type allows it for the optional kit colours).
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: undefined, pebble: undefined, coralBody: undefined } })).toBe('');
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, portal: undefined } })).toBe('');
 });
 
 test('a world with a moss floor and a kelp live element validates, and each is checked', () => {
