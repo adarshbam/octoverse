@@ -50,7 +50,7 @@ import { EngineInstance } from './EngineInstance';
 import { entranceDebug, markReady, report, reportNew, reportWorld } from './debugHooks';
 import type { InstanceState } from './instance';
 import { useInstance } from './instanceContext';
-import { type PreviewOptions, headOpens, instanceKey, previewToReview } from './options';
+import { type PreviewOptions, applyPreview, headOpens, instanceKey } from './options';
 import { type InstanceApi, InstanceApiContext } from './useInstanceApi';
 import { createProjectModel, createSheets, startSheetLoaders } from './instanceModel';
 import { useWindowListeners } from './listeners';
@@ -236,11 +236,11 @@ export interface HostProps {
   /** The review and debug switches (the page parsed them from its address once). */
   options: ReviewOptions;
   mode?: 'page' | 'preview';
-  /** `engine` (default): the engine's own title, nameplate, panels and skip controls. `none`: no HTML at all from the engine; the page's children read the instance (`useInstanceApi`). */
+  /** `engine` (default): the engine's own HTML. `none`: no title, nameplate, overview panel, skip link or skip-entrance control; the page's own children read and drive the instance (`useInstanceApi`). The detail panel (reached only through the engine's own controls or `stageRequest`), the orb buttons, tray and tooltips are not part of it: the artifacts are governed by a preview's `artifacts`, and the choosable stages by the bundle. */
   ui?: 'engine' | 'none';
-  /** A preview's drawing options (`mode: 'preview'` only): they replace the review options they cover (stage, freeze, tier cap, world level, artifacts). */
+  /** A preview's drawing options (`mode: 'preview'` only): they replace exactly the review options they cover (stage, freeze, tier cap, world level, artifacts) and leave the rest of `options` (dev switches such as `noWebgl`) as given. They are read when the instance mounts: a later change is not applied reliably (key the host on its options to apply one). */
   preview?: PreviewOptions;
-  /** The stage a page instance opens on: never the entrance or a technology focus (those are ignored). */
+  /** The stage a page instance opens on: never the entrance or a technology focus (those are ignored). Read at mount: a parent that re-applies the same `initialStage` or last `stageRequest` after the instance remounted (a new bundle object) re-applies it. */
   initialStage?: LinkStage;
   /** Called after each change of stage (not for the one it started in). */
   onStageChange?: (stage: StageId) => void;
@@ -256,14 +256,15 @@ export interface HostProps {
  * One world's page (or a preview of it): the bundle validated (a bad one throws a BundleError
  * naming the field), and an engine instance keyed on the bundle itself, so another world, or a new
  * bundle of the same world (an edit, a creator's preview), is another instance. Reads only the
- * bundle and the host's options.
+ * bundle and the host's options. An embedder keeps the bundle object stable: a new object on every
+ * render remounts the instance (the canvas and the stage) every time.
  */
 export function WorldHost({ bundle, options, mode = 'page', preview, ...host }: HostProps) {
   const valid = useMemo(() => validateBundle(bundle), [bundle]);
   // A preview's options are the review options it covers, so the instance reads one set.
   const { stage, tierCap, motion, place, artifacts } = preview ?? {};
   const effective = useMemo(
-    () => (mode === 'preview' && stage && motion && place && artifacts ? { ...options, ...previewToReview({ stage, tierCap, motion, place, artifacts }) } : options),
+    () => (mode === 'preview' && stage && motion && place && artifacts ? applyPreview(options, { stage, tierCap, motion, place, artifacts }) : options),
     [options, mode, stage, tierCap, motion, place, artifacts],
   );
   return (
@@ -596,13 +597,14 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
         )}
       </Canvas>}
       {!webgl && <Poster />}
-      {ui === 'engine' && !mask && !options.view && (
+      {!mask && !options.view && (
         <>
-          <SkipLink target={detailsId} onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />
+          {/* `ui: 'none'` leaves out the title, nameplate, overview panel and the skip controls (spec 19, P1); the detail panel, the orb buttons, the tray and the tooltips stay (the last three go with `artifacts: 'hidden'`). */}
+          {ui === 'engine' && <SkipLink target={detailsId} onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />}
           {/* The intro's words come in as the character settles at the end of the entrance (the skip control goes then). */}
-          <IntroOverlay project={project} hidden={shown !== 'intro' && !(entering && settling)} onExplore={api.explore} />
-          <SkipEntrance hidden={!entering || settling} onSkip={api.skip} />
-          <OverviewPanel project={project} open={state.stage === 'overview'} sheet={phone || !webgl} dispatch={dispatch} />
+          {ui === 'engine' && <IntroOverlay project={project} hidden={shown !== 'intro' && !(entering && settling)} onExplore={api.explore} />}
+          {ui === 'engine' && <SkipEntrance hidden={!entering || settling} onSkip={api.skip} />}
+          {ui === 'engine' && <OverviewPanel project={project} open={state.stage === 'overview'} sheet={phone || !webgl} dispatch={dispatch} />}
           <ProjectDetail project={detailProject} technologies={technologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!webgl} panelId={detailsId} dispatch={dispatch} />
           {/* In a stage the world does not let a technology be chosen in, there are no buttons and no tray (the tooltips sit between them). A preview with its artifacts hidden has none to choose. */}
           {!hideArtifacts && <TechChoices

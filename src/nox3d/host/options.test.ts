@@ -6,7 +6,8 @@ import { STAGE_IDS } from '../config/types';
 import { capTier } from '../stage/quality';
 import { startingTier } from '../stage/useQuality';
 import { LAST_LEVEL } from '../world/worldLevel';
-import { type PreviewOptions, headOpens, instanceKey, previewToReview } from './options';
+import { defaultReviewOptions } from '../behavior/urlState';
+import { type PreviewOptions, applyPreview, headOpens, instanceKey, previewToReview } from './options';
 
 const preview = (extra: Partial<PreviewOptions> = {}): PreviewOptions => ({ stage: 'overview', motion: 'still', place: 'backdrop', artifacts: 'hidden', ...extra });
 
@@ -70,4 +71,12 @@ test('an instance follows its bundle: a new bundle object of the same world is a
   const host = readFileSync(new URL('./WorldHost.tsx', import.meta.url), 'utf8');
   expect(host).toMatch(/<EngineInstance key=\{instanceKey\(bundle\)\}/);
   expect(host).not.toMatch(/key=\{valid\.id\}/);
+});
+
+test("a preview's choices replace exactly the review options they cover; the page's other switches survive", () => {
+  const page = { ...defaultReviewOptions(), noWebgl: true, kitWait: 500, tier: 'medium' as const, solo: true, stage: 'detail' as const, freeze: false };
+  const merged = applyPreview(page, preview({ stage: 'intro', tierCap: 'low' }));
+  expect(merged).toMatchObject({ noWebgl: true, kitWait: 500, tier: 'medium', solo: true });
+  expect(merged).toMatchObject({ stage: 'intro', freeze: true, tierCap: 'low', worldLevel: LAST_LEVEL, artifacts: 'hidden' });
+  expect(Object.keys(merged).sort()).toEqual(Object.keys({ ...page, tierCap: 0, worldLevel: 0, artifacts: 0 }).sort());
 });

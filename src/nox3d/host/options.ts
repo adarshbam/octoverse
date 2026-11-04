@@ -38,6 +38,16 @@ export function previewToReview(p: PreviewOptions): ReviewOptions {
   };
 }
 
+/**
+ * `options` with a preview's choices laid over them: exactly the review options the preview covers
+ * (stage, freeze, tier cap, world level, artifacts) replace the page's, and every other one (the
+ * dev switches such as `noWebgl`, `tier`, `kitWait`) is as the page gave it.
+ */
+export function applyPreview(options: ReviewOptions, p: PreviewOptions): ReviewOptions {
+  const { stage, freeze, tierCap, worldLevel, artifacts } = previewToReview(p);
+  return { ...options, stage, freeze, tierCap, worldLevel, artifacts };
+}
+
 /** Whether a stage's pose opens the head (the swell): from this much `headMorph` on. A pose with `headMorph: 0` never swells. */
 export const HEAD_OPEN_FROM = 0.5;
 export const headOpens = (pose: Pick<StagePose, 'headMorph'>) => pose.headMorph >= HEAD_OPEN_FROM;
@@ -48,7 +58,9 @@ let serial = 0;
 /**
  * The React key of the instance a bundle gets: its id and which bundle object it is. The instance
  * reads its bundle once, at mount, so a new bundle object of the same world (a hot edit, a creator
- * previewing a change to a `u-` bundle) must be a new instance, not the old world kept.
+ * previewing a change to a `u-` bundle) must be a new instance, not the old world kept. Keyed on
+ * the object, so an embedder must keep its bundle stable: a new object on every render remounts the
+ * instance every time.
  */
 export function instanceKey(bundle: WorldBundle): string {
   let n = serials.get(bundle);

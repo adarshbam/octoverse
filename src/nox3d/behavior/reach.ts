@@ -29,6 +29,13 @@ export function reachingArm(tips: readonly { x: number; y: number }[], target: {
 }
 
 /**
+ * Whether a bubble holds the character's arms: the pointer is on one, or (for the host's forced
+ * `attend` reach, which would otherwise run beside the suction hold) a technology is in focus.
+ * The pointer's own reach keeps its rule: it is not asked about the focus.
+ */
+export const bubbleHotFor = (hovered: boolean, focused: boolean, forced: boolean) => hovered || (forced && focused);
+
+/**
  * Whether an arm may reach for the pointer: only in the intro, while the orbs are still mostly
  * in and the eyes follow the pointer, and not while the pointer is on a bubble (hovered or held).
  * Out of the intro the arms keep to the stage's own motion; beside the detail panel Nox only idles

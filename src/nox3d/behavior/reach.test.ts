@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { REACH_RANGE, reachesForPointer, reachingArm } from './reach';
+import { REACH_RANGE, bubbleHotFor, reachesForPointer, reachingArm } from './reach';
 
 const head = NOX.head;
 const tips = [{ x: -1.8, y: -0.6 }, { x: -1.2, y: -1.6 }, { x: 1.9, y: -0.7 }];
@@ -52,3 +53,16 @@ test("a forced reach (the host's attend) lifts the stage and tracking gates, but
   expect(reachesForPointer('overview', 1, true, false)).toBe(false);
   expect(reachesForPointer('overview', 1, true, false, false)).toBe(false);
 });
+
+test('a focused technology holds the arms for a forced reach (the suction hold runs), and changes nothing for the pointer own reach', () => {
+  expect(bubbleHotFor(false, true, true)).toBe(true);
+  expect(bubbleHotFor(true, false, true)).toBe(true);
+  expect(bubbleHotFor(false, false, true)).toBe(false);
+  // Not forced: only the hover counts, as before.
+  expect(bubbleHotFor(false, true, false)).toBe(false);
+  expect(reachesForPointer('overview', 1, true, bubbleHotFor(false, true, true), true)).toBe(false);
+  expect(reachesForPointer('overview', 1, true, bubbleHotFor(false, false, true), true)).toBe(true);
+  const octopus = readFileSync(new URL('../character/Octopus.tsx', import.meta.url), 'utf8');
+  expect(octopus).toMatch(/bubbleHotFor\(instance\.hover\.bubble, selected >= 0, attendReach\)/);
+});
+

@@ -7,7 +7,7 @@ import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
-import { reachesForPointer, reachingArm } from '../behavior/reach';
+import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
 import { screenToStage } from '../stage/anchors';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
@@ -678,7 +678,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
     // A card is far from every tip, so `attend`'s reach has no range (the head's outline still keeps an arm out of the face).
-    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, instance.hover.bubble, attendReach) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head, attendReach ? Infinity : undefined) : -1;
+    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, bubbleHotFor(instance.hover.bubble, selected >= 0, attendReach), attendReach) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head, attendReach ? Infinity : undefined) : -1;
     if (probe) {
       // Where the character looks and which arm reaches, for the end-to-end tests (`window.__octoverse.attention`).
       const seen = reportObject(instance, 'attention', () => ({ gazeX: 0, reachArm: -1, tips: rig.arms.map(() => ({ x: 0, y: 0 })), target: { x: 0, y: 0 } }));

@@ -4,8 +4,8 @@ import type { Vec3 } from '../world/types';
 
 /**
  * What a page that embeds the host reads and drives (spec 19, P1 and P8): the instance's stage, where
- * its face is, and the same moves the engine's own UI makes. A headless host (`ui: 'none'`) is run
- * entirely through this.
+ * its face is, and the same moves the engine's own UI makes. A host that leaves out the engine's title, nameplate, overview panel and
+ * skip controls (`ui: 'none'`) is run through this.
  */
 export interface InstanceApi {
   /** The stage the instance is in now. */

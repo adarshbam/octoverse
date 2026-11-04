@@ -16,26 +16,29 @@ const attention = (page: Page) => page.evaluate(() => (window as unknown as { __
 /** The arm whose tip is nearest the point reached for. */
 const nearest = (seen: Attention) => seen.tips.map((tip, i) => [Math.hypot(tip.x - seen.target.x, tip.y - seen.target.y), i] as const).sort((x, y) => x[0] - y[0])[0][1];
 
-/** Every piece of the engine's own HTML. */
-const ENGINE_UI = '.title, .nameplate, .overview-panel, .project-detail, .skip-entrance, .skip-link, .orb-buttons, .orb-tray';
+/** What `ui: 'none'` leaves out (spec 19, P1): the title, nameplate, overview panel and the skip controls. */
+const LEFT_OUT = '.title, .nameplate, .overview-panel, .skip-entrance, .skip-link';
 
-test('a page instance with ui none draws none of the engine\'s HTML, and its children drive it through the API', async ({ page }) => {
+test("a page instance with ui none draws no title, nameplate, overview panel or skip, keeps the orb buttons and the detail panel, and its children drive it through the API", async ({ page }) => {
   await page.goto(embed({ ui: 'none', opts: 'freeze' }));
   const a = cell(page, 'a');
   await a.locator('canvas').waitFor();
   await expect(a.getByTestId('stage')).toHaveText('intro');
-  await expect(a.locator(ENGINE_UI)).toHaveCount(0);
+  await expect(a.locator(LEFT_OUT)).toHaveCount(0);
   await expect(a.locator('.exit-link')).toHaveCount(0);
+  // The artifacts are governed by `artifacts`, not by `ui`: the buttons are there, and so is the detail panel.
+  await expect(a.locator('.orb-button')).toHaveCount(15);
+  await expect(a.locator('.project-detail')).toHaveCount(1);
   await a.getByTestId('explore').click();
   await expect(a.getByTestId('stage')).toHaveText('overview');
-  await expect(a.locator(ENGINE_UI)).toHaveCount(0);
+  await expect(a.locator(LEFT_OUT)).toHaveCount(0);
   await a.getByTestId('back').click();
   await expect(a.getByTestId('stage')).toHaveText('intro');
 
   // The same page with the engine's UI has all of it: the check above is not a vacuous pass.
   await page.goto(embed({ ui: 'engine', opts: 'freeze' }));
   await cell(page, 'a').locator('canvas').waitFor();
-  for (const selector of ['.title', '.nameplate', '.overview-panel', '.project-detail', '.skip-link', '.orb-buttons']) await expect(cell(page, 'a').locator(selector), selector).toHaveCount(1);
+  for (const selector of ['.title', '.nameplate', '.overview-panel', '.project-detail', '.skip-link', '.skip-entrance', '.orb-buttons']) await expect(cell(page, 'a').locator(selector), selector).toHaveCount(1);
 });
 
 test('a preview with its artifacts hidden has no orb buttons; settled has them', async ({ page }) => {
@@ -97,6 +100,23 @@ test('attend turns the gaze toward a focused card and reaches the nearest arm; a
 
   await a.locator('[data-card="right"]').blur();
   await expect.poll(async () => (await attention(page))?.reachArm, { timeout: 1_000 }).toBe(-1);
+  // The eyes let go too: with nothing to follow they come back to the middle (the frozen page rests them ahead).
+  await expect.poll(async () => Math.abs((await attention(page))?.gazeX ?? 1), { timeout: 3_000 }).toBeLessThan(0.1);
+});
+
+test('a forced reach yields to a focused technology: no arm reaches for the card while a bubble is chosen', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto(embed({ ui: 'none', init: 'overview', opts: 'freeze' }));
+  const a = cell(page, 'a');
+  await a.locator('canvas').waitFor();
+  await page.waitForFunction(() => (window as unknown as { __octoverse?: { ready: boolean } }).__octoverse?.ready === true, undefined, { timeout: 60_000 });
+  // Hovering (not focusing) the card keeps the attention on it while a bubble is chosen with the keyboard.
+  const box = (await a.locator('[data-card="left"]').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect.poll(async () => (await attention(page))?.reachArm ?? -1, { timeout: 2_000 }).toBeGreaterThanOrEqual(0);
+  await a.locator('.orb-button').first().focus();
+  await expect(a.getByTestId('stage')).toHaveText('techFocus');
+  await expect.poll(async () => (await attention(page))?.reachArm, { timeout: 2_000 }).toBe(-1);
 });
 
 test('onStageChange fires on each change; a stageRequest to intro closes an open detail; a request for the current stage does nothing', async ({ page }) => {
