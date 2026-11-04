@@ -4,6 +4,7 @@ import { contentFor } from '../fixtures/worldContent';
 import { Link } from '../ui/Link';
 import { PLATFORM_TOKENS } from '../ui/tokens';
 import { Badge, Chips, PageFrame, WorldStill } from './parts';
+import { YOURS } from './yours';
 import { YourOctopusPicture } from './YourOctopusPicture';
 
 /** How many of a project's technologies a tile shows (spec 7.11): the first three, in the project's declared order. */
@@ -44,8 +45,8 @@ export function Explore() {
               <YourOctopusPicture />
             </span>
             <div className="oct-tile-body">
-              <b>Your Octopus</b>
-              <span className="oct-tile-epithet">Your Story</span>
+              <b>{YOURS.name}</b>
+              <span className="oct-tile-epithet">{YOURS.epithet}</span>
             </div>
           </Link>
         </li>

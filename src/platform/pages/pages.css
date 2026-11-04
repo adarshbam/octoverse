@@ -7,11 +7,17 @@
 .oct-page {
   position: relative;
   box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /*
+   * index.html's boot style fixes html, body and #root at the window's height with overflow hidden (the canvas pages are one
+   * screen and never scroll), so every static page that can be taller than the window is its own scroller: this wrapper (the
+   * landing, How It Works and the worlds do not use it). It scrolls vertically; it does not hide sideways overflow with clip, the
+   * e2e checks measure every element against the window instead.
+   */
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow-x: clip;
+  overflow: hidden auto;
   --oct-water: #0e1650;
   background: var(--oct-water);
   isolation: isolate;
@@ -386,6 +392,15 @@
 .oct-stack-category {
   font-size: 13px;
   color: var(--oct-ink-soft);
+}
+
+.oct-placeholder-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--oct-ink-soft);
+  opacity: 0.8;
 }
 
 .oct-stack-item p {

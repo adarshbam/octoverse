@@ -8,17 +8,7 @@
   max-width: 1360px;
 }
 
-/*
- * index.html's boot style fixes html, body and #root at the window's height with overflow hidden (the worlds are one screen), so
- * a page that is longer than the window scrolls inside itself: the creator's page is its own scroller. The sticky preview sticks
- * to this scroller's top.
- */
-.oct-page:has(.oct-creator) {
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden auto;
-}
+/* The page scrolls inside itself (pages.css: `.oct-page` is the scroller), so the sticky preview sticks to its top. */
 
 .oct-creator-title {
   margin-bottom: 18px;

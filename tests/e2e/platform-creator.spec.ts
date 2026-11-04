@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { overflowingElements } from './pageChecks';
 
 // The creator composition (platform Task 10; spec 7.13, 7.15), through the temporary `?page=create` switch of src/platform/App.tsx
 // (Task 14 routes it). At 390 x 844 the two panels are the tabs Octopus and Projects and the picture is the sticky top 40%; at
@@ -37,6 +38,7 @@ for (const width of WIDTHS) {
     expect(measured.scrollWidth).toBeLessThanOrEqual(measured.innerWidth);
     expect(measured.bodyScrollWidth).toBeLessThanOrEqual(measured.innerWidth);
     expect(measured.small).toEqual([]);
+    expect(await overflowingElements(page)).toEqual([]);
     if (width < 768) {
       await page.getByRole('tab', { name: 'Projects' }).click();
       const projects = await page.evaluate(() => {

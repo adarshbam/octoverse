@@ -23,6 +23,8 @@ export interface TechnologyView {
   name: string;
   category: string;
   note?: string;
+  /** The content flags the note as storyboard text standing in until the owner supplies the real one. */
+  placeholder?: true;
 }
 
 export interface WorldContent {
@@ -49,7 +51,7 @@ interface Source {
   project: {
     id: string;
     media?: readonly { type: string; url: string; previewUrl?: string; alt: string }[];
-    technologyUsages?: readonly { technologyId: string; role?: string; summary?: string }[];
+    technologyUsages?: readonly { technologyId: string; role?: string; summary?: string; placeholder?: boolean }[];
   };
   technologies: readonly { id: string; name: string; category: string }[];
 }
@@ -84,7 +86,7 @@ function build(world: ShowcaseWorld): WorldContent {
     technologies: technologies.map(t => {
       const usage = project.technologyUsages?.find(u => u.technologyId === t.id);
       const note = usage?.summary ?? usage?.role;
-      return { id: t.id, name: t.name, category: t.category, ...(note !== undefined && { note }) };
+      return { id: t.id, name: t.name, category: t.category, ...(note !== undefined && { note, ...(usage?.placeholder && { placeholder: true as const }) }) };
     }),
     ...(shot && { screenshot: { src: shot.previewUrl ?? shot.url, alt: shot.alt } }),
     ...(link !== undefined && { link }),

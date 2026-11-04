@@ -13,6 +13,7 @@ import { PLATFORM_TOKENS } from '../ui/tokens';
 import { Link } from '../ui/Link';
 import { stageRect } from './geometry';
 import { useHostBox, useShift } from './hooks';
+import { YOURS } from './yours';
 import { YourOctopusPicture } from './YourOctopusPicture';
 import '../ui/glass.css';
 import './landing.css';
@@ -25,7 +26,7 @@ const CARD_TEXT: Record<CardId, { name: string; epithet: string }> = {
   flux: { name: flux.name, epithet: flux.epithet },
   nox: { name: nox.name, epithet: nox.epithet },
   aether: { name: aether.name, epithet: aether.epithet },
-  yours: { name: 'Your Octopus', epithet: 'Your Story' },
+  yours: YOURS,
 };
 
 /** Where a card goes: its world's profile, and the creator for the visitor's own. */

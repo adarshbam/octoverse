@@ -50,7 +50,12 @@ export function Profile({ profile }: { profile: ShowcaseProfile }) {
         <li key={tech.id} className="oct-stack-item" data-tech={tech.id}>
           <b>{tech.name}</b>
           <span className="oct-stack-category">{tech.category}</span>
-          {tech.note !== undefined && <p>{tech.note}</p>}
+          {tech.note !== undefined && (
+            <p>
+              {tech.note}
+              {tech.placeholder && <span className="oct-placeholder-note">placeholder text</span>}
+            </p>
+          )}
         </li>
       ))}
     </ul>

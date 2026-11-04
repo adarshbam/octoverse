@@ -34,6 +34,20 @@ try {
       const file = join(out, `${p.name}-${width}x${height}.png`);
       await page.screenshot({ path: file });
       console.log('saved', file);
+      // On a phone the page scrolls inside itself (`.oct-page`): a second still scrolled to the bottom shows the rest of it.
+      if (width < 768) {
+        const scrolled = await page.evaluate(async () => {
+          const scroller = document.querySelector('.oct-page');
+          scroller.scrollTo(0, scroller.scrollHeight);
+          await new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+          return scroller.scrollTop;
+        });
+        if (scrolled > 0) {
+          const bottom = join(out, `${p.name}-${width}x${height}-bottom.png`);
+          await page.screenshot({ path: bottom });
+          console.log('saved', bottom);
+        }
+      }
     }
     await page.close();
   }

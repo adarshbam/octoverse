@@ -77,6 +77,11 @@ describe('contentFor (what the pages show, from the content modules)', () => {
     expect(notes('aether')).toEqual([['openai', 'LLM integration']]);
   });
 
+  it("carries the content's placeholder flag with each note, so the page can say so", () => {
+    for (const w of ['flux', 'nox', 'aether'] as const) for (const t of contentFor(w).technologies.filter(x => x.note !== undefined)) expect(t.placeholder).toBe(true);
+    for (const t of contentFor('veyra').technologies) expect(t.placeholder).toBeUndefined();
+  });
+
   it('has a screenshot only where the content has one', () => {
     expect(contentFor('veyra').screenshot).toBeUndefined();
     expect(contentFor('flux').screenshot).toBeUndefined();
