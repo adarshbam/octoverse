@@ -19,6 +19,8 @@ export const FLUX_THEME: UiTheme = {
   poster: { src: 'flux/poster-intro.webp', alt: 'Flux, the octopus guide to GitHub Pipeline Engine, in the deep blue water of his pipeline world', width: 1536, height: 1024 },
   pageTitle: 'Flux · GitHub Pipeline Engine',
   nameplateLabel: '#c8def0',
+  // Dark blue glass over the water, from the surface token (provisional; not sampled from P2's plate).
+  plate: 'rgba(3, 30, 59, 0.82)',
   glow: 'rgb(40, 150, 255)',
   glowInner: 'rgb(60, 170, 255)',
   accentGlow: 'rgb(60, 180, 230)',

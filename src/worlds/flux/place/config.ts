@@ -14,7 +14,6 @@ const palette: WorldConfig['palette'] = {
   stone: '#1c2c4c',
   glyph: '#4aa6d0',
   coral: '#c070f0',
-  lava: '#7050f0',
   waterFar: MID_WATER,
   floor: '#0a1224',
   // No seabed glow yet: black is none.
@@ -64,7 +63,7 @@ const LIVE_COLOURS: WorldConfig['live']['colours'] = {
 export const PIPELINE_STAGE: WorldConfig = {
   id: 'pipeline-stage',
   kit: { url: '/flux/world/stage.glb', pieces: [] },
-  layout: { floorY: -2.45, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] },
+  layout: { floorY: -2.45, groups: {}, chains: [], coralLights: [] },
   // The camera leans up as Nox's (radians), and drifts a little livelier: the shared hover at his
   // amount, at 1.2 times his pace (spec 7.7).
   camera: { tilt: 0.07, hover: { amount: 1, pace: 1.2 } },
