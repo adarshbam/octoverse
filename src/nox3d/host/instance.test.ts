@@ -73,3 +73,18 @@ test('an EngineInstance gives its children one state with its id and mode; two p
   expect(seen[2]).not.toBe(seen[0]);
   expect([seen[0].id, seen[0].mode, seen[2].id, seen[2].mode]).toEqual(['nox', 'page', 'preview', 'preview']);
 });
+
+test("the host's attend request starts empty, copies the point it is given, and lets go with null (a reach needs a target)", () => {
+  const { attend } = createInstanceState(world('a'), 'page');
+  expect(attend).toMatchObject({ target: null, reach: false });
+  const point = { x: 10, y: 20 };
+  attend.set(point, true);
+  point.x = 99;
+  expect(attend).toMatchObject({ target: { x: 10, y: 20 }, reach: true });
+  attend.set({ x: 1, y: 2 });
+  expect(attend).toMatchObject({ target: { x: 1, y: 2 }, reach: false });
+  attend.set(null, true);
+  expect(attend).toMatchObject({ target: null, reach: false });
+  // Two instances never share one.
+  expect(createInstanceState(world('b'), 'preview').attend).not.toBe(attend);
+});

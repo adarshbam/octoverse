@@ -26,6 +26,17 @@ export interface HoldDebug {
   release: number;
 }
 
+/** Where the character is looking and which arm is reaching, written each frame in development builds (`window.__octoverse.attention`): for the end-to-end tests of `attend`. Arm space is the space the arms are authored in. */
+export interface AttentionDebug {
+  /** The eyes' horizontal gaze, -1 to 1 (negative looks to the left of the screen). */
+  gazeX: number;
+  /** The arm reaching for the pointer or the host's `attend` target, or -1 for none. */
+  reachArm: number;
+  /** Every arm's tip, and the point reached for (the pointer's, or `attend`'s), in arm space. */
+  tips: { x: number; y: number }[];
+  target: { x: number; y: number };
+}
+
 /**
  * `window.__octoverse`: what the page instance reports about itself, whatever its world. `ready` is
  * the ready flag (the world drawn and settled); the rest are development-build probes, each made on
@@ -49,6 +60,8 @@ export interface OctoverseDebug {
   setTier?: (tier: 'high' | 'medium' | 'low') => void;
   /** Loads the world's sequences (the page's own loader: the capture scripts wait on it). */
   sequences?: () => Promise<unknown>;
+  /** The gaze and the reaching arm (one object, written in place each frame). */
+  attention?: AttentionDebug;
 }
 
 /** The probes the Nox world also writes under their legacy `__nox*` names, which the end-to-end specs and scripts read. */
@@ -116,13 +129,14 @@ export function unreport(instance: InstanceState, key: keyof typeof LEGACY | Exc
  * Probe `key`'s object for the page instance, made with `make` on first use and kept, so a caller
  * can write into it each frame without allocating; a preview gets a throwaway one.
  */
-export function reportObject<K extends 'swell' | 'entrance'>(instance: InstanceState, key: K, make: () => NonNullable<OctoverseDebug[K]>): NonNullable<OctoverseDebug[K]> {
+export function reportObject<K extends 'swell' | 'entrance' | 'attention'>(instance: InstanceState, key: K, make: () => NonNullable<OctoverseDebug[K]>): NonNullable<OctoverseDebug[K]> {
   const at = rootOf(instance);
   if (!at) return make();
   const known = at.root[key];
   if (known) return known as NonNullable<OctoverseDebug[K]>;
   const made = make();
-  report(instance, key, made);
+  if (key === 'attention') reportNew(instance, 'attention', made as AttentionDebug);
+  else report(instance, key, made as OctoverseDebug[typeof key & ('swell' | 'entrance')]);
   return made;
 }
 

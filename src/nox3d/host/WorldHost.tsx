@@ -1,15 +1,15 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SELECTS, choosableNow } from '../artifacts/strategies';
 import { resolveExpressions } from '../behavior/expressions';
 import { FOCUS_BEATS } from '../behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from '../behavior/poseBlend';
-import { initialStage } from '../behavior/stageMachine';
+import { type LinkStage, initialStage } from '../behavior/stageMachine';
 import type { ReviewOptions } from '../behavior/urlState';
-import { readEntranceSeen, readReducedMotion, useStage } from '../behavior/useStage';
+import { readEntranceSeen, readReducedMotion, requestedStage, useStage } from '../behavior/useStage';
 import { Octopus } from '../character/Octopus';
 import { createGlowLightUniforms } from '../character/glowLight';
 import { type AccentLink, createAccentUniforms } from '../character/worldAccent';
@@ -24,6 +24,7 @@ import { fovFor } from '../stage/framing';
 import { TIER_SETTINGS } from '../stage/quality';
 import { QualityProbe, startingTier, usePageVisible, useQuality } from '../stage/useQuality';
 import { type FaceStage, type WorldBundle, faceAnchor, validateBundle } from '../types/bundle';
+import { ExitLink } from '../ui/ExitLink';
 import { IntroOverlay } from '../ui/IntroOverlay';
 import { type FaceSpot, bubbleDisc, faceSpot } from '../ui/OrbButtons';
 import { OverviewPanel } from '../ui/OverviewPanel';
@@ -49,6 +50,8 @@ import { EngineInstance } from './EngineInstance';
 import { entranceDebug, markReady, report, reportNew, reportWorld } from './debugHooks';
 import type { InstanceState } from './instance';
 import { useInstance } from './instanceContext';
+import { type PreviewOptions, headOpens, instanceKey, previewToReview } from './options';
+import { type InstanceApi, InstanceApiContext } from './useInstanceApi';
 import { createProjectModel, createSheets, startSheetLoaders } from './instanceModel';
 import { useWindowListeners } from './listeners';
 
@@ -227,21 +230,50 @@ function SilhouetteOnly() {
   return null;
 }
 
+/** What a host page gives `WorldHost` (spec 19, amendment A2): the world, how it is drawn, and how the page hears and steers it. */
+export interface HostProps {
+  bundle: WorldBundle;
+  /** The review and debug switches (the page parsed them from its address once). */
+  options: ReviewOptions;
+  mode?: 'page' | 'preview';
+  /** `engine` (default): the engine's own title, nameplate, panels and skip controls. `none`: no HTML at all from the engine; the page's children read the instance (`useInstanceApi`). */
+  ui?: 'engine' | 'none';
+  /** A preview's drawing options (`mode: 'preview'` only): they replace the review options they cover (stage, freeze, tier cap, world level, artifacts). */
+  preview?: PreviewOptions;
+  /** The stage a page instance opens on: never the entrance or a technology focus (those are ignored). */
+  initialStage?: LinkStage;
+  /** Called after each change of stage (not for the one it started in). */
+  onStageChange?: (stage: StageId) => void;
+  /** Asks for a stage; a new `id` is a new request. It is taken as the visitor's own moves would be (the detail only from the overview). */
+  stageRequest?: { id: number; stage: LinkStage };
+  /** A link out of the instance, drawn in the world's theme and first in its focus order. */
+  exit?: { label: string; href: string };
+  /** The page's own elements: inside the instance, so `useInstanceApi()` works in them. */
+  children?: ReactNode;
+}
+
 /**
  * One world's page (or a preview of it): the bundle validated (a bad one throws a BundleError
- * naming the field), and an engine instance keyed on the world, so another world is another
- * instance. Reads only `bundle` and `options`.
+ * naming the field), and an engine instance keyed on the bundle itself, so another world, or a new
+ * bundle of the same world (an edit, a creator's preview), is another instance. Reads only the
+ * bundle and the host's options.
  */
-export function WorldHost({ bundle, options, mode = 'page' }: { bundle: WorldBundle; options: ReviewOptions; mode?: 'page' | 'preview' }) {
+export function WorldHost({ bundle, options, mode = 'page', preview, ...host }: HostProps) {
   const valid = useMemo(() => validateBundle(bundle), [bundle]);
+  // A preview's options are the review options it covers, so the instance reads one set.
+  const { stage, tierCap, motion, place, artifacts } = preview ?? {};
+  const effective = useMemo(
+    () => (mode === 'preview' && stage && motion && place && artifacts ? { ...options, ...previewToReview({ stage, tierCap, motion, place, artifacts }) } : options),
+    [options, mode, stage, tierCap, motion, place, artifacts],
+  );
   return (
-    <EngineInstance key={valid.id} bundle={valid} mode={mode}>
-      <World options={options} />
+    <EngineInstance key={instanceKey(bundle)} bundle={valid} mode={mode}>
+      <World options={effective} {...host} />
     </EngineInstance>
   );
 }
 
-function World({ options }: { options: ReviewOptions }) {
+function World({ options, ui = 'engine', initialStage: initial, onStageChange, stageRequest, exit, children }: Pick<HostProps, 'options' | 'ui' | 'initialStage' | 'onStageChange' | 'stageRequest' | 'exit' | 'children'>) {
   const instance = useInstance();
   const { bubbleLive, mode, bundle } = instance;
   // The character is clamped already (validateBundle).
@@ -249,7 +281,7 @@ function World({ options }: { options: ReviewOptions }) {
   const { project, technologies } = content;
   const page = mode === 'page';
   const reportEntrance = useMemo(() => entranceReporter(instance), [instance]);
-  const { state, dispatch, reducedMotion } = useStage(project, { worldId: instance.id, mode, options, choosableIn: artifacts.choosableIn });
+  const { state, dispatch, reducedMotion } = useStage(project, { worldId: instance.id, mode, options, choosableIn: artifacts.choosableIn, initial, request: stageRequest, onChange: onStageChange });
   const quality = useQuality(options);
   // What this instance shows of the project, and its Theatre sheets: its own, made here and not at module load.
   const model = useMemo(() => createProjectModel(project, technologies), [project, technologies]);
@@ -257,6 +289,9 @@ function World({ options }: { options: ReviewOptions }) {
   // Without WebGL (or `?nowebgl`) the instance is the poster under the HTML overlays; the entrance has nothing to play on.
   const webgl = useMemo(() => !options.noWebgl && hasWebgl2(), [options.noWebgl]);
   const mask = options.mask === true;
+  // A preview's artifacts are settled or hidden: either way no sheet plays (the bubbles are simply there, or not at all; the head is as the stage blend has it).
+  const noSheets = options.artifacts !== undefined;
+  const hideArtifacts = options.artifacts === 'hidden';
   // A project with no sections, for testing the full project view; honoured only while developing.
   const detailProject = useMemo(() => (import.meta.env.DEV && options.fixture === 'nosections' ? { ...project, sections: [] } : project), [options.fixture, project]);
   const reviewSwim = useMemo(() => reviewSwimFor(swim, options.pose), [swim, options.pose]);
@@ -271,9 +306,9 @@ function World({ options }: { options: ReviewOptions }) {
   // entrance's first frame does not pay for them. Octopus starts the entrance's clock on the first frame drawn with the sheet in.
   const [sheets] = useState(() => createSheets(bundle.sequences, { blowAt: options.freeze ? options.blow : undefined, swellAt: options.freeze ? options.swell : undefined }));
   const [wants] = useState(() => ({
-    entrance: webgl && initialStage({ entranceSeen: readEntranceSeen(instance.id, mode), requested: options.stage, reducedMotion: readReducedMotion() }).stage === 'entering',
-    blow: webgl && (sheets.blow.at !== undefined || !(options.freeze || readReducedMotion())),
-    swell: webgl && (sheets.swell.at !== undefined || !(options.freeze || readReducedMotion())),
+    entrance: webgl && initialStage({ entranceSeen: readEntranceSeen(instance.id, mode), ...requestedStage(options, initial), reducedMotion: readReducedMotion() }).stage === 'entering',
+    blow: webgl && !noSheets && (sheets.blow.at !== undefined || !(options.freeze || readReducedMotion())),
+    swell: webgl && !noSheets && (sheets.swell.at !== undefined || !(options.freeze || readReducedMotion())),
   }));
   useEffect(
     () =>
@@ -320,7 +355,7 @@ function World({ options }: { options: ReviewOptions }) {
     setPlateReady(true);
   }, []);
   // A world file that will not load steps the world down (WorldBoundary) rather than blanking the stage.
-  const [worldLevel, setWorldLevel] = useState<WorldLevel>(0);
+  const [worldLevel, setWorldLevel] = useState<WorldLevel>(options.worldLevel ?? 0);
   // Each failure names the level it came from, so one reported twice steps once (stepFrom).
   const failWorld = useCallback((error: unknown, failed: WorldLevel) => {
     console.warn('the world did not load; drawing less of it:', error);
@@ -480,11 +515,12 @@ function World({ options }: { options: ReviewOptions }) {
       quality={quality.settings}
       // Clicking the head swells it open; clicking it again closes it.
       onSelect={() => dispatch({ type: state.stage === 'overview' ? 'CLOSE' : 'OPEN_OVERVIEW' })}
-      headOpen={stagePoseOf(poses, reviewSwim, shown).headMorph >= 0.5}
+      headOpen={headOpens(stagePoseOf(poses, reviewSwim, shown))}
       swellSheet={sheets.swell}
       orbs={orbs}
       focusTechId={focusedTech}
-      blowSheet={sheets.blow}
+      blowSheet={noSheets ? undefined : sheets.blow}
+      hideArtifacts={hideArtifacts}
       accents={accents}
       solo={options.solo}
       yaw={options.yaw}
@@ -503,8 +539,28 @@ function World({ options }: { options: ReviewOptions }) {
       onEntranceFrame={reportEntrance}
     />
   );
+  // What the page's own elements read and drive (`useInstanceApi`): the engine's UI below makes the same moves.
+  const face = useMemo(() => faceAnchor(bundle, faceStageOf(shown)), [bundle, shown]);
+  const attend = useCallback<InstanceApi['attend']>(
+    (target, opts) => instance.attend.set(target, opts?.reach === true),
+    [instance],
+  );
+  const api = useMemo<InstanceApi>(
+    () => ({
+      stage: state.stage,
+      faceAnchor: face,
+      liveShift: world => instance.liveAnchors.shift(world),
+      explore: () => dispatch({ type: 'OPEN_OVERVIEW' }),
+      back: () => dispatch({ type: focusing ? 'BLUR_TECH' : 'CLOSE' }),
+      skip: () => dispatch({ type: 'SKIP' }),
+      attend,
+    }),
+    [state.stage, face, instance, dispatch, focusing, attend],
+  );
   return (
+    <InstanceApiContext.Provider value={api}>
     <div className="spike" ref={frame} style={theme}>
+      {exit && <ExitLink label={exit.label} href={exit.href} />}
       {webgl && <Canvas
         flat
         dpr={pixelRatio}
@@ -540,16 +596,16 @@ function World({ options }: { options: ReviewOptions }) {
         )}
       </Canvas>}
       {!webgl && <Poster />}
-      {!mask && !options.view && (
+      {ui === 'engine' && !mask && !options.view && (
         <>
           <SkipLink target={detailsId} onSkip={() => { dispatch({ type: 'SKIP' }); dispatch({ type: 'OPEN_OVERVIEW' }); dispatch({ type: 'OPEN_DETAIL' }); }} />
           {/* The intro's words come in as the character settles at the end of the entrance (the skip control goes then). */}
-          <IntroOverlay project={project} hidden={shown !== 'intro' && !(entering && settling)} onExplore={() => dispatch({ type: 'OPEN_OVERVIEW' })} />
-          <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
+          <IntroOverlay project={project} hidden={shown !== 'intro' && !(entering && settling)} onExplore={api.explore} />
+          <SkipEntrance hidden={!entering || settling} onSkip={api.skip} />
           <OverviewPanel project={project} open={state.stage === 'overview'} sheet={phone || !webgl} dispatch={dispatch} />
           <ProjectDetail project={detailProject} technologies={technologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!webgl} panelId={detailsId} dispatch={dispatch} />
-          {/* In a stage the world does not let a technology be chosen in, there are no buttons and no tray (the tooltips sit between them). */}
-          <TechChoices
+          {/* In a stage the world does not let a technology be chosen in, there are no buttons and no tray (the tooltips sit between them). A preview with its artifacts hidden has none to choose. */}
+          {!hideArtifacts && <TechChoices
             stage={shown}
             artifacts={artifacts}
             buttons={{
@@ -586,9 +642,11 @@ function World({ options }: { options: ReviewOptions }) {
                 />
               );
             })}
-          </TechChoices>
+          </TechChoices>}
         </>
       )}
+      {children}
     </div>
+    </InstanceApiContext.Provider>
   );
 }

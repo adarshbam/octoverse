@@ -3,13 +3,19 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReviewOptions } from '../behavior/urlState';
 import { debugWindow, report, unreport } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
-import { FrameProbe, type QualityTier, TIER_SETTINGS, pickTier } from './quality';
+import { FrameProbe, type QualityTier, TIER_SETTINGS, capTier, pickTier } from './quality';
 
 /**
  * The tier to start with. Captures (`?freeze`, `?view`) and a forced `?tier` hold their tier;
- * otherwise the device's report picks it and the frame probe may step it down.
+ * otherwise the device's report picks it and the frame probe may step it down. A preview's
+ * `tierCap` holds any of these to at most that tier.
  */
 export function startingTier(url: ReviewOptions): { tier: QualityTier; adaptive: boolean } {
+  const { tier, adaptive } = probedTier(url);
+  return { tier: capTier(tier, url.tierCap), adaptive };
+}
+
+function probedTier(url: ReviewOptions): { tier: QualityTier; adaptive: boolean } {
   if (url.tier) return { tier: url.tier, adaptive: false };
   if (url.freeze || url.view) return { tier: 'high', adaptive: false };
   const nav = navigator as Navigator & { deviceMemory?: number };

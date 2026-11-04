@@ -8,7 +8,8 @@ import { InstanceContext } from './instanceContext';
 /**
  * Creates one instance's state, once per mount, and gives it to everything below (the Canvas's
  * scene too, which React bridges). `bundle` should already be validated (WorldHost does it); the
- * host keys the instance on the world, so a new world is a new instance.
+ * host keys the instance on the bundle itself (`instanceKey`), so a new world, or a new bundle object of the
+ * same world, is a new instance: the state below is made once per mount from the bundle it was given.
  */
 export function EngineInstance({ bundle, mode, children }: { bundle: WorldBundle; mode: 'page' | 'preview'; children: ReactNode }) {
   const [state] = useState(() => createInstanceState(bundle, mode));

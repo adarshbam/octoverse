@@ -2,6 +2,7 @@ import { Fragment, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '../nox3d/App';
 import { type ReviewOptions, parseUrlState } from '../nox3d/behavior/urlState';
+import { Embedding } from './embedding';
 
 /**
  * Development only: a page that mounts two instances of Nox side by side, for the isolation specs
@@ -11,6 +12,7 @@ import { type ReviewOptions, parseUrlState } from '../nox3d/behavior/urlState';
  *   ?amode=preview|page   (default page)    ?bmode=page|preview   (default preview)
  *   ?showb=0       B starts unmounted; the button mounts and unmounts it
  *   ?strict=0      render without StrictMode (the default is with it), for the spec that compares the two
+ *   ?embed=1       the embedding page instead (src/app/embedding.tsx, for tests/e2e/embedding.spec.ts; its own switches are there)
  * It also counts the window's listeners (`window.__listenerCount(type)`) and the storage calls
  * (`window.__storageCalls`), which the specs read.
  *
@@ -86,13 +88,17 @@ if (import.meta.env.DEV) {
   const Strict = params.get('strict') === '0' ? Fragment : StrictMode;
   createRoot(document.getElementById('root')!).render(
     <Strict>
-      <Multi
-        a={parseUrlState(params.get('a') ?? '')}
-        b={parseUrlState(params.get('b') ?? '')}
-        aMode={modeOf('amode', 'page')}
-        bMode={modeOf('bmode', 'preview')}
-        startWithB={params.get('showb') !== '0'}
-      />
+      {params.has('embed') ? (
+        <Embedding params={params} />
+      ) : (
+        <Multi
+          a={parseUrlState(params.get('a') ?? '')}
+          b={parseUrlState(params.get('b') ?? '')}
+          aMode={modeOf('amode', 'page')}
+          bMode={modeOf('bmode', 'preview')}
+          startWithB={params.get('showb') !== '0'}
+        />
+      )}
     </Strict>,
   );
 }

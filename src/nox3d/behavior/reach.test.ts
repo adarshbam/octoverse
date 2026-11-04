@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { reachesForPointer, reachingArm } from './reach';
+import { REACH_RANGE, reachesForPointer, reachingArm } from './reach';
 
 const head = NOX.head;
 const tips = [{ x: -1.8, y: -0.6 }, { x: -1.2, y: -1.6 }, { x: 1.9, y: -0.7 }];
@@ -31,4 +31,24 @@ test('an arm reaches for the pointer only in the intro: not while the orbs are o
 test('pointer reach pauses while a bubble is hot', () => {
   expect(reachesForPointer('intro', 0, true, true)).toBe(false);
   expect(reachesForPointer('intro', 0, true, false)).toBe(true);
+});
+
+test('an unbounded range reaches the nearest arm for a target far outside the default range, still never into the head', () => {
+  const far = { x: -6, y: -1 };
+  expect(reachingArm(tips, far, head)).toBe(-1);
+  expect(reachingArm(tips, far, head, Infinity)).toBe(0);
+  expect(reachingArm(tips, { x: 7, y: -2 }, head, Infinity)).toBe(2);
+  expect(reachingArm([{ x: -0.95, y: -0.5 }], { x: head.centerX, y: (head.top + head.bottom) / 2 }, head, Infinity)).toBe(-1);
+  // The default range is unchanged.
+  expect(REACH_RANGE).toBe(0.8);
+  expect(reachingArm(tips, { x: -2.1, y: -0.5 }, head, REACH_RANGE)).toBe(0);
+});
+
+test("a forced reach (the host's attend) lifts the stage and tracking gates, but not a hot bubble", () => {
+  expect(reachesForPointer('overview', 1, true, false, true)).toBe(true);
+  expect(reachesForPointer('overview', 1, true, true, true)).toBe(false);
+  expect(reachesForPointer('detail', 1, false, false, true)).toBe(true);
+  // Not forced: today's rule.
+  expect(reachesForPointer('overview', 1, true, false)).toBe(false);
+  expect(reachesForPointer('overview', 1, true, false, false)).toBe(false);
 });

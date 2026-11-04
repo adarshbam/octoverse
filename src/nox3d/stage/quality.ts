@@ -27,6 +27,11 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
 
 const ORDER: QualityTier[] = ['high', 'medium', 'low'];
 
+/** The tier a page may use: the lower of what the device was probed for and the page's cap (a preview's `tierCap`); no cap leaves the probe as it was. */
+export function capTier(probed: QualityTier, cap?: QualityTier): QualityTier {
+  return cap && ORDER.indexOf(cap) > ORDER.indexOf(probed) ? cap : probed;
+}
+
 /** The starting tier from what the device reports; touch phones never start high. */
 export function pickTier({ cores, memoryGb, isTouch, width }: { cores: number; memoryGb: number; isTouch: boolean; width: number }): QualityTier {
   const tier: QualityTier = cores <= 2 || memoryGb <= 2 ? 'low' : cores >= 8 && memoryGb >= 8 ? 'high' : 'medium';

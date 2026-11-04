@@ -1,6 +1,7 @@
 import type { StageId } from '../config/types';
 import type { QualityTier } from '../stage/quality';
 import type { Vec3 } from '../world/types';
+import type { WorldLevel } from '../world/worldLevel';
 import { EXPRESSION_IDS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
@@ -53,6 +54,12 @@ export interface UrlState {
   swell?: number;
   /** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen. */
   hold?: number;
+  /** The most a preview's quality tier may be (the tier is the lower of the device's and this). Set by `previewToReview`, never read from the address. */
+  tierCap?: QualityTier;
+  /** The world level a preview starts at (0 all of it; the last is the water, fog and light alone). Set by `previewToReview`. */
+  worldLevel?: WorldLevel;
+  /** A preview's artifacts: `settled` (the bubbles simply there, no blow sheet) or `hidden` (none, and no buttons for them). Set by `previewToReview`. */
+  artifacts?: 'settled' | 'hidden';
 }
 
 /**

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { StageId } from '../config/types';
-import { type StageEvent, type StageState, initialStage, isRestful, stageReducer } from './stageMachine';
+import { type StageEvent, type StageState, initialStage, isRestful, requestPath, stageReducer } from './stageMachine';
 
 const known = new Set(['kali', 'burp', 'docker']);
 const at = (stage: StageId, techId: string | null = null, returnTo: 'intro' | 'overview' = 'overview'): StageState => ({ stage, techId, returnTo });
@@ -134,4 +134,44 @@ test('FOCUS_TECH is accepted only in the stages the world lists (choosableIn)', 
   expect(overviewOnly(intro, { type: 'OPEN_OVERVIEW' })).toEqual(at('overview'));
   expect(overviewOnly(at('techFocus', 'kali', 'overview'), { type: 'FOCUS_TECH', id: 'burp' })).toEqual(at('techFocus', 'burp', 'overview'));
   expect(overviewOnly(at('techFocus', 'kali', 'overview'), { type: 'BLUR_TECH' })).toEqual(at('overview'));
+});
+
+test('a link-requested start is never the entrance or a technology focus: those are ignored and the normal start applies', () => {
+  expect(initialStage({ entranceSeen: false, requested: 'detail', reducedMotion: false, linked: true })).toEqual(at('detail'));
+  expect(initialStage({ entranceSeen: true, requested: 'overview', reducedMotion: false, linked: true })).toEqual(at('overview'));
+  expect(initialStage({ entranceSeen: false, requested: 'entering', reducedMotion: false, linked: true })).toEqual(at('entering'));
+  expect(initialStage({ entranceSeen: true, requested: 'entering', reducedMotion: false, linked: true })).toEqual(at('intro'));
+  expect(initialStage({ entranceSeen: true, requested: 'techFocus', reducedMotion: false, linked: true })).toEqual(at('intro'));
+  expect(initialStage({ entranceSeen: false, requested: 'techFocus', reducedMotion: true, linked: true })).toEqual(at('intro'));
+  // The review switch (not a link) still asks for any stage.
+  expect(initialStage({ entranceSeen: true, requested: 'techFocus', reducedMotion: false })).toEqual(at('techFocus'));
+});
+
+test("a stage request is the visitor's own moves in turn: the detail only through the overview", () => {
+  // The reducer's own rules stay: the detail is not reached from the intro by OPEN_DETAIL.
+  expect(run(at('intro'), { type: 'OPEN_DETAIL' })).toEqual(at('intro'));
+  expect(requestPath(at('intro'), 'detail').map(e => e.type)).toEqual(['OPEN_OVERVIEW', 'OPEN_DETAIL']);
+  expect(run(at('intro'), { type: 'REQUEST', stage: 'detail' })).toEqual(at('detail'));
+  expect(run(at('intro'), { type: 'REQUEST', stage: 'overview' })).toEqual(at('overview'));
+  expect(run(at('detail'), { type: 'REQUEST', stage: 'intro' })).toEqual(at('intro'));
+  expect(requestPath(at('detail'), 'intro').map(e => e.type)).toEqual(['CLOSE', 'CLOSE']);
+  expect(run(at('overview'), { type: 'REQUEST', stage: 'detail' })).toEqual(at('detail'));
+});
+
+test('a request for the stage it is in changes nothing (the same state, so React does not render)', () => {
+  for (const stage of ['intro', 'overview', 'detail'] as const) {
+    const here = at(stage);
+    expect(requestPath(here, stage)).toEqual([]);
+    expect(stageReducer(here, { type: 'REQUEST', stage }, known)).toBe(here);
+  }
+});
+
+test('a request skips an entrance still playing, and lets go of a technology focus', () => {
+  expect(run(at('entering'), { type: 'REQUEST', stage: 'intro' })).toEqual(at('intro'));
+  expect(run(at('entering'), { type: 'REQUEST', stage: 'detail' })).toEqual(at('detail'));
+  const focused = at('techFocus', 'kali', 'intro');
+  expect(run(focused, { type: 'REQUEST', stage: 'intro' })).toEqual(at('intro'));
+  expect(run(focused, { type: 'REQUEST', stage: 'overview' })).toEqual(at('overview'));
+  expect(run(focused, { type: 'REQUEST', stage: 'detail' })).toEqual(at('detail'));
+  expect(run(at('techFocus', 'kali', 'overview'), { type: 'REQUEST', stage: 'intro' })).toEqual(at('intro'));
 });

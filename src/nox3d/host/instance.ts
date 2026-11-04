@@ -24,8 +24,32 @@ export interface InstanceState {
    * as their uniform.
    */
   reliefGate: { value: number };
+  /**
+   * What the host asked the character to look at (`useInstanceApi().attend`): a point in canvas CSS
+   * pixels, or null for nothing (today's behaviour). The character's frame reads it each frame; with
+   * `reach` the arm whose tip is nearest it reaches too.
+   */
+  attend: Attend;
+}
+
+/** The host's request to look at a point (`useInstanceApi().attend`): `set` replaces it, `set(null)` lets it go. */
+export interface Attend {
+  target: { x: number; y: number } | null;
+  reach: boolean;
+  set(target: { x: number; y: number } | null, reach?: boolean): void;
+}
+
+function createAttend(): Attend {
+  return {
+    target: null,
+    reach: false,
+    set(target, reach = false) {
+      this.target = target ? { x: target.x, y: target.y } : null;
+      this.reach = target !== null && reach;
+    },
+  };
 }
 
 export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
-  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 } };
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend() };
 }

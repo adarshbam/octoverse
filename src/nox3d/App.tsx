@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { ReviewOptions } from './behavior/urlState';
 import { NOX_BUNDLE } from './bundle.nox';
-import { WorldHost } from './host/WorldHost';
+import { type HostProps, WorldHost } from './host/WorldHost';
 import type { WorldBundle } from './types/bundle';
 
 // The page's world until the world registry (Task 10): Nox's bundle, hosted by WorldHost.
@@ -12,7 +11,7 @@ import type { WorldBundle } from './types/bundle';
  * The dynamic import sits behind the literal DEV check, so the production bundle holds neither
  * fixture.
  */
-export function App({ options, mode = 'page' }: { options: ReviewOptions; mode?: 'page' | 'preview' }) {
+export function App({ options, mode = 'page', ...host }: Omit<HostProps, 'bundle'>) {
   const [variant, setVariant] = useState<WorldBundle | null>(null);
   const wantsVariant = import.meta.env.DEV && options.variant === 'dummy';
   useEffect(() => {
@@ -22,6 +21,6 @@ export function App({ options, mode = 'page' }: { options: ReviewOptions; mode?:
       );
     }
   }, [options.variant]);
-  if (wantsVariant) return variant ? <WorldHost bundle={variant} options={options} mode={mode} /> : null;
-  return <WorldHost bundle={NOX_BUNDLE} options={options} mode={mode} />;
+  if (wantsVariant) return variant ? <WorldHost {...host} bundle={variant} options={options} mode={mode} /> : null;
+  return <WorldHost {...host} bundle={NOX_BUNDLE} options={options} mode={mode} />;
 }

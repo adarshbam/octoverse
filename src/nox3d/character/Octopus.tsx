@@ -8,6 +8,7 @@ import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } fr
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
+import { screenToStage } from '../stage/anchors';
 import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
@@ -125,6 +126,8 @@ export interface OctopusProps {
   accents?: AccentLink;
   /** For measurement captures only: the bubbles and the dome glass are not drawn. */
   solo?: boolean;
+  /** No technology bubbles are drawn (a preview's `artifacts: 'hidden'`); everything else is as it was. */
+  hideArtifacts?: boolean;
   /** Degrees the whole body turns about its upright axis, on top of the stage's turn: for stills of his back. */
   yaw?: number;
   /**
@@ -150,7 +153,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, hideArtifacts = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
   const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
@@ -331,6 +334,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     glow: new THREE.Vector3(),
     reach: config.arms.map(() => ({ x: 0, v: 0 })),
     reachPoint: config.arms.map(() => new THREE.Vector2()),
+    // What the host asked it to look at (instance.attend), in normalised device coordinates.
+    attendAt: { x: 0, y: 0 },
     // The suction hold: each held bubble's arm tip when it was chosen; each arm's turn toward its bubble, and where to.
     holdFrom: new Map<number, THREE.Vector3>(),
     holdWeight: new Float32Array(config.arms.length),
@@ -520,6 +525,13 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       lookAt.copy(instance.bubbleLive.worlds[selected]).project(state.camera);
       fixed = { x: lookAt.x, y: lookAt.y };
     }
+    // The host's `attend` target (canvas pixels) stands in for the pointer as a fixed point of attention: a focused bubble comes first.
+    const { attend } = instance;
+    if (attend.target && !fixed) {
+      m.attendAt.x = (attend.target.x / state.size.width) * 2 - 1;
+      m.attendAt.y = 1 - (attend.target.y / state.size.height) * 2;
+      fixed = m.attendAt;
+    }
 
     faceAt.set(config.head.faceOrigin[0] + bodyX, config.head.faceOrigin[1] + bodyY, 0).project(state.camera);
 
@@ -615,11 +627,17 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     m.target.copy(state.camera.position).addScaledVector(m.ray, -state.camera.position.z / m.ray.z);
     m.inverse.copy(content.current!.matrixWorld).invert();
     m.target.applyMatrix4(m.inverse);
+    // Reaching for the host's `attend` target: the point on the stage plane it looks at stands in for the pointer's.
+    const attendReach = attend.reach && attend.target !== null;
+    if (attendReach) {
+      const at = screenToStage(attend.target!, state.camera, state.size);
+      m.target.set(at.x, at.y, 0).applyMatrix4(m.inverse);
+    }
 
     // The bubbles: shown in the intro and the overview once the entrance has settled (never in it),
     // hidden beside the detail panel. Their orbits ease to still while one is hovered, held or in
     // focus, and stand still with motion off.
-    bubbleState.show = !silhouette && !solo && bubblesExist(stage);
+    bubbleState.show = !silhouette && !solo && !hideArtifacts && bubblesExist(stage);
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = instance.hover.bubble || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
@@ -659,7 +677,17 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
-    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, instance.hover.bubble) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
+    // A card is far from every tip, so `attend`'s reach has no range (the head's outline still keeps an arm out of the face).
+    const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, instance.hover.bubble, attendReach) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head, attendReach ? Infinity : undefined) : -1;
+    if (probe) {
+      // Where the character looks and which arm reaches, for the end-to-end tests (`window.__octoverse.attention`).
+      const seen = reportObject(instance, 'attention', () => ({ gazeX: 0, reachArm: -1, tips: rig.arms.map(() => ({ x: 0, y: 0 })), target: { x: 0, y: 0 } }));
+      seen.gazeX = gaze.gazeX;
+      seen.reachArm = pointerArm;
+      rig.arms.forEach(({ chain }, i) => { seen.tips[i].x = chain.tipX; seen.tips[i].y = chain.tipY; });
+      seen.target.x = m.target.x;
+      seen.target.y = m.target.y;
+    }
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
     const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests) : null;
