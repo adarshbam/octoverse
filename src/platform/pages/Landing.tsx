@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LinkStage } from '../../engine/behavior/stageMachine';
 import { parseUrlState } from '../../engine/behavior/urlState';
 import { WorldHost } from '../../engine/host/WorldHost';
@@ -94,13 +94,37 @@ function BackButton({ onBack }: { onBack: () => void }) {
   );
 }
 
+/**
+ * Focus follows the view (spec 2.5, 7.15): when How It Works opens, the first card takes focus (the
+ * intro's button that opened it has gone inert); when it closes (Back, Escape, the browser's Back)
+ * focus returns to the control that opened it. A page that loads on How It Works keeps its focus where it is.
+ */
+function useViewFocus(showHow: boolean, intro: boolean, layer: RefObject<HTMLElement | null>) {
+  const before = useRef(showHow);
+  const returning = useRef(false);
+  useEffect(() => {
+    if (before.current !== showHow) {
+      before.current = showHow;
+      returning.current = !showHow;
+      if (showHow) layer.current?.querySelector<HTMLElement>('.oct-card')?.focus();
+    }
+    // The intro's controls are inert until the stage is the intro again (a beat after the route is): focus waits for that.
+    if (returning.current && intro) {
+      returning.current = false;
+      layer.current?.querySelector<HTMLElement>('.oct-actions .oct-button-primary')?.focus();
+    }
+  }, [showHow, intro, layer]);
+}
+
 /** The platform's HTML over the host: the nav, the intro's text, How It Works' cards, Back. */
 function LandingLayer({ route }: { route: 'landing' | 'howItWorks' }) {
   const api = useInstanceApi();
+  const layer = useRef<HTMLDivElement>(null);
   const entering = api.stage === 'entering';
   const showHow = api.stage === 'overview' && route === 'howItWorks';
+  useViewFocus(showHow, api.stage === 'intro', layer);
   return (
-    <div className="oct-layer oct-root">
+    <div ref={layer} className="oct-layer oct-root">
       <a className="oct-skip-link oct-button" href="#oct-main">
         Skip to main content
       </a>

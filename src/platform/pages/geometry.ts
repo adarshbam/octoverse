@@ -105,7 +105,21 @@ export function faceBoxes(bundle: Pick<WorldBundle, 'character' | 'poses'>, stag
   };
 }
 
-/** The face's parts in pixels in `box` (before the live camera's shift, which the caller adds). */
+/**
+ * The face's parts in pixels in `box` (before the live camera's shift, which the caller adds).
+ *
+ * These are projected on the stage plane (z = 0), but the face is drawn on the head's front, at the
+ * anchor's z of about 0.71 (`faceAnchor`; character.ts FACE_DEPTH 1.05 is the same effect). The camera
+ * is 12 units out, so the real face is magnified by 12 / (12 - 0.71) = 1.063 about the screen's centre:
+ * its parts lie 6% further out from the centre than these boxes say (the intro's eyes 0.025 further
+ * sideways and 0.035 lower; the overview's face, lower on the stage, 0.07 lower), and a little larger.
+ * The model does not apply that. The boxes are padded to absorb it instead: the eyes' 0.22 half
+ * size against a 0.155 radius plus lashes (0.065 of room, 13 px at 1536 x 1024), the mouth's
+ * 0.30 x 0.14 half size against about 0.16 x 0.115 drawn (0.14 sideways, 0.025 above and below).
+ * The mouth's vertical room is the thinnest; the six stills (overlay drawn from `window.__platform`)
+ * show every box enclosing its eye or mouth, and the specs' clearances are 49 px or more, so the few
+ * pixels of perspective cannot bring a card or a line of text onto the face.
+ */
 export function faceRects(frame: StageFrame, box: Size, bundle: Pick<WorldBundle, 'character' | 'poses'>, stage: FaceStage): { eyes: [Rect, Rect]; mouth: Rect } {
   const { eyes, mouth } = faceBoxes(bundle, stage);
   const rect = (b: WorldBox): Rect => {

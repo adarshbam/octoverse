@@ -263,3 +263,77 @@ test('the scan finds a hue where there is one (the pattern is not dead)', () => 
   expect(withoutComments("// #ff0000\nconst a = 1; /* rgb(1,2,3) */", false).match(HUE)).toBeNull();
   expect(withoutComments('const c = rgba(palette.x, 0.5); const d = `rgba(${r}, ${g}, ${b}, ${a})`;', false).match(HUE)).toBeNull();
 });
+
+// ---------------------------------------------------------------------------------------------
+// The platform (src/platform/**, platform spec 7.8 and plan Task 8): it imports only the engine's
+// contract exports, world bundles (read-only) and its own files, and never edits src/engine or
+// another world's folder (this test reads imports; it cannot see an edit). Specifically:
+//   - nothing under src/worlds/<id>/ is reached except the host's own folder (src/worlds/octoverse/**),
+//     the registry (src/worlds/index) and the four showcase worlds' content modules
+//     (src/worlds/<id>/content/<id>.ts: a bare data file, for the epithets; never a world's bundle,
+//     so the landing's chunk holds no other world's kit or Theatre state);
+//   - engine imports are an explicit allowlist (below): a new deep engine import fails here.
+// ---------------------------------------------------------------------------------------------
+
+const PLATFORM = join(SRC, 'platform');
+const platformFiles = walk(PLATFORM).filter(isCode).filter(f => !isFixture(f));
+
+/**
+ * The engine modules the platform imports today. Known debt: the engine has no barrel (no single
+ * public entry), so the platform reaches for the module that holds each contract export; a gap goes
+ * to the engine owner, and a new entry here needs that conversation first.
+ */
+const PLATFORM_ENGINE_ALLOWED = [
+  'engine/behavior/stageMachine', // LinkStage (the host's initialStage and stageRequest)
+  'engine/behavior/urlState', // parseUrlState (the review switches the landing passes through)
+  'engine/host/WorldHost', // the host itself (the landing's page instance)
+  'engine/host/useInstanceApi', // the instance API and its context
+  'engine/stage/framing', // StageFrame, layoutFor
+  'engine/types/bundle', // WorldBundle, faceAnchor, FaceStage
+  'engine/world/types', // Vec3
+  'engine/ui/useStageBox', // stageBoxFor: landing.test.tsx cross-checks the platform's own projection against it
+];
+
+/** Where a platform import is out of bounds, or null when it is allowed. `where` is relative to src/, without an extension. */
+function platformViolation(where: string): string | null {
+  const bare = where.replace(/\.(tsx?|css|json)$/, '');
+  if (bare.startsWith('engine/')) return PLATFORM_ENGINE_ALLOWED.includes(bare) ? null : 'an engine module outside the allowlist';
+  if (bare.startsWith('worlds/')) {
+    if (bare === 'worlds/index' || bare.startsWith('worlds/octoverse/')) return null;
+    if (/^worlds\/(nox|veyra|flux|aether)\/content\/(nox|veyra|flux|aether)$/.test(bare) && bare.split('/')[1] === bare.split('/')[3]) return null;
+    return "a world's folder other than the host's, the registry or a content module";
+  }
+  return null;
+}
+
+test('the platform scan sees the platform (not a vacuous pass)', () => {
+  expect(platformFiles).toContain('App.tsx');
+  expect(platformFiles).toContain('pages/HowItWorks.tsx');
+  expect(platformFiles).toContain('router/routes.ts');
+});
+
+test('the platform imports only allowed engine modules and worlds', () => {
+  const hits: string[] = [];
+  for (const file of platformFiles) {
+    for (const specifier of specifiers(withoutComments(read(PLATFORM, file), false))) {
+      const where = landing(PLATFORM, file, specifier);
+      const why = where === null ? null : platformViolation(where);
+      if (why) hits.push(`platform/${file} -> ${where}: ${why}`);
+    }
+  }
+  expect(hits).toEqual([]);
+});
+
+test('the platform rule fails on a deep engine import, a world bundle, multi-line, bare and dynamic imports', () => {
+  const at = (code: string) => specifiers(code).map(s => landing(PLATFORM, 'pages/x.tsx', s)).filter((w): w is string => w !== null).map(platformViolation);
+  expect(at("import { a } from '../../engine/character/Octopus';")).toEqual(['an engine module outside the allowlist']);
+  expect(at("import {\n  a,\n  b,\n} from '../../engine/host/EngineInstance';")).toEqual(['an engine module outside the allowlist']);
+  expect(at("import '../../engine/ui/intro.css';")).toEqual(['an engine module outside the allowlist']);
+  expect(at("const m = await import('../../engine/sequences/theatre');")).toEqual(['an engine module outside the allowlist']);
+  expect(at("import { NOX_BUNDLE } from '../../worlds/nox/bundle';")).toHaveLength(1);
+  expect(at("const m = import('../../worlds/veyra/bundle');")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/nox/content/noxProject';")).toHaveLength(1);
+  expect(at("import { nox } from '../../worlds/veyra/content/nox';")).toHaveLength(1);
+  // What is allowed.
+  expect(at("import { HOST_BUNDLE } from '../../worlds/octoverse/bundle';\nimport { nox } from '../../worlds/nox/content/nox';\nimport { WORLDS } from '../../worlds';\nimport { WorldHost } from '../../engine/host/WorldHost';")).toEqual([null, null, null, null]);
+});

@@ -140,3 +140,62 @@ test('desktop: See how it works opens How It Works, and Back returns to the intr
   await expect(page.getByRole('button', { name: 'See how it works' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Flux, / })).toHaveCount(0);
 });
+
+// Keyboard and focus (spec 2.5, 7.15): reading order, and focus that follows the view.
+test.describe('keyboard', () => {
+  test.use({ viewport: { width: 1536, height: 1024 } });
+
+  /** What has focus: its accessible label or its text. */
+  const focused = (page: Page) => page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return el && el !== document.body ? el.getAttribute('aria-label') ?? (el.textContent ?? '').trim() : '(body)';
+  });
+  const focusedIs = (page: Page, name: string) => expect.poll(() => focused(page), { timeout: 10_000 }).toBe(name);
+
+  test('Tab reads the skip link, the nav, then the buttons in reading order', async ({ page }) => {
+    await open(page, SIZES[0], '/');
+    const order: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Tab');
+      order.push(await focused(page));
+    }
+    expect(order).toEqual(['Skip to main content', 'OctoVerse', 'Explore', 'Create', 'See how it works', 'Create yours']);
+  });
+
+  test('Enter on See how it works puts focus on the first card; Back and Escape return it', async ({ page }) => {
+    await open(page, SIZES[0], '/');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('Tab');
+    await focusedIs(page, 'See how it works');
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/how-it-works$/);
+    await focusedIs(page, 'Veyra, The Keeper of Files');
+    // The focus ring is drawn (an outline in the host's lavender) on the focused card.
+    const ring = await page.evaluate(() => {
+      const style = getComputedStyle(document.activeElement as HTMLElement);
+      return { style: style.outlineStyle, width: style.outlineWidth, color: style.outlineColor, shadow: style.boxShadow };
+    });
+    expect(ring.style).not.toBe('none');
+    expect(parseFloat(ring.width)).toBeGreaterThanOrEqual(2);
+    expect(ring.color).toBe('rgb(216, 200, 255)');
+    expect(ring.shadow).not.toBe('none');
+    // One heading, for the screen reader.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('How it works');
+    // Back (the button) returns focus to the control that opened the view.
+    let reached = '';
+    for (let i = 0; i < 12 && reached !== 'Back'; i++) {
+      await page.keyboard.press('Tab');
+      reached = (await focused(page)).replace(/^←\s*/, '');
+    }
+    expect(reached).toBe('Back');
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/$/);
+    await focusedIs(page, 'See how it works');
+    // Escape does the same.
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/how-it-works$/);
+    await focusedIs(page, 'Veyra, The Keeper of Files');
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/\/$/);
+    await focusedIs(page, 'See how it works');
+  });
+});

@@ -83,6 +83,10 @@ describe('How It Works', () => {
     expect(cards[4]).not.toContain('<img');
   });
 
+  it('has one heading, How it works, for the screen reader (the wordmark heading is hidden here)', () => {
+    expect([...html.matchAll(/<h1[^>]*>([^<]*)<\/h1>/g)].map(m => m[1])).toEqual(['How it works']);
+  });
+
   it('links to Explore all portfolios', () => {
     expect(html).toMatch(/<a\b[^>]*href="\/explore"[^>]*>Explore all portfolios<\/a>/);
   });

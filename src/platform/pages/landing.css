@@ -350,6 +350,8 @@
 }
 
 .oct-card-caption span {
+  /* 13px, not the 16px body size of spec 7.15: at 768 x 1024 a card is 145 px wide and its caption 55 px high; at 14px
+     Veyra's epithet wraps to two lines and fills the caption box (tried, round 1). The name is 16px. Owner ruling. */
   font-size: 13px;
   line-height: 1.25;
   color: var(--oct-ink-soft);

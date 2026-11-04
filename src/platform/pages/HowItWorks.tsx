@@ -70,6 +70,8 @@ export function HowItWorks({ onOpen }: { onOpen: (href: string) => void }) {
   const box = useHostBox();
   return (
     <>
+      {/* The intro's wordmark heading is hidden here: the page keeps one heading, for the screen reader. */}
+      <h1 className="oct-sr-only">How it works</h1>
       <ul className="oct-cards" data-layout={box.phone ? 'row' : 'stage'} aria-label="Example portfolios">
         {HOW_IT_WORKS_CARDS.map((card, i) => (
           <Card key={card.id} card={card} index={i} placed={!box.phone} api={api} onOpen={onOpen} />
