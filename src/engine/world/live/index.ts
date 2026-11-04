@@ -23,3 +23,6 @@ export const LIVE_ELEMENTS = {
 
 export type LiveElementId = keyof typeof LIVE_ELEMENTS;
 export const LIVE_ELEMENT_IDS = Object.keys(LIVE_ELEMENTS) as LiveElementId[];
+
+/** The most strands one element may carry: a typo in a count must not allocate millions of instances. */
+export const MAX_STRANDS = 5000;

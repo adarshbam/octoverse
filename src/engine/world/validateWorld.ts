@@ -1,6 +1,6 @@
 import { isWorldColour } from './colour';
 import { DEFAULT_FLOOR, FLOOR_MATERIALS } from './floors';
-import { LIVE_ELEMENT_IDS } from './live';
+import { LIVE_ELEMENT_IDS, MAX_STRANDS } from './live';
 import { PROP_DRIVE_IDS } from './props';
 import type { FloorGlow, Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
 
@@ -112,7 +112,9 @@ export function validateWorld(world: WorldConfig): string[] {
     if (!colour(light.color)) problems.push(`${name} has no valid colour`);
   });
   // Each lit pillar carries one glyph light, and each coral light one lava light.
-  const litPillars = groups.reduce((sum, [, list]) => sum + list.filter(p => p.light).length, 0);
+  // Only pillars are lit: the kit dresses glyph panels, and the bake lights, the `pillars` group alone.
+  for (const [name, list] of groups) if (name !== 'pillars') list.forEach((p, i) => p.light && problems.push(`${name}[${i}] is lit, but only pillars carry glyph lights`));
+  const litPillars = (layout.groups.pillars ?? []).filter(p => p.light).length;
   const glyphLights = lights.points.filter(l => l.kind === 'glyph').length;
   if (glyphLights !== litPillars) problems.push(`${litPillars} pillars are lit but there are ${glyphLights} glyph lights`);
   const lavaLights = lights.points.filter(l => l.kind === 'lava').length;
@@ -186,6 +188,7 @@ export function validateWorld(world: WorldConfig): string[] {
     else if (!record(strand)) problems.push(`${at} needs count, height, sway and color`);
     else {
       if (!finite(strand.count) || !Number.isInteger(strand.count) || strand.count < 0) problems.push(`${at}.count must be a whole number, 0 or more`);
+      else if (strand.count > MAX_STRANDS) problems.push(`${at}.count must be at most ${MAX_STRANDS}`);
       for (const name of ['height', 'sway'] as const) if (!finite(strand[name]) || strand[name] < 0) problems.push(`${at}.${name} must be 0 or more`);
       if (!colour(strand.color)) problems.push(`${at}.color is not a #rrggbb colour`);
     }

@@ -252,3 +252,11 @@ test("the traced UI boxes are the world's own (stage.panels, stage.introTitle): 
   expect(refusal(stage({ introTitle: { halfWidth: 0, top: 1 } })).field).toBe('stage.introTitle');
   expect(refusal(stage({ introTitle: { halfWidth: 1, top: Number.POSITIVE_INFINITY } })).field).toBe('stage.introTitle');
 });
+
+test('a layout whose groups are not an object, or whose old top-level lists are left behind, is a BundleError naming the field', () => {
+  for (const groups of ['pillars', 7, null, [], [{ piece: 'rock_0', position: [0, 0, 0] }]]) {
+    const bundle = copyOf(NOX_BUNDLE) as unknown as { place: { layout: { groups: unknown } } };
+    bundle.place.layout.groups = groups;
+    expect(refusal(bundle as unknown as WorldBundle).field, JSON.stringify(groups)).toBe('place.layout.groups');
+  }
+});

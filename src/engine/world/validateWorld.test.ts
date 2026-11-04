@@ -7,6 +7,7 @@ import { CAMERA_Z } from '../config/stage';
 import { asBakeRecord, reliefOf, stoneLights, type BakedLight, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { layoutPieces } from './placement';
+import { MAX_STRANDS } from './live';
 import golden from './fixtures/nox.pieces.golden.json';
 import { SEABED, floorHeight } from './seabed';
 import layoutData from '../../worlds/nox/place/layout.json';
@@ -450,4 +451,21 @@ test('a prop naming a missing kit node fails validation with the node name in th
   expect(validateWorld(world([{ id: 'ring', node: 'rock_0', drive: 'spin' as 'rotateZ' }])).join('\n')).toContain('drive "spin"');
   expect(validateWorld(world([{ id: 'ring', node: 'rock_0', drive: 'rotateZ' }, { id: 'ring', node: 'rock_1', drive: 'emissive' }])).join('\n')).toContain('repeats the id "ring"');
   expect(validateWorld(world([{ id: '', node: 'rock_0', drive: 'rotateZ' }])).join('\n')).toContain('props[0] has no id');
+});
+
+test('a lit placement in a group other than pillars is reported by group name: only pillars carry glyph lights', () => {
+  const [rock] = SECURITY_WORLD.layout.groups.rocks;
+  const lit = withLayout({ ...SECURITY_WORLD.layout.groups, rocks: [{ ...rock, light: true }, ...SECURITY_WORLD.layout.groups.rocks.slice(1)] });
+  const problems = validateWorld(lit).join('\n');
+  expect(problems).toContain('rocks[0] is lit');
+  expect(problems).toContain('only pillars');
+  // The count of glyph lights is still against the lit pillars: a lit rock adds no demand for one.
+  expect(problems).not.toContain('pillars are lit but there are');
+});
+
+test('a strand count has a ceiling: a typo does not allocate millions of instances', () => {
+  const world = (count: number): WorldConfig => ({ ...SECURITY_WORLD, live: { ...SECURITY_WORLD.live, elements: { kelp: { count, height: 3, sway: 0.2, color: '#2f6b46' } } } });
+  expect(validateWorld(world(MAX_STRANDS))).toEqual([]);
+  expect(validateWorld(world(MAX_STRANDS + 1)).join('\n')).toContain('live.elements.kelp.count must be at most');
+  expect(validateWorld(world(1e7)).join('\n')).toContain('live.elements.kelp.count');
 });
