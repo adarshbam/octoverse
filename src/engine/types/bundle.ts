@@ -166,6 +166,22 @@ function checkPendants(placement: PendantPlacement) {
   }
 }
 
+/** The most rim beads an orb carries: past this they would touch one another round an orb's outline. */
+export const MAX_RIM_BEADS = 64;
+
+/** An orb style's bead count, colours and cap, by name: a colour three would draw black, or a cap of no size, must not surface as a bad frame. */
+function checkOrbStyle(style: unknown) {
+  const at = 'artifacts.orbStyle';
+  if (!record(style)) throw new BundleError(at, 'is not an orb style ({ rimBeads, rimColour, cap })');
+  const { rimBeads, rimColour, cap } = style;
+  if (!(finite(rimBeads) && Number.isInteger(rimBeads) && rimBeads >= 0 && rimBeads <= MAX_RIM_BEADS)) throw new BundleError(`${at}.rimBeads`, `${String(rimBeads)} is not a whole number from 0 to ${MAX_RIM_BEADS}`);
+  if (!isColour(rimColour)) throw new BundleError(`${at}.rimColour`, `"${String(rimColour)}" is not a colour`);
+  if (cap === null) return;
+  if (!record(cap)) throw new BundleError(`${at}.cap`, 'is missing (a cap { colour, size }, or null for none)');
+  if (!isColour(cap.colour)) throw new BundleError(`${at}.cap.colour`, `"${String(cap.colour)}" is not a colour`);
+  if (!(finite(cap.size) && cap.size > 0)) throw new BundleError(`${at}.cap.size`, `${String(cap.size)} is not above 0 (the cap's radius)`);
+}
+
 /**
  * Every part of the bundle the checks below (and the host) read is there, and of the form it is read
  * in, or a BundleError names the field: a missing part must not surface later as a TypeError.
@@ -285,6 +301,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   const { placement, appear, select, choosableIn } = bundle.artifacts;
   if (!Object.hasOwn(PLACEMENTS, placement.kind)) throw new BundleError('artifacts.placement.kind', `"${placement.kind}" is not a placement the engine has (${Object.keys(PLACEMENTS).join(', ')})`);
   if (placement.kind === 'pendant') checkPendants(placement);
+  if (bundle.artifacts.orbStyle !== undefined) checkOrbStyle(bundle.artifacts.orbStyle);
   if (!Object.hasOwn(APPEARS, appear.kind)) throw new BundleError('artifacts.appear.kind', `"${appear.kind}" is not an appear the engine has (${Object.keys(APPEARS).join(', ')})`);
   if (!Object.hasOwn(SELECTS, select.kind)) throw new BundleError('artifacts.select.kind', `"${select.kind}" is not a select the engine has (${Object.keys(SELECTS).join(', ')})`);
   for (const stage of choosableIn) if (!isChoosingStage(stage)) throw new BundleError('artifacts.choosableIn', `"${stage}" is not a stage a technology can be chosen in`);
