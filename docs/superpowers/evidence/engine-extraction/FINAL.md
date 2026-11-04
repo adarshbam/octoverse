@@ -2,14 +2,16 @@
 
 Branch `feat/nox-3d`, head `a816d72` (the code is unchanged by this task; only docs are added above it). Plan `docs/superpowers/plans/2026-11-03-engine-extraction.md`, spec `docs/superpowers/specs/2026-11-03-octoverse-engine-design.md`, baseline `BASELINE.md` in this folder (commit `a8fc1b9`). Verified 2026-11-04 on the Intel UHD laptop, dev server on :5191 (`vite.perf.config.ts`), other Claude sessions running on other ports: everything timed below is "under load" (ruling R-E3) and CPU is logged.
 
+**Fix wave A** (after the whole-branch review; `7127381`..`f7dc4cc`, then a docs commit) moved Nox's world look out of engine literals into place, character and theme data, Nox's values verbatim. Criteria 1, 2 and 4 below carry its numbers (marked "fix wave A"); criteria 3, 5 and 6 and the sections after 2 are as verified at `a816d72`.
+
 ## Verdict
 
 | Criterion | Status |
 |---|---|
-| 1. Rendered output equivalent | **Met.** Two full recaptures pass the floor; check_stage output identical. |
-| 2. Existing Nox suite passes | **Met.** 621 cases (baseline 442), six protected specs unchanged (worldTiers: one import-path line, R-E12), all e2e pass. |
+| 1. Rendered output equivalent | **Met.** Two full recaptures pass the floor; check_stage output identical. Fix wave A: two more full recaptures pass, bit-identical except `techFocus`. |
+| 2. Existing Nox suite passes | **Met.** 621 cases (baseline 442; 638 after fix wave A), six protected specs unchanged (worldTiers: one import-path line, R-E12), all e2e pass. |
 | 3. Instances keep isolated state | **Met.** Isolation and embedding specs pass (isolation (f) is a known load flake: passes alone). |
-| 4. Boundary holds | **NOT fully met.** The import boundary holds; 150 colour literals remain in the engine, pinned in `KNOWN_HUE_DEBT` (R-E13). |
+| 4. Boundary holds | **NOT fully met, narrowed by fix wave A.** The import boundary holds. Nox's water, environment map, floor glow, particles, shader tints and UI reds are data now; 138 colour literals remain in the engine (162 before, counted honestly), pinned in `KNOWN_HUE_DEBT` (R-E13): kit art, legacy defaults, artwork, the mask black, and the stylesheets' theme fallbacks and near-neutral colours. |
 | 5. No slower | **Met, measured under load.** Interleaved against `e171d03`: level or faster at tier low, 0.4 fps (2%) lower at tier high, inside the old tree's own spread. |
 | 6. Owner approves the foundation | **PENDING OWNER REVIEW.** Ruled provisionally approved by the orchestrator's overnight rules; the owner confirms or rejects. |
 
@@ -34,6 +36,7 @@ Branch `feat/nox-3d`, head `a816d72` (the code is unchanged by this task; only d
 | 10 `?world=` | `f9db6e0` `?world=` host, world registry, full-remount switching |
 | 11 tooling | `a816d72` scripts take a world id |
 | 12 (this) | `docs(engine): E02 final verification and handover` |
+| fix wave A | `7127381` water colours and the environment map; `39eda45` the seabed's glow; `3933bf4` the live elements' colours; `7be5a8b` the character's shader tints; `2b86589` the hue scan sees GLSL, linear and CSS channel triples; `f8fc794` its match list typed; `f7dc4cc` the HTML layer's red and pink tints as theme tokens; then the docs commit |
 
 ## 2. Criteria with evidence
 
@@ -48,10 +51,20 @@ Branch `feat/nox-3d`, head `a816d72` (the code is unchanged by this task; only d
 | final2 | 0.0067 / 0.0294% / 87 | 0.0121 / 0.0229% / 36 | 0.0022 / 0.0009% |
 | floor | 0.05 / 0.0618% | 0.05 / 0.05% | 0.05 / 0.05% |
 
+**Fix wave A:** `.tmp/fwa-final-1` and `.tmp/fwa-final-2` (head `f7dc4cc`, the same command): both exit 0, PASS. Every still, mask and face box is again mean 0.0000, 0.0000% over 8 (max 0; 1 on `detail`), except `techFocus`:
+
+| Set | `techFocus.png` mean / fraction over 8 / max | face box | `techFocus-mask.png` |
+|---|---|---|---|
+| fwa-final-1 | 0.0119 / 0.0424% / 133 | 0.0226 / 0.0229% / 36 | 0.0025 / 0.0010% |
+| fwa-final-2 | 0.0053 / 0.0274% / 83 | 0.0038 / 0.0000% / 3 | 0.0025 / 0.0010% |
+
+Both sets' `check_stage.txt` are identical to the baseline's (ignoring CRLF). Logs and compare output: `.tmp/fwa-final-{1,2}.log`, `.tmp/fwa-final-{1,2}.compare.txt` (untracked); CPU 14.0% and 15.6% before each.
+
 `check_stage.py`: the `check_stage.txt` of both sets, diffed against `baseline/check_stage.txt` ignoring CRLF, is identical (front-view colour (128, 36, 80), saturation 0.779, brightness 0.568, the 6 by-design misses, exit 1 by design). Stills are 15 images (the 14 stage stills plus `world-intro`), each with its mask.
 
 ### 2. The existing Nox suite passes: MET
 
+- **Fix wave A:** `npx vitest run` 96 files, **638 cases, 637 passed, 1 skipped**; `NOX_BUILD_TEST=1` after `npm run build` 638 of 638; `tsc -p tsconfig.nox3d.json --noEmit` and `tsc -b` clean; `oxlint src` 0 errors, 50 warnings; `npx playwright test -c playwright.nox3d.config.ts --workers=1` 54 passed, 1 failed in 10.6 min (CPU 13.3% before): the known `responsive.spec.ts` skip-link load flake, which passes 3 of 3 alone (`--repeat-each=3`), so 55 of 55.
 - `npx vitest run`: **94 files, 621 cases, 620 passed, 1 skipped** (the production-build check, which runs on request), 0 failed. Baseline 442 / 441 / 1 (73 files). The case count only went up.
 - `NOX_BUILD_TEST=1 npx vitest run` after `npm run build`: 94 files, **621 of 621 passed**, none skipped. It includes the checks that the production bundle holds no fixtures, `nox-b`, `__octoSwitchWorld`, `testworld`, and that it does hold `Unknown world`.
 - `npm run typecheck`: clean, exit 0. `npm run build` (`tsc -b && vite build`): clean, exit 0.
@@ -70,16 +83,23 @@ Branch `feat/nox-3d`, head `a816d72` (the code is unchanged by this task; only d
 
 `tests/e2e/isolation.spec.ts` (Task 3, run under React StrictMode via the dev page `/src/app/multi.html`) and `tests/e2e/embedding.spec.ts` pass in the full run above: two instances share no selection, timers, bubble positions, anchors, listeners or DOM ids; a preview registers no `window` listener; unmounting a preview leaves the page's Escape and skip working. The unit side: `src/engine/host/isolation.test.ts`, `listeners.test.ts`, `strictMode.test.ts`, `instance.test.ts`. Isolation (f) (StrictMode) is a load flake that has passed alone every time it was rerun; it passed in this full run. `tests/e2e/worldSwitch.spec.ts` shows a full remount on a world switch leaves the same listener counts, no tooltip, no hold, and a per-world entrance flag.
 
-### 4. Boundary holds: NOT FULLY MET (ruling R-E13)
+### 4. Boundary holds: NOT FULLY MET, narrowed by fix wave A (ruling R-E13)
 
 - **Met: `src/engine/**` imports nothing from `src/worlds/**`** (engine tests are the one allowed exception: they use Nox as their reference world), and **a world imports nothing from another world**. `src/engine/boundary.test.ts`, 6 tests, non-vacuous (it asserts it sees the engine's files); passes.
-- **Not met: hex colour literals in engine shader and material sources.** The test finds and pins **150 literals in 16 files** in `KNOWN_HUE_DEBT`. A new literal fails the test, and paying one off fails it too until the pinned count is lowered (a ratchet). The 150:
-  - Nox's **world look** inside the engine (34): `world/Water.tsx` 8 (water shader tints), `world/particleMaterials.ts` 7 (ember, mote and spark colours), `world/textures.ts` 14 (baked pillar glyphs, sky gradient, floor patch), `world/Kit.tsx` 5 (rock, iron, coral materials and a white glyph multiplier).
-  - **Legacy defaults** that reproduce Nox for a config that sets none, by design (spec 13.3) (11): `config/validate.ts` 6, `config/lighting.ts` 5.
+- **Not met: colour literals in engine sources.** At `a816d72` the test pinned 150 literals in 16 files, and the count was low: its pattern (hex, `rgb()`/`hsl()`, `0x`) did not see GLSL float colours, 12 more (the floor's reds and puddle sheen, the kit's pores, the skin and dome rims, the cup highlight, the orb glass), so the honest count was **162**. Fix wave A widened the scan to non-grey `vec3`/`vec4` float triples (not all 0/1, not a named constant such as the Rec. 709 luma weights), `color(srgb-linear r g b)` and `var(--oct-*, r, g, b)`, with the rule tested on samples both ways, and moved Nox's world look into data:
+  - `place.water.colours` (the water sky, surface glow, opening, rays and far fish) and `place.water.environment` (the environment map's top, horizon and low colours and its seabed glow, which may be `null`: no red band, reflections kept);
+  - `place.palette.floorGlow` (the cracks, lava, puddle sheen and the kit's pores; the sheen line is left out of the shader when `glow.floor` is 0);
+  - `place.live.colours` (bubbles, embers, motes, marine snow);
+  - `character.palette` `rimHot`, `domeRimHot`, `suckerSpecular`, `orbGlass` (a legacy config without them reads Nox's);
+  - 17 UI theme tokens for the stylesheets' red and pink glows, lines and fills (`--oct-*-rgb` channel tokens where a stylesheet applies its own alpha, so `rgba(var(--oct-glow-rgb, 255, 40, 90), 0.35)` is the old literal once substituted).
+
+  `validateWorld` and `validateBundle` name each missing or bad field; a world with the glow set to none gets an environment map and a floor shader without red (unit tests in `world/worldLook.test.ts`). The compiled-in colours are emitted as GLSL text identical to the old literals, and the stills are bit-identical (criterion 1). **138 literals in 14 files remain**, pinned in `KNOWN_HUE_DEBT`; the ratchet still fails both ways:
+  - Nox's **kit art** (15): `world/textures.ts` 10 (the glyph panels' recess gradient, red rune strokes and seam), `world/Kit.tsx` 5 (rock, pebble, iron and coral bodies, the glyph panels' white multiplier). Veyra's kit work (M2) moves them into kit or place data.
+  - **Legacy defaults** that reproduce Nox for a config that sets none, by design (spec 13.3) (18): `config/validate.ts` 13 (6 before, plus the seven shader tints that are palette data now), `config/lighting.ts` 5.
   - **Artwork** (4): `ui/Flame.tsx` 2, `ui/ProjectDetail.tsx` 1, `ui/poster.css` 1.
-  - **CSS fallbacks** beside the theme variables (101): `ui/detail.css` 42, `overview.css` 23, `intro.css` 11, `tooltip.css` 10, `skip.css` 9, `exit.css` 5.
+  - **The stylesheets** (100): 55 are Nox's values as fallbacks inside `var(--oct-*, ...)`, which a world's theme reaches (`ui/theme.test.ts` holds each equal to Nox's theme); 45 are bare near-neutral colours no token reaches yet (white hairlines, violet-black panel and button fills, text greys, black shadows) and the storyboard placeholder badge's amber. By file (fallbacks + bare): `ui/detail.css` 42 (17 + 25), `overview.css` 23 (15 + 8), `intro.css` 11 (7 + 4), `tooltip.css` 10 (5 + 5), `skip.css` 9 (6 + 3), `exit.css` 5 (5 + 0). No bare red or pink is left (`theme.test`). (At `a816d72` this list called all 101 "fallbacks beside the theme variables"; only 28 were.)
   - Black as a `?mask` background (not a hue) (1): `host/WorldHost.tsx`.
-- Honest reading: the largest remaining Nox coupling in the engine is the four world-look files. A second world cannot change its water, particle, texture or kit colours without editing engine code until they become place data. The plan expected that to be done in E02; it was not. The owner decides whether to accept it for F01 or ask for it first (MORNING-REVIEW.md).
+- Honest reading: a second world can now set its water, environment, floor glow, particles, character tints and UI reds without editing engine code. What it cannot yet change without engine work is Nox's kit art (textures and kit materials, Veyra M2) and the neutral HTML colours.
 
 ### 5. No slower
 
@@ -143,7 +163,7 @@ R-E1 work on `feat/nox-3d`, no cut branch. R-E2 the baseline commit is Task 1's 
 
 ### From the ledger (minors deferred by reviewers; each was judged not to block; taken from the ledger, not re-verified at the head unless marked)
 
-- **Hue and look:** the pinned 150 literals (section 4 above); Nox's traced UI boxes (`DOME_PANEL_BOX`, `DETAIL_PANEL_BOX`, `INTRO_TITLE`) stay in `engine/ui/`; other `rgba` glows, the detail shield fill, Flame gradient stops and Poster are not themed; theme colours use three's colour grammar (documented), so `transparent`, 8-digit hex and `oklch` are refused.
+- **Hue and look:** the pinned 138 literals (section 4 above; 150 at `a816d72`); Nox's traced UI boxes (`DOME_PANEL_BOX`, `DETAIL_PANEL_BOX`, `INTRO_TITLE`) stay in `engine/ui/`; the neutral CSS colours, the detail shield fill, Flame gradient stops and Poster are not themed (the red and pink glows are, since fix wave A); theme colours use three's colour grammar (documented), so `transparent`, 8-digit hex and `oklch` are refused.
 - **Validation:** `NOT_COLOUR` fails closed on key names, so F01's string fields (`skin.mode`, `suckers.style`) must be added to it; `contactShadow` reach/min/max are finite-checked only; `clampLighting` shares the direction array by reference; `toFixed(4)` precision in the clamp; `ValidationOptions` now holds only the catalog (simplify); `config/types.ts` import/export style; no validator test for the remaining issue codes; resolveWorld tests miss repeated `world` params, uppercase ids (`NOX` falls back with a warning) and a very long id; `WORLDS` is a string array in `engine/types/bundle.ts` and a Record in `worlds/index.ts`; farPlate error labels for `null` and non-object layers are cosmetic.
 - **Entrance and sequences:** `EntranceShape.turn` is read literally, so the 8-degree end-heading guarantee holds only for the full turn (F01); `theatre.ts` `FULL_TURN` duplicates `NOX_ENTRANCE`; `BlowRun.step` `length` is optional (a caller that forgets never finishes a blow); strategies `sheet?` optional and a conditional `AppearSheet`; the intro/overview vocabulary is hard-coded in three places (`CHOOSING`, `bubblesExist`, `CHOOSABLE_IN_BOTH`); `HOLD_CENTRE` equals the orbit centre only for Nox; entrance sheet loads after the first commit, not at module evaluation (plan-prescribed); `startSheetLoaders` and `capture-ready.mjs` still call `loadNoxSequences` (the bundle's loader serves the engine; the scripts are Nox-specific).
 - **Host and embedding:** `ui: 'none'` spec line wanted: the detail panel is mounted and only `stageRequest` or the engine's controls open it; the orb-button assertion in `embedding.spec.ts` runs with the default `artifacts`, not explicit `settled`; page options `view` and `mask` reach a preview; the embedder must keep the bundle object stable (`instanceKey`); a parent re-applying its last `stageRequest` after a bundle remount; `.exit-link` is `position: fixed` (page instance only); `EngineInstance` fixes its mode at mount (comment wanted in `App.tsx`); `window.__octoverse` probes stay stale after an unmount until the next instance overwrites them (dev only, only `setTier` is reported); `nox-b` shares the Theatre project `OctoVerse`, so a second project is never created in the switch test.
