@@ -1,14 +1,17 @@
-// Writes src/worlds/nox/sequences/state.theatre.json from the defaults in src/worlds/nox/sequences/defaults.ts.
+// Writes src/worlds/<id>/sequences/state.theatre.json from the defaults in src/worlds/<id>/sequences/defaults.ts
+// (<id> is nox; WORLD=<id> or OCTO_WORLD=<id>, which wins, picks another world, as scripts/stage-capture.mjs does).
 // Runs only when the file is missing (or with --force): studio exports replace it afterwards.
 // Naming sheets (`node scripts/theatre-seed.mjs entrance`) rewrites just those sheets in the
 // existing file and keeps the rest, studio edits included.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { SEQUENCE_DEFAULTS } from '../src/worlds/nox/sequences/defaults.ts';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const out = resolve(root, 'src/worlds/nox/sequences/state.theatre.json');
+const world = process.env.OCTO_WORLD || process.env.WORLD || 'nox';
+if (!/^[a-z][a-z0-9-]*$/.test(world)) throw new Error(`theatre-seed: "${world}" is not a world id`);
+const { SEQUENCE_DEFAULTS } = await import(pathToFileURL(resolve(root, `src/worlds/${world}/sequences/defaults.ts`)).href);
+const out = resolve(root, `src/worlds/${world}/sequences/state.theatre.json`);
 const named = process.argv.slice(2).filter(a => !a.startsWith('--'));
 for (const name of named) {
   if (!(name in SEQUENCE_DEFAULTS)) {
