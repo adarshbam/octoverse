@@ -40,14 +40,18 @@ Open the overview live (`?world=aether`, then Explore or click her head) and com
 - `t11-orb-room.png`: 16 orbs, 0.6 across, hung 0.16 under the room points the pose leaves;
 - `t11-overview-ui.png`: the live overview with the project panel in the dome.
 
-Numbers (settled overview; all in `docs/superpowers/reviews/aether.md`, Task 11):
+**Rule for Tasks 12 and 20:** overview and dome checks capture the settled state (bare `?freeze` with stage=overview), never `?swell=1`. A bare `?freeze` capture and `swell=1.5` give the same pixels; `swell=1` is the opening's overshoot.
+
+Numbers (settled overview, bare `?freeze`; all in `docs/superpowers/reviews/aether.md`, Task 11 and its fix round 1):
 - Dome half-width 1.38 (target 1.38 +- 0.06), top at P3 y 104 px (105 +- 6), centred at +0.015.
-- P3 dome samples, delta E: interior upper **8.0**, rim **7.5**, top sheen **3.5** (all within 10). One second into the opening (`swell=1`) the glass is at its overshoot, 5% larger, and the rim and sheen samples miss (17.2, 49.7).
-- The 16 orbs clear one another (at least 0.66 apart), the dome, the face and the frame (test). Eight of them also clear the arms on the render; the other eight overlap an arm, as several of P3's do.
+- P3 dome samples, delta E: interior upper **7.9**, rim **8.4**, top sheen **3.4** (all within 10). One second into the opening (`swell=1`) the glass is at its overshoot, 5% larger, and the rim and sheen samples miss (17.2, 49.7).
+- The 16 orbs clear one another (at least 0.66 apart), the dome, the face and the frame (test). Only four also clear the arm tubes (T3/T6@0.6, T4/T5@0.75, tested); the other twelve overlap an arm by 0.01 to 0.35, as several of P3's do.
+- Depth 1.0 (Nox and Veyra 0.6) lands the rim sample but brightens the lower corners: (135, 230) goes from delta E 19.8 to 37.3 from P3 (L* 50.0 to 65.4), and (380, 230) from 15.8 to 38.1. At 0.6 the rim and sheen samples miss (21.3, 21.7).
 
 What to check:
 1. **Dome shape**: wide capsule, the size and place of P3's.
-2. **Glass colour**: brighter and flatter than P3's. P3's glass darkens toward the bottom and the render's lower corners and seat line are light (engine request below). The rim token is a near-white so the rim sample lands; on the glass it reads periwinkle-white, not lavender.
+2. **Glass colour**: brighter and flatter than P3's. P3's glass darkens toward the bottom and the render's lower corners and seat line are light (engine request below). 
+   **Owner call: rim colour.** Spec 7.2 asks a lavender-blue rim. Every lavender-blue rim tried misses the binding rim sample (133, 190): `#f4f4ff` 11.0, `#e8e0ff` 14.5, `#d0d8ff` 15.6, `#b8c4ff` 18.9. P3's bright rim line, measured at nine points, barely moves with the token (mean delta E 12.0 to 14.3; it saturates near-white under bloom). So the rim is a near-neutral `#f4fff4` (rim-line mean 12.8, binding 8.4; round 1's mint `#ecffe4` was 14.1 / 7.5). On the glass it reads lavender-white. Choose: keep it, relax the binding sample for a lavender-blue rim, or wait for the engine's `rimPower` / `rimStrength`.
 3. **Horseshoe room for orbs**: T1/T8 climb the dome's sides, T2/T7 and T3/T6 curl at the sides, T4/T5 turn out along the bottom. Is it roomy enough, and is the composition P3's?
 4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
 5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
@@ -94,7 +98,7 @@ Please give the real names.
   - Target: pupils' darkest quarter <= 15 per channel with threshold 0.8.
 - **Per-arm jelly tint (Task 6, optional).** See "Arm body upper" above: a per-arm override of `JellyLook.depth` (or a `tint` on `ArmSpec`) would let T1 carry P2's cyan streak (90, 130, 226) while T2 stays indigo (75, 88, 231).
 - **Dome glass darker toward the bottom, and a per-character rim and seat (Task 11).** `src/engine/character/domeMaterial.ts` gives the glass one tint (`uTint`), adds `uRim` over the lower 60% and `uRimTop` above with a fixed fresnel `pow(1 - ndv, 4) * 2.4 + pow(1 - ndv, 12) * 1.6`, and draws a bright seat line `uRim * seat * 1.4` along the bottom 10%.
-  - P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render reads (131, 150, 254) and (146, 156, 246) there.
+  - P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render reads (135, 151, 255) and (148, 156, 248) there.
   - Wanted (optional, absent = today's look): `palette.domeTintLow` (the tint mixed in toward the seat, for example `mix(uTintLow, uTint, smoothstep(0.0, 0.6, up))`), `DomeShape.rimPower` and `rimStrength` (today 4 and 2.4), and `DomeShape.seat` (the seat line's strength, today 1.4; Aether would use about 0.3).
   - Aether widens its rim today with `dome.depth` 1.0 (Nox and Veyra 0.6), which also brightens the lower corners; with `rimPower` it could go back to 0.6.
   - Target: the three P3 dome samples stay within delta E 10, and (135, 230) and (360, 255) come within delta E 20 of P3.

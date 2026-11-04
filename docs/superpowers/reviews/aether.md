@@ -368,13 +368,13 @@ Config only (`src/worlds/aether/poses.ts`, `character.ts`, `review/targets.json`
 - T4/T5 hang from under the chin and turn out along the bottom.
 Every root is the intro's root exactly (T4/T5 at y -1.14 under the open mouth), so nothing pops under the mantle at the change (test). The face is `happy`. The tech focus keeps these arms and this body.
 
-**Face at the dome's bottom (how it is tested).** The plan asks that `faceAnchor(AETHER_BUNDLE, 'overview')` lie inside the dome's lower fifth. The anchor is the eye line, and P3 paints the eyes 24 px under the glass's seat (seat y 265, eye line y 289); a dome reaching down past the eye line would put the glass over the eyes and tint them. Nox's overview anchor is 0.17 under its dome's seat too. So the test holds the anchor within a fifth of the dome's height of the seat (0.23 under it, a fifth is 0.32), under the dome's middle, with the eye tops below the seat and the mantle closing inside the glass.
+**Face at the dome's bottom (how it is tested).** The plan asks that `faceAnchor(AETHER_BUNDLE, 'overview')` lie inside the dome's lower fifth. The anchor is the eye line, and P3 paints the eyes 24 px under the glass's seat (seat y 265, eye line y 289); a dome reaching down past the eye line would put the glass over the eyes and tint them. Nox's overview anchor is 0.17 under its dome's seat too. So the test holds the anchor within 0.28 of the seat (it is 0.23 under it), under the dome's middle, with the eye tops below the seat and the mantle closing inside the glass (fix round 1 tightened 0.32 to 0.28).
 
-**Room for 16 orbs.** P3 paints more than eight tentacles, one orb per curl. With eight arms the pose leaves two points per arm (`OVERVIEW_ROOM`, arc fractions: a mid-arm point and a tip point; T4/T5's tip point is the low turn just before their short end curl). A 0.6 orb hung 0.16 under each of the 16 points (on the solved rest chain, seen from the camera) is at least 0.66 from every other, outside the dome, off the face and inside the frame (`poses.test.ts`). Smallest gap: T1@0.55 to T2@0.82, just over 0.66. On the render (`t11-orb-room.png`), the four tips T1, T8, T2, T7 and the bottom four (T4, T5 at 0.35 and 0.75) hang in open water. The others overlap arm (as several of P3's orbs do over tentacles): T1/T8@0.55 lie over their own climbing arm, T2/T7@0.5 over T3/T6, T3/T6@0.95 over their own curl. Task 12 chooses the real slots; it may prefer the twelve clearest for P3's count.
+**Room for 16 orbs.** P3 paints more than eight tentacles, one orb per curl. With eight arms the pose leaves two points per arm (`OVERVIEW_ROOM`, arc fractions: a mid-arm point and a tip point; T4/T5's tip point is the low turn just before their short end curl). A 0.6 orb hung 0.16 under each of the 16 points (on the solved rest chain, seen from the camera) is at least 0.66 from every other, outside the dome, off the face and inside the frame (`poses.test.ts`). Smallest gap: T1@0.55 to T2@0.82, just over 0.66. Only four of the 16 also clear every arm tube (orb centre to arm line more than orb radius plus arm radius; `OVERVIEW_OPEN_WATER`, tested): T3/T6@0.6 (gap 0.04) and T4/T5@0.75 (gap 0.06). The other twelve overlap an arm by 0.01 (T1/T8@0.9 against the T2/T7 curls) to 0.35 (T3/T6@0.95 on their own curl), as several of P3's orbs sit over tentacles. (Corrected in fix round 1: the first text said eight were clear, judged by eye.) Task 12 chooses the real slots.
 
 **Dome** (`dome`, authored in the head's space): centre (0.07, 0.355), half-width 1.38, half-height 0.805, power 3.2, mantle top -0.42 (the seat is at -0.45, so the face rises into the glass with no gap; the face decal is cut above the sunk top, and the eyes stay whole under the seat). Depth 1.0 (Nox and Veyra use 0.6), see below.
 
-| Measure (settled, `swell=1.5`) | Target | Render |
+| Measure (settled, bare `?freeze`) | Target | Render |
 |---|---|---|
 | Half-width (white rim line, row y 190) | 1.38 +- 0.06 | 1.38 (x 118 to 394 px) |
 | Top (white rim line, column x 256) | P3 y 105 +- 6 | 104 px |
@@ -386,21 +386,23 @@ Every root is the intro's root exactly (T4/T5 at y -1.14 under the open mouth), 
 
 | Sample | P3 | Render (settled) | delta E | Render at `swell=1` |
 |---|---|---|---|---|
-| Dome interior upper (243, 125) | 59, 94, 226 | 69, 101, 221 | **8.0** | 6.2 |
-| Dome rim (133, 190) | 73, 106, 209 | 77, 101, 215 | **7.5** | 17.2 |
-| Dome top sheen (263, 108) | 164, 202, 253 | 157, 198, 255 | **3.5** | 49.7 |
+| Dome interior upper (243, 125) | 59, 94, 226 | 70, 101, 221 | **7.9** | 6.2 |
+| Dome rim (133, 190) | 73, 106, 209 | 79, 101, 216 | **8.4** | 17.2 |
+| Dome top sheen (263, 108) | 164, 202, 253 | 157, 198, 255 | **3.4** | 49.7 |
+
+(The settled column is fix round 1's, rim `#f4fff4`; the `swell=1` column is the first round's, rim `#ecffe4`.)
 
 `swell=1` is one second into the opening sheet, where the morph is at its overshoot (about 1.05 of 1.07 at 0.85 s, settling by 1.3 s): the glass is 5% larger (half-width 1.455, top at 94.5 px), so the rim and top samples fall inside the glass. The settled overview (the sheet's end, `swell=1.5`) is what the targets describe.
 
-Rounds (settled): c0 the start values (`#2a44c8`, `#7a9aff`, `#c4dcff`, depth 0.6) 18.4 / 16.8 / 25.5; c1 tint `#0c44ff`, rim `#b0e0ff`, rim top `#c8f4ff`: 1.0 / 28.6 / 23.9 (the rim sample sits 15 px inside the glass edge, where the engine's fresnel `pow(1 - n.v, 4)` gives under 0.02 at depth 0.6); c2 depth 1.0 (the sides turn away from the camera over a wider band): 2.9 / 19.7 / 4.2; c3 to c7 rim colour: the rim sample needs less blue and more red and green than the interior, and the rim is added over the same tint, so the rim token has to be a near-white with little extra blue (c3 `#f0ffc0` 6.8 / 7.9 / 3.4, a yellow cast; final: tint `#0644f0`, rim `#ecffe4`, rim top `#c8f4ff`, sheen `#a4caff` unchanged: 8.0 / 7.5 / 3.5). A darker navy tint (`#0a2aa0`, closer to P3's lower glass) misses the interior and rim samples (29.4 / 18.9) and does not darken the lower corners, which come from the rim and the seat line, not the tint.
+Rounds (settled): c0 the start values (`#2a44c8`, `#7a9aff`, `#c4dcff`, depth 0.6) 18.4 / 16.8 / 25.5; c1 tint `#0c44ff`, rim `#b0e0ff`, rim top `#c8f4ff`: 1.0 / 28.6 / 23.9 (the rim sample sits 15 px inside the glass edge, where the engine's fresnel `pow(1 - n.v, 4)` gives under 0.02 at depth 0.6); c2 depth 1.0 (the sides turn away from the camera over a wider band): 2.9 / 19.7 / 4.2; c3 to c7 rim colour: the rim sample needs less blue and more red and green than the interior, and the rim is added over the same tint, so the rim token has to be a near-white with little extra blue (c3 `#f0ffc0` 6.8 / 7.9 / 3.4, a yellow cast; first final: tint `#0644f0`, rim `#ecffe4`, rim top `#c8f4ff`, sheen `#a4caff` unchanged: 8.0 / 7.5 / 3.5; fix round 1 rim `#f4fff4`: 7.9 / 8.4 / 3.4). A darker navy tint (`#0a2aa0`, closer to P3's lower glass) misses the interior and rim samples (29.4 / 18.9) and does not darken the lower corners, which come from the rim and the seat line, not the tint.
 
 **What does not match P3 (engine limits):**
-- P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render is (131, 150, 254) and (146, 156, 246) there: the engine's dome shader has one tint, a rim colour for the lower 60% of the height, and a bright seat line along the bottom (`uRim * seat * 1.4`), so the lower corners and the seat read light where P3 is dark. Engine request below.
-- P3's interior falls from the bright top to navy within 25 px (x 256: y 120 (33, 61, 186), y 128 (13, 37, 125)); the render's top band is flatter (y 128 (65, 95, 217)). The HTML project panel covers most of the middle in the live overview (`t11-overview-ui.png`).
+- P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render is (135, 151, 255) and (148, 156, 248) there: the engine's dome shader has one tint, a rim colour for the lower 60% of the height, and a bright seat line along the bottom (`uRim * seat * 1.4`), so the lower corners and the seat read light where P3 is dark. Engine request below.
+- P3's interior falls from the bright top to navy within 25 px (x 256: y 120 (33, 61, 186), y 128 (13, 37, 125)); the render's top band is flatter (y 128 (64, 95, 215)). The HTML project panel covers most of the middle in the live overview (`t11-overview-ui.png`).
 - The sunk mantle shows a straight-sided lip between the face and the seat; P3's face blends into the glass.
 - The arms keep their P2 thickness and cups, so the horseshoe reads heavier than P3's slimmer painted tentacles.
 
-Stills (`docs/superpowers/reviews/assets/aether/`, render left, P3 right, vite on 127.0.0.1:5196, `WORLD=aether VIEW=509x504 SCALE=1 node scripts/stage-capture.mjs overview <out> "view=-2.545,2.52,2.545,-2.52&swell=1.5&tier=high&kitwait=90000"`):
+Stills (`docs/superpowers/reviews/assets/aether/`, render left, P3 right, vite on 127.0.0.1:5196, `WORLD=aether VIEW=509x504 SCALE=1 node scripts/stage-capture.mjs overview <out> "view=-2.545,2.52,2.545,-2.52&tier=high&kitwait=90000"`, bare freeze, the settled state; regenerated in fix round 1):
 - `t11-overview-vs-p3.png`: the whole panel, registered;
 - `t11-dome-2x-vs-p3.png`: the dome at 2x (P3 px 90 to 420, 80 to 300);
 - `t11-orb-room.png`: the 16 room points with 0.6 orbs hung 0.16 below, drawn on the render (2x);
@@ -409,4 +411,53 @@ No videos. No fps measured here (three sessions on one GPU).
 
 ### Verdict, honest (not an approval)
 
-The dome's size and place are P3's (half-width 1.38, top 104 px), the face sits at its bottom with the happy smile and whole eyes, and the three P3 dome samples are within delta E 10 on the settled overview (8.0, 7.5, 3.5; the interior and rim with about 2 of margin). The glass reads brighter and flatter than P3's, and its lower corners and seat are light where P3 is dark: P3's dark-bottomed glass needs an engine change. The horseshoe has room for 16 orbs that clear one another, the dome, the face and the frame; eight of those points also clear the arms. The owner's live look decides.
+The dome's size and place are P3's (half-width 1.38, top 104 px), the face sits at its bottom with the happy smile and whole eyes, and the three P3 dome samples are within delta E 10 on the settled overview (7.9, 8.4, 3.4 after fix round 1). The glass reads brighter and flatter than P3's, and its lower corners and seat are light where P3 is dark: P3's dark-bottomed glass needs an engine change. The horseshoe has room for 16 orbs that clear one another, the dome, the face and the frame; four of those points also clear the arm tubes; the other twelve overlap an arm. The owner's live look decides.
+
+### Task 11, fix round 1 (review of 2b412c3)
+
+**Settled-check rule (for Tasks 12 and 20).** Overview and dome checks capture the settled state (bare `?freeze` with stage=overview), never `?swell=1`. `swell=1` is the opening's overshoot (glass 5% larger), and there the rim and sheen samples miss (17.2, 49.7). A bare `?freeze` capture and a `swell=1.5` capture are the same pixels (max channel difference 0 over the whole 509 x 504 frame), so the first round's `swell=1.5` numbers were already the settled state. The bare-freeze path reproduces them: `WORLD=aether NOX_URL=http://127.0.0.1:5196 VIEW=509x504 SCALE=1 node scripts/stage-capture.mjs overview <out> "view=-2.545,2.52,2.545,-2.52&tier=high&kitwait=90000"` gives interior upper **7.9**, rim **8.4**, top sheen **3.4**, with the rim line at row 190 from x 117 to 394 (half-width 1.385), the top at 104 px and the centre at x +0.01.
+
+**Rim colour (spec 7.2 asks lavender-blue): kept near-white, owner call.** P3's bright rim line, sampled at nine points (informational, not binding; the brightest pixel within 6 px of the line, 3 x 3 mean, `.tmp/t11/rim.py`):
+
+| Point | P3 | Render, rim `#f4fff4` | delta E |
+|---|---|---|---|
+| left, row 150 | 227, 236, 253 | 228, 235, 245 | 3.4 |
+| left, row 180 | 191, 204, 251 | 224, 228, 245 | 18.0 |
+| left, row 210 | 209, 216, 254 | 215, 219, 253 | 2.5 |
+| right, row 150 | 223, 233, 252 | 233, 240, 250 | 5.3 |
+| right, row 180 | 170, 187, 241 | 244, 249, 255 | 34.5 |
+| right, row 210 | 234, 238, 254 | 245, 251, 255 | 7.6 |
+| top, column 200 | 162, 204, 242 | 197, 214, 234 | 12.7 |
+| top, column 256 | 229, 247, 254 | 180, 199, 218 | 17.9 |
+| top, column 310 | 173, 210, 249 | 185, 201, 217 | 13.7 |
+
+Rim tokens tried (mean over the nine points; the binding sample (133, 190) must stay within 10):
+
+| Rim | Rim-line mean | Binding (133, 190) |
+|---|---|---|
+| `#ecffe4` (round 1, mint) | 14.1 | 7.5 |
+| **`#f4fff4` (chosen)** | **12.8** | **8.4** |
+| `#ffffff` | 13.3 | 9.0 |
+| `#f0ffc0` | 13.6 | 7.9 |
+| `#e0fff0` | 14.0 | 9.5 |
+| `#f4f4ff` (lavender) | 12.0 | 11.0, misses |
+| `#e8e0ff` (lavender) | 12.6 | 14.5, misses |
+| `#d0d8ff` (lavender-blue) | 12.8 | 15.6, misses |
+| `#b8c4ff` (lavender-blue) | 14.3 | 18.9, misses |
+
+The rim line saturates to near-white under bloom whatever the token (the means span only 12.0 to 14.3). The token mainly moves the binding sample, which sits 15 px inside the glass edge and needs less blue than the interior. Every lavender-blue rim misses it. So the single binding sample forces a near-neutral rim. `#f4fff4` is the closest to the rim line that keeps the binding sample (12.8, against the mint's 14.1); on the glass it reads lavender-white. A lavender-blue rim needs either the binding sample relaxed or the engine's `rimPower` / `rimStrength` (engine follow-up in MORNING-REVIEW-aether.md). Owner call.
+
+**What depth 1.0 (Nox and Veyra 0.6) does to the lower corners.** Depth 1.0 turns the glass's sides away from the camera over a wider band, so the fresnel rim covers more of the lower corners and brightens them. With the final colours, depth 0.6 to 1.0:
+- (135, 230): delta E from P3 19.8 to 37.3, L* 50.0 to 65.4;
+- (380, 230): 15.8 to 38.1, L* 55.3 to 73.3;
+- (150, 255): 26.5 to 28.2;
+- (360, 255): 46.3 to 49.5.
+At depth 0.6 the binding samples read 4.9 / 21.3 / 21.7 (rim and sheen miss). Depth 1.0 lands the rim sample, and the price is lower corners about 20 delta E further from P3's dark-bottomed glass.
+
+**Tests.**
+- The 16-orb test is retitled to what it asserts: the orbs do not collide with each other, the dome, the face or the frame.
+- A new test checks that the open-water points (`OVERVIEW_OPEN_WATER`: T3/T6@0.6, T4/T5@0.75) clear every arm tube: orb centre to arm line more than the orb radius plus `armRadius` there, skipping the orb's own arm within 0.3 of arc length of the attach point.
+- The face-anchor tolerance is 0.28 (was 0.32; actual 0.23).
+- The `mantleTop - seat < 0.06` line is dropped (it restated config numbers).
+
+Stills regenerated with the bare-freeze path and rim `#f4fff4`. No videos; no fps measured.

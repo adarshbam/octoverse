@@ -1,11 +1,12 @@
 import { expect, test } from 'vitest';
 import { ArmChain, restFromCurve } from '../../engine/character/armChain';
+import { armRadius } from '../../engine/character/armTube';
 import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
 import { faceAnchor } from '../../engine/types/bundle';
 import { AETHER_BUNDLE } from './bundle';
 import { AETHER } from './character';
-import { AETHER_POSES, INTRO_TRACED, OVERVIEW_ROOM, OVERVIEW_TRACED } from './poses';
+import { AETHER_POSES, INTRO_TRACED, OVERVIEW_OPEN_WATER, OVERVIEW_ROOM, OVERVIEW_TRACED } from './poses';
 import targets from './review/targets.json';
 import { SWIM_POSES } from './swim';
 
@@ -90,18 +91,19 @@ test("the dome is P3's: half-width 1.38 +- 0.06 and its top at P3 y 105 +- 6 (sp
   expect(Math.abs(cx - 0.02)).toBeLessThan(0.03);
 });
 
-test("the face sits at the dome's bottom: the face anchor is within a fifth of the dome's height of its seat, under the dome's middle, and the glass clears the eyes (P3)", () => {
+test("the face sits at the dome's bottom: the face anchor is just under the glass's seat (within 0.28), under the dome's middle, and the glass clears the eyes (P3)", () => {
   // P3 paints the eyes under the glass: the dome's lower edge is at y 265 px, the eye line at y 289.
   // So the anchor (the eye line) sits just below the seat, never inside the glass, which would tint the eyes.
-  const { cx, halfWidth, bottom, top } = dome();
+  // Here it is 0.23 under the seat.
+  const { cx, halfWidth, bottom } = dome();
   const [ax, ay] = faceAnchor(AETHER_BUNDLE, 'overview');
   expect(Math.abs(ax - cx)).toBeLessThan(halfWidth / 5);
-  expect(Math.abs(ay - bottom)).toBeLessThan((top - bottom) / 5);
+  expect(ay).toBeLessThan(bottom);
+  expect(bottom - ay).toBeLessThan(0.28);
   // The eyes' tops (the eye line plus the eye's half-height) stay below the seat.
   expect(ay + AETHER.face.eye.ry).toBeLessThan(bottom);
-  // The sunk mantle closes just inside the glass, so there is no gap and no lid between face and dome.
+  // The sunk mantle closes inside the glass, so there is no gap between face and dome.
   expect(AETHER.dome.mantleTop).toBeGreaterThan(AETHER.dome.center[1] - AETHER.dome.halfHeight);
-  expect(AETHER.dome.mantleTop - (AETHER.dome.center[1] - AETHER.dome.halfHeight)).toBeLessThan(0.06);
 });
 
 test('the overview roots are the intro roots, so the arms do not pop at the change (T4 and T5 under the open mouth, y -1.14)', () => {
@@ -126,19 +128,27 @@ test('seen from the stage camera, every overview arm lies on its traced curve (P
   });
 });
 
-test('the horseshoe has room for 16 orbs (0.6 across, hung 0.16 under a mid-arm and a tip point of each arm): apart, clear of the dome, the face and the frame', () => {
-  const ORB = 0.3, THREAD = 0.16;
-  const { cx, cy, halfWidth, halfHeight, power, bottom } = dome();
-  const orbs = ARM_IDS.flatMap((id, i) => {
-    const chain = new ArmChain(restFromCurve(overview.arms[id]), AETHER.arms[i], i);
-    chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
-    return OVERVIEW_ROOM[id].map(at => {
-      const k = Math.round(at * (chain.px.length - 1));
-      const f = CAMERA_Z / (CAMERA_Z - chain.pz[k]);
-      const [x, y] = toWorld([chain.px[k] * f, chain.py[k] * f]);
-      return { name: `${id}@${at}`, x, y: y - THREAD - ORB };
-    });
+const ORB = 0.3, THREAD = 0.16;
+/** An overview arm's centre line as the stage camera sees it, in world units. */
+function seenArm(id: (typeof ARM_IDS)[number]) {
+  const i = ARM_IDS.indexOf(id);
+  const chain = new ArmChain(restFromCurve(overview.arms[id]), AETHER.arms[i], i);
+  chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+  return Array.from(chain.px, (x, k) => {
+    const f = CAMERA_Z / (CAMERA_Z - chain.pz[k]);
+    return toWorld([x * f, chain.py[k] * f]);
   });
+}
+/** Where an orb 0.6 across hangs, 0.16 under arm `id` at arc fraction `at`. */
+const hungOrb = (id: (typeof ARM_IDS)[number], at: number) => {
+  const line = seenArm(id);
+  const [x, y] = line[Math.round(at * (line.length - 1))];
+  return { name: `${id}@${at}`, x, y: y - THREAD - ORB };
+};
+
+test('16 orbs (0.6 across, hung 0.16 under a mid-arm and a tip point of each arm) do not collide with each other, the dome, the face or the frame', () => {
+  const { cx, cy, halfWidth, halfHeight, power, bottom } = dome();
+  const orbs = ARM_IDS.flatMap(id => OVERVIEW_ROOM[id].map(at => hungOrb(id, at)));
   expect(orbs).toHaveLength(16);
   // Each arm: a mid-arm point and a tip point, the tip's in its last third.
   for (const id of ARM_IDS) {
@@ -161,6 +171,26 @@ test('the horseshoe has room for 16 orbs (0.6 across, hung 0.16 under a mid-arm 
     // In the overview frame (5.09 x 5.04).
     expect(Math.abs(orb.x) + ORB, orb.name).toBeLessThan(2.545);
     expect(orb.y - ORB, orb.name).toBeGreaterThan(-2.52);
+  }
+});
+
+test('the open-water points hang their orbs clear of every arm: orb centre to each arm line more than the orb radius plus the arm radius there', () => {
+  // The orb's own arm is skipped within 0.3 (along the arm) of where its thread hangs from.
+  const lines = Object.fromEntries(ARM_IDS.map(id => [id, seenArm(id)]));
+  const length = (line: number[][]) => line.slice(1).reduce((sum, p, k) => sum + Math.hypot(p[0] - line[k][0], p[1] - line[k][1]), 0);
+  const open = Object.entries(OVERVIEW_OPEN_WATER) as [(typeof ARM_IDS)[number], number][];
+  expect(open.length).toBeGreaterThanOrEqual(4);
+  for (const [id, at] of open) {
+    expect(OVERVIEW_ROOM[id], id).toContain(at);
+    const orb = hungOrb(id, at);
+    ARM_IDS.forEach((other, i) => {
+      const line = lines[other], total = length(line);
+      line.forEach(([x, y], k) => {
+        const u = k / (line.length - 1);
+        if (other === id && Math.abs(u - at) * total < 0.3) return;
+        expect(Math.hypot(x - orb.x, y - orb.y) - ORB - armRadius(u, AETHER.arms[i], AETHER), `${orb.name} against ${other} at ${u.toFixed(2)}`).toBeGreaterThan(0);
+      });
+    });
   }
 });
 

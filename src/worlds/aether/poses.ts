@@ -81,14 +81,23 @@ export const OVERVIEW_TRACED: Record<ArmId, Point2[]> = {
 
 /**
  * Where the horseshoe leaves room for an orb on each arm (arc fractions, 0 root to 1 tip): a mid-arm
- * point and a tip point. An orb 0.6 across hung 0.16 under each one clears the others, the dome, the
- * face and the frame (poses.test.ts). Task 12 sets the real slots; these are the room the pose leaves.
- * T4/T5's tip point is the low turn just before their short end curl.
+ * point and a tip point. Orbs 0.6 across hung 0.16 under all 16 do not collide with one another, the
+ * dome, the face or the frame (poses.test.ts); most of them do overlap an arm (see OVERVIEW_OPEN_WATER).
+ * Task 12 sets the real slots; these are the room the pose leaves. T4/T5's tip point is the low turn
+ * just before their short end curl.
  */
 export const OVERVIEW_ROOM: Record<ArmId, readonly [number, number]> = {
   T1: [0.55, 0.9], T2: [0.5, 0.82], T3: [0.6, 0.95], T4: [0.35, 0.75],
   T5: [0.35, 0.75], T6: [0.6, 0.95], T7: [0.5, 0.82], T8: [0.55, 0.9],
 };
+
+/**
+ * The room points whose orb also hangs clear of every arm (orb centre to each arm's centre line more
+ * than the orb's radius plus the arm's radius there; poses.test.ts). The other twelve overlap an arm,
+ * by 0.01 (T1/T8 tips against the T2/T7 curls) to 0.35 (T3/T6 tips against their own curl), as several
+ * of P3's orbs sit over tentacles.
+ */
+export const OVERVIEW_OPEN_WATER: Partial<Record<ArmId, number>> = { T3: 0.6, T4: 0.75, T5: 0.75, T6: 0.6 };
 
 // Every arm keeps its intro root exactly (T4 and T5's under the open mouth), so the roots do not
 // move under the mantle as she changes stage.

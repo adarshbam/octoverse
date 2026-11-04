@@ -94,13 +94,16 @@ export const AETHER: CharacterConfig = {
     suckerHollow: '#a688e8',
     suckerShadow: '#1e1470',
     // The overview dome: blue glass, a rim and a blue-white sheen across the top, tuned in Task 11 on
-    // the settled overview against the three P3 samples (interior upper 59,94,226: delta E 8.0; rim
-    // 73,106,209: 7.5; top sheen 164,202,253: 3.5; see reviews/aether.md). The engine adds the rim over
-    // the tint, and P3's rim sample is less blue than its interior, so the rim token is a near-white
-    // with little extra blue: on the glass it reads periwinkle-white. P3's glass darkens toward the
+    // the settled overview (bare `?freeze`, never `?swell=1`) against the three P3 samples (interior
+    // upper 59,94,226: delta E 7.9; rim 73,106,209: 8.4; top sheen 164,202,253: 3.4; reviews/aether.md).
+    // The engine adds the rim over the tint, and P3's rim sample is less blue than its interior, so the
+    // rim token is a near-neutral white: every lavender-blue rim tried (#d0d8ff, #b8c4ff, #e8e0ff,
+    // #f4f4ff) misses that sample (11.0 to 18.9), while P3's bright rim line, measured at nine points,
+    // barely changes with it (mean 12.0 to 14.3); #f4fff4 is the closest to that line that keeps the
+    // sample (12.8). On the glass the rim line reads lavender-white. P3's glass darkens toward the
     // bottom; the engine's dome has one tint (an engine request, MORNING-REVIEW-aether.md).
     domeTint: '#0644f0',
-    domeRim: '#ecffe4',
+    domeRim: '#f4fff4',
     domeRimTop: '#c8f4ff',
     domeSheen: '#a4caff',
     // The in-focus orb's lavender-white rim (P4: 228,217,248).
