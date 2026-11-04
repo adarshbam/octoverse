@@ -2,7 +2,7 @@ import { type ComponentProps, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import { NOX_BUNDLE } from '../bundle.nox';
-import type { ArtifactConfig, StageId } from '../config/types';
+import type { ArtifactConfig, StageId } from '../../engine/config/types';
 import { EngineInstance } from '../host/EngineInstance';
 import { TechChoices } from './TechChoices';
 

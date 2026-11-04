@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
+import type { GlowLightUniforms, GlowReach } from '../../engine/character/glowLight';
 import { type BubbleField, STAGE_BUBBLES } from './bubbleField';
 import { createBubbleMaterial, createEmberMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';

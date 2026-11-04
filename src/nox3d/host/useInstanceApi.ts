@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { StageId } from '../config/types';
+import type { StageId } from '../../engine/config/types';
 import type { Vec3 } from '../world/types';
 
 /**

@@ -1,4 +1,4 @@
-import type { ArtifactConfig } from './types';
+import type { ArtifactConfig } from '../../engine/config/types';
 
 // Nox's artifacts as data for the engine's strategy tables (artifacts/strategies.ts): his
 // technology bubbles orbit on three shells, are blown from his mouth, and are pulled to an arm's

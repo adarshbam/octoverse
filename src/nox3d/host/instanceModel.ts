@@ -1,5 +1,5 @@
-import { focusReaction } from '../behavior/focusChoreography';
-import type { EntranceSheet } from '../character/Octopus';
+import { focusReaction } from '../../engine/behavior/focusChoreography';
+import type { EntranceSheet } from '../../engine/character/Octopus';
 import type { Project, Technology } from '../content/projectTypes';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SwellSheet } from '../sequences/headSwell';

@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { type AccentLink, pickAccentLights, writeAccentLights } from '../character/worldAccent';
+import { type AccentLink, pickAccentLights, writeAccentLights } from '../../engine/character/worldAccent';
 import { useInstance } from '../host/instanceContext';
 import { setReliefGate, stoneLights } from './bakedLight';
 import { FarCards } from './FarCards';

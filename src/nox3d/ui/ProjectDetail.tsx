@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { logoColour, logoIcon } from '../artifacts/logoTexture';
-import type { StageEvent } from '../behavior/stageMachine';
+import type { StageEvent } from '../../engine/behavior/stageMachine';
 import type { Project, Technology } from '../content/projectTypes';
 import { layoutFor } from '../stage/framing';
 import './detail.css';

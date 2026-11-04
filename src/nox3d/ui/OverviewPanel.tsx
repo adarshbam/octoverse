@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { StageEvent } from '../behavior/stageMachine';
+import type { StageEvent } from '../../engine/behavior/stageMachine';
 import type { Project } from '../content/projectTypes';
 import './overview.css';
 import { useFaceShift } from '../stage/liveAnchors';

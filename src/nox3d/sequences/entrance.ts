@@ -1,8 +1,8 @@
-import type { ExpressionId } from '../behavior/expressions';
-import type { ArmRest } from '../character/armChain';
-import type { ArmId } from '../config/types';
-import { type StrokeFrame, type StrokeTiming, strokeAt, swimDrive } from '../motion/stroke';
-import { type SwimShapes, swimRests } from '../motion/swimArms';
+import type { ExpressionId } from '../../engine/behavior/expressions';
+import type { ArmRest } from '../../engine/character/armChain';
+import type { ArmId } from '../../engine/config/types';
+import { type StrokeFrame, type StrokeTiming, strokeAt, swimDrive } from '../../engine/motion/stroke';
+import { type SwimShapes, swimRests } from '../../engine/motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
 import type { EntranceShape } from './keys';
 import type { Sequences } from './theatre';

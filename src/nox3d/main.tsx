@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { parseUrlState } from './behavior/urlState';
+import { parseUrlState } from '../engine/behavior/urlState';
 
 // The host reads the address once; everything below gets it as a prop (no engine module reads the location).
 const options = parseUrlState(window.location.search);

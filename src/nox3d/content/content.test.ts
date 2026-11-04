@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { ARM_IDS as armsIds } from '../config/arms';
-import { ARM_IDS as typesIds } from '../config/types';
+import { ARM_IDS as armsIds } from '../../engine/config/arms';
+import { ARM_IDS as typesIds } from '../../engine/config/types';
 import { noxProject } from './noxProject';
 import { noxTechnologies } from './noxTechnologies';
 import { ARM_IDS as projectIds, STAGE_PANELS } from './projectTypes';

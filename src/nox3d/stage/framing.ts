@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 
 /**
  * What one stage frames: world units it must show, across and up, on the z = 0 plane. A world's

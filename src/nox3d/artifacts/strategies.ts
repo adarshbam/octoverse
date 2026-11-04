@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PlacementConfig, type StageId, isChoosingStage } from '../config/types';
+import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PlacementConfig, type StageId, isChoosingStage } from '../../engine/config/types';
 import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosition } from '../sequences/bubbleBlow';
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';

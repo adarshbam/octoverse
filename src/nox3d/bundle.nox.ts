@@ -1,6 +1,6 @@
 import { NOX_ARTIFACTS } from './config/nox.artifacts';
 import { NOX } from './config/nox.character';
-import type { StageId } from './config/types';
+import type { StageId } from '../engine/config/types';
 import { noxProject } from './content/noxProject';
 import { noxTechnologies } from './content/noxTechnologies';
 import { NOX_POSES } from './poses/nox.poses';

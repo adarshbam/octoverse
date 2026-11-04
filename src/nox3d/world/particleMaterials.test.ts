@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { dummyCharacter } from '../config/fixtures/dummy.character';
-import { NO_NOX_LIGHT, createGlowLightUniforms } from '../character/glowLight';
+import { dummyCharacter } from '../../engine/config/fixtures/dummy.character';
+import { NO_NOX_LIGHT, createGlowLightUniforms } from '../../engine/character/glowLight';
 import { createBubbleMaterial, createEmberMaterial, createMoteMaterial, createSnowMaterial } from './particleMaterials';
 
 const DUMMY = dummyCharacter(NOX);

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX_ARTIFACTS } from '../config/nox.artifacts';
 import { NOX } from '../config/nox.character';
-import type { ArtifactConfig } from '../config/types';
+import type { ArtifactConfig } from '../../engine/config/types';
 import { blowMouth } from '../sequences/bubbleBlow';
 import type { AppearSheet, SequenceId } from '../sequences/keys';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';

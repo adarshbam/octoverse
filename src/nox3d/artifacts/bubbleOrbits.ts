@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import type { OrbitPlacement } from '../config/types';
+import type { OrbitPlacement } from '../../engine/config/types';
 
 /** One technology bubble's path: its shell, and where and how fast it is on it. */
 export interface Orbit {

@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import type { ReviewOptions } from '../behavior/urlState';
+import type { ReviewOptions } from '../../engine/behavior/urlState';
 import { debugWindow, report, unreport } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { FrameProbe, type QualityTier, TIER_SETTINGS, capTier, pickTier } from './quality';

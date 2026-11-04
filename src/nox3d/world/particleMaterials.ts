@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { type GlowLightUniforms, type GlowReach, NO_NOX_LIGHT, PARTICLE_REACH, glowLightGlsl } from '../character/glowLight';
+import { type GlowLightUniforms, type GlowReach, NO_NOX_LIGHT, PARTICLE_REACH, glowLightGlsl } from '../../engine/character/glowLight';
 
 // The particles' materials. Each takes Nox's face glow as a tint worked out per particle from the
 // shared glow uniforms (passed by reference, never copied), and adds it to its own colour; outside

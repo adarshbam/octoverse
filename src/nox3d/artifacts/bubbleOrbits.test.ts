@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { NOX_ARTIFACTS } from '../config/nox.artifacts';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';

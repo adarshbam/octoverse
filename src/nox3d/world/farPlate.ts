@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { type StageFrame, fovFor } from '../stage/framing';
 import { pinnedHover } from './cameraHover';
 import type { Placement, Vec3, WorldLayout } from './types';

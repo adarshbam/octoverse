@@ -1,4 +1,4 @@
-import type { StageId } from '../config/types';
+import type { StageId } from '../../engine/config/types';
 import type { Vec3 } from './types';
 
 /** Seconds a hover takes to ease to a new target amount (from full to still, or back). */

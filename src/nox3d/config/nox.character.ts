@@ -1,5 +1,5 @@
-import { INTRO_LIGHTING } from './lighting';
-import type { ArmSpec, CharacterConfig } from './types';
+import { INTRO_LIGHTING } from '../../engine/config/lighting';
+import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
 
 // Nox, measured against Nox.jpeg panel 2 in the 3D spike (commit 58cf458).
 // These are the baseline to upgrade component by component, not the final look.

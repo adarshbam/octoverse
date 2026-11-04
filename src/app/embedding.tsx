@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { StageId } from '../nox3d/config/types';
-import type { LinkStage } from '../nox3d/behavior/stageMachine';
-import { type ReviewOptions, parseUrlState } from '../nox3d/behavior/urlState';
+import type { StageId } from '../engine/config/types';
+import type { LinkStage } from '../engine/behavior/stageMachine';
+import { type ReviewOptions, parseUrlState } from '../engine/behavior/urlState';
 import { NOX_BUNDLE } from '../nox3d/bundle.nox';
 import { WorldHost } from '../nox3d/host/WorldHost';
 import { useInstanceApi } from '../nox3d/host/useInstanceApi';

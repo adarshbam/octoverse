@@ -16,7 +16,7 @@ export function App({ options, mode = 'page', ...host }: Omit<HostProps, 'bundle
   const wantsVariant = import.meta.env.DEV && options.variant === 'dummy';
   useEffect(() => {
     if (import.meta.env.DEV && options.variant === 'dummy') {
-      void Promise.all([import('./config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) =>
+      void Promise.all([import('../engine/config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) =>
         setVariant({ ...NOX_BUNDLE, character: c.dummyCharacter(NOX_BUNDLE.character), place: w.dummyWorld(NOX_BUNDLE.place) }),
       );
     }

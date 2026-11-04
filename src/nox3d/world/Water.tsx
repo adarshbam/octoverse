@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
+import type { GlowLightUniforms, GlowReach } from '../../engine/character/glowLight';
 import { seeded } from './noise';
 import { WATER_SKY_ORDER } from './drawOrder';
 import { createSnowMaterial } from './particleMaterials';

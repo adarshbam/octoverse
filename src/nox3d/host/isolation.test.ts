@@ -5,12 +5,17 @@ import { expect, test } from 'vitest';
 // A guard on the shared mechanics: the things two instances on a page would collide on live in one
 // named place each, so a new use elsewhere fails here and not in the browser. Tests, the review page
 // and main.tsx (the host, which reads the address once) are not engine code.
-const ROOT = join(import.meta.dirname, '..');
+// (Mid-move: the engine's parts are in src/engine already, the rest still in src/nox3d.)
+const ROOTS = [join(import.meta.dirname, '..'), join(import.meta.dirname, '..', '..', 'engine')];
 const slash = (path: string) => path.split(String.fromCharCode(92)).join('/');
-const files = (readdirSync(ROOT, { recursive: true }) as string[])
-  .map(slash)
-  .filter(f => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f) && !f.startsWith('review/') && f !== 'main.tsx');
-const source = new Map(files.map(f => [f, readFileSync(join(ROOT, f), 'utf8')]));
+const listed = ROOTS.flatMap(root =>
+  (readdirSync(root, { recursive: true }) as string[])
+    .map(slash)
+    .filter(f => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f) && !f.startsWith('review/') && f !== 'main.tsx')
+    .map(f => [f, join(root, f)] as const),
+);
+const files = listed.map(([f]) => f);
+const source = new Map(listed.map(([f, full]) => [f, readFileSync(full, 'utf8')]));
 
 /** The files whose code (comments aside) matches `pattern`. */
 function using(pattern: RegExp) {

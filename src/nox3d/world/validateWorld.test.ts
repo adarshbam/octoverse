@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { asBakeRecord, reliefOf, stoneLights, type BakedLight, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { SEABED, floorHeight } from './seabed';

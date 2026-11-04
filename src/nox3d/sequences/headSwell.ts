@@ -1,4 +1,4 @@
-import { domeState } from '../character/domeMaterial';
+import { domeState } from '../../engine/character/domeMaterial';
 import { SWELL_PUSH_SETTLED } from './keys';
 import type { Sequences } from './theatre';
 

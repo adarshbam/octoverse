@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
+import type { GlowLightUniforms, GlowReach } from '../../engine/character/glowLight';
 import { seeded } from './noise';
 import { createMoteMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';

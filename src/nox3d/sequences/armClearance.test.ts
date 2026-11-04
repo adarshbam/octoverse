@@ -1,11 +1,11 @@
 import { beforeAll, expect, test } from 'vitest';
-import { floatOffset } from '../behavior/ambient';
-import { ArmChain } from '../character/armChain';
+import { floatOffset } from '../../engine/behavior/ambient';
+import { ArmChain } from '../../engine/character/armChain';
 import { NOX } from '../config/nox.character';
-import { ARM_IDS } from '../config/types';
-import { armRadius } from '../character/armTube';
-import { strokeAt } from '../motion/stroke';
-import { createSwimRests, swimArmPitch, swimShapes as shapesFor } from '../motion/swimArms';
+import { ARM_IDS } from '../../engine/config/types';
+import { armRadius } from '../../engine/character/armTube';
+import { strokeAt } from '../../engine/motion/stroke';
+import { createSwimRests, swimArmPitch, swimShapes as shapesFor } from '../../engine/motion/swimArms';
 import { BODY_X, NOX_POSES } from '../poses/nox.poses';
 import { SWIM_POSES } from '../poses/nox.swim';
 import type { Placement } from '../world/types';

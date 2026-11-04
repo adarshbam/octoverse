@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
 import { NOX_BUNDLE } from '../bundle.nox';
-import { ARM_IDS, STAGE_IDS } from '../config/types';
-import { dummyCharacter } from '../config/fixtures/dummy.character';
-import { clampCharacterConfig } from '../config/validate';
+import { ARM_IDS, STAGE_IDS } from '../../engine/config/types';
+import { dummyCharacter } from '../../engine/config/fixtures/dummy.character';
+import { clampCharacterConfig } from '../../engine/config/validate';
 import { dummyWorld } from '../world/fixtures/dummy.world';
 import { BundleError, WORLDS, type WorldBundle, faceAnchor, faceOrigin, validateBundle } from './bundle';
 

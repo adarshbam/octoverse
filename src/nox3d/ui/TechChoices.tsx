@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { choiceRemoved } from '../artifacts/strategies';
-import type { ArtifactConfig, StageId } from '../config/types';
+import type { ArtifactConfig, StageId } from '../../engine/config/types';
 import { OrbButtons } from './OrbButtons';
 import { OrbTray } from './OrbTray';
 

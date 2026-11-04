@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
-import { mantleRadius } from '../character/headGeometry';
-import { type FaceLayout, type HeadShape, type StageId, isChoosingStage } from '../config/types';
+import { mantleRadius } from '../../engine/character/headGeometry';
+import { type FaceLayout, type HeadShape, type StageId, isChoosingStage } from '../../engine/config/types';
 import type { Vec3 } from '../world/types';
 import type { Sequences } from './theatre';
 

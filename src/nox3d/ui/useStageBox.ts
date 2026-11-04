@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
-import type { StageId } from '../config/types';
+import type { StageId } from '../../engine/config/types';
 import { projectToScreen } from '../stage/anchors';
 import { type StageFrame, fovFor } from '../stage/framing';
 

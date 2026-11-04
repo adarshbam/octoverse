@@ -1,6 +1,6 @@
-import { type ReviewOptions, defaultReviewOptions } from '../behavior/urlState';
-import type { LinkStage } from '../behavior/stageMachine';
-import type { StagePose } from '../poses/types';
+import { type ReviewOptions, defaultReviewOptions } from '../../engine/behavior/urlState';
+import type { LinkStage } from '../../engine/behavior/stageMachine';
+import type { StagePose } from '../../engine/poses/types';
 import type { WorldBundle } from '../types/bundle';
 import type { QualityTier } from '../stage/quality';
 import { LAST_LEVEL } from '../world/worldLevel';

@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { NOX_BUNDLE } from '../bundle.nox';
-import { initialStage } from '../behavior/stageMachine';
-import { STAGE_IDS } from '../config/types';
+import { initialStage } from '../../engine/behavior/stageMachine';
+import { STAGE_IDS } from '../../engine/config/types';
 import { capTier } from '../stage/quality';
 import { startingTier } from '../stage/useQuality';
 import { LAST_LEVEL } from '../world/worldLevel';
-import { defaultReviewOptions } from '../behavior/urlState';
+import { defaultReviewOptions } from '../../engine/behavior/urlState';
 import { type PreviewOptions, applyPreview, headOpens, instanceKey, previewToReview } from './options';
 
 const preview = (extra: Partial<PreviewOptions> = {}): PreviewOptions => ({ stage: 'overview', motion: 'still', place: 'backdrop', artifacts: 'hidden', ...extra });

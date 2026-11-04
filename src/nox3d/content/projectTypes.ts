@@ -14,14 +14,14 @@
  * Do not invent artwork geometry interfaces here.
  */
 
-import type { StageId } from '../config/types';
+import type { StageId } from '../../engine/config/types';
 
 // ---------------------------------------------------------------------------
 // 1. Anatomical Arm Identity (Frozen 8 Arms)
 // ---------------------------------------------------------------------------
 
 // One definition lives in config/arms.ts; re-exported so content code keeps its import path.
-export { ARM_IDS, isArmId, TOTAL_ARM_COUNT, type ArmId } from '../config/arms';
+export { ARM_IDS, isArmId, TOTAL_ARM_COUNT, type ArmId } from '../../engine/config/arms';
 
 // ---------------------------------------------------------------------------
 // 2. Storyboard Panel per Stage

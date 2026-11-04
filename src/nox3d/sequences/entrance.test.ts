@@ -1,9 +1,9 @@
 import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { ArmChain } from '../character/armChain';
-import { ARM_IDS } from '../config/types';
-import { strokeAt } from '../motion/stroke';
-import { createSwimRests, swimShapes as shapesFor } from '../motion/swimArms';
+import { ArmChain } from '../../engine/character/armChain';
+import { ARM_IDS } from '../../engine/config/types';
+import { strokeAt } from '../../engine/motion/stroke';
+import { createSwimRests, swimShapes as shapesFor } from '../../engine/motion/swimArms';
 import { NOX_POSES } from '../poses/nox.poses';
 import { SWIM_POSES } from '../poses/nox.swim';
 import { SECURITY_WORLD } from '../world/security/config';

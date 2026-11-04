@@ -1,8 +1,8 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import type { ExpressionId } from '../behavior/expressions';
-import type { ArtifactConfig, ChoosingStage, Point2 } from '../config/types';
+import type { ExpressionId } from '../../engine/behavior/expressions';
+import type { ArtifactConfig, ChoosingStage, Point2 } from '../../engine/config/types';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';

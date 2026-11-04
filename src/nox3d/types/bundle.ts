@@ -1,9 +1,9 @@
 import { APPEARS, PLACEMENTS, SELECTS } from '../artifacts/strategies';
-import { ARM_IDS, type ArtifactConfig, type CharacterConfig, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
-import { clampCharacterConfig } from '../config/validate';
+import { ARM_IDS, type ArtifactConfig, type CharacterConfig, STAGE_IDS, type StageId, isChoosingStage } from '../../engine/config/types';
+import { clampCharacterConfig } from '../../engine/config/validate';
 import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
-import type { StagePose, SwimPoseSet } from '../poses/types';
+import type { StagePose, SwimPoseSet } from '../../engine/poses/types';
 import type { SequenceSet } from '../sequences/keys';
 import type { StageFrame } from '../stage/framing';
 import type { UiTheme } from '../ui/theme';

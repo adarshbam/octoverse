@@ -5,7 +5,7 @@ import { useWindowListeners } from '../host/listeners';
 import type { InstanceState } from '../host/instance';
 import * as THREE from 'three';
 import { FOCUS_GROW } from '../artifacts/TechBubbles';
-import { CAMERA_Z } from '../config/stage';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { projectToScreen } from '../stage/anchors';
 import { type StageFrame, fovFor } from '../stage/framing';
 import { type WorldBundle, faceAnchor, faceOrigin } from '../types/bundle';
