@@ -198,7 +198,7 @@ The floor of 40 is met, so the spec 10.1 fallback was not applied.
 ## Task 9: baked pipeline world (provisional, PENDING OWNER REVIEW)
 - Dropped or deviating from the plan, each logged in `docs/superpowers/MORNING-REVIEW-flux.md`: glyph motes dropped (motes take no sprite set, spec 12.6); bubbles are uniform, not denser to the left (the engine has no density field); the far plate is KTX2, not webp (the engine loads only KTX2).
 - Engine-owner item: per-arc `portal_arc_<q>_inlay` membrane nodes solve the shared-stone emissive problem world-side; Task 15 props must name the `_inlay` nodes.
-- Not seen: packets are not visible in any stage frame (Task 10 judges this).
+- Not seen: packets were reported as not visible in any stage frame (corrected in Task 10: they are visible in the intro).
 
 ## Milestone 2 (Task 10): pipeline world look, PENDING OWNER REVIEW (2026-11-05)
 

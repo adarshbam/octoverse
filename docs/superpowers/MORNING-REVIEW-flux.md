@@ -63,7 +63,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   5. Pink corals in the foreground at both sides.
   6. No red anywhere.
 - **Known weak / not seen:**
-  - The packets (cyan and lavender, on `paths.bridge`) are not visible in any stage frame. The bridge runs behind Flux's head, and the deck end is behind the right rack. Task 10 should judge whether they need a visible stretch.
+  - The packets (cyan and lavender, on `paths.bridge`) were reported as not visible in any stage frame (corrected in Task 10: they are visible in the intro, one or two at a time, left of the left tower).
   - The violet-pink bridge spill shows only behind Flux's head in the overview.
 - **Engine-owner items:**
   - No bubble density bias field, so "denser to the left" is not done (bubbles are uniform).
@@ -96,8 +96,9 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   3. LEDs and packets alive but not busy (watch live).
   4. No tech clutter (left-edge arch sliver, bottom-left coral chunk).
   5. The camera hover is lively (Nox's amount at 1.2 times his pace).
-- **Known weak:** racks darker and sparser than P2's (needs kit LEDs or brighter fill, a rebake); the disc lines still faint straight pieces at 3x (finer disc mesh needed); the disc centre reads as a faint darker halo; the entering frame's near arch is a tall flat violet hoop (P1: small rings on the deck); portal off-frame at P1's square frame; packets are flat bars; bubbles uniform; glyph motes dropped.
+- **Known weak:** the disc's brightest value (0.522) is only just under the face core's (0.547), a thin margin; racks darker and sparser than P2's (needs kit LEDs or brighter fill, a rebake); the disc lines still faint straight pieces at 3x (finer disc mesh needed); the disc centre reads as a faint darker halo; the entering frame's near arch is a tall flat violet hoop (P1: small rings on the deck); portal off-frame at P1's square frame; packets are flat bars; bubbles uniform; glyph motes dropped.
 - **Tests:** tsc clean, oxlint clean, flux 55/55; `src/worlds src/engine` 845 passed, 2 timed out under load (reviewTooling check_stage spawn), which pass alone (3/3).
+
 ### Task 1 (built early, steps 1-4; PENDING OWNER REVIEW)
 - Files: `public/flux/ref/p2.png` (byte-identical to native panel), `p2-mask.png`, `scripts/ref_mask.py`, `src/worlds/flux/review/*`, `docs/superpowers/reviews/flux.md` (commit a406f10).
 - Numbers: all 14 samples within 1/channel of spec 2.1; mean inside mask (108,93,225), sat 0.657; arm span 3.97 (inside 3.8-4.2).
@@ -150,5 +151,5 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Task 3 (start values): mantle, arm and cup values per spec 7.8; sparkle density 70 (mantle) and 50 (arms), set above Veyra's so the jelly reads as Flux.
 - Task 4 (face): two lashes, brow thickness 0.034, iris, blush, `happy` and `focused` expressions. Check the face against the P2 close-up.
 - Task 5 (engine change, for the engine owner): one commit, 52d49ee, adds the travelling cup pulse (`src/engine/character/cupPulse.ts`, shader term only when a world configures `suckers.pulse`, idle value -1e4). Nox and Veyra shader programs are unchanged. Check: baseline stills were bit-identical except the known techFocus difference.
-- Engine-owner gaps found while building Flux (worked around in the bundle): no tongue size field; `TITLE_ICONS` has only `flame` (Flux uses it as a placeholder); zero shells crashes (one plain shell used); `Kit.tsx` requires `chain` and `chain_lod1` nodes (placeholder triangles in `stage.glb`); no sparkle "twinkle faster" field; the jelly rim cannot be turned off at the bottom of the head; the core blends with the colour ramp through `max()`; `scripts/check_stage.py` silhouetteRows compared against a hard-coded `public/spike/Nox.jpeg` (Flux silhouetteRows removed).
+- Engine-owner gaps found while building Flux (worked around in the bundle): no tongue size field; `TITLE_ICONS` has only `flame` (Flux uses it as a placeholder); zero shells crashes (one plain shell used); `Kit.tsx` requires `chain` and `chain_lod1` nodes (placeholder triangles in `stage.glb`); no sparkle "twinkle faster" field; the jelly rim cannot be turned off at the bottom of the head; the core blends with the colour ramp through `max()`; `scripts/check_stage.py` silhouetteRows compared against a hard-coded `public/spike/Nox.jpeg` (Flux silhouetteRows removed); `scripts/side_by_side.py` and `scripts/zoom.py` are hard-wired to Nox's reference (Flux side-by-sides used a scratch script).
 - Pre-existing, not caused by Flux: `world.spec:101` fails alone on the pre-change tree; the Nox kit loader times out at 15 s under shared-GPU load.
