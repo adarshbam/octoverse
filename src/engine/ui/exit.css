@@ -1,0 +1,28 @@
+/* The host's exit link: top left, a quiet pill that takes the world's UI colours (the --oct-* properties the host sets). */
+.exit-link {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--oct-surface-edge, rgba(255, 70, 110, 0.7));
+  background: var(--oct-surface, rgba(26, 20, 40, 0.92));
+  color: var(--oct-nameplate-label, #d8cfe2);
+  font: 500 14px/1 'Poppins', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  transition: border-color 200ms ease, color 200ms ease;
+}
+
+.exit-link:hover {
+  color: var(--oct-accent-hot, #ff3a55);
+}
+
+.exit-link:focus-visible {
+  outline: 2px solid var(--oct-focus-ring, #ffd0dc);
+  outline-offset: 3px;
+}

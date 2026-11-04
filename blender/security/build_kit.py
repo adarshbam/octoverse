@@ -9,7 +9,7 @@ or inside a running Blender (Blender MCP):
     exec(compile(open(p).read(), p, "exec"), {"__file__": p, "__name__": "__main__"})
 
 It rebuilds the "NoxKit security" scene from scratch and touches nothing outside it. It reads the
-world's layout, src/nox3d/world/security/layout.json (the same file the page imports), checks
+world's layout, src/worlds/nox/place/layout.json (the same file the page imports), checks
 that every piece the layout names is built, and lays the corridor out in a preview collection
 that is not exported. Then it exports the pieces and compresses them with gltf-transform into
 public/nox/world/security/kit.glb.
@@ -35,7 +35,7 @@ from mathutils import Matrix, Vector, noise
 from mathutils.bvhtree import BVHTree
 
 ROOT = Path(__file__).resolve().parents[2]
-LAYOUT = ROOT / "src/nox3d/world/security/layout.json"
+LAYOUT = ROOT / "src/worlds/nox/place/layout.json"
 OUT = ROOT / "public/nox/world/security/kit.glb"
 RAW = Path(tempfile.gettempdir()) / "nox-kit-security-raw.glb"
 

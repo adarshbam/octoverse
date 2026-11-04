@@ -58,7 +58,7 @@ test('a bubble hover, its choice and the suction hold leave the camera drifting 
   const log = (await page.evaluate(() => (window as unknown as Win).__cameraLog))!;
   expect(new Set(log.map(s => s.phase))).toEqual(new Set(['idle', 'hover', 'hold', 'away']));
   const first = log[0];
-  // The intro's drift at full amount (src/nox3d/world/cameraHover.ts): where the camera stands, and
+  // The intro's drift at full amount (src/engine/world/cameraHover.ts): where the camera stands, and
   // the way it faces when it looks at the drift's point. The world's lean (a pitch about the
   // camera's own sideways axis) comes on top of that look, the same at every moment.
   const drift = (t: number) => {

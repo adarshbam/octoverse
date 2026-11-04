@@ -57,7 +57,8 @@ test.describe('phone', () => {
       const tip = page.getByRole('tooltip');
       await expect(tip).toBeVisible();
       await expect(tip).toContainText(name);
-      await expect(item).toHaveAttribute('aria-describedby', 'tech-tooltip');
+      // The tooltip's id is unique to its instance (useId), so the button names whatever id the tooltip has.
+      await expect(item).toHaveAttribute('aria-describedby', (await tip.getAttribute('id'))!);
       // The tooltip does not cover the buttons (the tray drops as the sheet leaves): the same one can be tapped again.
       await expect
         .poll(async () => {
@@ -81,7 +82,7 @@ test('resize from desktop to phone keeps the focused technology', async ({ page 
   await expect(page.getByRole('tooltip')).toContainText('Used for penetration testing');
   const item = page.locator(`${TRAY}[aria-label="Kali Linux"]`);
   await expect(item).toHaveCount(1);
-  await expect(item).toHaveAttribute('aria-describedby', 'tech-tooltip');
+  await expect(item).toHaveAttribute('aria-describedby', (await page.getByRole('tooltip').getAttribute('id'))!);
   await expect(page.locator(TRAY)).toHaveCount(15);
   // The tooltip is inside the window.
   const box = (await page.getByRole('tooltip').boundingBox())!;

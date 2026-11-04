@@ -1,0 +1,627 @@
+/* The full project view (panel 5): a large dark glass panel with a glowing edge, on the panel traced
+   from the high-quality panel 5. Sizes are relative to the panel (measured on the painting, where
+   it is 915 x 624 px), so the layout scales with the stage. The panel is the size container; its
+   inner box carries the look, since an element's own container units measure its parent. */
+.project-detail {
+  position: absolute;
+  box-sizing: border-box;
+  container-type: size;
+  color: #f3eef8;
+  font-family: 'Poppins', system-ui, sans-serif;
+  opacity: 0;
+  transform: translateX(3%);
+  /* Out quickly, as Nox sets off back to the overview. */
+  transition: opacity 250ms ease, transform 250ms ease;
+  pointer-events: none;
+}
+
+.project-detail.is-open {
+  opacity: 1;
+  transform: none;
+  /* In once Nox has made room for it at the left edge. */
+  transition: opacity 700ms ease 800ms, transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 800ms;
+  pointer-events: auto;
+}
+
+.project-detail :is(button, a, [tabindex='0']):focus-visible {
+  outline: 2px solid var(--oct-focus-ring, #ffd0dc);
+  outline-offset: 2px;
+}
+
+.project-detail h1:focus {
+  outline: none;
+}
+
+.detail-inner {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 4.2cqh 2.4cqw 4cqh 3.1cqw;
+  border-radius: 2.6cqw;
+  border: 1.5px solid var(--oct-surface-edge, rgba(255, 70, 110, 0.7));
+  background: linear-gradient(160deg, rgba(22, 13, 32, 0.95), rgba(8, 6, 16, 0.96) 60%);
+  box-shadow: 0 0 28px rgba(255, 40, 90, 0.35), inset 0 0 22px rgba(255, 50, 100, 0.08);
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+  height: 10.7cqh;
+  flex: none;
+}
+
+.detail-mark {
+  width: 6.8cqw;
+  height: 10.7cqh;
+  margin: 0 2.3cqw 0 2.2cqw;
+  flex: none;
+  color: var(--oct-accent, #ff3b5c);
+  filter: drop-shadow(0 0 0.9cqw rgba(255, 50, 80, 0.7));
+}
+
+.detail-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-identity h1 {
+  margin: 0;
+  font-size: 3.5cqw;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.detail-identity p {
+  margin: 0.8cqh 0 0;
+  font-size: max(12px, 1.75cqw);
+  color: #e2d8ec;
+}
+
+.detail-carousel {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+}
+
+.detail-carousel span {
+  min-width: 4.5cqw;
+  font-size: max(13px, 2cqw);
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.detail-carousel button,
+.detail-close {
+  width: max(44px, 5cqw);
+  height: max(44px, 5cqw);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(40, 32, 58, 0.92);
+  color: #fff;
+  cursor: pointer;
+}
+
+.detail-carousel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.detail-carousel svg,
+.detail-close svg {
+  width: 45%;
+  height: 45%;
+}
+
+.detail-close {
+  margin-left: 1.2cqw;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.detail-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 2.9cqh;
+  display: grid;
+  grid-template-columns: 50cqw minmax(0, 1fr);
+  column-gap: 2.9cqw;
+}
+
+/* The screenshot is a little narrower than painted: two rows of technology chips (the painting has
+   one) leave the section's text less height, so it gets more width. */
+.detail-body.has-sections {
+  grid-template-columns: 18cqw 39.5cqw minmax(0, 1fr);
+}
+
+.detail-sections {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* The line joining the dots, as painted. */
+.detail-sections::before {
+  content: '';
+  position: absolute;
+  left: calc(1.3cqw + 0.6cqw - 1px);
+  top: 3cqh;
+  bottom: 3cqh;
+  width: 2px;
+  background: rgba(255, 59, 92, 0.5);
+}
+
+.detail-sections button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+  min-height: 5.6cqh;
+  flex: none;
+  padding: 0 0 0 1.1cqw;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #e9e1f2;
+  font: inherit;
+  font-size: max(12px, 1.72cqw);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.detail-sections button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-sections button::before {
+  content: '';
+  flex: none;
+  width: 1.2cqw;
+  height: 1.2cqw;
+  border-radius: 50%;
+  background: var(--oct-accent, #ff3b5c);
+  box-shadow: 0 0 0.8cqw rgba(255, 60, 90, 0.8);
+}
+
+.detail-sections button[aria-current] {
+  margin-left: -0.6cqw;
+  padding-left: 1.1cqw;
+  gap: 1cqw;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  color: #fff;
+}
+
+/* The section shown: a ring round the dot. */
+.detail-sections button[aria-current]::before {
+  width: 1.2cqw;
+  height: 1.2cqw;
+  border: 0.55cqw solid #2a1420;
+  outline: 0.35cqw solid var(--oct-accent, #ff3b5c);
+}
+
+.detail-shot {
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 1.4cqw;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0b0814;
+  box-shadow: 0 0 2cqw rgba(0, 0, 0, 0.6);
+  color: #b6a7ba;
+  font-size: 1.5cqw;
+}
+
+.detail-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+
+.detail-copy {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-detail h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6cqh 1cqw;
+  margin: 0;
+  font-size: max(14px, 2.2cqw);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.detail-text {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin-top: 1.1cqh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  font-size: max(13px, 1.75cqw);
+  line-height: 1.36;
+  color: #e7e0f0;
+}
+
+/* More text than room: it fades out at the bottom, and scrolls. */
+.detail-text.is-overflowing {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 3.2em), transparent);
+}
+
+.detail-text p {
+  margin: 0 0 1cqh;
+}
+
+.detail-text ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.detail-text li {
+  margin-bottom: 0.6cqh;
+}
+
+.detail-text li::marker {
+  color: var(--oct-accent, #ff3b5c);
+}
+
+.detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6cqw;
+  margin-top: 1.8cqh;
+  flex: none;
+}
+
+.detail-links a {
+  min-height: max(44px, 7.8cqh);
+  padding: 0 1.4cqw;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7cqw;
+  border-radius: 1.2cqw;
+  font-size: max(13px, 1.75cqw);
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.detail-links svg {
+  width: 1.9cqw;
+  height: 1.9cqw;
+}
+
+.detail-live {
+  background: linear-gradient(180deg, #ff5d70 0%, #ff2f55 100%);
+  box-shadow: 0 0 2cqw rgba(255, 60, 90, 0.55);
+}
+
+.detail-github {
+  background: rgba(16, 12, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detail-stack {
+  flex: none;
+  margin-top: 2cqh;
+}
+
+.detail-stack h2,
+.detail-features h2 {
+  margin-bottom: 1.6cqh;
+}
+
+.detail-stack ul,
+.detail-features ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Panel 5 paints six chips in one row; the project has fifteen technologies, in two compact rows. */
+.detail-stack ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1cqh 0.8cqw;
+}
+
+.detail-stack li {
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  height: 4.6cqh;
+  padding: 0 1.1cqw;
+  border-radius: 0.9cqw;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--oct-surface, rgba(26, 20, 40, 0.92));
+  font-size: max(11px, 1.32cqw);
+  white-space: nowrap;
+}
+
+.detail-stack svg {
+  width: 1.8cqw;
+  height: 1.8cqw;
+}
+
+.detail-features {
+  flex: none;
+  margin-top: 2.2cqh;
+  padding-top: 1.8cqh;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.detail-features ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5cqw;
+}
+
+.detail-features li {
+  display: flex;
+  align-items: center;
+  gap: 1cqw;
+  min-height: 11cqh;
+  box-sizing: border-box;
+  padding: 1.2cqh 1cqw;
+  border-radius: 1.2cqw;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--oct-surface, rgba(26, 20, 40, 0.92));
+}
+
+.detail-features svg {
+  flex: none;
+  width: 2.4cqw;
+  height: 2.4cqw;
+  color: #f3eef8;
+}
+
+.detail-features h3 {
+  margin: 0;
+  font-size: max(12px, 1.5cqw);
+  font-weight: 600;
+}
+
+.detail-features p {
+  margin: 0.4cqh 0 0;
+  font-size: max(11px, 1.25cqw);
+  line-height: 1.35;
+  color: #cfc4dc;
+}
+
+/* Storyboard text standing in for the owner's, shown only while developing. */
+.detail-badge {
+  flex: none;
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 190, 120, 0.6);
+  color: #ffd2a0;
+  font-size: max(8px, 0.85cqw);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Where panel 5's place is too small to read, the view is a sheet sized in pixels: along the
+   bottom on a phone held upright, down the right side otherwise (Task 25 lays these out in full). */
+.project-detail.is-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72vh;
+  container-type: normal;
+  overflow-y: auto;
+  transform: translateY(6%);
+}
+
+.is-sheet .detail-inner {
+  position: relative;
+  inset: auto;
+  min-height: 100%;
+  padding: 18px 16px 24px;
+  gap: 14px;
+  border-radius: 18px 18px 0 0;
+}
+
+.project-detail.is-sheet.is-side {
+  top: 0;
+  left: auto;
+  height: auto;
+  width: min(560px, 62vw);
+  transform: translateX(6%);
+}
+
+.is-side .detail-inner {
+  border-radius: 18px 0 0 18px;
+}
+
+.project-detail.is-sheet.is-open {
+  transform: none;
+}
+
+.is-sheet .detail-header {
+  height: auto;
+  gap: 10px;
+}
+
+.is-sheet .detail-mark {
+  width: 32px;
+  height: 36px;
+  margin: 0;
+}
+
+.is-sheet .detail-identity h1 {
+  font-size: 22px;
+}
+
+.is-sheet .detail-identity p {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.is-sheet .detail-body,
+.is-sheet .detail-body.has-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 0;
+  flex: none;
+}
+
+.is-sheet .detail-sections {
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 6px;
+}
+
+.is-sheet .detail-sections::before {
+  display: none;
+}
+
+.is-sheet .detail-sections button {
+  min-height: 44px;
+  font-size: 14px;
+  gap: 8px;
+  padding: 0 14px;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.is-sheet .detail-sections button::before,
+.is-sheet .detail-sections button[aria-current]::before {
+  width: 7px;
+  height: 7px;
+  border: 0;
+  outline: 0;
+}
+
+.is-sheet .detail-sections button[aria-current] {
+  margin-left: 0;
+  gap: 8px;
+}
+
+.is-sheet .detail-shot {
+  aspect-ratio: 1.58;
+  border-radius: 12px;
+}
+
+.is-sheet h2 {
+  font-size: 17px;
+  gap: 8px;
+}
+
+.is-sheet .detail-text {
+  margin-top: 6px;
+  overflow: visible;
+  font-size: 15px;
+}
+
+.is-sheet .detail-text p,
+.is-sheet .detail-text li {
+  margin-bottom: 6px;
+}
+
+.is-sheet .detail-links {
+  margin-top: 12px;
+  gap: 10px;
+}
+
+.is-sheet .detail-links a {
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  gap: 8px;
+}
+
+.is-sheet .detail-links svg {
+  width: 16px;
+  height: 16px;
+}
+
+.is-sheet .detail-stack,
+.is-sheet .detail-features {
+  margin-top: 0;
+}
+
+.is-sheet .detail-stack h2,
+.is-sheet .detail-features h2 {
+  margin-bottom: 10px;
+}
+
+.is-sheet .detail-stack ul {
+  gap: 6px;
+}
+
+.is-sheet .detail-stack li {
+  height: 30px;
+  padding: 0 10px;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.is-sheet .detail-stack svg {
+  width: 15px;
+  height: 15px;
+}
+
+.is-sheet .detail-features {
+  padding-top: 14px;
+}
+
+.is-sheet .detail-features ul {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.is-sheet .detail-features li {
+  min-height: 0;
+  padding: 10px;
+  gap: 8px;
+  border-radius: 10px;
+}
+
+.is-sheet .detail-features svg {
+  width: 22px;
+  height: 22px;
+}
+
+.is-sheet .detail-features h3 {
+  font-size: 13px;
+}
+
+.is-sheet .detail-features p {
+  font-size: 12px;
+}
+
+.is-sheet .detail-badge {
+  font-size: 9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-detail,
+  .project-detail.is-open,
+  .project-detail.is-sheet {
+    transform: none;
+  }
+}
