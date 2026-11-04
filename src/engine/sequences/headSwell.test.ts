@@ -2,16 +2,16 @@ import * as THREE from 'three';
 import { createHash } from 'node:crypto';
 import { beforeAll, expect, test } from 'vitest';
 import { layoutOrbits, orbitPoint } from '../artifacts/bubbleOrbits';
-import { NOX_ARTIFACTS } from '../../nox3d/config/nox.artifacts';
+import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
 import { createDomeMaterial } from '../character/domeMaterial';
 import { HEAD_EFFECTS } from '../character/headEffects';
 import { GLYPH_SIZE, glyphLayout } from '../character/headEffects/glyphs';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
-import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK } from '../../nox3d/sequences/defaults';
+import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK } from '../../worlds/nox/sequences/defaults';
 import { SWELL_PUSH_SETTLED } from './keys';
 import { type HeadDraw, type SwellFrame, SwellRun, headDraw, restingSwell, swellFrame } from './headSwell';
-import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from './theatre';
 
 /** Seconds one opening lasts: Nox's sheet length (the world's data; the run and the frame read it, no engine constant). */

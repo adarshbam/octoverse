@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from './nox.character';
+import { NOX } from './character';
 
 // Guard (rulings R25 and R26). The owner approved the R23 palette as Nox's own and kept these
 // exactly as they were before it: the face (its palette and canvas, the blush, the eyes), the

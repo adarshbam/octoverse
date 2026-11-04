@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { BlinkScheduler, floatOffset, spring } from './ambient';
 import { Attention, nearFace } from './attention';
 import { SWIM_BLINK } from './expressions';

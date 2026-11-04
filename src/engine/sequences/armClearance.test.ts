@@ -1,19 +1,19 @@
 import { beforeAll, expect, test } from 'vitest';
 import { floatOffset } from '../behavior/ambient';
 import { ArmChain } from '../character/armChain';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { ARM_IDS } from '../config/types';
 import { armRadius } from '../character/armTube';
 import { strokeAt } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes as shapesFor } from '../motion/swimArms';
-import { BODY_X, NOX_POSES } from '../../nox3d/poses/nox.poses';
-import { SWIM_POSES } from '../../nox3d/poses/nox.swim';
+import { BODY_X, NOX_POSES } from '../../worlds/nox/poses';
+import { SWIM_POSES } from '../../worlds/nox/swim';
 import type { Placement } from '../world/types';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { ENTRANCE_SECONDS, entranceDrive, entranceFrame, entranceRests } from './entrance';
-import { ENTRANCE_HOLD } from '../../nox3d/sequences/defaults';
-import { NOX_ENTRANCE_GEOMETRY } from '../../nox3d/bundle.nox';
-import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { ENTRANCE_HOLD } from '../../worlds/nox/sequences/defaults';
+import { NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
+import { loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from './theatre';
 
 /** Nox's swim shapes at `segments`. */

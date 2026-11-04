@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { StageId } from '../engine/config/types';
 import type { LinkStage } from '../engine/behavior/stageMachine';
 import { type ReviewOptions, parseUrlState } from '../engine/behavior/urlState';
-import { NOX_BUNDLE } from '../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../worlds/nox/bundle';
 import { WorldHost } from '../engine/host/WorldHost';
 import { useInstanceApi } from '../engine/host/useInstanceApi';
 import type { WorldBundle } from '../engine/types/bundle';

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { noxTechnologies } from '../../nox3d/content/noxTechnologies';
-import { placeholderUsages } from '../../nox3d/content/placeholders';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
+import { placeholderUsages } from '../../worlds/nox/content/placeholders';
 import { tooltipContent } from './tooltipContent';
 
 const usages = placeholderUsages(noxTechnologies);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { NO_NOX_LIGHT, PARTICLE_GLOW, PARTICLE_GLOW_CAP, PARTICLE_REACH, createGlowLightUniforms, glowFalloff, glowLightGlsl, lightParticles, particleGlow } from './glowLight';
 
 const GLOW_LIGHT = NOX.glow.light;

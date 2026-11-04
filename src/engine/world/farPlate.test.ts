@@ -3,14 +3,14 @@ import { readFileSync, statSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
-import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../worlds/nox/bundle';
 import { fovFor } from '../stage/framing';
 import { faceAnchor } from '../types/bundle';
 import { pinnedHover } from './cameraHover';
 import { leanCamera } from './lensShift';
 import { FAR_HOVER, FAR_VIEWPORTS, dropMips, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
-import farData from '../../nox3d/world/security/far.json';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
+import farData from '../../worlds/nox/place/far.json';
 import type { Vec3 } from './types';
 
 const FAR_CUT_Z = farData.cutZ;

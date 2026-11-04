@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { attachWindowListeners } from './listeners';
-import { NOX_SEQUENCES } from '../../nox3d/sequences/nox.sequences';
+import { NOX_SEQUENCES } from '../../worlds/nox/sequences/index';
 import { loadWorldSequences } from '../sequences/theatre';
 import { createSheets, startSheetLoaders } from './instanceModel';
 

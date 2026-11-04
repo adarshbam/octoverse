@@ -1,7 +1,7 @@
 import { type ComponentProps, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
-import { NOX_BUNDLE } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import type { ArtifactConfig, StageId } from '../config/types';
 import { EngineInstance } from '../host/EngineInstance';
 import { TechChoices } from './TechChoices';

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import type { ArmId } from '../config/types';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import { ArmChain, restFromCurve } from './armChain';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 

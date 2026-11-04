@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { ARM_IDS, type ArmId } from '../config/types';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import { ArmChain, restFromCurve } from './armChain';
 import { ArmTube, suckerTilt } from './armTube';
 import { CUP_EMBED, CUP_FACE, SuckerRow, createCupShadow, createSuckerCup, cupBend } from './suckerRow';

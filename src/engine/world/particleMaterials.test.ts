@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { NO_NOX_LIGHT, createGlowLightUniforms } from '../character/glowLight';
 import { createBubbleMaterial, createEmberMaterial, createMoteMaterial, createSnowMaterial } from './particleMaterials';

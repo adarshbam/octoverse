@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, vi } from 'vitest';
 import { parseUrlState } from '../behavior/urlState';
-import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from '../../nox3d/sequences/defaults';
-import { NOX_PROJECT_ID, loadNoxSequences, noxSequenceSet } from '../../nox3d/sequences/nox.sequences';
-import state from '../../nox3d/sequences/state/octoverse.theatre.json';
+import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from '../../worlds/nox/sequences/defaults';
+import { NOX_PROJECT_ID, loadNoxSequences, noxSequenceSet } from '../../worlds/nox/sequences/index';
+import state from '../../worlds/nox/sequences/state.theatre.json';
 import { loadSequences, loadWorldSequences } from './theatre';
 
 test('the repo state loads in Node and samples the defaults', async () => {
@@ -113,6 +113,6 @@ test("a world's state that fails to arrive is forgotten, so the next load fetche
 test('studio is dev only', () => {
   expect(parseUrlState('?studio').studio).toBe(true);
   expect(parseUrlState('').studio).toBe(false);
-  const main = readFileSync(new URL('../../nox3d/main.tsx', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../../app/main.tsx', import.meta.url), 'utf8');
   expect(main).toMatch(/import\.meta\.env\.DEV\s*&&[^\n]*studio[^\n]*\{[\s\S]*import\('@theatre\/studio'\)/);
 });

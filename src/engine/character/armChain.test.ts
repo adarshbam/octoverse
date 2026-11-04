@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import type { ArmId, Point2 } from '../config/types';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import { ArmChain, armDepth, restFromCurve } from './armChain';
 
 // Intro curves of T1 and T8 from the spike (src/spike/nox/armPoses.ts), hidden root included.

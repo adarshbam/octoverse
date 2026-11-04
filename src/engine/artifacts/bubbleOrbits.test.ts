@@ -1,16 +1,16 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
-import { NOX_ARTIFACTS } from '../../nox3d/config/nox.artifacts';
-import { NOX } from '../../nox3d/config/nox.character';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
-import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../nox3d/bundle.nox';
+import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
+import { NOX } from '../../worlds/nox/character';
+import { NOX_POSES } from '../../worlds/nox/poses';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../worlds/nox/bundle';
 import { fovFor } from '../stage/framing';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
-import { SWELL_PUSH_PEAK } from '../../nox3d/sequences/defaults';
+import { SWELL_PUSH_PEAK } from '../../worlds/nox/sequences/defaults';
 import { SWELL_PUSH_SETTLED } from '../sequences/keys';
 
 type Stage = 'intro' | 'overview';

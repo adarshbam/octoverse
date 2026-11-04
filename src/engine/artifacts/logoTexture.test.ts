@@ -1,7 +1,7 @@
 import * as icons from 'simple-icons';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { noxTechnologies } from '../../nox3d/content/noxTechnologies';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
 import { LOGO_SLUGS, holeMask, logoColour, logoDrawColour, logoInnerColour } from './logoTexture';
 
 test('every Nox technology has a logo slug that resolves in simple-icons', () => {

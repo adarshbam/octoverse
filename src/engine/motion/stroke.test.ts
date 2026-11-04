@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { type StrokeFrame, type StrokePhase, strokeAt, swimDrive } from './stroke';
 
 const TIMING = NOX.personality.swim;

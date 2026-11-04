@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { NOX_BUNDLE } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import { initialStage } from '../behavior/stageMachine';
 import { STAGE_IDS } from '../config/types';
 import { capTier } from '../stage/quality';

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
-import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../worlds/nox/bundle';
 import { fovFor } from '../stage/framing';
 import { faceAnchor } from '../types/bundle';
 import { lensShift } from './lensShift';

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
 import { projectToScreen } from './anchors';
-import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../nox3d/bundle.nox';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../worlds/nox/bundle';
 import { fovFor, layoutFor } from './framing';
 
 const halfHeightSeen = (fov: number) => CAMERA_Z * Math.tan(THREE.MathUtils.degToRad(fov) / 2);

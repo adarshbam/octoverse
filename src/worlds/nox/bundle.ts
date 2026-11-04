@@ -1,16 +1,16 @@
-import { NOX_ARTIFACTS } from './config/nox.artifacts';
-import { NOX } from './config/nox.character';
-import type { StageId } from '../engine/config/types';
+import { NOX_ARTIFACTS } from './artifacts';
+import { NOX } from './character';
+import type { StageId } from '../../engine/config/types';
 import { noxProject } from './content/noxProject';
 import { noxTechnologies } from './content/noxTechnologies';
-import { NOX_POSES } from './poses/nox.poses';
-import { SWIM_POSES } from './poses/nox.swim';
-import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../engine/sequences/entrance';
-import { NOX_SEQUENCES } from './sequences/nox.sequences';
-import type { StageFrame } from '../engine/stage/framing';
-import type { WorldBundle } from '../engine/types/bundle';
-import type { UiTheme } from '../engine/ui/theme';
-import { SECURITY_WORLD } from './world/security/config';
+import { NOX_POSES } from './poses';
+import { SWIM_POSES } from './swim';
+import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../../engine/sequences/entrance';
+import { NOX_SEQUENCES } from './sequences/index';
+import type { StageFrame } from '../../engine/stage/framing';
+import type { WorldBundle } from '../../engine/types/bundle';
+import type { UiTheme } from '../../engine/ui/theme';
+import { SECURITY_WORLD } from './place/config';
 
 // Nox's world as one bundle (spec 6.2): the one file that gathers his character, poses, swim,
 // artifacts, sequences, the security world, the stage's framing, his project and his theme. The

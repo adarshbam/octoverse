@@ -1,6 +1,6 @@
 import { restFromCurve, type ArmRest } from '../../engine/character/armChain';
 import { ARM_IDS, type ArmId, type Point2 } from '../../engine/config/types';
-import { BODY_X, NOX_POSES, SWIM_STRETCH } from './nox.poses';
+import { BODY_X, NOX_POSES, SWIM_STRETCH } from './poses';
 import type { StagePose, SwimPoseSet } from '../../engine/poses/types';
 
 // The swim's two arm shapes (spec 9.5). A stroke blends from `trail` toward `open` as the arms

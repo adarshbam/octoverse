@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { expect, test, vi } from 'vitest';
 import { asBakeRecord } from './bakedLight';
 import { applyPlacement, coralRest, withLod } from './placement';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 
 // The bake (blender/security/bake_world.py) places every piece and drops the coral itself, in
 // Blender; the page does it again in Kit.tsx. near.glb records where the bake put each one, and

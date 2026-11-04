@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { borderWidth, catchlightSpots, eyeOutline, eyelidCrease, irisCenter, pupilShape } from './eyeShape';
 
 const eye = NOX.face.eye;

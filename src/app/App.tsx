@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NOX_BUNDLE } from './bundle.nox';
+import { NOX_BUNDLE } from '../worlds/nox/bundle';
 import { type HostProps, WorldHost } from '../engine/host/WorldHost';
 import type { WorldBundle } from '../engine/types/bundle';
 

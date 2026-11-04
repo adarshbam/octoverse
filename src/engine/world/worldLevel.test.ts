@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { nextLevel, stepFrom, worldAtLevel } from './worldLevel';
 
 test('a failing world steps from baked, to the kit lit live, to fog only, and no further', () => {

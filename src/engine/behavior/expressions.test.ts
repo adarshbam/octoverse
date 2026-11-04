@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { FaceCanvas } from '../character/FaceCanvas';
-import { NOX } from '../../nox3d/config/nox.character';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX } from '../../worlds/nox/character';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import { EXPRESSIONS, EXPRESSION_IDS, type FaceParams, blendExpression, resolveExpressions } from './expressions';
 import { PoseBlender } from './poseBlend';
 

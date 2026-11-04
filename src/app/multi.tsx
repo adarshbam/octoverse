@@ -1,6 +1,6 @@
 import { Fragment, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from '../nox3d/App';
+import { App } from './App';
 import { type ReviewOptions, parseUrlState } from '../engine/behavior/urlState';
 import { Embedding } from './embedding';
 

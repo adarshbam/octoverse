@@ -7,8 +7,8 @@ import { CAMERA_Z } from '../config/stage';
 import { asBakeRecord, reliefOf, stoneLights, type BakedLight, type LightRect } from './bakedLight';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { SEABED, floorHeight } from './seabed';
-import layoutData from '../../nox3d/world/security/layout.json';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import layoutData from '../../worlds/nox/place/layout.json';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import type { Vec3, WorldConfig } from './types';
 import { asWorldLayout, layoutProblems, validateWorld } from './validateWorld';
 

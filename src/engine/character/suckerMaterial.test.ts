@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { createSkinUniforms } from './skinMaterial';
 import { FLARE_ARMS, createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import type { SuckerRow } from './suckerRow';

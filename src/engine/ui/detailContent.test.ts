@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest';
-import { noxProject } from '../../nox3d/content/noxProject';
-import { noxTechnologies } from '../../nox3d/content/noxTechnologies';
+import { noxProject } from '../../worlds/nox/content/noxProject';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
 import type { Project } from '../content/projectTypes';
 import { DETAIL_PANEL_BOX, detailPages, detailTechnologies, featureCards, overviewText, safeHref } from './detailContent';
-import { NOX_STAGE_FRAMES } from '../../nox3d/bundle.nox';
+import { NOX_STAGE_FRAMES } from '../../worlds/nox/bundle';
 import { stageBoxFor } from './useStageBox';
 
 test('the sections listed are the overview, then every section with something in it, in order', () => {

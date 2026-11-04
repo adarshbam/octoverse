@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import type { Personality } from '../config/types';
-import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from '../sequences/theatre';
 import { arrivalWiggle, idleGlance, seededRng, settleOvershoot, startle } from './micro';
 

@@ -1,5 +1,5 @@
 import { armDepth, restFromCurve } from '../../engine/character/armChain';
-import { NOX } from '../config/nox.character';
+import { NOX } from './character';
 import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
 import type { StagePose } from '../../engine/poses/types';

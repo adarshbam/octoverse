@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { INTRO_LIGHTING } from './lighting';
 import { createSkinUniforms } from '../character/skinMaterial';
 

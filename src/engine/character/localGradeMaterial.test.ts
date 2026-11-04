@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { GRADE_LAYERS, GRADE_ORDER, GRADE_RAMP, GRADE_START, createGradeGeometry, createGradeMaterial, gradeWeight, layerAlpha } from './localGradeMaterial';
 
 test('grade weight is 1 at Nox and 0 beyond its radius, monotonic', () => {

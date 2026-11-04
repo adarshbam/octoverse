@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import type { StagePose } from '../poses/types';
 import { EXPRESSIONS } from './expressions';
 import { PoseBlender, STAGE_TRANSITION, blendAngles, settledArms } from './poseBlend';

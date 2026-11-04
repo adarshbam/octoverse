@@ -2,10 +2,10 @@ import { expect, test } from 'vitest';
 import { settledArms } from '../behavior/poseBlend';
 import { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
-import { SWIM_POSES } from '../../nox3d/poses/nox.swim';
+import { NOX_POSES } from '../../worlds/nox/poses';
+import { SWIM_POSES } from '../../worlds/nox/swim';
 import { SWIM_PITCH, strokeAt, swimDrive } from './stroke';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { TRAIL_PITCH, createSwimRests, settleWeight, swimArmPitch, swimRests } from './swimArms';
 
 const SEGMENTS = ArmChain.SEGMENTS;

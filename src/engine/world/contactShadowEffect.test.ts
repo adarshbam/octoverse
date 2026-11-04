@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { ContactShadowEffect } from './contactShadowEffect';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 
 const POST = { contactShadows: SECURITY_WORLD.post.contactShadow };
 

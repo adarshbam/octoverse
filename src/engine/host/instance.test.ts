@@ -4,7 +4,7 @@ import { expect, test } from 'vitest';
 import { EngineInstance } from './EngineInstance';
 import { type InstanceState, createInstanceState } from './instance';
 import { useInstance } from './instanceContext';
-import { NOX_BUNDLE } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 
 /** A world with this id: Nox's data under another name (the instance reads only the id and mode here). */
 const world = (id: string) => ({ ...NOX_BUNDLE, id });

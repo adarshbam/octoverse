@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
-import { NOX_BUNDLE, NOX_THEME } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE, NOX_THEME } from '../../worlds/nox/bundle';
 import { THEME_COLOURS, THEME_VARS, type UiTheme, themeVars } from './theme';
 import { TITLE_ICONS } from './titleIcons';
 

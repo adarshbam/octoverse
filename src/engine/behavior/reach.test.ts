@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { REACH_RANGE, bubbleHotFor, reachesForPointer, reachingArm } from './reach';
 
 const head = NOX.head;

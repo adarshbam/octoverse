@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest';
-import { noxProject } from '../../nox3d/content/noxProject';
-import { noxTechnologies } from '../../nox3d/content/noxTechnologies';
-import { NOX_SEQUENCES, loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { noxProject } from '../../worlds/nox/content/noxProject';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
+import { NOX_SEQUENCES, loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from '../sequences/theatre';
 import { BUBBLE_COUNT, createProjectModel, createSheets, startSheetLoaders } from './instanceModel';
 

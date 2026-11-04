@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
 import { ArmChain, restFromCurve } from '../character/armChain';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { ARM_IDS } from '../config/types';
-import { BODY_X, NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { BODY_X, NOX_POSES } from '../../worlds/nox/poses';
 import { startle } from './micro';
 import { SETTLE_IDLE, type SettleTrack, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from './microTriggers';
 

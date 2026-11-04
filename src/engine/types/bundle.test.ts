@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX_BUNDLE } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import { ARM_IDS, STAGE_IDS } from '../config/types';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { clampCharacterConfig } from '../config/validate';

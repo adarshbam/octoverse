@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
 
 // Nox's skin is opaque and writes depth; a bubble that tested against it would be cut away by his

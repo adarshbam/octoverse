@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { clampCharacterConfig } from './validate';
 
 test('NOX is unchanged by clamping', () => {

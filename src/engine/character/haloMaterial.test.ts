@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { createHaloMaterial } from './haloMaterial';
 
 test('the halo takes its reach, colours and strengths from the character config', () => {

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { beforeAll, expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { BLOW_SHEET_WAIT, BLOW_STAGGER, type BlowFrame, BlowRun, blowFrame, blowLength, blowMouth, blowPosition, bubblesExist } from './bubbleBlow';
-import { SEQUENCE_DEFAULTS } from '../../nox3d/sequences/defaults';
-import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { SEQUENCE_DEFAULTS } from '../../worlds/nox/sequences/defaults';
+import { loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from './theatre';
 
 let seq: Sequences;

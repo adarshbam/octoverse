@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 
 // The post-processing values live in the world's config (`post`); these hold Nox's world to them.
 const POST = SECURITY_WORLD.post;

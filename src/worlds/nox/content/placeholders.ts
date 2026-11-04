@@ -1,4 +1,4 @@
-import type { ProjectSection, ProjectTechnologyUsage, Technology } from '../../engine/content/projectTypes';
+import type { ProjectSection, ProjectTechnologyUsage, Technology } from '../../../engine/content/projectTypes';
 
 // Storyboard copy (Nox.jpeg panels 4 and 5) standing in for real project text.
 // Every entry is flagged so the interface can badge it until the owner replaces it.

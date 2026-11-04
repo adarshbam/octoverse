@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { dummyWorld } from '../world/fixtures/dummy.world';
 import { validateWorld } from '../world/validateWorld';
 import { dummyCharacter } from './fixtures/dummy.character';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { clampCharacterConfig } from './validate';
 
 // The fixtures are made over a base (D7: they import no world's files); the page makes them over Nox's.

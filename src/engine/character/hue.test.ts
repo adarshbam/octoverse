@@ -28,7 +28,7 @@ const WIDE_SOURCES = [
   'artifacts/TechBubbles.tsx',
   'artifacts/strategies.ts',
   'artifacts/bubbleOrbits.ts',
-  '../nox3d/config/nox.artifacts.ts',
+  '../worlds/nox/artifacts.ts',
 ];
 
 /** The source without its comments (block and line), so notes that name a colour do not trip the scan. */

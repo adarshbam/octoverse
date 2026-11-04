@@ -1,16 +1,16 @@
 import { beforeAll, expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
+import { NOX } from '../../worlds/nox/character';
 import { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
 import { strokeAt } from '../motion/stroke';
 import { createSwimRests, swimShapes as shapesFor } from '../motion/swimArms';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
-import { SWIM_POSES } from '../../nox3d/poses/nox.swim';
-import { SECURITY_WORLD } from '../../nox3d/world/security/config';
+import { NOX_POSES } from '../../worlds/nox/poses';
+import { SWIM_POSES } from '../../worlds/nox/swim';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
-import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from '../../nox3d/sequences/defaults';
-import { NOX_ENTRANCE_GEOMETRY } from '../../nox3d/bundle.nox';
-import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
+import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from '../../worlds/nox/sequences/defaults';
+import { NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
+import { loadNoxSequences } from '../../worlds/nox/sequences/index';
 import type { Sequences } from './theatre';
 
 /** Nox's swim shapes at `segments`. */

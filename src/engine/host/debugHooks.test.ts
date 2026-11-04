@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { type DebugWindow, debugWindow, entranceDebug, markReady, report, reportNew, reportObject, reportWorld, unreport } from './debugHooks';
 import { createInstanceState } from './instance';
-import { NOX_BUNDLE } from '../../nox3d/bundle.nox';
+import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 
 /** A world with this id: Nox's data under another name (the instance reads only the id and mode here). */
 const world = (id: string) => ({ ...NOX_BUNDLE, id });

@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest';
 import { blendAngles } from '../../engine/behavior/poseBlend';
 import { ArmChain, restFromCurve } from '../../engine/character/armChain';
-import { NOX } from '../config/nox.character';
+import { NOX } from './character';
 import { ARM_IDS, type ArmId } from '../../engine/config/types';
-import { NOX_POSES } from './nox.poses';
-import { SWIM_POSES } from './nox.swim';
+import { NOX_POSES } from './poses';
+import { SWIM_POSES } from './swim';
 import type { StagePose } from '../../engine/poses/types';
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));

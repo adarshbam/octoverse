@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { NOX } from '../../nox3d/config/nox.character';
-import { NOX_POSES } from '../../nox3d/poses/nox.poses';
+import { NOX } from '../../worlds/nox/character';
+import { NOX_POSES } from '../../worlds/nox/poses';
 import { ArmChain, restFromCurve } from './armChain';
 import { ArmTube, CAP_RINGS, ROOT_RINGS, armRadius, suckerTilt } from './armTube';
 import { mantleRadius } from './headGeometry';
