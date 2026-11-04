@@ -91,7 +91,7 @@ describe('Aether reference targets', () => {
   });
 
   test('shape targets are well-formed ranges', () => {
-    const ranges = [targets.head.centreX, targets.head.halfWidth, targets.head.top, targets.eyesY, targets.armSpan, targets.ring.centreY, targets.ring.halfWidth, targets.dome.halfWidth];
+    const ranges = [targets.head.centreX, targets.head.halfWidth, targets.head.top, targets.eyesY, targets.armSpan, targets.ring.centreY, targets.ring.halfWidth, targets.dome.halfWidth, targets.dome.top];
     for (const [lo, hi] of ranges) expect(lo).toBeLessThan(hi);
     expect(targets.iou).toBe(0.85);
   });

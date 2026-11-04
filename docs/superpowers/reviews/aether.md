@@ -354,3 +354,59 @@ This round improves every gap Aether could close in config:
 - The ring line is within width.
 
 Five samples stay open. Each needs an owner ruling (stubs, ring roll, per-arm colour) or waits for a later task (backdrop). The crescent and the bead-like cups are still unlike P2. The owner's live check decides.
+
+## Task 11: overview pose and dome (P3); owner review PROVISIONAL
+
+Config only (`src/worlds/aether/poses.ts`, `character.ts`, `review/targets.json`); no engine change.
+
+**Registration.** The overview frames P3 at 100 px to a world unit with the origin at the panel's centre (`AETHER_STAGE_FRAMES.overview` 5.09 x 5.04): world (x, y) = ((px - 254.5) / 100, (252 - py) / 100). A 509 x 504 capture with `view=-2.545,2.52,2.545,-2.52` is pixel for pixel P3: the eyes land at (225, 288) and (298, 288) against P3's (221, 289) and (300, 289).
+
+**Pose.** P3 places her higher and a little left of P2 (eye line y 289 px, world -0.37; dome centred at x 256.5 px), at P2's size, so the overview body is (-0.05, 0.31). The eight arms (`OVERVIEW_TRACED`, world units, right side mirrored about x +0.02) form a horseshoe round her:
+- T1/T8 climb the dome's sides and roll over at its top corners;
+- T2/T7 run out level with the cheeks and curl up at the sides;
+- T3/T6 sweep out low and curl up;
+- T4/T5 hang from under the chin and turn out along the bottom.
+Every root is the intro's root exactly (T4/T5 at y -1.14 under the open mouth), so nothing pops under the mantle at the change (test). The face is `happy`. The tech focus keeps these arms and this body.
+
+**Face at the dome's bottom (how it is tested).** The plan asks that `faceAnchor(AETHER_BUNDLE, 'overview')` lie inside the dome's lower fifth. The anchor is the eye line, and P3 paints the eyes 24 px under the glass's seat (seat y 265, eye line y 289); a dome reaching down past the eye line would put the glass over the eyes and tint them. Nox's overview anchor is 0.17 under its dome's seat too. So the test holds the anchor within a fifth of the dome's height of the seat (0.23 under it, a fifth is 0.32), under the dome's middle, with the eye tops below the seat and the mantle closing inside the glass.
+
+**Room for 16 orbs.** P3 paints more than eight tentacles, one orb per curl. With eight arms the pose leaves two points per arm (`OVERVIEW_ROOM`, arc fractions: a mid-arm point and a tip point; T4/T5's tip point is the low turn just before their short end curl). A 0.6 orb hung 0.16 under each of the 16 points (on the solved rest chain, seen from the camera) is at least 0.66 from every other, outside the dome, off the face and inside the frame (`poses.test.ts`). Smallest gap: T1@0.55 to T2@0.82, just over 0.66. On the render (`t11-orb-room.png`), the four tips T1, T8, T2, T7 and the bottom four (T4, T5 at 0.35 and 0.75) hang in open water. The others overlap arm (as several of P3's orbs do over tentacles): T1/T8@0.55 lie over their own climbing arm, T2/T7@0.5 over T3/T6, T3/T6@0.95 over their own curl. Task 12 chooses the real slots; it may prefer the twelve clearest for P3's count.
+
+**Dome** (`dome`, authored in the head's space): centre (0.07, 0.355), half-width 1.38, half-height 0.805, power 3.2, mantle top -0.42 (the seat is at -0.45, so the face rises into the glass with no gap; the face decal is cut above the sunk top, and the eyes stay whole under the seat). Depth 1.0 (Nox and Veyra use 0.6), see below.
+
+| Measure (settled, `swell=1.5`) | Target | Render |
+|---|---|---|
+| Half-width (white rim line, row y 190) | 1.38 +- 0.06 | 1.38 (x 118 to 394 px) |
+| Top (white rim line, column x 256) | P3 y 105 +- 6 | 104 px |
+| Centre x | P3 dome centre +0.02 | +0.015 |
+| Seat | P3 about 265 px | 262 px |
+| Glass bottom vs eye tops | eyes whole below the glass | seat 0.07 above the eye tops |
+
+**Colour.** CIE76 on 5 x 5 patch means at the spec 2.1 P3 points, capture px = P3 px (`.tmp/t11/de.py`, the same Lab as `check_stage.py`; `check_stage.py --panel 3` has no panel 3 samples, and its composition mode compares masks only, so I computed it directly):
+
+| Sample | P3 | Render (settled) | delta E | Render at `swell=1` |
+|---|---|---|---|---|
+| Dome interior upper (243, 125) | 59, 94, 226 | 69, 101, 221 | **8.0** | 6.2 |
+| Dome rim (133, 190) | 73, 106, 209 | 77, 101, 215 | **7.5** | 17.2 |
+| Dome top sheen (263, 108) | 164, 202, 253 | 157, 198, 255 | **3.5** | 49.7 |
+
+`swell=1` is one second into the opening sheet, where the morph is at its overshoot (about 1.05 of 1.07 at 0.85 s, settling by 1.3 s): the glass is 5% larger (half-width 1.455, top at 94.5 px), so the rim and top samples fall inside the glass. The settled overview (the sheet's end, `swell=1.5`) is what the targets describe.
+
+Rounds (settled): c0 the start values (`#2a44c8`, `#7a9aff`, `#c4dcff`, depth 0.6) 18.4 / 16.8 / 25.5; c1 tint `#0c44ff`, rim `#b0e0ff`, rim top `#c8f4ff`: 1.0 / 28.6 / 23.9 (the rim sample sits 15 px inside the glass edge, where the engine's fresnel `pow(1 - n.v, 4)` gives under 0.02 at depth 0.6); c2 depth 1.0 (the sides turn away from the camera over a wider band): 2.9 / 19.7 / 4.2; c3 to c7 rim colour: the rim sample needs less blue and more red and green than the interior, and the rim is added over the same tint, so the rim token has to be a near-white with little extra blue (c3 `#f0ffc0` 6.8 / 7.9 / 3.4, a yellow cast; final: tint `#0644f0`, rim `#ecffe4`, rim top `#c8f4ff`, sheen `#a4caff` unchanged: 8.0 / 7.5 / 3.5). A darker navy tint (`#0a2aa0`, closer to P3's lower glass) misses the interior and rim samples (29.4 / 18.9) and does not darken the lower corners, which come from the rim and the seat line, not the tint.
+
+**What does not match P3 (engine limits):**
+- P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render is (131, 150, 254) and (146, 156, 246) there: the engine's dome shader has one tint, a rim colour for the lower 60% of the height, and a bright seat line along the bottom (`uRim * seat * 1.4`), so the lower corners and the seat read light where P3 is dark. Engine request below.
+- P3's interior falls from the bright top to navy within 25 px (x 256: y 120 (33, 61, 186), y 128 (13, 37, 125)); the render's top band is flatter (y 128 (65, 95, 217)). The HTML project panel covers most of the middle in the live overview (`t11-overview-ui.png`).
+- The sunk mantle shows a straight-sided lip between the face and the seat; P3's face blends into the glass.
+- The arms keep their P2 thickness and cups, so the horseshoe reads heavier than P3's slimmer painted tentacles.
+
+Stills (`docs/superpowers/reviews/assets/aether/`, render left, P3 right, vite on 127.0.0.1:5196, `WORLD=aether VIEW=509x504 SCALE=1 node scripts/stage-capture.mjs overview <out> "view=-2.545,2.52,2.545,-2.52&swell=1.5&tier=high&kitwait=90000"`):
+- `t11-overview-vs-p3.png`: the whole panel, registered;
+- `t11-dome-2x-vs-p3.png`: the dome at 2x (P3 px 90 to 420, 80 to 300);
+- `t11-orb-room.png`: the 16 room points with 0.6 orbs hung 0.16 below, drawn on the render (2x);
+- `t11-overview-ui.png`: the live overview at 1280 x 900 with the project panel in the dome.
+No videos. No fps measured here (three sessions on one GPU).
+
+### Verdict, honest (not an approval)
+
+The dome's size and place are P3's (half-width 1.38, top 104 px), the face sits at its bottom with the happy smile and whole eyes, and the three P3 dome samples are within delta E 10 on the settled overview (8.0, 7.5, 3.5; the interior and rim with about 2 of margin). The glass reads brighter and flatter than P3's, and its lower corners and seat are light where P3 is dark: P3's dark-bottomed glass needs an engine change. The horseshoe has room for 16 orbs that clear one another, the dome, the face and the frame; eight of those points also clear the arms. The owner's live look decides.

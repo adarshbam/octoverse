@@ -1,6 +1,6 @@
 import { AETHER } from './character';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
-import { flattenForDepth, withRoot as withRootAt } from '../../engine/poses/authoring';
+import { flattenForDepth, toContent, withRoot as withRootAt } from '../../engine/poses/authoring';
 import type { StagePose } from '../../engine/poses/types';
 
 /** Centre the hidden arm roots gather around (her head's centre), and where the roots sit (just under the chin). */
@@ -49,11 +49,61 @@ const INTRO_ARMS = Object.fromEntries(ARM_IDS.map(id => [id, flattenForDepth(INT
 /** The intro, as the panel 2 trace: she faces the visitor with a soft smile. */
 const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: 'gentle', headMorph: 0, orbs: 0 };
 
-// Every other stage reuses the intro's arms and body until milestone 3 traces them from her own
-// panels (the overview from P3, the detail from P5, the entrance from P1): only what a stage
-// means is set, the head's swell and the orbs in the overview and its expression.
-const OVERVIEW: StagePose = { ...INTRO, expression: 'happy', headMorph: 1, orbs: 1 };
+// Panel 3, the overview (Task 11), traced in world units from the native panel and checked on the
+// 3x one: world (x, y) = ((px - 254.5) / 100, (252 - py) / 100), the overview's own framing (bundle.ts).
+// Her head opens into the glass dome (character.ts, `dome`), her face at its bottom with the happy
+// open smile, and her arms spread into a wide horseshoe round her. P3 places her higher than P2 and
+// a little to the left: the eye line at y 289 px (world -0.37, P2's is -0.68) and the dome centred
+// at x 256.5 px, so the body moves to (-0.05, 0.31), at P2's size (P3's eyes are as large as P2's).
+const OVERVIEW_BODY = { x: -0.05, y: 0.31, scale: 1, yaw: 0 };
+
+// P3 paints more than eight tentacles, each with an orb hanging from its curl. Aether keeps exactly
+// eight, so the horseshoe is drawn round where P3's twelve orbs hang (and four more, for the 16 slots
+// of spec 7.5), each arm carrying two: one at a mid-arm point, one at its tip. As painted:
+//   T1/T8  rise from behind the face and climb the dome's sides, rolling over at the top corners
+//          (P3's upper orbs, at y 210 px, hang under these curls);
+//   T2/T7  run out level with the cheeks and curl up and over at the sides (P3's y 280 orbs);
+//   T3/T6  sweep out low and curl up at the lower sides;
+//   T4/T5  hang down the front from under the chin and turn out along the bottom, curling up.
+// The roots are the intro's (T4 and T5 at y -1.14 under the open mouth), so nothing pops as she
+// changes stage. Left curls wind counter-clockwise, right ones clockwise, as in the intro. The left
+// side is the right mirrored about her head's centre line (x +0.02).
+export const OVERVIEW_TRACED: Record<ArmId, Point2[]> = {
+  T1: [[-0.58, -0.42], [-0.91, -0.2], [-1.21, 0], [-1.44, 0.28], [-1.54, 0.62], [-1.62, 0.92], [-1.76, 1.08], [-1.93, 1.1], [-2.04, 1], [-2.04, 0.88], [-1.96, 0.82], [-1.89, 0.88]],
+  T2: [[-0.58, -0.68], [-0.96, -0.62], [-1.36, -0.5], [-1.71, -0.3], [-1.98, -0.02], [-2.16, 0.18], [-2.27, 0.22], [-2.34, 0.12], [-2.3, 0], [-2.21, 0.02]],
+  T3: [[-0.41, -0.95], [-0.76, -1.08], [-1.16, -1.18], [-1.56, -1.22], [-1.91, -1.15], [-2.16, -0.98], [-2.28, -0.8], [-2.24, -0.66], [-2.13, -0.66], [-2.1, -0.76]],
+  T4: [[-0.16, -0.95], [-0.24, -1.2], [-0.36, -1.42], [-0.58, -1.57], [-0.84, -1.62], [-1.06, -1.58], [-1.2, -1.46], [-1.2, -1.34], [-1.11, -1.3], [-1.06, -1.37]],
+  T5: [[0.2, -0.95], [0.28, -1.2], [0.4, -1.42], [0.62, -1.57], [0.88, -1.62], [1.1, -1.58], [1.24, -1.46], [1.24, -1.34], [1.15, -1.3], [1.1, -1.37]],
+  T6: [[0.45, -0.95], [0.8, -1.08], [1.2, -1.18], [1.6, -1.22], [1.95, -1.15], [2.2, -0.98], [2.32, -0.8], [2.28, -0.66], [2.17, -0.66], [2.14, -0.76]],
+  T7: [[0.62, -0.68], [1.0, -0.62], [1.4, -0.5], [1.75, -0.3], [2.02, -0.02], [2.2, 0.18], [2.31, 0.22], [2.38, 0.12], [2.34, 0], [2.25, 0.02]],
+  T8: [[0.62, -0.42], [0.95, -0.2], [1.25, 0], [1.48, 0.28], [1.58, 0.62], [1.66, 0.92], [1.8, 1.08], [1.97, 1.1], [2.08, 1], [2.08, 0.88], [2.0, 0.82], [1.93, 0.88]],
+};
+
+/**
+ * Where the horseshoe leaves room for an orb on each arm (arc fractions, 0 root to 1 tip): a mid-arm
+ * point and a tip point. An orb 0.6 across hung 0.16 under each one clears the others, the dome, the
+ * face and the frame (poses.test.ts). Task 12 sets the real slots; these are the room the pose leaves.
+ * T4/T5's tip point is the low turn just before their short end curl.
+ */
+export const OVERVIEW_ROOM: Record<ArmId, readonly [number, number]> = {
+  T1: [0.55, 0.9], T2: [0.5, 0.82], T3: [0.6, 0.95], T4: [0.35, 0.75],
+  T5: [0.35, 0.75], T6: [0.6, 0.95], T7: [0.5, 0.82], T8: [0.55, 0.9],
+};
+
+// Every arm keeps its intro root exactly (T4 and T5's under the open mouth), so the roots do not
+// move under the mantle as she changes stage.
+const OVERVIEW_ARMS = Object.fromEntries(
+  ARM_IDS.map(id => [id, flattenForDepth(withRoot(spec(id), toContent(OVERVIEW_TRACED[id], OVERVIEW_BODY), undefined, INTRO_TRACED[id][0]), spec(id))]),
+) as Record<ArmId, Point2[]>;
+
+const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1, orbs: 1 };
+
+// Panel 4, a technology in focus: the head closes again while the arms keep the overview's places,
+// so the orbs do not move round; the owning arm's lift comes from the focus choreography (Task 13).
 const TECH_FOCUS: StagePose = { ...OVERVIEW, headMorph: 0 };
+
+// The detail and the entrance reuse the intro's arms and body until milestone 3 traces them from
+// P5 and P1: only what a stage means is set.
 const DETAIL: StagePose = { ...INTRO, expression: 'attentive' };
 const ENTERING: StagePose = { ...INTRO };
 

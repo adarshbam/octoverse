@@ -93,10 +93,15 @@ export const AETHER: CharacterConfig = {
     suckerHot: '#fff2ff',
     suckerHollow: '#a688e8',
     suckerShadow: '#1e1470',
-    // The overview dome: blue-violet glass, a lavender-blue rim, a blue-white sheen (P3 samples).
-    domeTint: '#2a44c8',
-    domeRim: '#7a9aff',
-    domeRimTop: '#c4dcff',
+    // The overview dome: blue glass, a rim and a blue-white sheen across the top, tuned in Task 11 on
+    // the settled overview against the three P3 samples (interior upper 59,94,226: delta E 8.0; rim
+    // 73,106,209: 7.5; top sheen 164,202,253: 3.5; see reviews/aether.md). The engine adds the rim over
+    // the tint, and P3's rim sample is less blue than its interior, so the rim token is a near-white
+    // with little extra blue: on the glass it reads periwinkle-white. P3's glass darkens toward the
+    // bottom; the engine's dome has one tint (an engine request, MORNING-REVIEW-aether.md).
+    domeTint: '#0644f0',
+    domeRim: '#ecffe4',
+    domeRimTop: '#c8f4ff',
     domeSheen: '#a4caff',
     // The in-focus orb's lavender-white rim (P4: 228,217,248).
     orbFocus: '#e4d9f8',
@@ -193,8 +198,16 @@ export const AETHER: CharacterConfig = {
     size: 0.3, sizePower: 0.7, spacing: 2.15, elongation: 1.1, tilt: 45, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
     style: { rimWidth: 0.4, scallop: 0.6, edge: '#eec6fa', rim: '#f4e8ff', hollow: '#a888d8', glow: 1.3 },
   },
-  // The overview dome, a wide glossy capsule round the head (P3: half-width 1.38; refined in Task 11).
-  dome: { center: [0.035, 0.272], halfWidth: 1.4, halfHeight: 0.62, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The overview dome, a wide glossy capsule round the head (Task 11, P3 traced at the overview's
+  // registration, world (x, y) = ((px - 254.5) / 100, (252 - py) / 100)): the glass spans x 118 to
+  // 395 px and y 105 to 266 px, so in world units x -1.365 to 1.405 and y -0.14 to 1.47, over the
+  // body placed at (-0.05, 0.31) (poses.ts). Authored in the head's space: centre x 0.07 is the
+  // head's own axis. Its seat sits just above the eyes (P3: eye line at y 289 px), and the mantle
+  // sinks to just inside it (-0.42 against the seat's -0.45), so the face rises into the glass with
+  // no gap and the eyes stay whole below it (the face decal is cut above the sunk top). Depth 1.0
+  // (Nox and Veyra use 0.6): the deeper glass turns its sides from the camera over a wider band, so
+  // the engine's fresnel rim reaches P3's rim sample 15 px inside the edge (at 0.6 it stayed 16.8 to 28.6 away whatever the rim colour).
+  dome: { center: [0.07, 0.355], halfWidth: 1.38, halfHeight: 0.805, depth: 1.0, power: 3.2, mantleTop: -0.42 },
   // The synapse effect arrives in Task 20; until then the dome swells alone.
   headEffect: 'none',
   // Jelly skin with fine star specks and a lavender-pink glow through it; tuned in Task 6.

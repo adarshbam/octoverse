@@ -33,6 +33,25 @@ What to check:
    - The dome is a little boxier than P2's.
    - The right upper arm (T8) now rises a little higher at its root, toward P2's painted stub.
 
+### Overview pose and dome (Task 11): PROVISIONAL, not approved
+
+Open the overview live (`?world=aether`, then Explore or click her head) and compare with P3. Stills in `docs/superpowers/reviews/assets/aether/` (render left, P3 right):
+- `t11-overview-vs-p3.png` (registered pixel for pixel), `t11-dome-2x-vs-p3.png`;
+- `t11-orb-room.png`: 16 orbs, 0.6 across, hung 0.16 under the room points the pose leaves;
+- `t11-overview-ui.png`: the live overview with the project panel in the dome.
+
+Numbers (settled overview; all in `docs/superpowers/reviews/aether.md`, Task 11):
+- Dome half-width 1.38 (target 1.38 +- 0.06), top at P3 y 104 px (105 +- 6), centred at +0.015.
+- P3 dome samples, delta E: interior upper **8.0**, rim **7.5**, top sheen **3.5** (all within 10). One second into the opening (`swell=1`) the glass is at its overshoot, 5% larger, and the rim and sheen samples miss (17.2, 49.7).
+- The 16 orbs clear one another (at least 0.66 apart), the dome, the face and the frame (test). Eight of them also clear the arms on the render; the other eight overlap an arm, as several of P3's do.
+
+What to check:
+1. **Dome shape**: wide capsule, the size and place of P3's.
+2. **Glass colour**: brighter and flatter than P3's. P3's glass darkens toward the bottom and the render's lower corners and seat line are light (engine request below). The rim token is a near-white so the rim sample lands; on the glass it reads periwinkle-white, not lavender.
+3. **Horseshoe room for orbs**: T1/T8 climb the dome's sides, T2/T7 and T3/T6 curl at the sides, T4/T5 turn out along the bottom. Is it roomy enough, and is the composition P3's?
+4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
+5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -74,6 +93,11 @@ Please give the real names.
   - Wanted: an optional `post.bloom.selection` (for example `'glow'`). It would bloom only the glow layer (halo shell, core card, cups) through `SelectiveBloom` from `@react-three/postprocessing`. Aether could then go back to threshold 0.8 for her glow while the face decal stays out.
   - Target: pupils' darkest quarter <= 15 per channel with threshold 0.8.
 - **Per-arm jelly tint (Task 6, optional).** See "Arm body upper" above: a per-arm override of `JellyLook.depth` (or a `tint` on `ArmSpec`) would let T1 carry P2's cyan streak (90, 130, 226) while T2 stays indigo (75, 88, 231).
+- **Dome glass darker toward the bottom, and a per-character rim and seat (Task 11).** `src/engine/character/domeMaterial.ts` gives the glass one tint (`uTint`), adds `uRim` over the lower 60% and `uRimTop` above with a fixed fresnel `pow(1 - ndv, 4) * 2.4 + pow(1 - ndv, 12) * 1.6`, and draws a bright seat line `uRim * seat * 1.4` along the bottom 10%.
+  - P3's glass darkens toward the bottom: (135, 230) is (52, 60, 177) and (360, 255) is (45, 37, 98). The render reads (131, 150, 254) and (146, 156, 246) there.
+  - Wanted (optional, absent = today's look): `palette.domeTintLow` (the tint mixed in toward the seat, for example `mix(uTintLow, uTint, smoothstep(0.0, 0.6, up))`), `DomeShape.rimPower` and `rimStrength` (today 4 and 2.4), and `DomeShape.seat` (the seat line's strength, today 1.4; Aether would use about 0.3).
+  - Aether widens its rim today with `dome.depth` 1.0 (Nox and Veyra 0.6), which also brightens the lower corners; with `rimPower` it could go back to 0.6.
+  - Target: the three P3 dome samples stay within delta E 10, and (135, 230) and (360, 255) come within delta E 20 of P3.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
 
 ## Questions for the owner (Task 4, face)
