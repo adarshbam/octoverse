@@ -2,6 +2,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
+import { CAMERA_Z } from '../../../engine/config/stage';
+import { faceAnchor } from '../../../engine/types/bundle';
 import { asBakeRecord, type BakedPointLight } from '../../../engine/world/bakedLight';
 import { farCardSize } from '../../../engine/world/farPlate';
 import { kitMaterialBrightest } from '../../../engine/world/kitMaterials';
@@ -196,12 +198,47 @@ test('live elements: bubbles and violet motes; no embers', () => {
   expect(r).toBeGreaterThan(g);
 });
 
-test.skip('three to five jellyfish at the edges, at least two at tier low', () => {
-  // TODO(Aether Task 7: jellyfish): the `jellyfish` live element is not in the engine yet (ruling R14).
-  // Declare live.elements.jellyfish (count high 5, low 2, orange and violet) and replace this with:
-  //   const jelly = REEF_WORLD.live.elements!.jellyfish!;
-  //   expect(jelly.count.high).toBe(5);
-  //   expect(jelly.count.low).toBeGreaterThanOrEqual(2);
+test('three to five small orange and violet jellyfish at the left edge of the intro frame, at least two at tier low', () => {
+  const jelly = REEF_WORLD.live.elements?.jellyfish;
+  expect(jelly).toBeDefined();
+  if (!jelly) return;
+  // Three to five at the top tier (spec 7.7), never fewer than two at the lowest (7.16), never more at a lower tier.
+  expect(jelly.count.high).toBeGreaterThanOrEqual(3);
+  expect(jelly.count.high).toBeLessThanOrEqual(5);
+  expect(jelly.count.low).toBeGreaterThanOrEqual(2);
+  expect(jelly.count.medium).toBeLessThanOrEqual(jelly.count.high);
+  expect(jelly.count.medium).toBeGreaterThanOrEqual(jelly.count.low);
+  // Small: the bell's radius at most 0.3 stage units.
+  expect(jelly.size[1]).toBeLessThanOrEqual(0.3);
+  // Orange bells with violet filaments: the bell leans red over blue, the filament blue over green.
+  const [br, bg, bb] = rgb(jelly.bell);
+  expect(br).toBeGreaterThan(bb);
+  expect(br).toBeGreaterThan(bg);
+  const [fr, fg, fb] = rgb(jelly.filament);
+  expect(fb).toBeGreaterThan(fg);
+  expect(fr).toBeGreaterThan(fg);
+  // A slow beat every 3 to 6 seconds, and a small drift.
+  expect(jelly.pulse[0]).toBeGreaterThanOrEqual(3);
+  expect(jelly.pulse[1]).toBeLessThanOrEqual(6);
+  expect(jelly.drift).toBeLessThanOrEqual(0.08);
+});
+
+test("the jellyfish region stays off the host's face and sits in the outer part of the intro frame", () => {
+  const jelly = REEF_WORLD.live.elements?.jellyfish;
+  if (!jelly) throw new Error('no jellyfish element');
+  const [ax, ay, az] = faceAnchor(HOST_BUNDLE, 'intro');
+  const { min, max } = jelly.region;
+  // The face anchor is not inside the region's box, and the box is behind the host's head.
+  const inside = ax >= min[0] && ax <= max[0] && ay >= min[1] && ay <= max[1] && az >= min[2] && az <= max[2];
+  expect(inside).toBe(false);
+  expect(max[2]).toBeLessThan(az);
+  // Seen from the camera, every corner lands on the stage plane in the outer part of the frame, on one side of the host.
+  const half = HOST_STAGE_FRAMES.intro.width / 2;
+  const onPlane = (x: number, z: number) => (x * CAMERA_Z) / (CAMERA_Z - z);
+  const xs = [min[0], max[0]].flatMap(x => [min[2], max[2]].map(z => onPlane(x, z)));
+  expect(Math.max(...xs.map(Math.abs))).toBeLessThanOrEqual(half + 0.5);
+  expect(Math.min(...xs.map(Math.abs))).toBeGreaterThanOrEqual(half * 0.45);
+  expect(Math.sign(Math.min(...xs))).toBe(Math.sign(Math.max(...xs)));
 });
 
 test("near.glb is baked from layout.json and the world's lights", () => {

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../../../engine/config/stage';
 import { faceAnchor } from '../../../engine/types/bundle';
-import { PROP_DRIVE_IDS } from '../../../engine/world/props';
+import { PROP_DRIVE_IDS, bobOffset } from '../../../engine/world/props';
 import type { Placement, WorldConfig } from '../../../engine/world/types';
 import { asWorldLayout, layoutProblems, validateWorld } from '../../../engine/world/validateWorld';
 import { HOST_BUNDLE, HOST_STAGE_FRAMES } from '../bundle';
@@ -223,15 +223,30 @@ test('the engine accepts this kit and layout, with the glyph on the emissive dri
   expect(PROP_DRIVE_IDS).toContain('emissive');
   expect(validateWorld(world([{ id: 'gateGlyph', node: 'gate_glyph', drive: 'emissive' }]))).toEqual([]);
   // Declaring every card as an 'emissive' prop is only a way to validate that each card is a kit node a prop may
-  // name. It must not be copied into the real config: the cards take 'bob' (the skipped test below), not 'emissive'.
+  // name. It must not be copied into the real config: the cards take 'bob' (the test below), not 'emissive'.
   // The reef draws the cards with a glow material (Task 5), which sets its own level: the check runs without the materials.
   for (const name of cards) expect(validateWorld({ ...world([{ id: name, node: name, drive: 'emissive' }]), materials: [] }), name).toEqual([]);
 });
 
-// The `'bob'` drive is not in the engine yet (Aether Task 7), and validateWorld rejects a prop with a
-// drive it does not know: so the cards are nodes and are laid out, but cannot be declared on 'bob'.
-test.skip('the cards are on the bob drive, each with its own prop', () => {
-  // TODO(Aether Task 7: 'bob'): declare card_glass_01..08 as props on 'bob' and replace this with:
-  //   expect(PROP_DRIVE_IDS).toContain('bob');
-  //   expect(validateWorld(world(cards.map(node => ({ id: node, node, drive: 'bob' }))))).toEqual([]);
+test('the cards are on the bob drive, each its own prop with its own small, slow motion', () => {
+  expect(PROP_DRIVE_IDS).toContain('bob');
+  const props = REEF_WORLD.props ?? [];
+  expect(props.map(p => p.node)).toEqual(cards);
+  expect(new Set(props.map(p => p.id)).size).toBe(cards.length);
+  for (const prop of props) {
+    expect(prop.drive, prop.id).toBe('bob');
+    // Scenery: 0.04 to 0.08 stage units either way, once every 5 to 9 seconds.
+    expect(prop.bob?.amplitude, prop.id).toBeGreaterThanOrEqual(0.04);
+    expect(prop.bob?.amplitude, prop.id).toBeLessThanOrEqual(0.08);
+    expect(prop.bob?.period, prop.id).toBeGreaterThanOrEqual(5);
+    expect(prop.bob?.period, prop.id).toBeLessThanOrEqual(9);
+  }
+  // The cards do not all move alike: the periods vary.
+  expect(new Set(props.map(p => p.bob?.period)).size).toBeGreaterThanOrEqual(4);
+  // Their phases come from their ids (props.ts), so they bob out of step.
+  expect(new Set(props.map(p => bobOffset(1.3, p, 1))).size).toBe(cards.length);
+  // The engine accepts the world with the cards on bob beside their glow material (only an 'emissive' drive clashes with one).
+  expect(validateWorld(REEF_WORLD)).toEqual([]);
+  expect(validateWorld(world(props))).toEqual([]);
+  for (const node of cards) expect(REEF_WORLD.materials?.find(m => m.node === node)?.material, node).toBe('glow');
 });

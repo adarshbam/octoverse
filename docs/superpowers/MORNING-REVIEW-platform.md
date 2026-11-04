@@ -59,7 +59,7 @@ What to check, live at `?world=octoverse&stage=intro`:
 3. The gate as a greeting, not glare: it stands right of the head and is clearly visible in the intro. The static layout cannot hide it per stage; Task 6's frames own that.
 
 Known gaps for the owner to rule on:
-- Jellyfish and bobbing props are left out (ruling R14); jellyfish waits on Aether Task 7. Props wait on Task 12.
+- Ruling R14 is closed (Task 5b): the eight glass cards bob (each a `bob` prop, 0.04 to 0.08 units, 5 to 9 s, own phase) and five small orange-and-violet jellyfish (three at medium, two at low) drift at the left edge of the intro frame, behind the cards (`docs/superpowers/evidence/platform/m2/task5b-reef-intro.png`). The glyph's `emissive` prop still waits on Task 12. The jellyfish are one swarm in one box, so they sit on the left edge only: the gate holds the right edge.
 - Magenta corals take a glow material, so they lose the engine's coral sway and rest drop; their heights are set by hand. A per-node coral colour (E02b) would fix this.
 - Cards are a glow approximation of glass.
 - Under load the production kit sometimes took longer than the engine's 15 s wait, and the world fell back to level 1.
@@ -131,7 +131,7 @@ Known gaps for the owner to rule on:
 - Card epithet text is 13px (name 16px): spec 7.15 says body text >= 16px, but 14px wraps Veyra's epithet at 768 x 1024. Kept as a caption; owner rule.
 - The face-clearance e2e measures against a geometry model (`window.__platform.faceRect`), not pixels; the six landing stills were overlaid by hand. A pixel or probe check is planned for the final pass (Task 21).
 - Bare `/` is now the landing; Nox's own specs open `/?world=nox` (commit 312361a, test files only).
-- Reef: the glass cards do not bob and there is no jellyfish yet (engine drives landed on Aether's branch; waiting on its engine sync); the gate glyph reads like an atom/React-style mark, not the octopus logo; fps 40.2 / 29.0 / 37.5 under load against a floor of 40.
+- Reef: the glass cards now bob and five jellyfish drift at the left edge (Task 5b, R14 closed; the host look is unchanged: 12 of 17 P2 samples within delta E 10, the same five misses). The gate glyph reads like an atom/React-style mark, not the octopus logo. fps under load (production build, `stage=intro&tier=low`, which production ignores, so auto tier): 43.1 / 43.1 / 40.5 median with the jellyfish and bob, against 40.2 / 29.0 / 37.5 at Task 5; the floor is 40, so it is still marginal on the shared GPU. GPU per frame 22.8 ms (Task 5: 22.5 to 23.4), so the jellyfish and bob cost nothing measurable.
 
 ## PENDING OWNER REVIEW: M3, profile, Explore and not found (Task 9)
 

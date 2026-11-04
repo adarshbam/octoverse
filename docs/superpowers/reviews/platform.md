@@ -158,6 +158,16 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 - Result: 12 of 17 within delta E 10 (arm upper 43.6 to 18.8, arm underside 11.2 to 14.5, cup rim 5.0 to 9.3; the rest within 2), every global check passes, IoU 0.856, mean inside passes (saturation 0.484 against a 0.478 floor).
 - Still open: the head sides need one-sided mantle light (BLOCKED on E02b / owner); arm upper is P2's deep blue gap and fights the lighter arms; upper water 11.0 (brightening it further lifts mid water and the water by the head).
 
+## Task 5b: reef cards bob, jellyfish (2026-11-05)
+
+**Verdict: provisional, pending owner.** Closes ruling R14 now that the engine has the `bob` drive and the `jellyfish` element (Aether Task 7).
+- `REEF_WORLD.props`: `card_glass_01..08`, each a `bob` prop with its own id (the engine derives the phase from it), amplitude 0.04 to 0.08 units, period 5 to 9 s, eight different pairs. The cards keep their glow material: `validateWorld` only refuses an `emissive` drive beside a glow, so `bob` and glow coexist.
+- `REEF_WORLD.live.elements.jellyfish`: count 5 / 3 / 2 (high / medium / low; the 7.16 floor of two holds), bell `#ff8a3a` (palette coral), filament `#b48cff` (palette glyph), size 0.14 to 0.26, pulse 3 to 6 s, drift 0.04, region x -3.5 to -2.3, y 1.4 to 3.6, z -7.5 to -5.5: behind the cards, upper left of the intro frame, away from the face (tests).
+- Tests: the two `TODO(Aether Task 7)` skips are real (`config.test.ts`: jellyfish values, and the region off the face anchor and in the outer part of the frame; `layout.test.ts`: the cards on `bob`). Red first (3 failing), then green.
+- Host look: unchanged. The new frozen intro reads the same 17 delta E values as the engine-synced HEAD without the change (12 of 17 within 10, the same five misses: head side left and right, arm upper, arm underside, upper water). Against the Task 5 still, the engine sync moved the crown (3.2 to 5.3; crown B-R 153.6 to 140.2, at the 140 line) and upper head (8.9 to 8.3): not this task.
+- Frame rate under load: 43.1 / 43.1 / 40.5 median (slow10 27.9 / 27.2 / 25.6); GPU 22.76 ms per frame. Task 5: 40.2 / 29.0 / 37.5. No cut taken.
+- Still: `docs/superpowers/evidence/platform/m2/task5b-reef-intro.png`.
+
 ## Task 5: the reef world (2026-11-05)
 
 **Verdict: provisional, pending owner.** The reef is in the host bundle as `REEF_WORLD`, with near bake, far plate, membrane gate, glow materials and live water. P2 holds Task 3's 12 of 17 with no passing sample regressed. The gate's brightest is 0.32 of the face glow's. Frame rate is marginal against the 40 fps floor under load. Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { applyPlacement } from '../../../engine/world/placement';
-import type { Placement, Vec3, WorldConfig, WorldLight } from '../../../engine/world/types';
+import type { JellyfishConfig, Placement, Vec3, WorldConfig, WorldLight, WorldProp } from '../../../engine/world/types';
 import { asWorldLayout } from '../../../engine/world/validateWorld';
 import farData from './far.json';
 import { REEF_CARDS, REEF_KIT, REEF_MAGENTA_CORALS } from './kit';
@@ -127,6 +127,42 @@ const MATERIALS: WorldConfig['materials'] = [
   ...REEF_MAGENTA_CORALS.map(node => ({ node, material: 'glow' as const, params: { color: palette.magenta, strength: 0.9, tips: 1.6, pulse: 0.15, period: 9 } })),
 ];
 
+/**
+ * The glass cards drift: each a `bob` prop on its own (the engine gives each its own phase from its
+ * id), a few hundredths of a stage unit either way, once every 5 to 9 seconds, no two the same
+ * (spec 7.7: scenery, never interface). The cards keep their glow material: the `bob` drive moves
+ * a node and the glow sets its own level, so the two coexist (validateWorld only refuses an
+ * 'emissive' drive on a glow).
+ */
+const CARD_BOBS: readonly { amplitude: number; period: number }[] = [
+  { amplitude: 0.06, period: 7 },
+  { amplitude: 0.05, period: 8.5 },
+  { amplitude: 0.07, period: 5.5 },
+  { amplitude: 0.04, period: 6.5 },
+  { amplitude: 0.05, period: 9 },
+  { amplitude: 0.08, period: 7.5 },
+  { amplitude: 0.06, period: 5 },
+  { amplitude: 0.04, period: 8 },
+];
+const PROPS: WorldProp[] = REEF_CARDS.map((node, i) => ({ id: node, node, drive: 'bob' as const, bob: CARD_BOBS[i % CARD_BOBS.length] }));
+
+/**
+ * The jellyfish (spec 7.7): a few small orange bells with violet filaments, in the open water at the
+ * left edge of the intro frame, behind the cards and well away from the host's face (the gate holds
+ * the right edge). Five at the top tier, three at medium, two at low (7.16: never fewer). The region
+ * sits 5 to 8 units behind the stage, so its box projects to the outer part of the frame on the
+ * stage plane (config.test).
+ */
+export const JELLYFISH: JellyfishConfig = {
+  count: { high: 5, medium: 3, low: 2 },
+  size: [0.14, 0.26],
+  bell: palette.coral,
+  filament: palette.glyph,
+  pulse: [3, 6],
+  drift: 0.04,
+  region: { min: [-3.5, 1.4, -7.5], max: [-2.3, 3.6, -5.5] },
+};
+
 /** Soft shadows where arms cross and pass under the head; bloom and vignette as Task 3 fitted them to P2. */
 const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.5, color: '#140a30' },
@@ -173,6 +209,7 @@ export const REEF_WORLD: WorldConfig = {
   // far-0 is the farthest layer, as far.json orders them (blender/reef/render_far.py writes the files).
   farPlate: { cutZ: farData.cutZ, layers: farData.layers.map((layer, i) => ({ url: `/octoverse/world/reef/far/far-${i}.ktx2`, z: layer.z })) },
   materials: MATERIALS,
+  props: PROPS,
   layout,
   // A straight-on camera, as P2 is painted; Nox's drift amount at 0.85 of his pace (between Veyra's and his).
   camera: { tilt: 0, hover: { amount: 1, pace: 0.85 } },
@@ -191,6 +228,6 @@ export const REEF_WORLD: WorldConfig = {
   },
   // The surface's bright patch toward the top right, as P2 is lit.
   water: { fogDensity: 0.034, surfaceDir: [0.3, 0.3, -0.9], environmentIntensity: 0.06, causticStrength: 0.005, colours: WATER_COLOURS, environment: WATER_ENVIRONMENT },
-  // Rising bubbles, violet motes, rays and far fish (spec 7.7); no snow (not in the spec's list, and a cost: 7.16), no embers.
-  live: { snow: 0, motes: 1, fish: 0.5, rays: 1, bubbles: 1, embers: 0, colours: LIVE_COLOURS },
+  // Rising bubbles, violet motes, rays, far fish and the jellyfish (spec 7.7); no snow (not in the spec's list, and a cost: 7.16), no embers.
+  live: { snow: 0, motes: 1, fish: 0.5, rays: 1, bubbles: 1, embers: 0, colours: LIVE_COLOURS, elements: { jellyfish: JELLYFISH } },
 };
