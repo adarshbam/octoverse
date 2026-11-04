@@ -8,11 +8,15 @@ import type { WorldConfig } from '../../../engine/world/types';
 /** Nothing stands on the stage: no pieces, no lights of the kit's kinds. */
 const LAYOUT: WorldConfig['layout'] = { floorY: -3, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] };
 
-/** The water's own colours: deep indigo below, a lit blue surface glow toward the top right. */
+/**
+ * The water's own colours: deep indigo below, a lit blue surface glow toward the top right. Task 3
+ * brightened the zenith and the glow toward P2's lit top right (upper water delta E 18.3 to 11.0);
+ * the darker water round the host stays within delta E 10.
+ */
 const WATER_COLOURS: WorldConfig['water']['colours'] = {
   deep: '#020a2c',
-  zenith: '#0a2c80',
-  glow: '#1081db',
+  zenith: '#0a50e8',
+  glow: '#20a8ff',
   opening: '#3cb4ff',
   rays: '#2a86e8',
   raysWide: '#4cb0ff',
@@ -22,6 +26,9 @@ const WATER_COLOURS: WorldConfig['water']['colours'] = {
 export const REEF_STAGE: WorldConfig = {
   id: 'reef-stage',
   // No kit: no file, no pieces.
+  // TODO(kitless): the empty url fails to load (two page errors) and the world steps down to its last
+  // level, water, fog and light (ruling R13). Replace with the reef kit in Task 5; until then stills
+  // come from scripts/platform-capture.mjs, which accepts this world's missing kit.
   kit: { url: '', pieces: [] },
   layout: LAYOUT,
   // A straight-on camera, as P2 is painted; Nox's drift amount at 0.85 of his pace (calmer).

@@ -22,7 +22,7 @@ export const HOST_FACES = {
 } as const satisfies Record<string, ExpressionId>;
 
 /** The wide open smile (P2): dark plum inside, coral tongue, brows a little raised, warm blush. */
-const WELCOME = { lidRest: 0, lidBottom: 0.05, browLift: 0.15, browTilt: 0, mouthCurve: 0.9, mouthOpen: 0.75, blush: 0.5 } as const;
+const WELCOME = { lidRest: 0, lidBottom: 0.05, browLift: 0.15, browTilt: 0, mouthCurve: 0.9, mouthOpen: 1, blush: 0.5 } as const;
 
 /**
  * The host's light: the shared key from above-left, a peach underglow (its warm core, spec 7.2)
@@ -37,12 +37,12 @@ const HOST_LIGHTING: StageLighting = {
 
 // Arms fan out in depth from the body as Nox's do (the shared rig): the rising pair behind the
 // head, the shoulder pair level, the low and centre pairs in front. Long and full at the root
-// (spec 7.1): traced diameters in P2 are about 0.22 mid-arm on T2 and T7 and 0.26 near the root on
-// T3 and T6; the rising pair is fullest, about 0.3 low beside the head, 0.17 over its arch.
-const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.62] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.13, z: [0.05, -0.32] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.14, z: [0.0, 0.3] });
-const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.14, z: [0.22, 0.5] });
+// (spec 7.1): P2's arms, glowing rims and frills included, are about 0.45 across near the body and
+// about 0.3 mid-arm, so every root is 0.22 (Task 3, fitted to the P2 mask's silhouette).
+const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.22, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.22, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.22, z: [0.0, 0.3] });
+const lower = (id: 'T4' | 'T5'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.22, z: [0.22, 0.5] });
 
 /**
  * How much nearer the camera the face is drawn than the stage plane: the face canvas lies on the
@@ -61,12 +61,17 @@ const FACE_ORIGIN = [0, -0.46] as const;
 
 const EYE_LEFT = face(-0.39, -0.56, FACE_ORIGIN);
 const EYE_RIGHT = face(0.39, -0.56, FACE_ORIGIN);
-// The smile's line at P2's upper lip, y -0.80: the open mouth hangs below it, its middle about
-// -0.87 (spec 2.2's mouth centre, -0.86; P2's mouth-inside and tongue samples at -0.84 and -0.91).
-const MOUTH = face(0, -0.8, FACE_ORIGIN);
-// P2's blush: native (210, 332) and its mirror.
-const BLUSH_LEFT = face(-0.46, -0.78, FACE_ORIGIN);
-const BLUSH_RIGHT = face(0.46, -0.78, FACE_ORIGIN);
+// P2's open mouth: corners at y -0.76, the top of the opening -0.80, the lip's bottom -0.94, so the
+// dark plum inside covers P2's sample at -0.84 and the tongue (the opening's bottom third, -0.89 down)
+// covers its sample at -0.91; the opening's middle is -0.85 (spec 2.2: -0.86 ± 0.04). The engine's
+// shape at full opening fixes the bowl's depth at 3 times the smile line's dip, so the line sits at
+// -0.778 with a shallow `depth`: P2's flat-topped D.
+const MOUTH = face(0, -0.778, FACE_ORIGIN);
+// Blush under the outer eye corners (spec 2.3; the eyes' outer corners are at ±0.55), as P2's ovals
+// sit (native x 190 to 214 and 306 to 330): spec 2.1's blush sample, native (210, 332), is the left
+// oval's inner part, and the face glow beside the mouth, native (300, 335), stays clear of the right.
+const BLUSH_LEFT = face(-0.55, -0.79, FACE_ORIGIN);
+const BLUSH_RIGHT = face(0.55, -0.79, FACE_ORIGIN);
 // The right brow, traced from P2 (thin, dark, set high): inner end, control, outer end.
 const BROW_INNER = face(0.3, -0.25, FACE_ORIGIN);
 const BROW_CONTROL = face(0.4, -0.19, FACE_ORIGIN);
@@ -98,17 +103,20 @@ export const HOST: CharacterConfig = {
     center: [0, -0.72, 0.6],
     core: '#ffb0a8',
     light: { color: '#ffa890', intensity: 3, distance: 5, decay: 2 },
-    spreadX: 0.62,
+    spreadX: 0.75,
     reachUp: 0.5,
-    reachDown: 0.4,
-    // Mantle colour by glow: violet upper dome (128, 78, 230), pink-violet forehead (224, 129, 208),
-    // peach face glow (254, 175, 181) at the core (spec 2.1).
+    reachDown: 0.65,
+    // Mantle colour by glow: blue-violet at the dome's sides, violet upper dome (128, 78, 230; the
+    // jelly depth carries most of it), pink-violet forehead (224, 129, 208), peach face glow
+    // (254, 175, 181) at the core (spec 2.1). Tuned on the render (Task 3): the top end sits more
+    // orange than the target because the bloom round the bright face lifts green and blue, and the
+    // spread reaches down past the chin so the lower face and chin stay peach, never lavender.
     ramp: [
-      [0, '#4a3cc0'], [0.12, '#6a48d8'], [0.25, '#804ee6'], [0.4, '#a858dc'], [0.55, '#e081d0'],
-      [0.7, '#f598c4'], [0.85, '#feafb5'], [1, '#ffb8b6'],
+      [0, '#3848d8'], [0.15, '#5a64f0'], [0.27, '#8070f4'], [0.4, '#d078d0'], [0.55, '#ec8cc8'],
+      [0.7, '#fca4b4'], [0.85, '#fc9a98'], [1, '#ff9480'],
     ],
     cheekWarmth: 0.6,
-    underside: 1.2,
+    underside: 2,
     // A lavender glow round the silhouette, the blue crown light over the top, peach below the cups.
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#b49cff', crown: '#5565fc', band: '#ffb0a0', strength: 0.7, bandStrength: 0.6 },
     // In the reef: a soft lavender aura, peach below; the water just outside the head stays deep
@@ -117,7 +125,9 @@ export const HOST: CharacterConfig = {
     grade: { color: '#021648', radius: 4, strength: 1 },
   },
   palette: {
-    cheek: '#f0a8c8',
+    // The lower face below the glow's reach (the chin and the face's sides) takes this: peach, set a
+    // little deeper than the chin sample (253, 181, 183) for the bloom's lift (Task 3).
+    cheek: '#fc9086',
     headEdge: '#7a5ce8',
     rimTop: '#5565fc',
     rimLow: '#c48cff',
@@ -126,11 +136,12 @@ export const HOST: CharacterConfig = {
     tintCool: '#5060ff',
     tintWarm: '#e080c8',
     wet: '#b0a8ff',
-    // Arm tops blue-violet (58, 55, 213), undersides a peach-pink glow (245, 175, 186; spec 2.1).
+    // Arm tops blue-violet (58, 55, 213), undersides a peach-pink glow (245, 175, 186; spec 2.1): the
+    // underside band runs from peach-pink to amber toward the cups, at the engine's full strength.
     armBody: '#3a37d5',
-    terminator: '#e070c0',
+    terminator: '#ffb0a8',
     armGlow: '#f5afba',
-    belly: '#ff9aa8',
+    belly: '#ffc8a8',
     // Peach-amber cup rims (248, 197, 159) round a darker violet hollow (spec 7.1).
     suckerEdge: '#e09070',
     suckerBody: '#f8c59f',
@@ -163,7 +174,7 @@ export const HOST: CharacterConfig = {
       centers: [[EYE_LEFT[0], EYE_LEFT[1]], [EYE_RIGHT[0], EYE_RIGHT[1]]],
       border: { outer: 0.02, upperOuter: 0.028, top: 0.03, upperInner: 0.02, inner: 0.008, lowerInner: 0.008, bottom: 0.0075, lowerOuter: 0.01 },
       iris: { rx: 0.78, ry: 0.92, inset: 0.18, rim: 0.12 },
-      pupil: { rx: 0.6, ry: 0.65, drop: 0.08, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
+      pupil: { rx: 0.7, ry: 0.75, drop: 0.08, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
       // Two white catchlights: large upper left, small lower right (spec 2.3).
       catchlights: [{ x: -0.45, y: 0.45, r: 0.2 }, { x: 0.42, y: -0.3, r: 0.1 }],
       glows: [
@@ -183,8 +194,8 @@ export const HOST: CharacterConfig = {
     },
     brow: { inner: [BROW_INNER[0], BROW_INNER[1]], control: [BROW_CONTROL[0], BROW_CONTROL[1]], outer: [BROW_OUTER[0], BROW_OUTER[1]], thickness: 0.02 },
     // A wide smile; the intro's open mouth is the expression's.
-    mouth: { center: [MOUTH[0], MOUTH[1]], halfWidth: 0.16, depth: 0.07, thickness: 0.016, dimple: 0.011 },
-    blush: { centers: [[BLUSH_LEFT[0], BLUSH_LEFT[1]], [BLUSH_RIGHT[0], BLUSH_RIGHT[1]]], rx: 0.1, ry: 0.055 },
+    mouth: { center: [MOUTH[0], MOUTH[1]], halfWidth: 0.16, depth: 0.03, thickness: 0.016, dimple: 0.011 },
+    blush: { centers: [[BLUSH_LEFT[0], BLUSH_LEFT[1]], [BLUSH_RIGHT[0], BLUSH_RIGHT[1]]], rx: 0.12, ry: 0.06 },
   },
   facePalette: {
     // Warm white sclera; plum-violet iris, dark at the top and lit pink at the bottom (spec 7.3).
@@ -204,11 +215,13 @@ export const HOST: CharacterConfig = {
     outline: '#ffd8e0',
     brow: '#1a0a28',
     mouth: '#4a0a20',
-    // P2's open mouth (129, 28, 52) and tongue (250, 123, 109); blush (241, 172, 195).
-    mouthInside: '#811c34',
+    // P2's open mouth (129, 28, 52) and tongue (250, 123, 109); blush (241, 172, 195). The inside is
+    // set darker than its target: the bloom from the face round it lifts it to about (129, 45, 52).
+    mouthInside: '#700018',
     tongue: '#fa7b6d',
     blush: '#f1acc3',
-    blushGlow: '#f090b0',
+    // The halo round each blush oval: peach, so the face glow beside the mouth stays peach (spec 2.1).
+    blushGlow: '#fca890',
   },
   expressions: {
     gentle: WELCOME,
@@ -216,23 +229,25 @@ export const HOST: CharacterConfig = {
     // How It Works: the open smile, brows up, eyes a little wider (the look toward the card is attend's).
     [HOST_FACES.presenting]: { lidRest: -0.08, lidBottom: 0, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.85, mouthOpen: 0.6, blush: 0.45 },
     // The arrival beat: eyes squeezed into happy arcs for a moment, the mouth wide.
-    [HOST_FACES.delighted]: { lidRest: 0.42, lidBottom: 0.8, browLift: 0.35, browTilt: 0.15, mouthCurve: 1, mouthOpen: 0.85, blush: 0.75 },
+    [HOST_FACES.delighted]: { lidRest: 0.42, lidBottom: 0.8, browLift: 0.35, browTilt: 0.15, mouthCurve: 1, mouthOpen: 1, blush: 0.75 },
     // The idle layer's soft closed smile, never a rest face.
     [HOST_FACES.restful]: { lidRest: 0.35, lidBottom: 0.05, browLift: 0, browTilt: 0, mouthCurve: 0.45, mouthOpen: 0, blush: 0.35 },
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4'), lower('T5'), side('T6'), middle('T7'), rear('T8')],
   // Rolled spiral tips (spec 7.1): thin at the very end.
-  tipRadius: 0.035,
+  tipRadius: 0.03,
   taperPower: 2.2,
   armBend: 0.15,
   armFlatten: 0.86,
   // Large round cups packed into a scalloped frill on each underside, shrinking toward the tip
   // (spec 7.1), in Veyra's frill style: glowing peach-amber rims (248, 197, 159; spec 2.1) on a
   // warm peach wall, round a darker violet hollow. The warmest light on the character after the
-  // face (spec 7.2): brighter than any world's cups.
+  // face (spec 7.2): brighter than any world's cups. Turned only a little toward the viewer (tilt
+  // 14) and packed (spacing 2.1), so they read as P2's frill along the edge with the underside glow
+  // band above them (Task 3); a stronger glow blooms them to cream and lifts the water.
   suckers: {
-    size: 0.25, sizePower: 0.7, spacing: 2.3, elongation: 1.08, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.5,
-    style: { rimWidth: 0.24, scallop: 0.6, edge: '#f0a888', rim: '#f8c59f', hollow: '#6a3cb0', glow: 1.4 },
+    size: 0.3, sizePower: 0.7, spacing: 2.1, elongation: 1.08, tilt: 14, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.5,
+    style: { rimWidth: 0.45, scallop: 0.8, edge: '#f8c098', rim: '#f8c59f', hollow: '#6a3cb0', glow: 1.4 },
   },
   // Required by the type; never drawn (no stage opens the head).
   dome: { center: [0, 0.2], halfWidth: 1.2, halfHeight: 0.6, depth: 0.6, power: 3, mantleTop: -0.3 },
@@ -256,18 +271,20 @@ export const HOST: CharacterConfig = {
     // violet depth in the upper dome (128, 78, 230), the peach core (254, 175, 181) glowing through
     // the lower face just below the eyes, and a bright lavender rim all round. The arms: the same
     // glass, blue-violet on top (58, 55, 213), the peach-pink underside glow (245, 175, 186) from the
-    // cups warming the roots. Sparkle specks per square unit: at least 30 on the front of the head
-    // and 50 across the arms at P2 size (spec 2.3).
+    // cups warming the roots (a strong arm core). Sparkle specks per square unit: at P2 size the
+    // render shows about 110 on the front of the head and several hundred across the arms (spec 2.3
+    // asks at least 30 and 50); denser reads as snow, not P2's fine sparkle. The rim is kept thin
+    // (rimPower 6) so it never washes the crown or the chin lavender.
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#d8c8ff', rimPower: 3, crown: '#5565fc', crownHeight: 0.55, depth: '#804ee6', depthStrength: 0.8, core: '#feafb5', coreCenter: [0, 0.1, -0.3], coreWarmth: 0.9 },
-        sparkle: 60,
+        jelly: { rim: '#b8b0ff', rimPower: 6, crown: '#5565fc', crownHeight: 0.45, depth: '#804ee6', depthStrength: 0.8, core: '#feafb5', coreCenter: [0, -0.1, -0.3], coreWarmth: 0.9 },
+        sparkle: 40,
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#c8b8ff', rimPower: 4, crown: '#5565fc', crownHeight: 0.5, depth: '#3a37d5', depthStrength: 0.6, core: '#f5afba', coreCenter: [0, 0, -0.3], coreWarmth: 0.5 },
-        sparkle: 50,
+        jelly: { rim: '#c8b8ff', rimPower: 6, crown: '#5565fc', crownHeight: 0.5, depth: '#3a37d5', depthStrength: 0.4, core: '#f5afba', coreCenter: [0, 0, -0.3], coreWarmth: 1.2 },
+        sparkle: 35,
       },
     },
   },

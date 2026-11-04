@@ -102,3 +102,52 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 
 1. A world with no kit: the engine has no "no kit" option. `REEF_STAGE.kit` is `{ url: '', pieces: [] }`; the kit loader fetches `''`, fails twice (two page errors, `Could not load : Unexpected token '<'`), and the world steps down to its last level (water, fog, light), which is what the stage backdrop wants.
 2. `scripts/stage-capture.mjs` refuses a still whose kit did not load (`window.__octoverse.world.kit` must be true), so it cannot capture the host. The Task 2 still was taken with a scratch copy that waits for the same ready flag, sequences and frames but skips the kit check. A later task should teach the script about kitless worlds (or the engine about them).
+
+## Task 3: the host's look (2026-11-04)
+
+**Verdict: provisional, pending owner.** The look meets the global checks, IoU and the shape targets; 13 of 17 P2 samples are within delta E 10. Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
+
+### What landed
+
+- `HOST.skin.surfaces`: jelly on the mantle (crown `#5565fc`, depth `#804ee6`, core `#feafb5`, rim `#b8b0ff`) and the arms (depth `#3a37d5`, core `#f5afba`), sparkle 40 and 35 per square unit.
+- `HOST.suckers.style`: rim `#f8c59f`, edge `#f8c098`, violet hollow `#6a3cb0`, glow 1.4, frill packed (spacing 2.1, tilt 14).
+- `HOST_FACES` maps spec 7.3's presets onto existing ids: welcome `happy` (the intro face), presenting `attentive`, delighted `focused`, restful `restful`. `gentle` is overridden to the welcome too, so the engine's settling face (entrance, swim) is the open smile (spec 7.3: the open smile is its rest face).
+- Arms re-traced against the P2 mask with root radius 0.22 (was 0.13 to 0.15) and `ARM_SPREAD` 1.04 (was 1.06): IoU 0.714 to 0.855, span 4.61. The centre pair's tips lifted clear of P2's pill.
+- Mouth re-laid for P2's flat-topped open D (centre y -0.778, depth 0.03, open 1); blush at the outer eye corners (+-0.55).
+- Stage water: zenith and glow brighter toward P2's lit top right.
+- `scripts/platform-capture.mjs` (kitless capture, the `TODO(kitless)` at the kit line), `scripts/host_delta_e.py` (per-sample CIE76, global checks, IoU, mean inside, face positions, specks).
+
+### Measured
+
+| Sample | Target | Task 2 | Task 3 | dE before | dE after |
+|---|---|---|---|---|---|
+| crown | 85, 101, 252 | 96, 71, 226 | 91, 99, 245 | 13.6 | 3.0 |
+| upper head | 128, 78, 230 | 101, 67, 244 | 135, 98, 242 | 14.6 | 8.6 |
+| forehead | 224, 129, 208 | 171, 92, 220 | 215, 130, 224 | 31.5 | 9.3 |
+| between the eyes | 254, 175, 181 | 251, 167, 188 | 255, 172, 181 | 7.6 | 2.0 |
+| face glow beside mouth | 253, 182, 183 | 242, 166, 198 | 254, 173, 186 | 16.2 | 7.5 |
+| chin | 253, 181, 183 | 242, 159, 217 | 255, 187, 195 | 29.6 | 4.2 |
+| head side left | 95, 80, 237 | 108, 66, 212 | 116, 89, 224 | 9.2 | 13.4 |
+| head side right | 134, 131, 253 | 102, 64, 208 | 111, 87, 223 | 29.2 | 19.6 |
+| blush | 241, 172, 195 | 242, 172, 197 | 248, 173, 192 | 1.3 | 3.5 |
+| mouth inside | 129, 28, 52 | 173, 112, 117 | 129, 45, 52 | 31.9 | 8.4 |
+| tongue | 250, 123, 109 | 151, 65, 77 | 248, 129, 117 | 34.7 | 4.7 |
+| arm upper | 58, 55, 213 | 27, 33, 88 | 142, 108, 206 | 60.1 | 41.4 |
+| arm underside | 245, 175, 186 | 93, 72, 123 | 223, 142, 187 | 53.4 | 20.7 |
+| cup rim | 248, 197, 159 | 202, 119, 162 | 255, 196, 167 | 48.3 | 4.8 |
+| water outside head | 2, 22, 72 | 18, 37, 94 | 20, 40, 94 | 7.8 | 8.7 |
+| mid water | 20, 30, 95 | 17, 34, 92 | 21, 38, 93 | 5.8 | 8.6 |
+| upper water | 16, 129, 219 | 14, 89, 160 | 23, 117, 189 | 18.3 | 11.0 |
+
+- `check_stage.py --stage intro --world-id octoverse` (max channel delta, tolerance 24, 7 x 7 px patches): 4 misses, head side right 44, tongue 26 (its 7 x 7 patch takes in the lip; the spec's 3 px sample is 4.7), arm upper 57, upper water 33.
+- IoU 0.855; mean inside (161, 116, 194), saturation 0.481; span 4.61; eyes (+-0.40, -0.54); mouth -0.85; specks head 113, arms 687.
+- Frame rate 53.2 fps median, slow10 28.4 (tier low, production build, under load).
+
+### Gaps
+
+1. Head sides (BLOCKED on E02b / owner): P2's are lit asymmetrically, 28.7 apart; the mantle shading has no directional term the config can turn. Best symmetric value is about 14.5 from each.
+2. Arm upper: T1's inner edge beside the head takes the engine's arm rim light, where P2 is dark blue.
+3. Arm underside and cup rim are 3 px samples on a frill whose cup positions follow `spacing` and `tilt`: they swap between band and cup with small changes. The final set lands the cup sample on a cup.
+4. Mean saturation 0.481 is near the floor (0.478): lighter arms or brighter cups push it out.
+5. A full `npx vitest run` under load times out 1 to 3 python-spawning tests in `src/worlds/reviewTooling.test.ts` (5 s limit); the file passes alone (3 of 3). Not touched by this task.
+
