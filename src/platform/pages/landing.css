@@ -1,0 +1,481 @@
+/*
+ * The landing's layout (spec 7.10, 7.15). The host's canvas is the engine's (`.spike`, fixed, filling
+ * its containing block); the platform's HTML (`.oct-layer`) lies over it inside the same box.
+ *
+ * Desktop and tablet: the box is the window, and the intro's text is a rectangle laid out on the stage
+ * as P2 has it (LandingText places and sizes it in pixels from the stage frame; its parts are shares
+ * of it, in `cqh`), the cards are placed in stage units by their own inline styles.
+ * Phone (under 768 px): the box is the upper 55% of the window and the rest of the page sits below it.
+ */
+.oct-landing {
+  position: fixed;
+  inset: 0;
+  background: var(--oct-water, #0e1650);
+  overflow: hidden;
+}
+
+/*
+ * The host's box. A transform makes it the containing block of the engine's fixed canvas, so on a phone
+ * the canvas (and the stage camera's framing, which reads the canvas's size) fills the upper 55%, not
+ * the window.
+ */
+.oct-hostbox {
+  position: fixed;
+  inset: 0;
+  transform: translateZ(0);
+}
+
+.oct-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --oct-water: #0e1650;
+}
+
+.oct-main {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
+
+/* ---- the navigation bar ------------------------------------------------------------------- */
+
+.oct-nav {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  translate: -50% 0;
+  box-sizing: border-box;
+  width: min(560px, calc(100% - 32px));
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 0 22px;
+  border-radius: 999px;
+  opacity: 1;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.oct-nav.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 250ms ease, visibility 0s 250ms;
+}
+
+.oct-nav a {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--oct-ink);
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.oct-nav-brand {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.oct-nav-links {
+  display: flex;
+  gap: 4px;
+}
+
+.oct-nav-link {
+  padding: 0 16px;
+  border-radius: 999px;
+}
+
+.oct-nav-link:hover {
+  background: rgba(190, 172, 255, 0.2);
+}
+
+/* ---- the intro (P2) ------------------------------------------------------------------------ */
+
+.oct-intro {
+  position: absolute;
+  text-align: center;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 350ms ease;
+}
+
+.oct-intro.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 250ms ease, visibility 0s 250ms;
+}
+
+.oct-intro[data-layout='stage'] {
+  container-type: size;
+}
+
+.oct-intro p,
+.oct-intro h1 {
+  margin: 0;
+}
+
+.oct-wordmark {
+  font-weight: 600;
+  line-height: 1.1;
+  /* The gradient is clipped to the letters; the glow is a filter so the clipped text can still carry it. */
+  background: var(--oct-title-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255, 170, 238, 0.35)) drop-shadow(0 2px 6px rgba(6, 4, 40, 0.6));
+}
+
+.oct-tagline {
+  font-weight: 500;
+  color: var(--oct-ink);
+  /* The water behind the text is bright in places (the light shafts): a soft dark halo keeps it readable. */
+  text-shadow: 0 1px 3px rgba(6, 4, 40, 0.7), 0 0 14px rgba(6, 4, 40, 0.6);
+}
+
+.oct-desc {
+  color: #ece4f7;
+  text-shadow: 0 1px 3px rgba(6, 4, 40, 0.75), 0 0 14px rgba(6, 4, 40, 0.65);
+}
+
+.oct-pill {
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: 999px;
+  color: var(--oct-ink);
+  font-weight: 500;
+  text-wrap: balance;
+}
+
+/* Stage layout: shares of P2's frame (a rectangle of the window); the block starts a little higher than P2's, which has its storyboard caption there. */
+.oct-intro[data-layout='stage'] .oct-title-block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9%;
+}
+
+.oct-intro[data-layout='stage'] .oct-wordmark {
+  font-size: 7.4cqh;
+  letter-spacing: 0.14em;
+  padding-left: 0.14em;
+}
+
+.oct-intro[data-layout='stage'] .oct-tagline {
+  margin-top: 1.3cqh;
+  font-size: max(18px, 3.1cqh);
+}
+
+.oct-intro[data-layout='stage'] .oct-desc {
+  width: 80%;
+  margin: 1.6cqh auto 0;
+  font-size: max(16px, 2.2cqh);
+  line-height: 1.38;
+}
+
+.oct-intro[data-layout='stage'] .oct-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34.5%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.oct-intro[data-layout='stage'] .oct-pill {
+  position: absolute;
+  left: 50%;
+  top: 92.5%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 94%;
+  padding: 1.5cqh 3.6cqh;
+  font-size: max(16px, 2.6cqh);
+}
+
+/* Phone layout: the title above the host (in the box's top), the buttons and the pill below the box. */
+.oct-intro[data-layout='phone'] {
+  inset: 0;
+}
+
+.oct-intro[data-layout='phone'] .oct-title-block {
+  position: absolute;
+  top: 62px;
+  left: 16px;
+  right: 16px;
+}
+
+.oct-intro[data-layout='phone'] .oct-wordmark {
+  font-size: clamp(26px, 8vw, 38px);
+  letter-spacing: 0.12em;
+  padding-left: 0.12em;
+}
+
+.oct-intro[data-layout='phone'] .oct-tagline {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.oct-intro[data-layout='phone'] .oct-desc {
+  margin-top: 6px;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.oct-intro[data-layout='phone'] .oct-actions {
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.oct-intro[data-layout='phone'] .oct-actions .oct-button {
+  flex: 1 1 0;
+  padding: 0 12px;
+}
+
+.oct-intro[data-layout='phone'] .oct-pill {
+  position: absolute;
+  top: calc(100% + 18px + 48px + 22px);
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 12px 22px;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.oct-skip-intro {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  translate: -50% 0;
+}
+
+/* ---- How It Works (P3) ---------------------------------------------------------------------- */
+
+.oct-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-card-item {
+  position: absolute;
+  pointer-events: none;
+  animation: oct-ripple 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 75ms);
+}
+
+@keyframes oct-ripple {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.oct-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 2px solid color-mix(in srgb, var(--accent) 80%, #ffffff 0%);
+  background: var(--oct-glass);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 38%, transparent), inset 0 0 16px color-mix(in srgb, var(--accent) 16%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--oct-ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+/* Hover or focus: the card lifts 4% and its border brightens. */
+.oct-card:hover,
+.oct-card:focus-visible {
+  transform: scale(1.04);
+  border-color: color-mix(in srgb, var(--accent) 55%, #ffffff);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 0 18px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.oct-card-picture {
+  position: relative;
+  display: block;
+  flex: 0 0 70%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The stills have water above the octopus: the crop trims it. */
+.oct-still {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 64%;
+}
+
+.oct-card-caption {
+  display: flex;
+  flex: 1 1 30%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.oct-card-caption b {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.oct-card-caption span {
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--oct-ink-soft);
+  text-wrap: balance;
+}
+
+/* The gold glass card of "Your Octopus" before the creator exists: the glyph in gold line. */
+.oct-glyph-card {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #ffc65a;
+  background: radial-gradient(ellipse 80% 70% at 50% 42%, rgba(255, 198, 90, 0.3), rgba(60, 40, 12, 0.55) 72%, rgba(30, 20, 8, 0.7));
+}
+
+.oct-glyph {
+  width: 58%;
+  height: 84%;
+  filter: drop-shadow(0 0 7px rgba(255, 198, 90, 0.6));
+}
+
+.oct-explore {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: var(--oct-ink);
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(190, 172, 255, 0.7);
+  background: var(--oct-glass-strong);
+  pointer-events: auto;
+}
+
+.oct-explore:hover {
+  text-decoration-color: var(--oct-ink);
+}
+
+.oct-back {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+}
+
+/* ---- the phone (spec 7.15) ------------------------------------------------------------------ */
+
+@media (max-width: 767px) {
+  .oct-nav {
+    top: 8px;
+    height: 48px;
+  }
+
+  .oct-hostbox {
+    inset: 0 0 45% 0;
+  }
+
+  /* The canvas ends in the page's own water, not at an edge. */
+  .oct-hostbox::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 48px;
+    background: linear-gradient(to bottom, transparent, var(--oct-water, #0e1650));
+    pointer-events: none;
+  }
+
+  /* The cards are a snap row below the host, stills only. */
+  .oct-cards[data-layout='row'] {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 12px;
+    padding: 6px 16px 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    overscroll-behavior-x: contain;
+    pointer-events: auto;
+  }
+
+  .oct-cards[data-layout='row'] .oct-card-item {
+    position: relative;
+    flex: 0 0 148px;
+    height: 196px;
+    scroll-snap-align: start;
+    pointer-events: auto;
+  }
+
+  .oct-explore {
+    top: calc(100% + 14px + 6px + 196px + 10px + 14px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    translate: -50% 0;
+  }
+
+  .oct-back {
+    top: 64px;
+    bottom: auto;
+    left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-card-item {
+    animation: none;
+  }
+
+  .oct-nav,
+  .oct-intro,
+  .oct-card {
+    transition: none;
+  }
+
+  .oct-card:hover,
+  .oct-card:focus-visible {
+    transform: none;
+  }
+}

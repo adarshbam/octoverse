@@ -97,3 +97,32 @@ Known gaps for the owner to rule on:
 - The arms now spread as wide as P3's (span 4.02). The host's head is still larger relative to its arms than P3 paints it: the arm length is the config's, unchanged here.
 - The gate stands fully visible behind the Nox and gold cards in How It Works (P3 shows no gate). In the intro it stays soft beside the host: the engine's stage frame is a size only, centred on the stage, so it cannot move the view off the gate (E02b or owner: a frame offset, or a per-stage layout).
 - P1's head position at 3 s (spec 2.2: -0.36, -0.36, profile right) belongs to the entrance sheet (Task 12). Today the head sits at the intro spot (about 0, -0.2).
+
+## PENDING OWNER REVIEW: M2, the landing compositions (Task 8)
+
+Commit on `claude/platform-overnight`: `feat(platform): landing compositions (pending owner review)`.
+
+Stills (`docs/superpowers/evidence/platform/m2/`, frozen with `?freeze`, entrance skipped, the host's reef live behind): `landing-intro-<w>x<h>.png` and `landing-how-<w>x<h>.png` at 1536x1024, 768x1024 and 390x844. Review each beside `public/octoverse/ref/p2.png` (intro) and `p3.png` (How It Works). Live at `/` and `/how-it-works` (set `sessionStorage['octoverse.octoverse.entranceSeen'] = '1'` to skip the entrance).
+
+Numbers (`tests/e2e/platform-landing.spec.ts`, 9 of 9, Edge, `--workers=1`): the nearest card, button or text rectangle to the host's eye and mouth rectangles, in CSS px, with the camera's live hover included:
+
+| Size | Intro | How It Works |
+|---|---|---|
+| 1536 x 1024 | 199 (the pill) | 64 (the gold card) |
+| 768 x 1024 | 145 (See how it works) | 49 (the gold card) |
+| 390 x 844 | 81 (the description) | 127 (the Veyra card) |
+
+No horizontal scroll at any size; every button and link at least 44 px high. The face rectangles are the eyes (0.22 radius about each eye centre) and the mouth, from `faceAnchor` and the face layout, turned and scaled with the pose; checked by eye against the renders (they enclose the eyes and mouth in all six stills).
+
+What to check:
+1. Not a SaaS page: the intro is P2's own layout (wordmark with P2's gradient, tagline, description, two buttons, the pill) over the live host, with no hero block, feature grid or panel. Say if the two buttons should sit somewhere else: P2 has no room for them, so they stand between the description and the dome.
+2. Text clear of the face: nothing crosses the eyes or the mouth; on the intro the whole text block is above the dome.
+3. Cards in P3's places: five glass cards with accent borders (teal, blue, crimson, violet, gold), picture 70% and name and epithet 30%, stills of each world's intro; Your Octopus is the gold glyph card (a hand-drawn gold line octopus, no render). The epithets are the worlds' own ("The Keeper of Files", "The Pipeline Runner", ...), not the storyboard's.
+4. Phone: host in the upper 55%, title above the host, the two buttons and the pill below it; How It Works shows a snap row of the five cards under the host, with Back at the top left and "Explore all portfolios" under the row.
+5. Navigation bar: hidden until the intro text is in; wordmark, Explore, Create only.
+
+Known gaps for the owner to rule on:
+- The pill wraps to two lines on a phone ("Your Ideas. Your / Octopus. Your Universe."): 16 px text is as wide as the screen.
+- Hover or focus on a card lifts it and brightens the border; the live preview and the host's look at the card come with Task 13.
+- `/explore`, `/create` and the profiles are an honest "not open yet" page until their tasks.
+- The phone's host box (55%) leaves the lower part of the intro empty; the overview's empty water above the host holds only Back.

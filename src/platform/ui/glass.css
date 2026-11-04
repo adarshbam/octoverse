@@ -1,0 +1,118 @@
+/*
+ * The platform's look (spec 7.10, 7.15): deep indigo glass over the reef's water, the title's gradient
+ * sampled from P2, and focus in the host's lavender. The numbers are PLATFORM_TOKENS' (tokens.ts);
+ * landing.test.tsx reads this file to keep the two the same.
+ */
+.oct-root {
+  --oct-title-gradient: linear-gradient(90deg, #f9dad4 5%, #ffaaee 17%, #ffa3fa 28%, #ea8df5 39%, #67b3f0 52%, #82a6fd 76%, #9d99f3 95%);
+  --oct-glass: rgba(22, 18, 60, 0.58);
+  --oct-glass-strong: rgba(16, 12, 48, 0.82);
+  --oct-glass-border: rgba(190, 172, 255, 0.5);
+  --oct-glass-glow: 0 0 28px rgba(150, 120, 255, 0.3);
+  --oct-focus: #d8c8ff;
+  --oct-ink: #f4eeff;
+  --oct-ink-soft: #d9cfe8;
+  --oct-ink-dark: #140c30;
+  --oct-button-from: #c8b0ff;
+  --oct-button-to: #8f6cff;
+  --oct-water: #0e1650;
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--oct-ink);
+}
+
+.oct-glass {
+  background: var(--oct-glass);
+  border: 1px solid var(--oct-glass-border);
+  box-shadow: var(--oct-glass-glow), inset 0 0 18px rgba(170, 140, 255, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+/* Focus is always visible, in the host's lavender. */
+.oct-root :focus-visible,
+.oct-landing :focus-visible {
+  outline: 3px solid var(--oct-focus);
+  outline-offset: 3px;
+}
+
+.oct-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 26px;
+  border-radius: 999px;
+  border: 1px solid var(--oct-glass-border);
+  background: var(--oct-glass-strong);
+  box-shadow: var(--oct-glass-glow);
+  backdrop-filter: blur(10px);
+  color: var(--oct-ink);
+  font: 500 16px/1.2 'Poppins', system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.oct-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(220, 205, 255, 0.85);
+  box-shadow: 0 0 34px rgba(170, 140, 255, 0.5);
+}
+
+.oct-button-primary {
+  background: linear-gradient(135deg, var(--oct-button-from), var(--oct-button-to));
+  border-color: rgba(235, 225, 255, 0.8);
+  color: var(--oct-ink-dark);
+  font-weight: 600;
+}
+
+/* The skip link: first in the focus order, off the screen until it has focus. */
+.oct-skip-link {
+  position: absolute;
+  left: 12px;
+  top: -120px;
+  z-index: 20;
+}
+
+.oct-skip-link:focus {
+  top: 12px;
+}
+
+.oct-unopened {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--oct-water);
+}
+
+.oct-unopened-card {
+  display: grid;
+  gap: 20px;
+  justify-items: center;
+  max-width: 440px;
+  padding: 32px 28px;
+  border-radius: 24px;
+  text-align: center;
+}
+
+.oct-unopened-card h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-button {
+    transition: none;
+  }
+
+  .oct-button:hover {
+    transform: none;
+  }
+}

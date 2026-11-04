@@ -243,3 +243,22 @@ Verdict: provisional, pending owner.
 - Still: arm span x -2.20 to 1.82 (4.02); head top -0.20, half-width 0.79, centre -0.01; P3 upper head 9.4, face glow 5.8.
 - Intro untouched: 12 of 17, IoU 0.856, crown B - R 140.2.
 - Gap 4 of the craft list (arms short, lower arms bunched, small mouth) is closed for the spread and the mouth. The head is still large relative to the arms: arm length is the config's.
+
+## Task 8: platform shell and landing compositions (2026-11-05)
+
+**Verdict: provisional, pending owner.** `/` is the intro (P2) and `/how-it-works` is How It Works (P3), one host page instance (`ui: 'none'`) that stays mounted from one to the other. Unit 17 of 17 (`landing.test.tsx`), e2e 9 of 9 (`platform-landing.spec.ts`), no card, button or text rectangle meets the host's eyes or mouth at 1536 x 1024, 768 x 1024 or 390 x 844 (nearest 199 / 64, 145 / 49, 81 / 127 px, intro / How It Works). Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
+
+### What landed
+
+- `src/platform/App.tsx` (the shell: `/` and `/how-it-works` are the landing; other routes are an honest "not open yet" page), `pages/Landing.tsx` (the host, the route and the stage kept in step: the route asks for the stage by `stageRequest`, the stage asks for the route by `onStageChange`, so Escape and browser Back agree), `LandingText.tsx`, `HowItWorks.tsx`, `Nav.tsx`, `YourOctopusPicture.tsx`, `geometry.ts`, `hooks.ts`, `ui/tokens.ts`, `ui/glass.css`, `ui/Link.tsx`.
+- Placement from the instance API alone: stage units to pixels on the z = 0 plane (`geometry.ts`, checked against the engine's `stageBoxFor`), the hovering camera's shift from `liveShift` written each frame to `translate` (`useShift`). The dev build writes `window.__platform.faceRect` (eyes and mouth, in px, shift included).
+- Card epithets come from each world's content module (`worlds/<id>/content/<id>.ts`, a bare data file), never a bundle; a test reads the platform sources and fails on any other world import.
+- `src/app/main.tsx`: `?world=` (and `?creator=`) mount `Page` as before. So that the engine's own review pages and Nox's e2e specs keep working, a bare `/` carrying one of the engine's review switches (`stage`, `tech`, `nowebgl`, `view`, ...) is still the engine's page. The platform mount makes the static boot veil neutral (the page's inline script gives bare `/` Nox's "Security Lab" veil; index.html is pinned by `bootVeil.test.ts`, so the platform sets `data-boot-world` itself).
+
+### Workarounds and gaps (E02b where named)
+
+1. The host box on a phone (upper 55%): the engine's canvas is `position: fixed; inset: 0`. A `transform` on an ancestor makes that the containing block, so the canvas and the stage camera's framing (which reads the canvas size) fill the box. The engine's own HTML does not use the box (E02b gap 2: the HTML layer sizes to the window); nothing of it shows under `ui: 'none'`.
+2. The overview pose is framed for the whole square on a phone too, so the host sits low in its box with water above (the host bundle's frames are per stage, not per layout). Back sits there.
+3. Bare `/` is now the landing: Nox's own specs that load `/` with no query (`entrance.spec.ts`, `fallback.spec.ts` `/`, `world.spec.ts`, `worldSwitch.spec.ts`) reach the landing, not Nox. They need `/?world=nox` (not changed here: the plan's Task 14/final suite says "unchanged").
+4. The engine's `ui: 'none'` has no "entrance settling" signal, so the intro's words come in when the stage becomes the intro (the engine's own overlay fades in a beat earlier). The skip control is the platform's own button; any click or key skips too.
+5. Stills use `object-fit: cover` at `50% 64%` on a 70% picture; the headroom the stills carry is trimmed, not regenerated.
