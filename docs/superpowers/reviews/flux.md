@@ -144,7 +144,7 @@ Pulse:
 - At 3x:
   - T2 @0.6 is (162, 139, 250).
   - T7 @0.6 is (169, 160, 254). The resting curl cup there is already 254, so the 250 cap holds at P2 size but not at 3x.
-- Lit cups above half level: 3 at @0.6, but only 1 to 2 at @0.35, where T3 crosses T2's root cups.
+- Lit cups above half level: 3 at @0.6 (inside the 3 to 5 target). At @0.35 only 1 to 2, below the 3 to 5 target, because T3 crosses T2's root cups.
 - The hue walks cyan, lavender, pink along the band.
 
 Perf (under load: the GPU is shared with other sessions), `scripts/perf.mjs --secs=8 "stage=intro&tier=low"`, two runs:
@@ -172,7 +172,7 @@ The floor of 40 is met, so the spec 10.1 fallback was not applied.
 1. Is the gradient blue crown, then violet, then a warm pink face? (Numbers say yes. Is the pink warm enough round the mouth?)
 2. Is it glassy, not plastic? Look at the rim and the core glow under the face.
 3. Are the cups separate and glowing? Look at the right-side arms, where fewer cups show than in P2.
-4. Does the pulse read as living light, not LEDs? Watch it live; @0.35 is faint where T3 crosses T2.
+4. Does the pulse read as living light, not LEDs? Watch it live; @0.35 lights only 1 to 2 cups (below the 3 to 5 target), where T3 crosses T2.
 5. Is he neither Nox nor Veyra? The round blue head, big eyes and pink face are his own.
 
 ### Remaining weaknesses
@@ -184,6 +184,8 @@ The floor of 40 is met, so the spec 10.1 fallback was not applied.
 - The head sparkles are coarser and more numerous than P2's fine specks.
 - The intro placeholder orbs show without `&solo`, giving 5 misses on the page capture. This is the Task 2 placeholder; Task 12 fixes the intro orbs.
 - The saturation margin is thin: 0.623 against a floor of 0.617.
+- Pulse @0.35 lights only 1 to 2 cups, below the 3 to 5 target: T3 crosses T2's root cups and hides them.
+- At 3x the resting T7 curl cup is already 254, above the 250 brightness cap (it holds at P2 size: T7 @0.6 is 250).
 
 ### Engine-owner gaps (bundle values cannot fix these)
 

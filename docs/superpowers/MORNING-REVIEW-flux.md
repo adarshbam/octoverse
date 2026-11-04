@@ -19,7 +19,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Still to do: `check_stage.py --world-id flux` run (waits on `E02 landed`).
 
 ### Task 2: Flux bundle, intro pose, stage backdrop (built early; PENDING OWNER REVIEW)
-- Commit 6257acb. Capture `.tmp/flux-intro.png` (not committed; regenerate with the stage capture): eight arms in roughly the P2 pose on dark navy water; body is flat blue until Task 3; IoU vs P2 mask 0.79 (first trace, Task 6 tunes to >= 0.85).
+- Commit 6257acb. Capture `.tmp/flux-intro.png` (not committed; regenerate with the stage capture): eight arms in roughly the P2 pose on dark navy water; body is flat blue until Task 3; IoU vs P2 mask 0.79 (first trace). Task 6 reached IoU 0.852 (provisional, see the Task 6 entry).
 - Check: arm layout against P2 (T1/T8 up beside head, T2/T7 wide, T3/T6 low, T4/T5 hang).
 - Rulings to check: title icon is the flame placeholder (engine has no `gear` icon yet: engine-owner gap); tagline is the P5 subtitle with the spec sentence as the introduction (avoids a duplicate third line on the intro); orbs are one plain shell placeholder until Task 12.
 - Gap: E02 baseline stills compared clean on 8 of 14 and the six Nox e2e specs were not run (Nox kit loader times out under load). Task 2 changed no engine code; rerun when quiet.
@@ -41,7 +41,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   - IoU: 0.852, up from 0.805.
   - Gradient: 90.
   - Warm face: 198 / 88.
-  - Pulse T2 @0.6: (152, 116, 246), brightest - smallest 130. Pulse @0.35: brightest - smallest 60.
+  - Pulse T2 @0.6: (152, 116, 246), brightest - smallest 130. Pulse @0.35: brightest - smallest 60, but only 1 to 2 cups lit (target 3 to 5).
   - Perf, under load: median 73.0 / 79.4 fps; slowest 10% 34.2 / 43.7 fps.
 - **Check:**
   1. Blue crown, then violet, then warm pink face.
@@ -56,4 +56,6 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
   - Few cups show on the right.
   - The sparkles are coarse.
   - Without `&solo`, the placeholder orbs show (Task 12).
+  - Pulse @0.35 lights only 1 to 2 cups, below the 3 to 5 target (T3 hides T2's root cups).
+  - At 3x the resting T7 curl cup is 254, above the 250 brightness cap (holds at P2 size).
 - **Full entry:** `docs/superpowers/reviews/flux.md`, "Milestone 1 (P2 gate)".

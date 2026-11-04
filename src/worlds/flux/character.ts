@@ -212,18 +212,18 @@ export const FLUX: CharacterConfig = {
     gloss: 100,
     streakScale: 1,
     streakStrength: 0.3,
-    // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both, denser than Veyra's (70 and 50 against her 50 and 35; spec 7.2). Start values from
-    // the P2 samples, tuned in Task 6: the mantle goes electric blue (48, 68, 239) at the crown to
-    // violet (156, 87, 239) in the thick middle, with a blue rim (61, 116, 233) and a warm pink-white
-    // core (254, 171, 207) at the mouth. The arms are bluer: a pale periwinkle rim and top
-    // (110, 126, 247), a deep blue body (55, 74, 241) and only a violet hint of core. Task 6 gave the
-    // arms a pale periwinkle cap along their top (crown #7f8cf8 from N.y 0.5): lower caps paled the body
-    // and pulled its saturation below P2's band.
-    // Task 6: the crown cap starts lower (crownHeight 0.35) and the depth is half strength, so only the
-    // middle of the head facing the camera is violet and its sides stay blue (P2). The core sits at the
-    // mouth (0.12 below the face glow's centre, y -0.82), warmth 1: the core's ramp colour is taken with
-    // max() over the skin's, so a core weaker than the face glow (as it was centred lower, at the chin)
-    // pulls the ramp's violet blue into the face and lifts the pupils and the mouth.
+    // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both, denser than
+    // Veyra's (70 and 50 against her 50 and 35; spec 7.2). Colours from the P2 samples, tuned in Task 6.
+    // Mantle: electric blue (48, 68, 239) at the crown, violet (156, 87, 239) in the thick middle, a
+    // blue rim (61, 116, 233) and a warm pink-white core (254, 171, 207) at the mouth. The crown cap
+    // starts low (crownHeight 0.35) and the depth is half strength, so only the middle facing the camera
+    // is violet and the sides stay blue. The core sits at the mouth: coreCenter is an offset from the
+    // face glow's centre in head space, here 0.12 below it, at warmth 1. The shader takes the core's
+    // ramp colour with max() over the skin's, so a core weaker than the face glow (as when it sat lower,
+    // at the chin) pulls the ramp's violet blue into the face and lifts the pupils and the mouth.
+    // Arms: bluer, a deep blue body (55, 74, 241) with a pale periwinkle cap along the top (crown
+    // #7f8cf8 from N.y 0.5; P2's top is 110, 126, 247) and only a violet hint of core. Lower caps paled
+    // the body and pulled its saturation below P2's band.
     surfaces: {
       mantle: {
         mode: 'jelly',
