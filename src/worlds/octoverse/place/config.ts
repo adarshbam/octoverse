@@ -6,7 +6,7 @@ import type { WorldConfig } from '../../../engine/world/types';
 // (20, 30, 95), and the lit water top right (16, 129, 219); indigo, not black.
 
 /** Nothing stands on the stage: no pieces, no lights of the kit's kinds. */
-const LAYOUT: WorldConfig['layout'] = { floorY: -3, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] };
+const LAYOUT: WorldConfig['layout'] = { floorY: -3, groups: {}, chains: [], coralLights: [] };
 
 /**
  * The water's own colours: deep indigo below, a lit blue surface glow toward the top right. Task 3
@@ -47,7 +47,6 @@ export const REEF_STAGE: WorldConfig = {
     stone: '#2a2a5a',
     glyph: '#b48cff',
     coral: '#ff8a6a',
-    lava: '#ff9a5a',
     // The horizon of the water's sky: P2's mid water.
     waterFar: '#141e5f',
     floor: '#120c28',

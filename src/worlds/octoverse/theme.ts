@@ -18,6 +18,8 @@ export const HOST_THEME: UiTheme = {
   poster: { src: 'octoverse/poster-intro.webp', alt: 'OctoVerse, the host octopus, arms spread in welcome in deep indigo water', width: 1536, height: 1024 },
   pageTitle: 'OctoVerse',
   nameplateLabel: '#e0d6ff',
+  // The nameplate's fill: deep indigo glass over the water (the host has no plate in the references; the landing draws its own).
+  plate: 'rgba(16, 12, 48, 0.82)',
   glow: 'rgb(150, 120, 255)',
   glowInner: 'rgb(170, 140, 255)',
   accentGlow: 'rgb(180, 156, 255)',
