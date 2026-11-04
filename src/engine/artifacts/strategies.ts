@@ -1,10 +1,11 @@
 import type { ComponentType } from 'react';
 import type * as THREE from 'three';
-import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbGlass, type OrbitPlacement, type PlacementConfig, type SatellitePlacement, type StageId, isChoosingStage } from '../config/types';
+import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbGlass, type OrbitPlacement, type PendantPlacement, type PlacementConfig, type SatellitePlacement, type StageId, isChoosingStage } from '../config/types';
 import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosition } from '../sequences/bubbleBlow';
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
+import { type ArmReader, type PendantLive, type PendantPlace, createPendantRun, layoutPendants, resetPendants, stepPendants } from './pendant';
 import { SatelliteRing } from './SatelliteRing';
 import { layoutSatellite, satellitePoint } from './satellite';
 import { HOLD_BEATS, HoldChoreography, nearestArm, pullPosition } from './suctionHold';
@@ -21,8 +22,12 @@ export type ArtifactStage = ChoosingStage;
 
 // --- Placement -------------------------------------------------------------------------------
 
-/** What a placement's own drawing is given each frame (A1 9.2): the stage, the head's swell (0..1), and whether motion is off. */
-export interface PlacementFrame {
+/**
+ * What a placement's own drawing is given each frame (A1 9.2): the stage, the head's swell (0..1), and
+ * whether motion is off. Any stage, not only a choosing one (the satellite's ring is drawn in the detail
+ * too), so it is not the drivers' PlacementFrame.
+ */
+export interface PlacementFormFrame {
   stage: StageId;
   swell: number;
   still: boolean;
@@ -31,7 +36,7 @@ export interface PlacementFrame {
 /** A placement's own drawing, beside the artifacts: its config, its frame, the orb glass's surroundings and the head it sits round. */
 export interface PlacementFormProps<C> {
   config: C;
-  frame: () => PlacementFrame;
+  frame: () => PlacementFormFrame;
   glass: OrbGlass;
   head: HeadShape;
 }
@@ -47,12 +52,90 @@ export interface PlacementModule<C> {
   readonly Form?: ComponentType<PlacementFormProps<C>>;
 }
 
+/** What a placement is given each frame (contract 9.2): the stage framing, the head swell (0..1), the frame time (s), whether an artifact is hovered or held and whether motion is off. */
+export interface PlacementFrame {
+  stage: ArtifactStage;
+  swell: number;
+  dt: number;
+  hot: boolean;
+  still: boolean;
+}
+
+/**
+ * One instance's placement, as TechBubbles runs it: made once from the world's config and the
+ * number of artifacts, then stepped each frame. Every kind in the table makes one, so TechBubbles
+ * draws any of them the same way.
+ */
+export interface PlacementDriver {
+  /** Advances the placement a frame; `arms` are the character's live arms, in ARM_IDS order (the orbit placement ignores them). */
+  step(frame: PlacementFrame, arms: readonly ArmReader[]): void;
+  /** Artifact `i`'s radius in `stage`'s framing, or null where it has no place (a placement with no places, or a stage with fewer slots than artifacts). */
+  size(stage: ArtifactStage, i: number): number | null;
+  /** Where artifact `i` is now (body space), written into `out`; `swell` pushes it out where the placement does that. */
+  point(stage: ArtifactStage, i: number, swell: number, out: THREE.Vector3): THREE.Vector3;
+  /** Forgets what the last frame left (called when the artifacts are hidden and not stepped); absent where there is nothing to forget. */
+  reset?(): void;
+  /** The live pendants (their threads and orbs), for a placement that hangs artifacts on threads; undefined for one that does not. */
+  readonly pendants?: readonly PendantLive[];
+}
+
+/**
+ * What every entry in the PLACEMENTS table gives, whatever its own layout: its capacity, a driver
+ * for TechBubbles and, for a placement that draws something of its own, that Form (mounted by
+ * Octopus in the head's space).
+ */
+export interface PlacementEntry<C> {
+  capacity(config: C): number;
+  driver(config: C, count: number): PlacementDriver;
+  readonly Form?: ComponentType<PlacementFormProps<C>>;
+}
+
+/** How many artifacts the orbit placement keeps in the air (15 fits round the title and nameplate at the stage's size). */
+export const ORBIT_CAPACITY = 15;
+
 /** Artifacts circling the character on rings (artifacts/bubbleOrbits.ts). */
 const orbitPlacement = {
   layout: layoutOrbits,
   point: orbitPoint,
   pace: orbitSpeed,
-} satisfies PlacementModule<OrbitPlacement>;
+  /** How many a project shows in the air (the rest go to the tray): what fits round the title and nameplate at the stage's size. */
+  capacity: (): number => ORBIT_CAPACITY,
+  driver(config: OrbitPlacement, count: number): PlacementDriver {
+    const layouts = { intro: layoutOrbits(count, config, 'intro'), overview: layoutOrbits(count, config, 'overview') };
+    const run = { clock: 0, speed: { x: 1, v: 0 } };
+    return {
+      // The orbit clock runs at the eased speed; motion off, it stands where it is.
+      step: ({ dt, hot, still }) => {
+        const pace = orbitSpeed(hot, dt, run.speed);
+        if (!still) run.clock += dt * pace;
+      },
+      size: (stage, i) => layouts[stage][i]?.size ?? null,
+      point: (stage, i, swell, out) => orbitPoint(layouts[stage][i], run.clock, swell, out, config),
+    };
+  },
+} satisfies PlacementModule<OrbitPlacement> & { capacity(config: OrbitPlacement): number; driver(config: OrbitPlacement, count: number): PlacementDriver };
+
+/** Artifacts hung as pendants on tethers from slots on the character's arms (artifacts/pendant.ts, tether.ts). */
+const pendantPlacement = {
+  layout: layoutPendants,
+  /**
+   * One per slot of the stage with fewer: a technology past it goes to the tray in every stage, so it is
+   * never placed in one stage and neither drawn nor offered in the other (a tray is the project's, not a stage's).
+   */
+  capacity: (config: PendantPlacement): number => Math.min(config.slots.intro.length, config.slots.overview.length),
+  driver(config: PendantPlacement, count: number): PlacementDriver {
+    const places: Record<ArtifactStage, (PendantPlace | null)[]> = { intro: layoutPendants(count, config, 'intro'), overview: layoutPendants(count, config, 'overview') };
+    const run = createPendantRun(count);
+    return {
+      // Swings advance from the arms' own motion; the swell does not move an arm, so it does not move a pendant.
+      step: ({ stage, swell, dt, still }, arms) => stepPendants(run, places[stage], { stage, swell, dt, reducedMotion: still }, arms, config),
+      size: (stage, i) => places[stage][i]?.size ?? null,
+      point: (_stage, i, _swell, out) => out.set(...run.live[i].orbCentre),
+      reset: () => resetPendants(run),
+      pendants: run.live,
+    };
+  },
+} satisfies { layout: typeof layoutPendants; capacity(config: PendantPlacement): number; driver(config: PendantPlacement, count: number): PlacementDriver };
 
 /** A ring of seed beads round the head at rest (artifacts/satellite.ts); its active form comes with the pendant code. */
 const satellitePlacement = {
@@ -60,17 +143,44 @@ const satellitePlacement = {
   point: satellitePoint,
   pace: orbitSpeed,
   Form: SatelliteRing,
-} satisfies PlacementModule<SatellitePlacement>;
+  /** Until its active form (pendant slots) arrives it keeps the orbit placement's capacity, so what a project shows beside the tray is unchanged. */
+  capacity: (): number => ORBIT_CAPACITY,
+  driver(config: SatellitePlacement, count: number): PlacementDriver {
+    // At rest it lays out no artifacts (the beads are its Form's), so no artifact has a place: none is drawn or offered.
+    const layouts = { intro: layoutSatellite(count, config, 'intro'), overview: layoutSatellite(count, config, 'overview') };
+    const run = { clock: 0, speed: { x: 1, v: 0 } };
+    return {
+      step: ({ dt, hot, still }) => {
+        const pace = orbitSpeed(hot, dt, run.speed);
+        if (!still) run.clock += dt * pace;
+      },
+      size: (stage, i) => layouts[stage][i]?.size ?? null,
+      point: (stage, i, swell, out) => satellitePoint(layouts[stage][i], run.clock, swell, out, config),
+    };
+  },
+} satisfies PlacementModule<SatellitePlacement> & PlacementEntry<SatellitePlacement>;
 
-export const PLACEMENTS = { orbit: orbitPlacement, satellite: satellitePlacement } as const;
+export const PLACEMENTS = { orbit: orbitPlacement, pendant: pendantPlacement, satellite: satellitePlacement } as const;
 export type PlacementKind = keyof typeof PLACEMENTS;
 
 /**
- * The placement module a config names, typed to take that config. (One cast: the table and the
- * config union are keyed by the same kinds, which TypeScript cannot correlate through a lookup.)
+ * The table entry a config names, typed to take that config (its capacity, driver and Form). (One
+ * cast: the table and the config union are keyed by the same kinds, which TypeScript cannot correlate
+ * through a lookup.)
  */
-export function placementOf(config: PlacementConfig): PlacementModule<PlacementConfig> {
-  return PLACEMENTS[config.kind] as unknown as PlacementModule<PlacementConfig>;
+export function placementOf(config: PlacementConfig): PlacementEntry<PlacementConfig> {
+  return PLACEMENTS[config.kind] as unknown as PlacementEntry<PlacementConfig>;
+}
+
+/** The driver for a world's placement (`count` artifacts), from the table entry its `kind` names. */
+export function placementDriver(config: PlacementConfig, count: number): PlacementDriver {
+  // Each entry takes its own kind's config; the table is closed and keyed by that kind, so the pairing holds.
+  return (PLACEMENTS[config.kind] as { driver(config: PlacementConfig, count: number): PlacementDriver }).driver(config, count);
+}
+
+/** How many artifacts a world's placement shows (a project's technologies beyond it go to the tray, never to extra arms). */
+export function placementCapacity(config: PlacementConfig): number {
+  return (PLACEMENTS[config.kind] as { capacity(config: PlacementConfig): number }).capacity(config);
 }
 
 // --- Appear ----------------------------------------------------------------------------------
@@ -149,8 +259,8 @@ const suctionSelect = {
   choreography: armFor => new HoldChoreography(armFor),
   nearestArm,
   position: pullPosition,
-  // The middle of the orbits (or of the satellite's ring): the artifacts swing round where their rings are centred.
-  centre: placement => ({ x: 0, y: placement.kind === 'orbit' ? placement.centreY : placement.ring.centreY }),
+  // The middle of the orbits (or of the satellite's ring): the artifacts swing round where their rings are centred (pendants have no rings: the body's middle).
+  centre: placement => ({ x: 0, y: placement.kind === 'orbit' ? placement.centreY : placement.kind === 'satellite' ? placement.ring.centreY : 0 }),
   // How far beyond the arm's tip a held bubble's centre sits, in bubble radii: its glass meets the tip clear of the logo.
   offTip: 1.25,
   arm: HOLD_ARM,

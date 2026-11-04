@@ -4,31 +4,32 @@ import type { Project, Technology } from '../content/projectTypes';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SwellSheet } from '../sequences/headSwell';
 import type { SequenceSet, Sequences } from '../sequences/theatre';
+import { ORBIT_CAPACITY } from '../artifacts/strategies';
 
 /**
- * How many bubbles orbit the octopus; the rest of the project's technologies go to the tray. A
- * platform default, not Nox's data: the orbit placement draws any count on its shells (15 is what
- * fits round the title and nameplate at the stage's size). It becomes placement config when the
- * pendant placement (F01) arrives, whose slots are fixed by the character: that placement's
- * owner, F01, makes `createProjectModel` take the capacity from the bundle then.
+ * How many bubbles orbit the octopus by default; the rest of the project's technologies go to the
+ * tray. It is the orbit placement's capacity (a platform default: 15 is what fits round the title
+ * and nameplate at the stage's size). A world's own placement sets its capacity: the pendant
+ * placement's is its slots (`placementCapacity`, artifacts/strategies.ts).
  */
-export const BUBBLE_COUNT = 15;
+export const BUBBLE_COUNT = ORBIT_CAPACITY;
 
 /**
  * A project's technologies as one instance shows them: in the project's order, each in a bubble
- * (the first BUBBLE_COUNT) or in the tray. Worked out once per instance from its project, never at module load.
+ * (the first `capacity`, the world's placement's: BUBBLE_COUNT by default) or in the tray. Worked out
+ * once per instance from its project, never at module load.
  */
-export function createProjectModel(project: Project, technologies: readonly Technology[]) {
+export function createProjectModel(project: Project, technologies: readonly Technology[], capacity = BUBBLE_COUNT) {
   const order = project.primaryTechnologyIds ?? [];
   const tech = new Map(technologies.map(t => [t.id, t]));
   const usage = new Map((project.technologyUsages ?? []).map(u => [u.technologyId, u]));
-  const orbs = order.slice(0, BUBBLE_COUNT).map(techId => ({
+  const orbs = order.slice(0, capacity).map(techId => ({
     techId,
     iconKey: tech.get(techId)?.iconKey ?? techId,
     name: tech.get(techId)?.name ?? techId,
     reaction: focusReaction(usage.get(techId)),
   }));
-  const overflow = order.slice(BUBBLE_COUNT);
+  const overflow = order.slice(capacity);
   const trayItem = (techId: string) => ({ techId, name: tech.get(techId)?.name ?? techId, iconKey: tech.get(techId)?.iconKey ?? techId });
   return { order, tech, usage, orbs, overflow, trayItem };
 }

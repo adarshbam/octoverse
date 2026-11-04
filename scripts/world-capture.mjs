@@ -6,6 +6,8 @@
 // WORLD=<id> (or OCTO_WORLD=<id>, which wins) adds world=<id> to the query (another world of the engine; unset, the page's default world, Nox).
 // The framing is the world's own: src/worlds/<id>/review/world_reference.json (the reference image's size, the view box
 // that frames it, its registration), next to its samples. A world with no such file is refused, not framed as Nox.
+// A stage named in the reference's optional `stages` table (e.g. Veyra's overview, framed on panel 3) is captured at that
+// entry's size instead; an entry with no `view` is the plain page (the stage camera, its lean and the HTML panels), not a zoom.
 // Each page is first sent through warmFonts (Poppins into the app origin's cache; a still without Poppins is refused).
 import { existsSync, readFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -18,10 +20,13 @@ const world = worldId ? `&world=${encodeURIComponent(worldId)}` : '';
 const referencePath = `src/worlds/${worldId || 'nox'}/review/world_reference.json`;
 if (!existsSync(referencePath)) throw new Error(`no world reference for world '${worldId || 'nox'}': expected ${referencePath} (image, origin, pxPerUnit, size, view)`);
 const reference = JSON.parse(readFileSync(referencePath, 'utf8'));
-for (const key of ['size', 'view']) if (!reference[key]) throw new Error(`${referencePath} has no '${key}'`);
-const VIEW = reference.view;
-const [width, height] = reference.size;
-const query = (mask) => `/?stage=${stage}&freeze&view=${VIEW}${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}${world}`;
+const staged = reference.stages?.[stage];
+if (staged) {
+  if (!staged.size) throw new Error(`${referencePath} stages.${stage} has no 'size'`);
+} else for (const key of ['size', 'view']) if (!reference[key]) throw new Error(`${referencePath} has no '${key}'`);
+const VIEW = staged ? staged.view : reference.view;
+const [width, height] = staged ? staged.size : reference.size;
+const query = (mask) => `/?stage=${stage}&freeze${VIEW ? `&view=${VIEW}` : ''}${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}${world}`;
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 let failed = false;
 try {

@@ -5,7 +5,7 @@ import { CAMERA_Z } from '../config/stage';
 import { type OrbitPlacement, STAGE_IDS } from '../config/types';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { type RingStyle, beadAngles, beadAnglesInto, ringLineVisible, ringLineWidth, ringPoint, ringShown } from './satellite';
-import { PLACEMENTS, SELECTS } from './strategies';
+import { ORBIT_CAPACITY, PLACEMENTS, SELECTS, placementCapacity, placementDriver, placementOf } from './strategies';
 
 // The `satellite` placement's rest form (amendment A1; Aether spec 2.2, 7.5): a ring round the head,
 // nearly edge-on, whose beads librate about their homes in the rear 270 degrees and never enter the
@@ -154,7 +154,7 @@ test('the ring is drawn in the intro and the detail only (the active form is Tas
 
 test('tables: satellite is a placement; it lays out no artifacts yet, and the orbit placement is untouched', () => {
   expect(Object.keys(PLACEMENTS)).toContain('satellite');
-  expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'satellite']);
+  expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'pendant', 'satellite']);
   const config = { kind: 'satellite', ring: RING } as const;
   // The ring's beads are not artifacts: no bubble, button or bubbleLive spot comes from them.
   for (const stage of ['intro', 'overview'] as const) expect(PLACEMENTS.satellite.layout(10, config, stage)).toEqual([]);
@@ -169,4 +169,16 @@ test('tables: satellite is a placement; it lays out no artifacts yet, and the or
   // A held artifact swings round the ring's centre (the satellite's select centre).
   expect(SELECTS.suctionHold.centre(config)).toEqual({ x: 0, y: -0.28 });
   expect(SELECTS.suctionHold.centre(NOX_ARTIFACTS.placement)).toEqual({ x: 0, y: 0.25 });
+});
+
+test("under the table's driver interface the satellite places no artifact, keeps the orbit capacity and keeps its Form", () => {
+  const config = { kind: 'satellite', ring: RING } as const;
+  // At rest no technology is in the air, but what a project shows beside the tray is as before the pendant code (15).
+  expect(placementCapacity(config)).toBe(ORBIT_CAPACITY);
+  const driver = placementDriver(config, 10);
+  for (const still of [false, true]) driver.step({ stage: 'overview', swell: 0.5, dt: 1 / 60, hot: false, still }, []);
+  for (const stage of ['intro', 'overview'] as const) for (let i = 0; i < 10; i++) expect(driver.size(stage, i)).toBeNull();
+  expect(driver.pendants).toBeUndefined();
+  expect(placementOf(config).Form).toBe(PLACEMENTS.satellite.Form);
+  expect(placementOf(NOX_ARTIFACTS.placement).Form).toBeUndefined();
 });
