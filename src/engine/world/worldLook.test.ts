@@ -87,3 +87,12 @@ test('validateWorld names each floor glow colour that is missing or not a colour
   expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: undefined as unknown as WorldConfig['palette']['floorGlow'] } })).toContain('palette.floorGlow is missing');
   expect(problems({ ...SECURITY_WORLD, palette: { ...palette, floorGlow: { cracks: '#000000', lava: 'color(srgb-linear 0 0 0)', sheen: '#000', pores: '#102030' } } })).toBe('');
 });
+
+test('validateWorld names each live colour that is missing or not a colour, and still checks the shares', () => {
+  const live = SECURITY_WORLD.live;
+  expect(problems({ ...SECURITY_WORLD, live: { ...live, colours: { ...live.colours, snow: 'white-ish' } } })).toContain('live.colours.snow');
+  expect(problems({ ...SECURITY_WORLD, live: { ...live, colours: { ...live.colours, embers: { ...live.colours.embers, hot: '#ff8a' } } } })).toContain('live.colours.embers.hot');
+  expect(problems({ ...SECURITY_WORLD, live: { ...live, colours: { ...live.colours, bubbles: undefined as unknown as WorldConfig['live']['colours']['bubbles'] } } })).toContain('live.colours.bubbles is missing');
+  expect(problems({ ...SECURITY_WORLD, live: { ...live, colours: undefined as unknown as WorldConfig['live']['colours'] } })).toContain('live.colours is missing');
+  expect(problems({ ...SECURITY_WORLD, live: { ...live, motes: 2 } })).toContain('live.motes must be between 0 and 1');
+});

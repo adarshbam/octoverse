@@ -148,6 +148,16 @@ export function validateWorld(world: WorldConfig): string[] {
         if (!finite(layer?.z)) problems.push(`farPlate.layers[${i}].z is not a number`);
       });
   }
-  for (const [name, share] of Object.entries(live)) if (!finite(share) || share < 0 || share > 1) problems.push(`live.${name} must be between 0 and 1`);
+  const { colours: liveColours, ...shares } = live;
+  for (const [name, share] of Object.entries(shares)) if (!finite(share) || share < 0 || share > 1) problems.push(`live.${name} must be between 0 and 1`);
+  if (!record(liveColours)) problems.push('live.colours is missing (bubbles, embers, motes, snow)');
+  else {
+    for (const [element, keys] of [['bubbles', ['rim', 'tint']], ['embers', ['color', 'hot']], ['motes', ['color', 'hot']]] as const) {
+      const pair: unknown = liveColours[element];
+      if (!record(pair)) problems.push(`live.colours.${element} is missing (${keys.join(', ')})`);
+      else for (const key of keys) if (!colour(pair[key])) problems.push(`live.colours.${element}.${key} is not a #rrggbb colour`);
+    }
+    if (!colour(liveColours.snow)) problems.push('live.colours.snow is not a #rrggbb colour');
+  }
   return problems;
 }

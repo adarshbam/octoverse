@@ -104,6 +104,14 @@ const WATER_COLOURS: WorldConfig['water']['colours'] = {
 /** What wet stone, iron, skin and the orbs mirror: bright blue from the surface, deep navy round the horizon, near black below, and the seabed's red glow in patches. */
 const WATER_ENVIRONMENT: WorldConfig['water']['environment'] = { top: '#2a5cff', horizon: '#0a1840', low: '#0b0712', seabedGlow: '#ff2030' };
 
+/** The live elements' own colours: pink-rimmed violet bubbles, crimson embers and red motes with hot orange ones, pale blue snow. */
+const LIVE_COLOURS: WorldConfig['live']['colours'] = {
+  bubbles: { rim: '#ff6a9a', tint: '#7a4aa8' },
+  embers: { color: '#ff2c3c', hot: '#ff8a5a' },
+  motes: { color: '#ff2238', hot: '#ff9a6a' },
+  snow: '#a8c0ff',
+};
+
 export const SECURITY_WORLD: WorldConfig = {
   id: 'security',
   kit: {
@@ -127,5 +135,5 @@ export const SECURITY_WORLD: WorldConfig = {
     points: [...glyphLights, ...lavaLights],
   },
   water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06, causticStrength: CAUSTIC_STRENGTH, colours: WATER_COLOURS, environment: WATER_ENVIRONMENT },
-  live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1 },
+  live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1, colours: LIVE_COLOURS },
 };

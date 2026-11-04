@@ -120,8 +120,23 @@ export interface WorldConfig {
    * surface mirrors.
    */
   water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number; colours: WaterColours; environment: WaterEnvironment };
-  /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */
-  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number };
+  /**
+   * The share (0 to 1) of each live element that is drawn: 1 is the full amount. `colours` are the
+   * live elements' own colours (in a world each also takes the character's face glow).
+   */
+  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours };
+}
+
+/** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
+export interface LiveColours {
+  /** The ambient bubbles: the fresnel rim and the clear body's tint. */
+  bubbles: { rim: string; tint: string };
+  /** The drifting embers, and the hotter colour about one in seven carries. */
+  embers: { color: string; hot: string };
+  /** The motes rising off the seabed, and the hotter colour about one in seven carries. */
+  motes: { color: string; hot: string };
+  /** The marine snow's flecks. */
+  snow: string;
 }
 
 /**

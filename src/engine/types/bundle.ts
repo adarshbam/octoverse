@@ -102,6 +102,7 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   need('place.water.colours', place.water.colours);
   need('place.water.environment', place.water.environment);
   need('place.palette.floorGlow', place.palette.floorGlow);
+  need('place.live.colours', place.live.colours);
   for (const part of ['contactShadow', 'bloom', 'vignette'] as const) need(`place.post.${part}`, place.post[part]);
   need('place.lights.surface', place.lights.surface);
   need('place.lights.fill', place.lights.fill);

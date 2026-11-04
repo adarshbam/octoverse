@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { type GlowLightUniforms, type GlowReach, NO_NOX_LIGHT, PARTICLE_REACH, glowLightGlsl } from '../character/glowLight';
+import type { LiveColours } from './types';
 
-// The particles' materials. Each takes Nox's face glow as a tint worked out per particle from the
-// shared glow uniforms (passed by reference, never copied), and adds it to its own colour; outside
-// a world the tint is black and each draws exactly as before.
+// The particles' materials. Each draws in its own colours, the world's (`place.live.colours`), and
+// takes Nox's face glow as a tint worked out per particle from the shared glow uniforms (passed by
+// reference, never copied), added to its own colour; outside a world the tint is black and each
+// draws exactly as before.
 
 /** Glassy bubbles: clear centre, bright fresnel rim, one specular glint. The glow lights them as it does their tint. */
-export function createBubbleMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
+export function createBubbleMaterial(colours: LiveColours['bubbles'], glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    uniforms: { uRim: { value: new THREE.Color('#ff6a9a') }, uTint: { value: new THREE.Color('#7a4aa8') }, ...glow },
+    uniforms: { uRim: { value: new THREE.Color(colours.rim) }, uTint: { value: new THREE.Color(colours.tint) }, ...glow },
     vertexShader: /* glsl */ `
       ${glowLightGlsl(reach)}
       varying vec3 vN;
@@ -42,13 +44,13 @@ export function createBubbleMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, rea
   });
 }
 
-/** Drifting crimson motes, each taking the glow by its own brightness. */
-export function createEmberMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
+/** Drifting embers (crimson in Nox), each taking the glow by its own brightness. */
+export function createEmberMaterial(colours: LiveColours['embers'], glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#ff2c3c') }, uHot: { value: new THREE.Color('#ff8a5a') }, ...glow },
+    uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color(colours.color) }, uHot: { value: new THREE.Color(colours.hot) }, ...glow },
     vertexShader: /* glsl */ `
       ${glowLightGlsl(reach)}
       attribute float aPhase;
@@ -84,8 +86,8 @@ export function createEmberMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reac
   });
 }
 
-/** Red motes rising off the seabed: the nearest blur into soft discs; each takes the glow by its own brightness. */
-export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
+/** Motes rising off the seabed (red in Nox): the nearest blur into soft discs; each takes the glow by its own brightness. */
+export function createMoteMaterial(colours: LiveColours['motes'], glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -93,8 +95,8 @@ export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach
     uniforms: {
       uTime: { value: 0 },
       uScale: { value: 1000 },
-      uColor: { value: new THREE.Color('#ff2238') },
-      uHot: { value: new THREE.Color('#ff9a6a') },
+      uColor: { value: new THREE.Color(colours.color) },
+      uHot: { value: new THREE.Color(colours.hot) },
       ...glow,
     },
     vertexShader: /* glsl */ `
@@ -147,12 +149,12 @@ export function createMoteMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach
 }
 
 /** Marine snow: fine flecks drifting down, catching the light from above, fading with distance; each takes the glow by its own brightness. */
-export function createSnowMaterial(glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
+export function createSnowMaterial(colour: LiveColours['snow'], glow: GlowLightUniforms = NO_NOX_LIGHT, reach: GlowReach = PARTICLE_REACH) {
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color('#a8c0ff') }, ...glow },
+    uniforms: { uTime: { value: 0 }, uScale: { value: 1000 }, uColor: { value: new THREE.Color(colour) }, ...glow },
     vertexShader: /* glsl */ `
       ${glowLightGlsl(reach)}
       attribute vec2 aSeed;

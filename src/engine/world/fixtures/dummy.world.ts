@@ -53,6 +53,8 @@ export function dummyWorld(world: WorldConfig): WorldConfig {
       colours: { deep: '#020c0c', zenith: '#0a4a50', glow: '#3cd8c8', opening: '#8cf0e0', rays: '#46d0c0', raysWide: '#8ce8d8', fish: '#06201e' },
       environment: { top: '#2cc8b8', horizon: '#06302e', low: '#03100e', seabedGlow: null },
     },
+    // Cyan bubbles, gold embers and green motes, white snow.
+    live: { ...world.live, colours: { bubbles: { rim: '#60f0d8', tint: '#2a7a88' }, embers: { color: '#e8b010', hot: '#fff08a' }, motes: { color: '#58d070', hot: '#c8f0a0' }, snow: '#e0f0ff' } },
     // A cooler skin accent, a slower and gentler drift, and a heavier vignette: all configuration.
     skinAccent: '#2c6a60',
     camera: { tilt: 0.05, hover: { amount: 0.6, pace: 0.5 } },

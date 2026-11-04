@@ -174,8 +174,8 @@ export function GodRays({ colours, amount = 1, spread = 1 }: { colours: WaterCol
 
 const SNOW = 2600;
 
-/** Marine snow: fine flecks drifting down, catching the light from above, fading with distance. `amount` is the share of the flecks drawn. In a world, `glow` tints them with Nox's face glow. */
-export function MarineSnow({ amount = 1, glow, reach }: { amount?: number; glow?: GlowLightUniforms; reach?: GlowReach }) {
+/** Marine snow: fine flecks drifting down, catching the light from above, fading with distance, in the world's `colour`. `amount` is the share of the flecks drawn. In a world, `glow` tints them with Nox's face glow. */
+export function MarineSnow({ colour, amount = 1, glow, reach }: { colour: string; amount?: number; glow?: GlowLightUniforms; reach?: GlowReach }) {
   const now = useWorldTime();
   const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(5);
@@ -188,9 +188,9 @@ export function MarineSnow({ amount = 1, glow, reach }: { amount?: number; glow?
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 2));
-    const material = createSnowMaterial(glow, reach);
+    const material = createSnowMaterial(colour, glow, reach);
     return { geometry, material, disposables: [geometry, material] };
-  }, [glow, reach]);
+  }, [colour, glow, reach]);
   useDisposables(disposables);
   // A lower amount draws only the first part of the flecks, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(SNOW * amount)), [geometry, amount]);
