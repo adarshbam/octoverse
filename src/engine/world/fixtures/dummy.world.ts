@@ -11,7 +11,16 @@ const mirror = (p: Placement): Placement => ({ ...p, position: [-p.position[0], 
  */
 export function dummyWorld(world: WorldConfig): WorldConfig {
   const base = world.layout;
-  const palette = { stone: '#3c4a3c', glyph: '#30e0c0', coral: '#e8b010', lava: '#e89c10', waterFar: '#052a30', floor: '#14201c' };
+  const palette = {
+    stone: '#3c4a3c',
+    glyph: '#30e0c0',
+    coral: '#e8b010',
+    lava: '#e89c10',
+    waterFar: '#052a30',
+    floor: '#14201c',
+    // A gold glow in the cracks and pores, no sheen on the puddles.
+    floorGlow: { cracks: 'color(srgb-linear 0.9 0.6 0.08)', lava: 'color(srgb-linear 0.9 0.5 0.06)', sheen: 'color(srgb-linear 0 0 0)', pores: 'color(srgb-linear 0.9 0.55 0.1)' },
+  };
   // No pillar is lit (so no glyph lights); each coral light keeps a lava light.
   const layout = {
     ...base,
@@ -35,7 +44,17 @@ export function dummyWorld(world: WorldConfig): WorldConfig {
       fill: { color: '#6fd0c0', intensity: 1.0, position: [1.5, 10, 2] },
       points: world.lights.points.filter(l => l.kind === 'lava').map((l, i) => ({ ...l, color: palette.lava, position: layout.coralLights[i] })),
     },
-    water: { fogDensity: 0.05, surfaceDir: [-0.03, 0.45, -0.89], environmentIntensity: 0.08, causticStrength: 0.006 },
+    // Teal water with no seabed glow in its reflections (the environment keeps them, without a red band).
+    water: {
+      fogDensity: 0.05,
+      surfaceDir: [-0.03, 0.45, -0.89],
+      environmentIntensity: 0.08,
+      causticStrength: 0.006,
+      colours: { deep: '#020c0c', zenith: '#0a4a50', glow: '#3cd8c8', opening: '#8cf0e0', rays: '#46d0c0', raysWide: '#8ce8d8', fish: '#06201e' },
+      environment: { top: '#2cc8b8', horizon: '#06302e', low: '#03100e', seabedGlow: null },
+    },
+    // Cyan bubbles, gold embers and green motes, white snow.
+    live: { ...world.live, colours: { bubbles: { rim: '#60f0d8', tint: '#2a7a88' }, embers: { color: '#e8b010', hot: '#fff08a' }, motes: { color: '#58d070', hot: '#c8f0a0' }, snow: '#e0f0ff' } },
     // A cooler skin accent, a slower and gentler drift, and a heavier vignette: all configuration.
     skinAccent: '#2c6a60',
     camera: { tilt: 0.05, hover: { amount: 0.6, pace: 0.5 } },

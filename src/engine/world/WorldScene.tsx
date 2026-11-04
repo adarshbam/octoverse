@@ -66,12 +66,12 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
         </KitBoundary>
       )}
       {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} onSettled={onPlateSettled} />}
-      <GodRays amount={live.rays * tier.rays} spread={world.glow.rays} />
-      <MarineSnow amount={live.snow} glow={accents?.light} reach={accents?.reach} />
-      {tier.fish && <FarFish amount={live.fish} />}
-      {tier.motes && <Motes amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
-      {!solo && <Bubbles density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
-      <Embers density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
+      <GodRays colours={water.colours} amount={live.rays * tier.rays} spread={world.glow.rays} />
+      <MarineSnow colour={live.colours.snow} amount={live.snow} glow={accents?.light} reach={accents?.reach} />
+      {tier.fish && <FarFish colour={water.colours.fish} amount={live.fish} />}
+      {tier.motes && <Motes colours={live.colours.motes} amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
+      {!solo && <Bubbles colours={live.colours.bubbles} density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
+      <Embers colours={live.colours.embers} density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>
   );

@@ -6,9 +6,8 @@ import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
 import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED, SWIM_STRETCH } from './poses';
 import { projectToScreen } from '../../engine/stage/anchors';
-import { NOX_STAGE_FRAMES as STAGE_FRAMES } from './bundle';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES, NOX_STAGE_PANELS } from './bundle';
 import { fovFor } from '../../engine/stage/framing';
-import { DETAIL_PANEL_BOX } from '../../engine/ui/detailContent';
 
 /** Distance from a point to a polyline, projecting onto its segments. */
 function distance(points: number[][], x: number, y: number) {
@@ -143,7 +142,7 @@ test('detail (panel 5): Nox at the left edge, turned toward the panel with its h
 
 test('detail: the eyes rest on the panel, by its section list, when nothing else holds them', () => {
   const [lx, ly] = NOX_POSES.detail.look!;
-  const [x0, y0, x1, y1] = DETAIL_PANEL_BOX;
+  const [x0, y0, x1, y1] = NOX_STAGE_PANELS.detail;
   expect(lx).toBeGreaterThan(x0);
   expect(lx).toBeLessThan(x0 + (x1 - x0) * 0.25);
   expect(ly).toBeLessThan(y0);

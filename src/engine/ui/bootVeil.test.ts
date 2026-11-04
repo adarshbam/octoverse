@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BOOT_VEIL_FADE_MS, BOOT_VEIL_ID, type VeilDocument, armBootVeilFailsafe, bootVeilHeld, hideBootVeil, noteStageDrawn, resetBootVeil, veilPlan } from './bootVeil';
 
@@ -133,5 +134,47 @@ describe('what the page does with the veil at its first render', () => {
     expect(veilPlan({ ...base, webgl: false })).toBe('now');
     expect(veilPlan({ ...base, mask: true })).toBe('now');
     expect(veilPlan({ ...base, entering: false, freeze: true })).toBe('now');
+  });
+});
+
+// index.html's inline script gives a page that will not show Nox a neutral veil and title (spec 8.3 and the
+// platform's boot rule: no Nox words or flame for another world). It runs here against a stand-in document.
+describe('the boot script of the page', () => {
+  const html = readFileSync(new URL('../../../index.html', import.meta.url), 'utf8');
+  const script = /<script>([\s\S]*?)<\/script>/.exec(html)![1];
+
+  function boot(search: string) {
+    const attributes: Record<string, string> = {};
+    const listeners: (() => void)[] = [];
+    let titleRemoved = false;
+    const document = {
+      title: 'Nox · Security Lab',
+      documentElement: { setAttribute: (name: string, value: string) => void (attributes[name] = value) },
+      addEventListener: (_type: string, listener: () => void) => void listeners.push(listener),
+      querySelector: (selector: string) => (selector === '#boot-veil .bv-title' ? { remove: () => void (titleRemoved = true) } : null),
+    };
+    new Function('document', 'location', script)(document, { search });
+    listeners.forEach(listener => listener());
+    return { attributes, title: document.title, titleRemoved };
+  }
+
+  it('leaves the page as it is for Nox: no ?world=, an empty one, or nox', () => {
+    for (const search of ['', '?stage=intro', '?world=', '?world=nox', '?x=1&world=nox']) {
+      expect(boot(search), search).toEqual({ attributes: {}, title: 'Nox · Security Lab', titleRemoved: false });
+    }
+  });
+
+  it('makes the veil and the title neutral for any other world', () => {
+    for (const search of ['?world=veyra', '?world=nox-b&testworld=1', '?world=NOX', '?world=nope']) {
+      expect(boot(search), search).toEqual({ attributes: { 'data-boot-world': 'other' }, title: 'OctoVerse', titleRemoved: true });
+    }
+  });
+
+  it('carries no Nox word in the neutral rules, and the default veil still has its title and flame', () => {
+    const neutral = [...html.matchAll(/html\[data-boot-world='other'\][^{]*\{[^}]*\}/g)].map(m => m[0]).join(' ');
+    expect(neutral).not.toMatch(/#071535|#ff|Security Lab/i);
+    expect(html).toContain('<span>Security Lab</span>');
+    expect(html).toContain('bv-flame');
+    expect(html).toContain('<title>Nox · Security Lab</title>');
   });
 });

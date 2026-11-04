@@ -5,6 +5,7 @@ import { useInstance } from '../host/instanceContext';
 import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLight';
 import { SEABED_ORDER } from './drawOrder';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
+import { floorGlowGlsl } from './floorGlow';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -133,13 +134,14 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     const time = { value: 0 };
     const motion = new THREE.Vector2(1, 0);
     const glow = world.glow.floor;
+    const floorGlow = floorGlowGlsl(world.palette.floorGlow, glow);
     const cracks = makeCrackMap();
     const reliefMap = baked && lightMapOf(baked.reliefMaps.seabed);
     const material = new THREE.MeshStandardMaterial({
       color: world.palette.floor,
       roughness: 0.62,
       metalness: 0,
-      // Wet stone mirrors the red glows round it more than the far-off surface.
+      // Wet stone mirrors the glows round it more than the far-off surface.
       envMapIntensity: 0.08,
       map: maps.tone,
       normalMap: maps.normal,
@@ -179,12 +181,11 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
             float amount = max(patchy, side * 0.85);
             // The lava pulses slowly (liveMotion.ts); held still it keeps its mean.
             float pulse = ${LAVA_PULSE_GLSL};
-            totalEmissiveRadiance += vec3(1.0, 0.09, 0.05) * amount * pulse * (crack * 3.4 + halo * (0.25 + 1.4 * side)) * ${glow.toFixed(2)};
+            totalEmissiveRadiance += ${floorGlow.cracks} * amount * pulse * (crack * 3.4 + halo * (0.25 + 1.4 * side)) * ${glow.toFixed(2)};
             // Lava under the rubble at the sides: a broad glow, strongest near the lens.
             float lava = smoothstep(2.0, 4.5, abs(wp.x)) * smoothstep(-8.0, 1.0, wp.y);
-            totalEmissiveRadiance += vec3(1.0, 0.12, 0.04) * lava * pulse * 0.12 * ${glow.toFixed(2)};
-            // Puddles mirror that glow: a red sheen, stronger toward the sides.
-            totalEmissiveRadiance += vec3(1.0, 0.1, 0.05) * puddle * (0.03 + 0.12 * side);
+            totalEmissiveRadiance += ${floorGlow.lava} * lava * pulse * 0.12 * ${glow.toFixed(2)};
+            ${floorGlow.sheen}
           }`,
         );
     };

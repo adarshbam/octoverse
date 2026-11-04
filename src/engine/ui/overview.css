@@ -84,9 +84,9 @@
   left: 16.5%;
   width: 38%;
   border: none;
-  color: #1a0710;
+  color: var(--oct-ink, #1a0710);
   background: linear-gradient(180deg, var(--oct-button-from, #ff7a86) 0%, var(--oct-button-to, #ff4c62) 100%);
-  box-shadow: 0 0 4cqh rgba(255, 70, 100, 0.55);
+  box-shadow: 0 0 4cqh rgba(var(--oct-button-glow-rgb, 255, 70, 100), 0.55);
 }
 
 .overview-github {
@@ -94,7 +94,7 @@
   width: 29.8%;
   color: #fff;
   background: rgba(10, 6, 18, 0.72);
-  border: 0.45cqh solid rgba(255, 120, 160, 0.35);
+  border: 0.45cqh solid rgba(var(--oct-line-rgb, 255, 120, 160), 0.35);
 }
 
 .overview-actions > *:focus-visible {
@@ -154,7 +154,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 160, 200, 0.45);
+  border: 1px solid rgba(var(--oct-line-pale-rgb, 255, 160, 200), 0.45);
   background: rgba(12, 6, 22, 0.7);
   display: grid;
   place-items: center;
@@ -197,7 +197,7 @@
 
 .orb-tray-item[aria-pressed='true'] {
   border-color: var(--oct-focus-ring, #ffd0dc);
-  background: rgba(70, 20, 50, 0.85);
+  background: var(--oct-selected, rgba(70, 20, 50, 0.85));
 }
 
 .orb-tray-item:focus-visible {
@@ -228,7 +228,7 @@
   border: 1.5px solid var(--oct-surface-edge, rgba(255, 70, 110, 0.7));
   border-bottom: 0;
   background: linear-gradient(160deg, rgba(22, 13, 32, 0.96), rgba(8, 6, 16, 0.97) 60%);
-  box-shadow: 0 0 28px rgba(255, 40, 90, 0.35);
+  box-shadow: 0 0 28px rgba(var(--oct-glow-rgb, 255, 40, 90), 0.35);
   transform: translateY(8%);
 }
 

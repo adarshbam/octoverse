@@ -23,7 +23,7 @@ test('the world reaches the skin only through its accents: no world fog, accents
   const accents = createAccentUniforms();
   for (const name of Object.keys(accents)) expect(u).toHaveProperty(name);
   for (const kind of ['HEAD', 'ARM'] as const) {
-    const material = createSkinMaterial(kind, u);
+    const material = createSkinMaterial(kind, u, NOX.palette.rimHot);
     expect(material.fog).toBe(false);
     const source = material.fragmentShader;
     expect(source).toContain(ACCENT_GLSL);
@@ -34,7 +34,7 @@ test('the world reaches the skin only through its accents: no world fog, accents
 });
 
 test('world accents stay off the face glow and the arm roots, as the neon rim does', () => {
-  const source = createSkinMaterial('ARM', createSkinUniforms(NOX)).fragmentShader;
+  const source = createSkinMaterial('ARM', createSkinUniforms(NOX), NOX.palette.rimHot).fragmentShader;
   const ownGlow = source.match(/float rimFade = ([^;]*);/)?.[1];
   expect(ownGlow).toBe('(1.0 - join) * (1.0 - smoothstep(0.3, 0.65, faceGlow))');
   expect(source).toContain(`col = worldAccent(col, N, ndv, ${ownGlow});`);
@@ -49,7 +49,7 @@ test('face features never show on the back', () => {
   expect(faceWeight(0.2)).toBeGreaterThan(0);
   expect(faceWeight(0.2)).toBeLessThan(1);
   // The shader masks the face texture with the same weight.
-  const source = createSkinMaterial('HEAD', createSkinUniforms(NOX)).fragmentShader;
+  const source = createSkinMaterial('HEAD', createSkinUniforms(NOX), NOX.palette.rimHot).fragmentShader;
   expect(source).toContain('float mask = face.a * inside * faceWeight(vFront);');
 });
 
@@ -58,7 +58,7 @@ test('the arms’ red underside band glows at the strength the config gives, 1.6
   const uniforms = createSkinUniforms({ ...NOX, glow: { ...NOX.glow, underside: 1.3 } });
   expect(uniforms.uUnderside.value).toBe(1.3);
   expect(createSkinUniforms(NOX).uUnderside.value).toBe(1.6);
-  const material = createSkinMaterial('ARM', uniforms);
+  const material = createSkinMaterial('ARM', uniforms, NOX.palette.rimHot);
   expect(material.fragmentShader).toMatch(/pow\(band, 1\.6\) \* uUnderside;/);
   material.dispose();
 });

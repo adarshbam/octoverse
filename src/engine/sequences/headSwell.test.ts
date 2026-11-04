@@ -7,7 +7,7 @@ import { createDomeMaterial } from '../character/domeMaterial';
 import { HEAD_EFFECTS } from '../character/headEffects';
 import { GLYPH_SIZE, glyphLayout } from '../character/headEffects/glyphs';
 import { NOX } from '../../worlds/nox/character';
-import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
+import { NOX_STAGE_PANELS } from '../../worlds/nox/bundle';
 import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK } from '../../worlds/nox/sequences/defaults';
 import { SWELL_PUSH_SETTLED } from './keys';
 import { type HeadDraw, type SwellFrame, SwellRun, headDraw, restingSwell, swellFrame } from './headSwell';
@@ -195,7 +195,7 @@ test('headEffect none renders the approved dome', () => {
 test('the glyphs float clear of the face and the dome\'s panel', () => {
   const { dome } = NOX;
   const seat = { x: dome.center[0], y: dome.center[1] - dome.halfHeight };
-  const [, panelTop] = DOME_PANEL_BOX;
+  const [, panelTop] = NOX_STAGE_PANELS.overview;
   // OVERVIEW body placement (poses/nox.poses.ts): the panel box is in world units on the page.
   const body = { x: 0.03, y: 0.353 };
   for (const g of glyphLayout(dome)) {

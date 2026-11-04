@@ -8,7 +8,7 @@
   gap: 8px;
   padding: 10px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 160, 200, 0.4);
+  border: 1px solid rgba(var(--oct-line-pale-rgb, 255, 160, 200), 0.4);
   background: rgba(12, 6, 22, 0.6);
   color: #ece4f3;
   font: 500 14px/1 'Poppins', system-ui, sans-serif;
@@ -25,7 +25,7 @@
 }
 
 .skip-entrance:hover {
-  border-color: rgba(255, 190, 215, 0.75);
+  border-color: rgba(var(--oct-line-hover-rgb, 255, 190, 215), 0.75);
   background-color: rgba(24, 10, 38, 0.75);
 }
 
@@ -64,7 +64,7 @@
   padding: 12px 18px;
   border-radius: 10px;
   background: var(--oct-focus-ring, #ffd0dc);
-  color: #1a0710;
+  color: var(--oct-ink, #1a0710);
   font: 600 15px/1.2 'Poppins', system-ui, sans-serif;
   text-decoration: none;
   transform: translateY(-300%);
@@ -72,6 +72,6 @@
 
 .skip-link:focus {
   transform: none;
-  outline: 3px solid #1a0710;
+  outline: 3px solid var(--oct-ink, #1a0710);
   outline-offset: 2px;
 }

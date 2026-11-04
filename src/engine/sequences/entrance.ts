@@ -17,9 +17,6 @@ import type { Sequences } from './theatre';
 // Nothing here names a world: the stroke's timing, how far the arms and the pillars reach, and the
 // turn's size and arc (`EntranceShape`, on the sequences) come in as arguments (Nox's: nox.sequences.ts).
 
-/** The entrance's length in seconds: the sheet's length. */
-export const ENTRANCE_SECONDS = 8.4;
-
 export interface EntranceFrame {
   /** The body's place: stage units, (0, 0, 0) being the intro spot. */
   position: Vec3;
@@ -140,14 +137,14 @@ function strokeLead(clock: number, timing: StrokeTiming) {
 }
 
 /**
- * The entrance at `seconds` (clamped to 0 to ENTRANCE_SECONDS), from the sheet. The keyed x, y, z
+ * The entrance at `seconds` (clamped to 0 to the sheet's length, `seq.length('entrance')`: the world's own, 8.4 s for Nox), from the sheet. The keyed x, y, z
  * are the swim to the arc's start; the strokes pull the swim along that path in surges (the
  * `surge` prop, 0 none, 1 the speed in step with the thrust), and the arc adds
  * spiralOffset(spin) - spiralOffset(0), which ends at the spot. The turn's size is the sequences'
  * `entrance.turn` (the yaw and the arc's angle read it); the stroke's timing is `swim`.
  */
 export function entranceFrame(seq: Sequences, seconds: number, { swim }: EntranceSwim): EntranceFrame {
-  const t = Math.min(ENTRANCE_SECONDS, Math.max(0, Number.isFinite(seconds) ? seconds : 0));
+  const t = Math.min(seq.length('entrance'), Math.max(0, Number.isFinite(seconds) ? seconds : 0));
   // Copy at once: the next sample moves the same sheet.
   const k = { ...seq.sample<EntranceProps>('entrance', 'main', t) };
   const lead = k.surge * strokeLead(k.stroke, swim);
@@ -237,12 +234,12 @@ export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes:
 
 /**
  * Smallest gap between Nox's arm span (open 2.15, closed 1.2 half-span) and any pillar along the
- * path, sampled `samples` times from 0 to `until` seconds. In the x-z plane, so the pillars count at
+ * path, sampled `samples` times (651 is plenty for a swim) from 0 to `until` seconds (a length the caller reads from its world's sequences). In the x-z plane, so the pillars count at
  * every height. A circle of reach, the same every way: right for the swim, where the strokes swing
  * the arms back as far as they reach sideways, but blind to the open intro pose's shape (flat, side
  * to side). Past the swim, sequences/armClearance.test.ts checks the real arms instead.
  */
-export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, geometry: EntranceGeometry, samples = 651, until = ENTRANCE_SECONDS): number {
+export function pathClearance(frame: (s: number) => EntranceFrame, layout: WorldLayout, geometry: EntranceGeometry, samples: number, until: number): number {
   let least = Infinity;
   for (let i = 0; i < samples; i++) {
     const f = frame((i / Math.max(1, samples - 1)) * until);

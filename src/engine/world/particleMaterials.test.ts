@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
+import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { NO_NOX_LIGHT, createGlowLightUniforms } from '../character/glowLight';
 import { createBubbleMaterial, createEmberMaterial, createMoteMaterial, createSnowMaterial } from './particleMaterials';
 
 const DUMMY = dummyCharacter(NOX);
 
-const MATERIALS = { bubbles: createBubbleMaterial, embers: createEmberMaterial, motes: createMoteMaterial, snow: createSnowMaterial };
+const COLOURS = SECURITY_WORLD.live.colours;
+/** Each material with Nox's colours: `create(glow?, reach?)`. */
+const MATERIALS = {
+  bubbles: (...rest: Rest) => createBubbleMaterial(COLOURS.bubbles, ...rest),
+  embers: (...rest: Rest) => createEmberMaterial(COLOURS.embers, ...rest),
+  motes: (...rest: Rest) => createMoteMaterial(COLOURS.motes, ...rest),
+  snow: (...rest: Rest) => createSnowMaterial(COLOURS.snow, ...rest),
+};
+type Rest = [glow?: Parameters<typeof createSnowMaterial>[1], reach?: Parameters<typeof createSnowMaterial>[2]];
 
 describe('the particles take the face glow', () => {
   for (const [name, create] of Object.entries(MATERIALS)) {
@@ -63,4 +72,28 @@ describe('the particles take the reach and decay of the character\'s light', () 
       expect(slow).toContain('#define NOX_GLOW_DECAY 1.5000');
     });
   }
+});
+
+describe("the particles draw in the world's colours", () => {
+  const hex = (material: { uniforms: Record<string, { value: unknown }> }, name: string) => (material.uniforms[name].value as { getHexString(): string }).getHexString();
+
+  it("Nox's are the literals they were drawn with, verbatim", () => {
+    expect(COLOURS).toEqual({ bubbles: { rim: '#ff6a9a', tint: '#7a4aa8' }, embers: { color: '#ff2c3c', hot: '#ff8a5a' }, motes: { color: '#ff2238', hot: '#ff9a6a' }, snow: '#a8c0ff' });
+    expect([hex(MATERIALS.bubbles(), 'uRim'), hex(MATERIALS.bubbles(), 'uTint')]).toEqual(['ff6a9a', '7a4aa8']);
+    expect([hex(MATERIALS.embers(), 'uColor'), hex(MATERIALS.embers(), 'uHot')]).toEqual(['ff2c3c', 'ff8a5a']);
+    expect([hex(MATERIALS.motes(), 'uColor'), hex(MATERIALS.motes(), 'uHot')]).toEqual(['ff2238', 'ff9a6a']);
+    expect(hex(MATERIALS.snow(), 'uColor')).toBe('a8c0ff');
+  });
+
+  it("another world's colours reach every particle (no red in a teal world's)", () => {
+    const teal = { bubbles: { rim: '#60f0d8', tint: '#2a7a88' }, embers: { color: '#30e0b8', hot: '#b4f0e0' }, motes: { color: '#58d070', hot: '#c8f0a0' }, snow: '#e0f0ff' };
+    const made = [createBubbleMaterial(teal.bubbles), createEmberMaterial(teal.embers), createMoteMaterial(teal.motes), createSnowMaterial(teal.snow)];
+    for (const material of made) {
+      for (const name of ['uRim', 'uTint', 'uColor', 'uHot']) {
+        const value = material.uniforms[name]?.value as { r: number; g: number; b: number } | undefined;
+        if (value) expect(value.r <= value.g || value.r <= value.b, name).toBe(true);
+      }
+      material.dispose();
+    }
+  });
 });

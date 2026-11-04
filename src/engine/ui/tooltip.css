@@ -6,9 +6,9 @@
   max-width: calc(100vw - 32px);
   padding: 12px 14px 10px;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 70, 110, 0.75);
+  border: 1.5px solid rgba(var(--oct-surface-edge-rgb, 255, 70, 110), 0.75);
   background: rgba(10, 6, 18, 0.92);
-  box-shadow: 0 0 22px rgba(255, 40, 90, 0.35), inset 0 0 14px rgba(255, 50, 100, 0.12);
+  box-shadow: 0 0 22px rgba(var(--oct-glow-rgb, 255, 40, 90), 0.35), inset 0 0 14px rgba(var(--oct-glow-inner-rgb, 255, 50, 100), 0.12);
   color: #f3eef8;
   font-family: 'Poppins', system-ui, sans-serif;
   pointer-events: auto;

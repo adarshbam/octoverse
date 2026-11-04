@@ -23,7 +23,8 @@ import { loadWorldSequences } from '../sequences/theatre';
 import { fovFor } from '../stage/framing';
 import { TIER_SETTINGS } from '../stage/quality';
 import { QualityProbe, startingTier, usePageVisible, useQuality } from '../stage/useQuality';
-import { type FaceStage, type WorldBundle, faceAnchor, validateBundle } from '../types/bundle';
+import { type FaceStage, type WorldBundle, faceAnchor } from '../types/bundle';
+import { BundleProblem, checkBundle } from './bundleProblem';
 import { ExitLink } from '../ui/ExitLink';
 import { IntroOverlay } from '../ui/IntroOverlay';
 import { type FaceSpot, bubbleDisc, faceSpot } from '../ui/OrbButtons';
@@ -260,15 +261,20 @@ export interface HostProps {
  * render remounts the instance (the canvas and the stage) every time.
  */
 export function WorldHost({ bundle, options, mode = 'page', preview, ...host }: HostProps) {
-  const valid = useMemo(() => validateBundle(bundle), [bundle]);
+  const checked = useMemo(() => checkBundle(bundle), [bundle]);
+  // A bundle that cannot be drawn shows a plain message and is logged, not a blank page (the error names the field).
+  useEffect(() => {
+    if (checked.error) console.error(checked.error);
+  }, [checked]);
   // A preview's options are the review options it covers, so the instance reads one set.
   const { stage, tierCap, motion, place, artifacts } = preview ?? {};
   const effective = useMemo(
     () => (mode === 'preview' && stage && motion && place && artifacts ? applyPreview(options, { stage, tierCap, motion, place, artifacts }) : options),
     [options, mode, stage, tierCap, motion, place, artifacts],
   );
+  if (checked.error) return <BundleProblem error={checked.error} />;
   return (
-    <EngineInstance key={instanceKey(bundle)} bundle={valid} mode={mode}>
+    <EngineInstance key={instanceKey(bundle)} bundle={checked.valid} mode={mode}>
       <World options={effective} {...host} />
     </EngineInstance>
   );
@@ -331,6 +337,15 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
   useEffect(() => {
     if (import.meta.env.DEV) report(instance, 'worldTier', worldTier);
   }, [worldTier, instance]);
+  // The document's title follows the world once it is up (index.html holds a neutral one until then); a page instance only, and put back when it goes.
+  useEffect(() => {
+    if (!page) return;
+    const before = document.title;
+    document.title = bundle.theme.pageTitle;
+    return () => {
+      document.title = before;
+    };
+  }, [page, bundle.theme.pageTitle]);
   // No WebGL: no entrance to wait for.
   useEffect(() => {
     if (!webgl) dispatch({ type: 'SKIP' });
@@ -596,7 +611,7 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
           </>
         )}
       </Canvas>}
-      {!webgl && <Poster />}
+      {!webgl && <Poster image={bundle.theme.poster} />}
       {!mask && !options.view && (
         <>
           {/* `ui: 'none'` leaves out the title, nameplate, overview panel and the skip controls (spec 19, P1); the detail panel, the orb buttons, the tray and the tooltips stay (the last three go with `artifacts: 'hidden'`). */}

@@ -96,7 +96,7 @@ export interface WorldConfig {
    * the stone round them. The WorldLight data for Nox's accents does not rise with them.
    */
   relics: { glyph: number; coral: number; spill: number };
-  palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string };
+  palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string; floorGlow: FloorGlow };
   lights: {
     /** From the surface, high above and beyond the stage: shadows, and caustics in its cookie. */
     surface: { color: string; intensity: number; position: Vec3; target: Vec3 };
@@ -115,9 +115,71 @@ export interface WorldConfig {
   /**
    * `surfaceDir` points at the brightest patch of surface; the sky, the water's reflections and its
    * rays follow it. `causticStrength` is the caustics' share of the surface light on the character's
-   * skin: the bright lines reach their cap, the gaps stay well under it.
+   * skin: the bright lines reach their cap, the gaps stay well under it. `colours` are the water's
+   * own (the sky sphere, the shafts, the far fish) and `environment` the light every reflective
+   * surface mirrors.
    */
-  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number };
-  /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */
-  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number };
+  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number; colours: WaterColours; environment: WaterEnvironment };
+  /**
+   * The share (0 to 1) of each live element that is drawn: 1 is the full amount. `colours` are the
+   * live elements' own colours (in a world each also takes the character's face glow).
+   */
+  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours };
+}
+
+/** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
+export interface LiveColours {
+  /** The ambient bubbles: the fresnel rim and the clear body's tint. */
+  bubbles: { rim: string; tint: string };
+  /** The drifting embers, and the hotter colour about one in seven carries. */
+  embers: { color: string; hot: string };
+  /** The motes rising off the seabed, and the hotter colour about one in seven carries. */
+  motes: { color: string; hot: string };
+  /** The marine snow's flecks. */
+  snow: string;
+}
+
+/**
+ * The seabed's own light (Floor.tsx, and the rocks' pores in Kit.tsx), each a colour the shader
+ * compiles in (`#rrggbb`, or `color(srgb-linear r g b)` for an amount of light hex cannot say;
+ * colour.ts): `cracks` glows in the floor's cracks and round them, `lava` under the rubble at the
+ * sides, `sheen` is that glow mirrored by the wet puddles, `pores` the glow in the rocks' pores.
+ * Black is no glow; the sheen also goes with `glow.floor` at 0 (nothing to mirror). Each is
+ * scaled by its `glow.*` fix (floor or crevice), the sheen by none.
+ */
+export interface FloorGlow {
+  cracks: string;
+  lava: string;
+  sheen: string;
+  pores: string;
+}
+
+/** The water's own colours (Water.tsx), each `#rrggbb`. */
+export interface WaterColours {
+  /** The sky sphere below the horizon: the deep water under the ruin (`palette.waterFar` is its horizon). */
+  deep: string;
+  /** The sky sphere toward the surface overhead. */
+  zenith: string;
+  /** The surface's glow round its brightest patch, its ripples and its far shafts. */
+  glow: string;
+  /** What the glow leans toward at the very top of the frame as `glow.top` rises above 1 (the opening). */
+  opening: string;
+  /** The light shafts, and the colour they lean toward as `glow.rays` widens their fan above 1. */
+  rays: string;
+  raysWide: string;
+  /** The far school of fish, dark against the glow. */
+  fish: string;
+}
+
+/**
+ * The water's light from every direction (textures.ts `makeWaterEnvironment`), which wet stone,
+ * iron, the skin and the orbs mirror: `top` from the surface (and its sun patch), `horizon` round
+ * the middle, `low` toward the seabed, each `#rrggbb`; `seabedGlow` is a glow in patches along the
+ * seabed band, or null for none (no seabed glow, the reflections kept).
+ */
+export interface WaterEnvironment {
+  top: string;
+  horizon: string;
+  low: string;
+  seabedGlow: string | null;
 }

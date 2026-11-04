@@ -52,12 +52,6 @@ export function faceSpot(bundle: WorldBundle, stage: 'intro' | 'overview' = 'ove
   return cached(bundle, `face:${stage}`, () => faceSpotNow(bundle, stage));
 }
 
-/**
- * The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css).
- * Nox's trace, shared by every world's intro layout until F01 gives the bundle its own.
- */
-const INTRO_TITLE = { halfWidth: 1.4, top: 1.55 };
-
 function faceSpotNow(bundle: WorldBundle, stage: 'intro' | 'overview'): FaceSpot {
   const size = { width: window.innerWidth, height: window.innerHeight };
   const [fx, fy] = faceOrigin(bundle, stage);
@@ -74,8 +68,10 @@ function faceSpotNow(bundle: WorldBundle, stage: 'intro' | 'overview'): FaceSpot
     bottom: Math.max(pTop.y, pBottom.y),
   };
   if (stage === 'intro') {
-    const titleLeft = projectToScreen(new THREE.Vector3(-INTRO_TITLE.halfWidth, INTRO_TITLE.top, 0), camera, size);
-    const titleRight = projectToScreen(new THREE.Vector3(INTRO_TITLE.halfWidth, INTRO_TITLE.top, 0), camera, size);
+    // The intro's title box, traced from the world's own (`stage.introTitle`).
+    const { introTitle } = bundle.stage;
+    const titleLeft = projectToScreen(new THREE.Vector3(-introTitle.halfWidth, introTitle.top, 0), camera, size);
+    const titleRight = projectToScreen(new THREE.Vector3(introTitle.halfWidth, introTitle.top, 0), camera, size);
     bounds.left = Math.min(bounds.left, titleLeft.x);
     bounds.right = Math.max(bounds.right, titleRight.x);
     bounds.top = Math.min(bounds.top, titleLeft.y);
