@@ -1,0 +1,39 @@
+{
+  "assumption": "Largest card = Flux card, P3 share table box 0.24 x 0.30 of a panel filling the stage frame; at 1536 x 1024 that is 369 x 307 CSS px; stills are 2x: 738 x 614 px. World stills: stage=intro, freeze, solo (engine review flag: no bubbles, head dome or artifacts) with the HTML overlays hidden, so the still is the octopus on its world only. Task 8 may revise the card size.",
+  "width": 738,
+  "height": 614,
+  "entries": [
+    {
+      "key": "world:aether",
+      "file": "aether.webp",
+      "bundle": "aether",
+      "commit": "fb03d90",
+      "date": "2026-11-04",
+      "bytes": 39746
+    },
+    {
+      "key": "world:flux",
+      "file": "flux.webp",
+      "bundle": "flux",
+      "commit": "fb03d90",
+      "date": "2026-11-04",
+      "bytes": 33714
+    },
+    {
+      "key": "world:nox",
+      "file": "nox.webp",
+      "bundle": "nox",
+      "commit": "fb03d90",
+      "date": "2026-11-04",
+      "bytes": 56268
+    },
+    {
+      "key": "world:veyra",
+      "file": "veyra.webp",
+      "bundle": "veyra",
+      "commit": "fb03d90",
+      "date": "2026-11-04",
+      "bytes": 45262
+    }
+  ]
+}
