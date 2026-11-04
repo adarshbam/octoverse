@@ -240,6 +240,11 @@ const LOOK_CALL = /* glsl */ `
 
     #ifdef JELLY
       col = jellyLook(col, N, V, ndv, faceGlow, join);
+      #ifdef HEAD
+        // Opened into the dome, the sunk top stays in the glass's shadow: the jelly's crown and rim
+        // would undo the skin's darkening (capped, above), so it is applied again over the look.
+        col = mix(col, col * 0.4, capped);
+      #endif
     #endif
     #ifdef SPARKLE
       col += uWetColor * sparkles(p, footprint, up) * 1.4 * (1.0 - smoothstep(0.3, 0.7, faceGlow));
