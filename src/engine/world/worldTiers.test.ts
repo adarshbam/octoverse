@@ -4,7 +4,8 @@ import { PHONE_WORLD_TIER, WORLD_TIERS, reliefShown, stoneCastsShadow, worldTier
 
 test('world tiers scale down monotonically', () => {
   const { high, medium, low } = WORLD_TIERS;
-  for (const key of Object.keys(high).filter(k => k !== 'id') as Exclude<keyof typeof high, 'id'>[]) {
+  // `id` and `quality` name the tier (they are not levers): every other field only ever drops.
+  for (const key of Object.keys(high).filter(k => k !== 'id' && k !== 'quality') as Exclude<keyof typeof high, 'id' | 'quality'>[]) {
     const [a, b, c] = [high[key], medium[key], low[key]];
     if (typeof a === 'boolean') {
       // A feature may be dropped on a lower tier, never gained.
@@ -17,10 +18,15 @@ test('world tiers scale down monotonically', () => {
 
 test('every tier is pinned', () => {
   expect(WORLD_TIERS).toEqual({
-    high: { id: 'high', particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
-    medium: { id: 'medium', particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
-    low: { id: 'low', particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
+    high: { id: 'high', quality: 'high', particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
+    medium: { id: 'medium', quality: 'medium', particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
+    low: { id: 'low', quality: 'low', particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
   });
+  // Each tier names itself: a live element counted by tier (jellyfish) reads its count by this name.
+  for (const name of ['high', 'medium', 'low'] as const) expect(WORLD_TIERS[name].quality).toBe(name);
+  expect(PHONE_WORLD_TIER.quality).toBe('low');
+  // Flux's packets read the same name as `id`: the two never disagree.
+  for (const tier of [...Object.values(WORLD_TIERS), PHONE_WORLD_TIER]) expect(tier.id).toBe(tier.quality);
 });
 
 test('the stone casts shadows and shows its relief at high only', () => {

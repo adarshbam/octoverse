@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { KELP_SWAY_GLSL, useMotionAmount } from './liveMotion';
-import { LIVE_ELEMENTS, type StrandElementId } from './live';
+import { STRAND_ELEMENTS, type StrandElementId } from './live';
 import { scatterStrands, strandGeometry } from './live/strands';
 import type { StrandConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -30,7 +30,7 @@ export function Strands({ id, config, floorY, amount = 1 }: { id: StrandElementI
   const now = useWorldTime();
   const motionAmount = useMotionAmount();
   const { mesh, uniforms, disposables } = useMemo(() => {
-    const shape = LIVE_ELEMENTS[id];
+    const shape = STRAND_ELEMENTS[id];
     const strands = scatterStrands(config, shape, floorY);
     const geometry = strandGeometry(shape);
     const uniforms: StrandUniforms = { uTime: { value: 0 }, uMotion: { value: 1 }, uSway: { value: config.sway } };

@@ -2,6 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
+import type { Point2 } from '../config/types';
+import { fishGeometry } from './fish';
 import { seeded } from './noise';
 import { WATER_SKY_ORDER } from './drawOrder';
 import { createSnowMaterial } from './particleMaterials';
@@ -204,17 +206,15 @@ export function MarineSnow({ colour, amount = 1, glow, reach }: { colour: string
 
 const FISH = 16;
 
-/** A loose school far down the ruin, dark against the glow, tails beating. `amount` is the share of the fish drawn; `colour` is theirs (the water's `fish`). */
-export function FarFish({ colour, amount = 1 }: { colour: string; amount?: number }) {
+/**
+ * A loose school far down the ruin, dark against the glow, tails beating. `amount` is the share of
+ * the fish drawn; `colour` is theirs (the water's `fish`); `silhouette` their outline, if the world
+ * gives one (`live.fishSilhouette`, fish.ts), else the body and tail Nox's and Veyra's have.
+ */
+export function FarFish({ colour, amount = 1, silhouette }: { colour: string; amount?: number; silhouette?: readonly Point2[] }) {
   const now = useWorldTime();
   const { mesh, clock, school, disposables } = useMemo(() => {
-    const body = new THREE.SphereGeometry(1, 14, 8);
-    body.scale(1, 0.34, 0.16);
-    const tail = new THREE.BufferGeometry();
-    tail.setAttribute('position', new THREE.Float32BufferAttribute([-0.85, 0, 0, -1.45, 0.38, 0, -1.45, -0.38, 0, -0.85, 0, 0, -1.45, -0.38, 0, -1.45, 0.38, 0], 3));
-    tail.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1], 3));
-    tail.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(12).fill(0), 2));
-    const geometry = mergeTwo(body, tail);
+    const geometry = fishGeometry(silhouette);
     const material = new THREE.MeshBasicMaterial({ color: colour });
     const uTime = { value: 0 };
     material.onBeforeCompile = shader => {
@@ -240,7 +240,7 @@ export function FarFish({ colour, amount = 1 }: { colour: string; amount?: numbe
       phase: rand() * 6.28,
     }));
     return { mesh, clock: { uTime }, school, disposables: [mesh, geometry, material] };
-  }, [colour]);
+  }, [colour, silhouette]);
   useDisposables(disposables);
   const m = useMemo(() => new THREE.Object3D(), []);
   useLayoutEffect(() => {
@@ -260,18 +260,4 @@ export function FarFish({ colour, amount = 1 }: { colour: string; amount?: numbe
     mesh.instanceMatrix.needsUpdate = true;
   });
   return <primitive object={mesh} />;
-}
-
-function mergeTwo(a: THREE.BufferGeometry, b: THREE.BufferGeometry) {
-  const ai = a.index ? a.toNonIndexed() : a;
-  const out = new THREE.BufferGeometry();
-  for (const name of ['position', 'normal', 'uv']) {
-    const x = ai.attributes[name] as THREE.BufferAttribute;
-    const y = b.attributes[name] as THREE.BufferAttribute;
-    const data = new Float32Array(x.array.length + y.array.length);
-    data.set(x.array as Float32Array, 0);
-    data.set(y.array as Float32Array, x.array.length);
-    out.setAttribute(name, new THREE.BufferAttribute(data, x.itemSize));
-  }
-  return out;
 }

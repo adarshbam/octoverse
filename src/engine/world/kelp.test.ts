@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { floorHeight } from './seabed';
 import { KELP, KELP_SWAY_GLSL, kelpLean, kelpSway, motionAmount } from './liveMotion';
-import { LIVE_ELEMENTS, STRAND_ELEMENT_IDS } from './live';
+import { LIVE_ELEMENTS, LIVE_ELEMENT_IDS, STRAND_ELEMENT_IDS } from './live';
 import { scatterStrands, strandGeometry } from './live/strands';
 import type { StrandConfig } from './types';
 
@@ -51,7 +51,8 @@ test('the shader carries the same term, scaled by the motion uniform and the str
   expect(KELP_SWAY_GLSL).not.toMatch(/vec3\(\s*[\d.]+\s*,/);
 });
 
-test('the strand elements are kelp and seagrass, seagrass shorter in blade', () => {
+test('the live element table is closed: kelp and seagrass (strands), packets and jellyfish; seagrass shorter in blade', () => {
+  expect(LIVE_ELEMENT_IDS).toEqual(['kelp', 'seagrass', 'packets', 'jellyfish']);
   expect(STRAND_ELEMENT_IDS).toEqual(['kelp', 'seagrass']);
   expect(LIVE_ELEMENTS.seagrass.width).toBeLessThan(LIVE_ELEMENTS.kelp.width);
 });

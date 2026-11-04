@@ -22,7 +22,8 @@ const withPackets = (packets: unknown, paths: Record<string, readonly Vec3[]> = 
 const problems = (world: WorldConfig) => validateWorld(world).join('\n');
 
 test('the live element table gains packets: at most 12, and the strand ids stay kelp and seagrass', () => {
-  expect(LIVE_ELEMENT_IDS).toEqual(['kelp', 'seagrass', 'packets']);
+  // Aether's jellyfish share the table (merged from Aether): packets keep their place after the strands.
+  expect(LIVE_ELEMENT_IDS).toEqual(['kelp', 'seagrass', 'packets', 'jellyfish']);
   expect(STRAND_ELEMENT_IDS).toEqual(['kelp', 'seagrass']);
   expect(MAX_PACKETS).toBe(12);
   expect(LIVE_ELEMENTS.packets.max).toBe(MAX_PACKETS);

@@ -56,6 +56,59 @@ What to check:
 4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
 5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
 
+### Observatory world: bake, far plate, membrane and world light (Task 9): PROVISIONAL, not approved
+
+The page now shows `OBSERVATORY_WORLD` (kit, baked `near.glb`, three far-plate layers, sand floor, membrane, glyph pulse, jellyfish, manta fish). Task 10 is the look review. Open `?world=aether` live; stills in `docs/superpowers/evidence/aether/m2/`:
+- `render-entering-t3.2-p1-framing.png`: `stage=entering&t=3.2&freeze`, 510x504. The stage camera does not frame P1: the portal (x 12.6) is out of shot.
+- `render-portal-view.png` and `p1-vs-portal-view.png`: the portal area framed directly (`view=1.59,2.96,7.99,-3.34`).
+- `render-wide-intro.webp` (wide view of the world) and `world-capture-intro.png` (P2 registration).
+
+Numbers (CIE76 against `public/aether/ref/p1.png`):
+- Membrane body: (15, 56, 133) against P1 (15, 56, 167), delta E **21.2**. Not within 10. The engine draws the body at 0.32 of `color` and blue is already at 1 (engine request below). With the brief's `#0f38a7` it read (5, 26, 91). At P1's own pixel (435, 235) the portal view lands on the glyph's cyan core (76, 125, 217), because the framing is not P1's.
+- P1 mid water (250, 120) in the entering frame: (29, 47, 117) against (2, 26, 74), delta E **16.3**. Not within 10. A light shaft crosses that pixel; the shafts fan from a fixed point at the top centre (engine request below).
+- P2 registration after the switch: her samples are unchanged and the mid water is within delta E 5.2. Four samples now land on world pieces: upper water on a tower, window light, jellyfish bell, and water outside the head on an orbit bead. Face glow G stays 215 to 218 (at most 235).
+
+What to check: the membrane's brightness and its line pattern, the amber windows and lanterns, the coral colours, the large foreground rocks (lighter than P1's near-black), and the jellyfish size.
+
+### Drowned observatory look gate (Task 10, Milestone 2): PROVISIONAL, not approved
+
+Open the intro live (`?world=aether`) at your usual window size, and compare with P2. Then let the entrance play once.
+
+What changed:
+- `layout.json`: tower_a is sunk 1.39, so its lit window sits where P2 paints the ruin window light. tower_d is sunk 2.4, so P2's upper-right water is open. wall_b is turned away, so its window no longer glows behind her head.
+- The near light is rebaked and the far plate re-rendered.
+- In config: tower_a's window is a softer salmon-peach, the shafts are softer, the surface opening is 1.0, and the jellyfish region puts two jellyfish where P2 paints them.
+
+Stills, all in `docs/superpowers/evidence/aether/m2/` (no videos):
+- `t10-p2-vs-world-intro.webp` (P2 left, render right), `t10-p2-vs-world-intro-samples.webp` (with the 23 sample boxes), `t10-p2-vs-world-intro-desktop-tier.webp`;
+- `t10-render-intro-desktop-1536.webp`: the frozen intro as your page draws it;
+- `t10-render-entering-t3.2-her-and-portal.png`: her and the portal in one frame; `t10-fix1-relic-entrance-t1-to-t8.4.webp`: the eight entrance frames the relic check reads;
+- `t10-world-capture-intro.png` (+ mask), `t10-world-capture-intro-desktop-tier.png`;
+- `t10-numbers.txt`: every check's output.
+
+Numbers (rounds in `docs/superpowers/reviews/aether.md`, "Task 10"):
+- **Samples: 19 of 23 within delta E 10** (Task 9's world: 16).
+  - Water outside the head 1.9 (was 74.7), mid water 5.9, upper water 4.6 (9.4 at the desktop tier, was 21.9), ruin window light 2.2 (was 63.7).
+  - Open: jellyfish bell 13.2 (12.4 desktop; engine request below), plus the three Task 6 owner decisions (arm body upper 39.4, beads 89.0 / 44.4).
+  - Her own samples are unchanged.
+- **All four global checks pass:** warm core 154; pink, not white R-G 40 / 37, G 215 / 218; periwinkle arms B 240 / 239; indigo water B 88, B-R 72. Mean inside her silhouette and IoU (0.8505) are unchanged.
+- **Relic, entrance (over the whole placeholder entrance, fix round 1):** her and the portal in one frame, through the same camera, at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s, plus the portal over one full glyph pulse:
+  - Portal over face glow, frame by frame: 0.74, 0.84, 0.76, 0.77, 0.81, 0.56, **0.95** (t 7.5: a white speck on the coral by the steps, Y 0.864), 0.82. At t 1 she is too far in the murk for a face glow; that frame is compared with her intro face glow (Y 0.908).
+  - The glyph pulse at its peak (frozen stills hold it at mid level): with bubbles filtered out, the portal's brightest is at most Y 0.755 (ratio 0.86 against her dimmest face glow, 0.873).
+  - Pass, worst ratio 0.95. Task 17 runs it again on the real entrance.
+- **Relic, intro:** 0 portal pixels in the frozen intro at 1536 x 1024, 1920 x 1080, 1024 x 768 and 390 x 844. The nearest portal point is 112 to 251 px outside the frame. The check projects the portal through the page's own camera.
+- **fps under load** (tier low, three back-to-back pairs): 63.7 / 33.4, 52.1 / 67.1, 61.3 / 54.1.
+  - Five of six runs clear 40; the median of the six is 57.7.
+  - The one dip did not repeat, so no lever was cut. Please measure on your laptop.
+
+What to check:
+1. **Depth and indigo.** Navy-indigo water, brighter at the top under the shafts, near-black low. The shafts are softer than Task 9's. Two bubble discs near the camera read grey.
+2. **Jellyfish not competing.** Small, lavender, flat and behind her; 6 of 10 in the desktop frame; none over her or the title. They are dimmer than P2's glowing ones (the bell sample misses on brightness).
+3. **Warm windows.** Few and flat in P2's box: tower_a's salmon window and faint far windows; amber slits on the side towers in the wide frame. **Owner call:** tower_a's window is `#ffaa98` (hue 10 degrees, HSV saturation 0.40) to match P2's salmon light. It passes the no-red rule, but it is the pinkest warm light in the world. Keep it, or go back to amber (the ruin sample then reads 36.1)?
+4. **The ring reads against the water.** A thin gold line with bronze beads; the beads are duller than P2's glowing orbs.
+5. **The portal off-frame in the intro.**
+6. **Overall.** The world is sparser and darker than P2: dark blank tower faces, few warm lights, and no bloom on the windows or jellyfish (bloom starts at 0.95 to keep her pupils dark). Is this calm enough, or too empty?
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -69,7 +122,7 @@ What to check:
 - **Arm body upper.** P2 paints a thin cyan streak on the upper-left arm (90, 130, 226). That is 34.5 from the lower arm's sample (75, 88, 231), at the same place on its arm.
   - The render gives both points the same colour within delta E 2, whatever the arm material: the arm depth set to the upper colour met it at 7.6 and missed the lower at 27.3.
   - Meeting both needs per-arm colour (an engine feature), or one of the two samples moved or dropped.
-- **Backdrop samples.** Jellyfish bell and ruin window light wait for Task 8 and later.
+- **Backdrop samples.** Task 10 met the ruin window light (2.2) and all three water samples. The jellyfish bell is at 13.2: the bell is placed where P2 paints it, but the engine's flat bell cannot reach P2's glow (see the engine request).
 
 ## Placeholder names for the five unnamed P3/P4 icons
 
@@ -102,6 +155,25 @@ Please give the real names.
   - Wanted (optional, absent = today's look): `palette.domeTintLow` (the tint mixed in toward the seat, for example `mix(uTintLow, uTint, smoothstep(0.0, 0.6, up))`), `DomeShape.rimPower` and `rimStrength` (today 4 and 2.4), and `DomeShape.seat` (the seat line's strength, today 1.4; Aether would use about 0.3).
   - Aether widens its rim today with `dome.depth` 1.0 (Nox and Veyra 0.6), which also brightens the lower corners; with `rimPower` it could go back to 0.6.
   - Target: the three P3 dome samples stay within delta E 10, and (135, 230) and (360, 255) come within delta E 20 of P3.
+- **Membrane body level (Task 9).** `src/engine/world/membraneMaterial.ts` draws the body at `mix(color, edge, lit) * (0.32 + 0.68 * lit) * level`. A colour of P1's sample (#0f38a7) reads (5, 26, 91) on the page after the fog.
+  - Wanted: an optional `MembraneParams.body` (default 0.32) that replaces the 0.32.
+  - Aether would set `body: 1` and go back to `color: '#0f38a7'`. Today it uses `#2876ff`, which reads (15, 56, 133).
+  - Target: the membrane body is within delta E 10 of P1's (15, 56, 167).
+- **Emissive prop drive (Task 9).** No world prop on `'emissive'` is driven: only a sequence would drive it, and none targets the portal glyph. Its glow material cannot stand beside an emissive drive (validateWorld).
+  - Aether drops `portalGlyph` from the world's props and pulses the glyph with its glow material (`pulse` 0.55, `period` 7.5 s).
+  - Wanted: an idle drive for `'emissive'` props (a period and depth, like `bob`), or a validateWorld rule that lets a glow's own pulse stand with it.
+- **Ray origin per world (Task 9).** `GodRays` (`src/engine/world/Water.tsx`) fans its shafts from the fixed `SHAFT_TOP`, toward `across` in -5 to 5. Spec 7.7 and P1 want the rays from the upper right.
+  - Wanted: `water.raysFrom` (a stage point) and a `raysAcross` range.
+  - Target: P1's mid water (250, 120) in the entering frame comes within delta E 10 (16.3 now; a shaft crosses it).
+- **Mote twinkle (Task 9).** The star motes do not twinkle; the marine snow does (0.6 + 0.4 sin). Spec 7.7 asks for twinkling blue-white star specks. The world draws them with the snow (`snow: '#c8d8ff'`).
+  - Wanted: an optional `live.colours.motes.twinkle` (depth, 0 for today's look).
+- **Coral base albedo (Task 9).** `Kit.tsx`'s coral material and `bake_world.py`'s ALBEDO use the engine's `#7a0a18` (red) for coral bodies. Aether's coral bodies are dark and their glow is magenta, so no red shows on the page today.
+  - Wanted: `palette.coralBody` (optional), read by Kit.tsx and the bakes.
+- **Jellyfish bell glow (Task 10).** `src/engine/world/live/Jellyfish.tsx` draws the bell as `new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide })`: fogged, tone-mapped, and under Aether's 0.95 bloom threshold.
+  - At P2's left jellyfish the bell reads (154, 113, 191) against P2's (156, 123, 225), delta E 13.2.
+  - Paler, bluer, nearer and larger bells read further off (14.2 to 28.0). The blue cannot climb.
+  - Wanted (optional, absent = today's look): `JellyfishConfig.glow` (a bell strength above 1, drawn with `toneMapped: false` so it can reach the bloom) and `JellyfishConfig.opacity` (today 0.75).
+  - Target: P2's jellyfish bell sample (81, 155) within delta E 10, with her face glow still the brightest thing in frame.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
 
 ## Questions for the owner (Task 4, face)

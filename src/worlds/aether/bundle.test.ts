@@ -11,6 +11,7 @@ import targets from './review/targets.json';
 import { AETHER_BUNDLE } from './bundle';
 import { AETHER } from './character';
 import { AETHER_POSES } from './poses';
+import { OBSERVATORY_STAGE, OBSERVATORY_WORLD } from './place/config';
 import { AETHER_STROKE_SECONDS } from './sequences/defaults';
 
 test('the bundle is a world the engine accepts', () => {
@@ -60,13 +61,18 @@ test('her personality is spec 7.8', () => {
   expect(p.swim).toEqual({ recovery: 0.6, power: 0.24, glide: 0.85, fill: 0.04, squeeze: 0.06 });
 });
 
-test('the place is the engine backdrop spec 7.7 gives: tilt 0.04, a touch floatier than Nox, an empty kit, no lights', () => {
+test("the place is the observatory world (Task 9): tilt 0.04, a touch floatier than Nox, the kit, its bake and far plate; the stage backdrop is kept", () => {
   const place = AETHER_BUNDLE.place;
+  expect(place).toBe(OBSERVATORY_WORLD);
   expect(place.camera.tilt).toBe(0.04);
   expect(place.camera.hover).toEqual({ amount: 1.0 * 1, pace: 0.85 * 1 });
-  expect(place.kit.pieces).toEqual([]);
-  expect(place.lights.points).toEqual([]);
-  expect(place.kit.url).toBe('/aether/world/stage.glb');
+  expect(place.kit.url).toBe('/aether/world/kit.glb');
+  expect(place.near?.url).toBe('/aether/world/near.glb');
+  expect(place.farPlate?.layers.length).toBe(3);
+  // The stage backdrop (Tasks 1 to 8): an empty kit, no lights.
+  expect(OBSERVATORY_STAGE.kit.pieces).toEqual([]);
+  expect(OBSERVATORY_STAGE.lights.points).toEqual([]);
+  expect(OBSERVATORY_STAGE.kit.url).toBe('/aether/world/stage.glb');
 });
 
 /** A colour string as sRGB 0..255 (hex, rgb(), rgba() or color(srgb-linear ...)), or null when it is not one. */

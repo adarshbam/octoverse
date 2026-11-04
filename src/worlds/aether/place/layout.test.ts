@@ -6,7 +6,7 @@ import type { Placement } from '../../../engine/world/types';
 import { asWorldLayout, layoutProblems, validateWorld } from '../../../engine/world/validateWorld';
 import { AETHER_STAGE_FRAMES } from '../bundle';
 import { OBSERVATORY_STAGE } from './config';
-import { OBSERVATORY_KIT, OBSERVATORY_PATH, PATH_WIDTH, PORTAL_NODES, RUBBLE_PIECES } from './kit';
+import { OBSERVATORY_KIT, OBSERVATORY_PATH, OBSERVATORY_PROPS, PATH_WIDTH, PORTAL_NODES, RUBBLE_BOB_AMPLITUDE, RUBBLE_PIECES } from './kit';
 import layoutData from './layout.json';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..', '..');
@@ -18,22 +18,42 @@ interface GlbNode {
   name?: string;
   mesh?: number;
   extras?: { radius?: number };
+  translation?: number[];
+  scale?: number[];
+  rotation?: number[];
 }
 
-/** The kit file's JSON chunk: its nodes (name to node) and the bounds of each mesh node's positions, in the node's own frame (glTF Y-up). */
+/** The largest value of each normalized integer component type (glTF's componentType), to undo the normalisation. */
+const NORMALIZED_MAX: Record<number, number> = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
+
+/**
+ * The kit file's JSON chunk: its nodes (name to node) and the bounds of each mesh node's positions,
+ * in the piece's own frame (glTF Y-up). The file is compressed (meshopt, KHR_mesh_quantization):
+ * positions are stored as normalized integers in a [-1, 1] box and the node's translation and scale
+ * put them back, so the bounds are read through both.
+ */
 const kit = (() => {
   const data = readFileSync(join(ROOT, 'public', OBSERVATORY_KIT.url));
   expect(data.subarray(0, 4).toString()).toBe('glTF');
   const doc = JSON.parse(data.subarray(20, 20 + data.readUInt32LE(12)).toString('utf8')) as {
     nodes: GlbNode[];
     meshes: { primitives: { attributes: { POSITION: number } }[] }[];
-    accessors: { min: number[]; max: number[] }[];
+    accessors: { min: number[]; max: number[]; componentType: number; normalized?: boolean }[];
   };
   const nodes = new Map(doc.nodes.map(node => [node.name ?? '', node] as const));
   const bounds = (name: string): Box => {
     const node = nodes.get(name);
     expect(node?.mesh, `${name} is a mesh node`).toBeDefined();
-    const boxes = doc.meshes[node!.mesh!].primitives.map(prim => doc.accessors[prim.attributes.POSITION]);
+    // A node turned by a rotation would need its box turned too: the kit's nodes are never turned.
+    expect(node!.rotation ?? [0, 0, 0, 1], `${name} is not turned`).toEqual([0, 0, 0, 1]);
+    const t = node!.translation ?? [0, 0, 0];
+    const s = node!.scale ?? [1, 1, 1];
+    const boxes = doc.meshes[node!.mesh!].primitives.map(prim => {
+      const a = doc.accessors[prim.attributes.POSITION];
+      const unit = a.normalized ? NORMALIZED_MAX[a.componentType] : 1;
+      // A scale is positive, so the lower corner stays the lower corner.
+      return { min: a.min.map((v, k) => t[k] + (s[k] * v) / unit), max: a.max.map((v, k) => t[k] + (s[k] * v) / unit) };
+    });
     return { min: [0, 1, 2].map(k => Math.min(...boxes.map(a => a.min[k]))), max: [0, 1, 2].map(k => Math.max(...boxes.map(a => a.max[k]))) };
   };
   return { nodes, bounds };
@@ -125,7 +145,10 @@ test('the kit file holds every piece and node the kit list names, each placed pi
 
 test('the groups read as the observatory: a portal, towers both sides, walls, floating rubble in the mid water, rocks and coral in front', () => {
   expect(Object.keys(layout.groups).sort()).toEqual(['corals', 'portal', 'rocks', 'rubble', 'towers', 'walls']);
-  expect(layout.groups.portal).toHaveLength(1);
+  // The portal: its arch and its steps, laid out with one placement (they share the arch's frame).
+  expect(layout.groups.portal.map(p => p.piece)).toEqual(['portal_arch', 'portal_steps']);
+  const [arch, steps] = layout.groups.portal;
+  expect({ ...steps, piece: arch.piece }).toEqual(arch);
   const towers = layout.groups.towers;
   expect(towers.filter(p => p.position[0] < 0).length).toBeGreaterThanOrEqual(2);
   expect(towers.filter(p => p.position[0] > 0).length).toBeGreaterThanOrEqual(2);
@@ -212,18 +235,63 @@ test('the layout stands on the floor the stage backdrop uses (floorY -2.45)', ()
   expect(layout.floorY).toBe(-2.45);
 });
 
-test('the engine accepts this kit and layout: the stage world with them in, and the portal glyph on the emissive drive, validates', () => {
+test('the engine accepts this kit and layout: the stage world with them in, the portal glyph on the emissive drive and the rubble on bob, validates', () => {
   const world = {
     ...OBSERVATORY_STAGE,
     kit: { url: OBSERVATORY_KIT.url, pieces: OBSERVATORY_KIT.pieces, nodes: OBSERVATORY_KIT.nodes },
     layout,
-    props: [{ id: 'portalGlyph', node: 'portal_glyph', drive: 'emissive' as const }],
+    props: OBSERVATORY_PROPS,
   };
   expect(validateWorld(world)).toEqual([]);
   // Every prop names a node of the kit file itself, not only of the kit list.
   for (const prop of world.props) expect(kit.nodes.has(prop.node), prop.node).toBe(true);
   // Only the `corals` group sways, and a coral in another group would be stone.
   expect(placements.filter(({ group, p }) => group !== 'corals' && p.piece.startsWith('coral_'))).toEqual([]);
-  // TODO (Task 7): the rubble_float_* props on 'bob' (amplitude 0.04, period 7 to 11 s) are added after
-  // Task 7 gives the engine that drive; until then none is declared (validateWorld would reject the drive).
+  expect(world.props.find(prop => prop.node === 'portal_glyph')).toMatchObject({ drive: 'emissive' });
+});
+
+const bobProps = OBSERVATORY_PROPS.filter(prop => prop.drive === 'bob');
+
+test("every floating fragment bobs: one 'bob' prop per rubble piece, on a piece the kit file holds and the layout places once, in the rubble group", () => {
+  expect(bobProps.map(prop => prop.node).sort()).toEqual([...RUBBLE_PIECES].sort());
+  expect(new Set(OBSERVATORY_PROPS.map(prop => prop.id)).size).toBe(OBSERVATORY_PROPS.length);
+  for (const prop of bobProps) {
+    expect(kit.nodes.has(prop.node), `${prop.node} is a node of kit.glb`).toBe(true);
+    // The engine bobs placed layout pieces, found by piece name: this one is placed exactly once, in a plain stone group.
+    expect(placements.filter(({ p }) => p.piece === prop.node).map(({ group }) => group), prop.node).toEqual(['rubble']);
+  }
+});
+
+test('the bob is 0.04 stage units and takes 7 to 11 s, a different period for each fragment', () => {
+  for (const prop of bobProps) {
+    if (prop.drive !== 'bob') throw new Error('a bob prop');
+    expect(prop.bob.amplitude, prop.id).toBe(0.04);
+    expect(RUBBLE_BOB_AMPLITUDE).toBe(0.04);
+    expect(prop.bob.period, prop.id).toBeGreaterThanOrEqual(7);
+    expect(prop.bob.period, prop.id).toBeLessThanOrEqual(11);
+  }
+  const periods = bobProps.map(prop => (prop.drive === 'bob' ? prop.bob.period : 0));
+  expect(new Set(periods).size).toBe(periods.length);
+});
+
+test('bobbing up or down by its amplitude moves no rubble into the intro frame or the arm-span box', () => {
+  const armHalf = 3.84 / 2 + 0.3;
+  const aspects = [AETHER_STAGE_FRAMES.intro.width / AETHER_STAGE_FRAMES.intro.height, 1.5, 16 / 9];
+  for (const prop of bobProps) {
+    if (prop.drive !== 'bob') throw new Error('a bob prop');
+    const { amplitude } = prop.bob;
+    const p = layout.groups.rubble.find(placement => placement.piece === prop.node)!;
+    const box = kit.bounds(p.piece);
+    // Arm-span box: the clearance on the ground plane does not depend on height, so the bob cannot change it.
+    expect(Math.abs(p.position[0]) - reach(p) - armHalf, `${p.piece} clears the arm-span box`).toBeGreaterThanOrEqual(0);
+    // Intro frame (and 3:2 and 16:9 windows): a piece out of it at rest stays out at both ends of the bob, and a piece in it stays in.
+    for (const aspect of aspects) {
+      const seen = (dy: number) => placedPoints(box, { ...p, position: [p.position[0], p.position[1] + dy, p.position[2]], tilt: 0 }).filter(point => inView(point, aspect)).length;
+      const rest = seen(0);
+      for (const dy of [-amplitude, amplitude]) {
+        if (rest === 0) expect(seen(dy), `${p.piece} at bob ${dy} enters the view at aspect ${aspect.toFixed(2)}`).toBe(0);
+        else expect(seen(dy), `${p.piece} at bob ${dy} leaves the view at aspect ${aspect.toFixed(2)}`).toBeGreaterThan(0);
+      }
+    }
+  }
 });

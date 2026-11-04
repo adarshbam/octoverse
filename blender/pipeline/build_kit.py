@@ -15,8 +15,21 @@ LED faces. The towers and the rack module carry LED quads in a material slot nam
 is its own island, so its four vertices carry one colour (COLOR_0, from the `Col` colour
 attribute: mostly blue and cyan, some violet, under 10% amber, never red) and one blink phase (the
 custom per-vertex float `_PHASE`, random 0 to 1; glTF's exporter keeps it because the name starts
-with an underscore and `export_attributes` is on). Faces of other slots carry a neutral colour
-and `_PHASE` 0.
+with an underscore and `export_attributes` is on). The LED faces are then split off into their
+own top-level node, `<piece>_led` (and `<piece>_lod1_led`), in the piece's frame (ruling R22: the
+page draws every mesh under a node with one material, so stone and lights need two nodes). The
+piece keeps the stone, its colours and no `_PHASE`; the world attaches the LED node to it.
+
+Arc inlays (Task 9). The lit strip on the front of each ring arc's blocks is split off the same
+way into a top-level node `portal_arc_<q>_inlay` (full detail only; on its own `portal_inlay`
+material), so the world can give each inlay a kit material whose emissive a sequence drives
+without lighting the arc's stone or any other piece. The disc carries a second UV set, `Flow`
+(TEXCOORD_1): the membrane kit material's flow map, u round the ring and v from the rim (0) to
+the middle (1); its round caps are fans round a centre vertex so v runs across them.
+
+Extras for the layout: each full piece carries its bounding radius on the ground plane (node extra
+`radius`, about the origin, which is the placement point), and `portal_disc` carries the ring's
+centre in its frame (`ring_centre`, glTF axes) for the packet path's end.
 
 Units: 1 = one stage unit. Pieces stand on z = 0 at the origin with their front faces looking
 down -Y, which glTF's Y-up export turns into +Z, toward the stage camera. They are exported at
@@ -63,6 +76,8 @@ KEEP_STRUCTURE = [
 
 # Material slot order inside a rack mesh.
 RACK, LED, BARNACLE, CORAL = 0, 1, 2, 3
+# Material slot of a ring arc's inlay (an arc's slots: rack, inlay).
+INLAY = 1
 
 # LED colours (linear RGB): blue and cyan lead, a little violet, a few amber. No red.
 LED_COLORS = {
@@ -231,6 +246,64 @@ def to_object(name, m, coll, mats, smooth=False):
     return ob
 
 
+def split_led(ob, coll, led_mat):
+    """Moves the faces of `ob` in the `led` slot into a new top-level object `<name>_led` in the
+    same frame (R22), on the `led` material alone, keeping their colour and `_PHASE`. `ob` keeps
+    every other face and its colours and loses `_PHASE` (its faces carried 0). Every LED face is
+    a small light, never a cap of the tower's cut (asserted)."""
+    src = ob.data
+    lights = src.copy()
+    lights.name = ob.name + "_led"
+    for me, keep_led in ((src, False), (lights, True)):
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        doomed = [f for f in bm.faces if (f.material_index == LED) != keep_led]
+        bmesh.ops.delete(bm, geom=doomed, context="FACES")
+        if keep_led:
+            assert bm.faces, f"{ob.name} has no LED faces"
+            for f in bm.faces:
+                assert f.calc_area() < 0.02, f"{ob.name}: an LED face of area {f.calc_area():.3f} is not a light"
+                f.material_index = 0
+        bm.to_mesh(me)
+        bm.free()
+    lights.materials.clear()
+    lights.materials.append(led_mat)
+    src.attributes.remove(src.attributes["_PHASE"])
+    led_ob = bpy.data.objects.new(ob.name + "_led", lights)
+    coll.objects.link(led_ob)
+    return led_ob
+
+
+def split_inlay(ob, coll, inlay_mat):
+    """Moves the inlay faces of a ring arc (slot INLAY) into a new top-level object `<name>_inlay`
+    in the arc's frame (Task 9, as R22 split the LEDs): the arc stays stone, the inlay is drawn with
+    a material of its own, which a sequence's emissive drive lights without lighting other stone."""
+    src = ob.data
+    strip = src.copy()
+    strip.name = ob.name + "_inlay"
+    for me, keep in ((src, False), (strip, True)):
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if (f.material_index == INLAY) != keep], context="FACES")
+        if keep:
+            assert bm.faces, f"{ob.name} has no inlay faces"
+            for f in bm.faces:
+                f.material_index = 0
+        bm.to_mesh(me)
+        bm.free()
+    strip.materials.clear()
+    strip.materials.append(inlay_mat)
+    src.materials.pop(index=INLAY)
+    inlay_ob = bpy.data.objects.new(ob.name + "_inlay", strip)
+    coll.objects.link(inlay_ob)
+    return inlay_ob
+
+
+def radius_xy(ob):
+    """How far the piece reaches from its origin on the ground plane (stage XZ)."""
+    return max(math.hypot(v.co.x, v.co.y) for v in ob.data.vertices)
+
+
 def sit_on_ground(m, floor=0.0):
     low = min(v.co.z for v in m.bm.verts)
     for v in m.bm.verts:
@@ -392,8 +465,9 @@ def build_tower(name, coll, mats, seed, count, lean, break_at, slip, cut_back, d
     for v in m.bm.verts:
         if v[m.col][3] == 0.0:
             v[m.col] = grey(0.55)  # the cut's new faces
-    # Loose modules fallen at the foot, each with an LED of its own.
-    for k in range(3 if detail == 0 else 2):
+    # Loose modules fallen at the foot, each with an LED of its own. Three at both levels: the page
+    # draws the full LED node over the lod1 too, so lod1 keeps every module the lights sit on.
+    for k in range(3):
         ang = rng.uniform(0, 2 * math.pi)
         dist = rng.uniform(0.95, 1.5)
         sc = rng.uniform(0.55, 0.85)
@@ -459,6 +533,11 @@ def build_disc(name, coll, mats, detail):
     m.prism(RING_R0 - 0.14, RING_R0 - 0.14, 0.07, n, 0, (0.82, 0.93, 1.0, 1.0), face_front)
     if detail == 0:
         m.prism(0.95, 0.95, 0.03, n, 0, (0.95, 0.98, 1.0, 1.0), face_front @ Matrix.Translation((0, 0, 0.07)))
+    # Each round cap becomes a fan round a centre vertex, so the flow map below runs from the rim
+    # (v 0) to the middle (v 1) across it.
+    caps = [f for f in m.bm.faces if len(f.verts) >= 8]
+    for v in bmesh.ops.poke(m.bm, faces=caps)["verts"]:
+        v[m.col] = v.link_edges[0].other_vert(v)[m.col]
     uv = m.bm.loops.layers.uv.verify()
     d = 2 * (RING_R0 - 0.14)
     for f in m.bm.faces:
@@ -466,24 +545,47 @@ def build_disc(name, coll, mats, detail):
         for loop in f.loops:
             c = loop.vert.co
             loop[uv].uv = ((c.x / d) + 0.5, ((c.z - RING_Z) / d) + 0.5)
+    disc_flow(m, RING_R0 - 0.04)
     return to_object(name, m, coll, mats, smooth=False)
+
+
+def disc_flow(m, radius):
+    """The disc's second UV set, `Flow`, the membrane kit material's flow map (membraneMaterial.ts):
+    u the turn round the ring's axis (0 to 1, from the right, counter-clockwise; a face across the
+    seam runs on past 1, which the shader's whole turns do not see), v from 0 at `radius` (the
+    rim) to 1 at the centre. A fan's centre vertex takes its face's mean turn."""
+    flow = m.bm.loops.layers.uv.new("Flow")
+    for f in m.bm.faces:
+        loops = []
+        for loop in f.loops:
+            x, z = loop.vert.co.x, loop.vert.co.z - RING_Z
+            r = math.hypot(x, z)
+            loops.append((loop, r, (math.atan2(z, x) / (2 * math.pi)) % 1.0))
+        turns = [u for _, r, u in loops if r > 1e-4]
+        wraps = bool(turns) and max(turns) - min(turns) > 0.5
+        turns = [u + 1.0 if wraps and u < 0.5 else u for u in turns]
+        mean = sum(turns) / len(turns) if turns else 0.0
+        for loop, r, u in loops:
+            u = u + 1.0 if wraps and u < 0.5 else u
+            loop[flow].uv = (u if r > 1e-4 else mean, max(0.0, 1.0 - r / radius))
 
 
 def build_arc(name, coll, mats, quarter, detail):
     """One of the four ring arcs (quarter 0 to 3, counter-clockwise from the right, seen from the
-    front), a run of separate stone blocks with a lip on the inside and an inlay on the front."""
+    front), a run of separate stone blocks with a lip on the inside and an inlay on the front (in
+    material slot 1, which split_inlay moves into its own node)."""
     blocks = 8 if detail == 0 else 4
     m = Mesh()
     a0, span = quarter * math.pi / 2 + 0.035, math.pi / 2 - 0.07
     rng = random.Random(70 + quarter)
     step = span / blocks
 
-    def wedge(ang0, ang1, r0, r1, y0, y1, color):
+    def wedge(ang0, ang1, r0, r1, y0, y1, color, mat=0):
         def pt(a, r, y):
             return (r * math.cos(a), y, RING_Z + r * math.sin(a))
         pts = [pt(ang0, r0, y0), pt(ang1, r0, y0), pt(ang1, r1, y0), pt(ang0, r1, y0),
                pt(ang0, r0, y1), pt(ang1, r0, y1), pt(ang1, r1, y1), pt(ang0, r1, y1)]
-        m.hexa(pts, 0, color)
+        m.hexa(pts, mat, color)
 
     for b in range(blocks):
         s0 = a0 + b * step + 0.006
@@ -492,7 +594,7 @@ def build_arc(name, coll, mats, quarter, detail):
         wedge(s0, s1, RING_R0, RING_R1, -RING_D / 2, RING_D / 2, grey(tone * 0.8))
         wedge(s0 + 0.012, s1 - 0.012, RING_R0 - 0.07, RING_R0, -RING_D / 2 + 0.06, RING_D / 2 - 0.06, grey(tone * 0.6))
         if detail == 0:
-            wedge(s0 + 0.03, s1 - 0.03, RING_R0 + 0.12, RING_R1 - 0.12, -RING_D / 2 - 0.02, -RING_D / 2 + 0.01, (0.7, 0.9, 1.0, 1.0))
+            wedge(s0 + 0.03, s1 - 0.03, RING_R0 + 0.12, RING_R1 - 0.12, -RING_D / 2 - 0.02, -RING_D / 2 + 0.01, (0.7, 0.9, 1.0, 1.0), INLAY)
     return to_object(name, m, coll, mats, smooth=False)
 
 
@@ -712,6 +814,9 @@ TOWERS = {
     "tower_c": (303, 12, (0.14, -0.05), 7, (0.18, -0.06, 0.1), 0.45),
 }
 ROCKS = {"rock_a": (11, (1.1, 0.9, 0.75)), "rock_b": (12, (0.8, 1.0, 0.9)), "rock_c": (13, (1.3, 0.85, 0.6))}
+# The pieces a layout places (src/worlds/flux/place/kit.ts lists the same); each carries `radius`.
+PLACED = (*TOWERS, "rack_module", "portal_plinth", "portal_disc", *(f"portal_arc_{q}" for q in range(1, 5)),
+          "bridge_deck", "bridge_pier", "bridge_arch", *ROCKS, "coral_a")
 
 
 def build_pieces(coll):
@@ -722,6 +827,7 @@ def build_pieces(coll):
     coral = material("coral", (0.95, 0.3, 0.55), 0.6)
     rock = material("rock", (0.06, 0.07, 0.10), 0.75)
     disc = material("portal_disc", (0.8, 0.92, 1.0), 0.3)
+    inlay = material("portal_inlay", (0.7, 0.9, 1.0), 0.4)
     rack_mats = [rack, led, barnacle, coral]
     built = {}
 
@@ -734,13 +840,27 @@ def build_pieces(coll):
     both("portal_plinth", build_plinth, [rack])
     both("portal_disc", build_disc, [disc, rack])
     for q in range(4):
-        both(f"portal_arc_{q + 1}", build_arc, [rack], q)
+        both(f"portal_arc_{q + 1}", build_arc, [rack, inlay], q)
     both("bridge_deck", build_deck, [rack])
     both("bridge_pier", build_pier, [rack, led, barnacle, coral])
     both("bridge_arch", build_arch, [rack])
     for name, (seed, scale) in ROCKS.items():
         both(name, build_rock, [rock], seed, scale)
     both("coral_a", build_coral, {"coral": coral}, 21)
+    # R22: the LED faces become their own nodes, `<piece>_led` and `<piece>_lod1_led`.
+    for name in (*TOWERS, "rack_module"):
+        full, far = built[name]
+        built[name + "_led"] = (split_led(full, coll, led), split_led(far, coll, led))
+    # Task 9: each arc's inlay becomes its own node, `portal_arc_<q>_inlay` (full detail only: the
+    # lod1 arc has none; its slot goes too).
+    for q in range(1, 5):
+        full, far = built[f"portal_arc_{q}"]
+        built[f"portal_arc_{q}_inlay"] = (split_inlay(full, coll, inlay), None)
+        far.data.materials.pop(index=INLAY)
+    # Extras the layout test reads (placed pieces only; not the LED nodes).
+    for name in PLACED:
+        built[name][0]["radius"] = round(radius_xy(built[name][0]), 4)
+    built["portal_disc"][0]["ring_centre"] = [0.0, RING_Z, 0.0]  # glTF axes: up is y
     return built
 
 
@@ -756,7 +876,7 @@ def build(out):
         compress(RAW, out)
     total = lod = 0
     for name, (full, far) in built.items():
-        tf, tl = triangles(full), triangles(far)
+        tf, tl = triangles(full), (triangles(far) if far is not None else 0)
         total += tf
         lod += tl
         lo = Vector((min(v.co[i] for v in full.data.vertices) for i in range(3)))

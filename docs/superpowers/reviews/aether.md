@@ -461,3 +461,240 @@ At depth 0.6 the binding samples read 4.9 / 21.3 / 21.7 (rim and sheen miss). De
 - The `mantleTop - seat < 0.06` line is dropped (it restated config numbers).
 
 Stills regenerated with the bare-freeze path and rim `#f4fff4`. No videos; no fps measured.
+
+## Task 10: Aether in her world (Milestone 2 look gate); owner review PROVISIONAL
+
+Config, layout and bake only (`place/config.ts`, `place/layout.json`, `place/far.json`, `near.glb` rebaked, far plate re-rendered). Two review checks are added (`review/portal_offframe.mjs`, `review/relic_entrance.py`). No engine change. Captures ran on 127.0.0.1:5196, with two other sessions on the same Intel UHD.
+
+**How it is measured.**
+- The binding capture is Task 6's: `WORLD=aether node scripts/world-capture.mjs intro <out> "tier=high&kitwait=90000"`.
+- Then `python scripts/check_stage.py <out> --world --stage intro --world-id aether`. It compares CIE76 against P2's 7 x 7 patch means at the registered points of `world_samples.json`. So the targets are P2's patch means, not the spec 2.1 pixels.
+- Then `.tmp/t6/measure.py` for the four global checks, IoU and shape.
+- Its 514 x 504 page is a phone layout, so the world draws its phone tier: 4 jellyfish, 0.4 of the shafts, no fish or motes.
+- A second capture of the same P2 box at the desktop tier shows what the owner's 1536-wide page draws there: 10 jellyfish and every shaft. It is 1028 x 1008 with `view=-2.57,2.52,2.57,-2.52`, downsampled 2:1.
+
+### Rounds (23 samples within delta E 10; the world samples named)
+
+| Round | Change | Within 10 | Water outside head | Upper water | Jellyfish bell | Ruin window |
+|---|---|---|---|---|---|---|
+| r0 | Task 9's world (BASE 81ab7e8) | 16 | 74.7 (a far window behind her head) | 21.9 (tower_d) | 58.5 (no jellyfish there) | 63.7 (tower stone) |
+| j1 | layout.json: tower_a sunk 1.39 and 0.15 right (its window on (46, 225)), tower_d sunk 2.4; jellyfish region shifted so jellyfish 1 lands on P2's left one | 17 | 74.7 | **6.0** | 24.6 | 36.1 (on the amber window) |
+| j2 | jellyfish region nearer (z -12 to -3.5), x and y re-solved | 17 | | | 19.6 | |
+| j3 | bell `#e6b8ff` (paler) | 17 | | | 27.3 | |
+| j4 | bell `#c4a0ff` (bluer) | 17 | | | 21.2 | |
+| j5 | bell back to `#d49cff`, bell 3 px lower (the sample in its bright upper half) | 17 | | | **13.3** | |
+| j6 | region nearer still (z -10 to -2.5) | 17 | | | 14.2; back to j5 | |
+| w1 | tower_a's window `#ffc0a0` at 1.0 (the others stay amber) | 17 | | | | 11.6 |
+| w2 | tower_a's window `#ffaa98` at 0.85 | 18 | | | | **2.2** |
+| f1 | near.glb rebaked; far plate re-rendered: wall_b turned away (its window off her head), the far tower_a 2 to the right | 19 | **1.6** | 6.0 | 13.2 | 2.2 |
+| d1 | desktop-tier capture of f1 | 18 | 1.8 | 14.3 (every shaft drawn) | 12.3 | 2.2 |
+| d2 | world shafts `#3c64d0` / `#7898d8` (the stage keeps `#5a8cff` / `#9cc4ff`) | 18 | | 11.1 | | |
+| d3 | world surface opening `glow.top` 1.2 to 1.0 | 19 | 1.9 | **9.4** | 12.4 | 2.2 |
+| f2 | phone-tier capture of d3 | 19 | 1.9 | 4.6 | 13.2 | 2.2 |
+| j7 | jellyfish size 0.16 to 0.36 (was 0.3) | 18 | | | 16.3; back to 0.3 | |
+| f3 / d4 | final (= f2 / d3), captured again after the commit | **19** | 1.9 | 4.6 / 9.4 | 13.2 / 12.4 | 2.2 |
+
+Rounds j1 to w2 ran with the new layout.json and the old lightmaps: the page places the pieces from layout.json, and the bake finished before f1. Her own samples did not move in any round (largest change 0.4, desktop tier).
+
+### Final numbers (f3, phone tier, binding; d4, desktop tier)
+
+| Sample | P2 patch | f3 | dE | d4 dE | r0 dE |
+|---|---|---|---|---|---|
+| Crown sheen | #93aaf8 | #b0abfe | 8.9 | 8.9 | 8.9 |
+| Upper dome | #5c50f4 | #6556f7 | 3.2 | 3.2 | 3.2 |
+| Forehead | #9b6cf8 | #8263f6 | 7.8 | 7.4 | 7.8 |
+| Between the eyes | #fab7f1 | #fbbdf3 | 2.5 | 2.5 | 2.5 |
+| Face glow below eyes | #fdd4e8 | #ffd7f3 | 4.1 | 4.1 | 4.1 |
+| Face glow below mouth | #fdd8ef | #ffdaff | 7.2 | 6.5 | 7.2 |
+| Chin | #c08af9 | #ac81f5 | 6.1 | 6.1 | 6.1 |
+| Head side left | #8967e5 | #7766ef | 7.8 | 7.6 | 7.8 |
+| Head side right | #8379f7 | #7f6bee | 6.4 | 6.3 | 6.4 |
+| Blush | #fab5cf | #f7b4d7 | 5.3 | 4.9 | 5.3 |
+| Arm top rim | #e0cef8 | #d1c4f7 | 6.7 | 6.7 | 6.7 |
+| Arm body upper | #5a82e2 | #4957f0 | **39.4 MISS** | 39.4 | 39.4 |
+| Arm body lower | #4b58e7 | #525def | 2.7 | 2.5 | 2.7 |
+| Arm underside glow | #e8c3f8 | #d6b7f2 | 6.0 | 6.7 | 6.0 |
+| Cup | #cdbcef | #e4ccfa | 7.2 | 4.7 | 7.2 |
+| Inside tip spiral | #593f8d | #473d87 | 6.1 | 5.9 | 5.8 |
+| Gold seed bead | #dfa58d | #141866 | **89.0 MISS** | 88.0 | 89.0 |
+| Glass seed bead | #956d9e | #13175e | **44.4 MISS** | 44.4 | 42.9 |
+| Water outside head | #0f1962 | #141863 | 1.9 | 1.9 | 74.7 |
+| Mid water | #07154d | #0f1658 | 5.9 | 5.7 | 5.2 |
+| Upper water | #022464 | #0d276e | 4.6 | 9.4 | 21.9 |
+| Jellyfish bell | #9c7be1 | #9a71bf | **13.2 MISS** | 12.4 | 58.5 |
+| Ruin window light | #b17979 | #b37775 | 2.2 | 2.2 | 63.7 |
+
+- **Samples:** 19 of 23 within delta E 10 (r0: 16). Open: arm body upper and the two seed beads (owner decisions from Task 6, unchanged), and the jellyfish bell.
+- **All four global checks pass:**
+  - Warm core 154 (glow R 255, dome R 101).
+  - Pink, not white: below the eyes R-G 40, G 215; below the mouth R-G 37, G 218 (desktop tier 35 / 220).
+  - Periwinkle arms: B 240 / 239, B-R 166 / 158.
+  - Indigo water: B 88, B-R 72 (desktop B 90, B-R 73).
+- **Mean inside her silhouette:** (158, 142, 237), saturation 0.424, brightness 0.929, within the target.
+- **IoU:** 0.8505 with the nameplate box left out (unchanged; raw 0.812). Head top 0.19, half-width 0.745, centre x 0.065, span 3.88.
+- **Jellyfish bell, why it stays open.**
+  - The bell is where P2 paints it: rim at P2 (81, 165), 18 px in radius (`config.test` pins it).
+  - It reads (154, 113, 191) against P2's (156, 123, 225): the blue falls 34 short.
+  - The engine draws the bell with a flat `MeshBasicMaterial` at opacity 0.75, fogged and tone-mapped, under the 0.95 bloom threshold. Its blue cannot climb: paler, bluer, nearer and larger bells all read further off (14.2 to 28.0).
+  - P2's bells glow. Engine request in MORNING-REVIEW-aether.md.
+- **Ruin window, how it was met.**
+  - tower_a's window glows `#ffaa98` at 0.85. The other windows keep the amber `#ffa040` at 1.3.
+  - P2's patch there is (177, 121, 121), a warm salmon light. The amber read (216, 136, 76), delta E 36.1.
+  - `#ffaa98` is hue 10 degrees at an HSV saturation of 0.40. It passes spec 7.7's no-red rule (under 0.5), but it is the pinkest warm light in the world. Owner check.
+
+### Relic intensity (spec 7.7)
+
+**Entrance (t 3.2).** The stage camera at `stage=entering&t=3.2` does not frame the portal (Task 9). One frame holds both instead:
+- The capture is a `view` window onto the same unmoved stage camera, `view=-3,4.165,9.5,-4.165` at 1250 x 833: `WORLD=aether VIEW=1250x833 SCALE=1 node scripts/stage-capture.mjs entering <out> "t=3.2&view=-3,4.165,9.5,-4.165&tier=high&kitwait=90000"`.
+- She and the portal share one exposure, tone mapping and bloom.
+- `python src/worlds/aether/review/relic_entrance.py <out> "-3,4.165,9.5,-4.165"` compares relative luminance Y (Rec. 709, linearised).
+
+Results:
+- **Portal region:** the hull of every portal node's box from kit.glb, placed as layout.json places the arch, with her silhouette left out. Its brightest pixel is Y **0.668**, (182, 217, 255) at (837, 538).
+  - That pixel is a bubble rising in front of the steps.
+  - The brightest pixel of the membrane, glyph and lantern regions is Y 0.545 (186, 190, 255), on the glyph.
+  - Anything in front of the portal counts, so the test is stricter than the portal alone.
+- **Her face glow** (the largest pink-white patch in her silhouette, 4008 px) peaks at Y **0.873** (255, 234, 255).
+- **Verdict:** 0.668 < 0.873 (ratio 0.76): **pass**. Task 17 authors the real entrance; the script runs again on its still.
+
+**Intro.** `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/portal_offframe.mjs [out-dir]`:
+- It loads the frozen intro and reads the camera the page drew with (`window.__octoverse.camera`: place, facing after the lean, field of view, lens shift).
+- It projects every portal node's box through that camera and counts the pixels of their hulls inside the frame.
+- **0 portal pixels** at desktop 1536 x 1024, 16:9 1920 x 1080, 4:3 1024 x 768 and phone 390 x 844.
+- The nearest portal point lands 249, 112, 251 and 185 px outside the frame.
+- The projection was checked against the still: tower_a's window centre projects to (341, 456); the still shows it at about (340, 470).
+- `layout.test.ts` keeps the geometric check of the unmoved camera.
+
+### Budget (under load)
+
+`WORLD=aether node scripts/perf.mjs "stage=intro&tier=low"`, three back-to-back pairs, all under load:
+- Pair 1: **63.7** and **33.4** fps median (slow10 29.1 / 15.6). The second run drew 169 frames in 6 s; the others drew 295 to 350.
+- Pair 2: 52.1 and 67.1 (slow10 27.9 / 31.4).
+- Pair 3 (after the commit): 61.3 and 54.1 (slow10 29.9 / 28.5).
+
+Five of six runs clear 40. The median of all six is 57.7. The one miss did not repeat in the four runs after it, so no spec 10.1 lever was taken:
+- Fish are already off at tier low.
+- The next lever (jellyfish 4 to 3) costs look for a dip that the shared GPU explains.
+- If the owner's laptop misses 40, the order stands: jellyfish to 3, then rays, motes and bubbles, then the far plate.
+
+### Anti-goals, by eye (stills below)
+
+- **Jellyfish do not compete with her.**
+  - Small (P2's left one at 18 px radius), lavender, flat, behind her.
+  - 6 of 10 in the desktop frame, none over her or the title.
+  - They read dimmer than P2's glowing ones.
+- **Water indigo, not grey or black.**
+  - Mid water (15, 22, 88), upper water (13, 39, 110): navy-indigo, brighter at the top under the shafts.
+  - Two bubble discs near the camera read grey (desktop still, (188, 590) and (1380, 360)).
+- **Warm windows.**
+  - Present, but few and flat in P2's box: tower_a's salmon window on the left and faint far windows beside her head.
+  - The desktop frame adds amber slits on the left and right towers.
+  - P2's ruins are thick with warm lights, so the world reads sparser and darker than P2.
+- **The ring reads against the water.** A thin gold line with bronze beads, clear on the indigo. The beads are dull next to P2's glowing gold and glass orbs.
+- **Portal off-frame in the intro.** Yes, 0 px (above).
+
+### Stills and numbers
+
+All in `docs/superpowers/evidence/aether/m2/` (no videos):
+- `t10-p2-vs-world-intro.webp` (P2 left, the binding capture right, 1.5x);
+- `t10-p2-vs-world-intro-samples.webp` (the same with the 23 sample boxes);
+- `t10-p2-vs-world-intro-desktop-tier.webp`;
+- `t10-world-capture-intro.png` (+ `-mask.png`) and `t10-world-capture-intro-desktop-tier.png`;
+- `t10-render-intro-desktop-1536.webp` (the frozen intro as the owner's page draws it);
+- `t10-render-entering-t3.2-her-and-portal.png` (+ `-mask.png`), the relic still;
+- `t10-numbers.txt` (every check's output and the perf runs).
+
+### Verdict, honest (not an approval)
+
+What is met:
+- The world now meets P2's water samples (outside the head 1.9, mid 5.9, upper 4.6) and the ruin window (2.2).
+- Her look is untouched: all her samples, the four checks, the mean and the IoU are as at Task 6.
+- The portal is out of the intro and below her face glow in the entrance frame.
+- The budget holds under load in five runs of six.
+
+What is not:
+- The jellyfish bell stays at 13.2 (engine).
+- Against P2 the world is sparse: dark blank tower faces, few warm lights, and flat (unbloomed) windows and jellyfish.
+
+The owner's live look decides.
+
+### Task 10, fix round 1 (review of c8b50b8): the relic check fails loudly and covers the entrance span
+
+Scripts only (`src/worlds/aether/review/`). No config, layout or engine change, so the look numbers above stand.
+
+**1. Fails loudly.** Every empty mask or region now ends the run with exit 1 and a line starting `FAIL`. Before, an empty face mask let `argmax` pick pixel (0, 0) and compare against it.
+- `relic_entrance.py` fails on:
+  - a missing capture or mask;
+  - no portal node in kit.glb;
+  - an empty portal region;
+  - no face glow where one is needed: no pink-white patch of at least 200 px in her silhouette, in the single still or in the intro reference;
+  - config.ts's portal glows unreadable;
+  - pulse stills that do not match their times, leave a gap over 0.9 s, do not cover the longest portal pulse, or do not hold the portal's region;
+  - any ratio of 1 or more.
+- Checked by hand: an all-black mask, a box off the portal, a missing file, a folder with no intro, and stills 0.06 s short of the glyph period. Each gives its `FAIL` line and exit 1.
+- `portal_offframe.mjs` now also fails, with a `FAIL` line and exit 1, on:
+  - a camera probe with a non-finite value;
+  - a corner that projects to a non-finite pixel;
+  - a hull of fewer than three corners (its area of 0 would have passed);
+  - any error, caught and printed.
+  - A pass needs 0 pixels **and** every corner outside the frame. Re-run: 0 px at all four sizes, exit 0.
+
+**2. The entrance span.** Spec 7.7 says "during the entrance". The check now reads three sets of frames.
+
+Frozen entrance stills:
+- Taken at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s: the placeholder entrance's swim, hold, opening, spin and settle.
+- Each frame compares the portal's brightest pixel with her face glow in **that same frame**.
+- At t 1 she is 6032 px of silhouette far in the murk, with no pink-white patch of 200 px. That frame is compared with her **intro** face glow (Y 0.908, the same window), and the line says so.
+
+Running intro stills:
+- A frozen world holds every glow at its mid level: the pulse factor is 1 - pulse/2 while motion is held. So frozen stills never show the glyph's peak.
+- 20 clipped stills of the running intro cover 9.5 s of world time, more than one glyph period (7.5 s) and one lantern period (4.3 s).
+- The intro, not the entrance: the glows pulse on the world clock whatever the stage, and she stays clear of the portal there (her silhouette is left out anyway).
+- The glyph's violet lines in these stills run from (85, 76, 187) at the trough (about 1 s and 8.6 s) to (123, 109, 253) at the peak (about 5 s). The frozen intro shows (106, 94, 227), the mid level. So the pulse is captured.
+- A plain per-pixel maximum over the stills is not the portal's. Bubbles and specks rising past it are near white, Y 1.0, and sweep most of its pixels (first run: 1.000 at (1012, 410), a bubble crossing the glyph for 0.6 s).
+- So each pixel's reading is the maximum over time of its minimum over a window: the stills within 0.45 s either side, plus always the still before and after.
+  - Whatever stays lit across a window counts. Anything that crosses faster drops out; a slower bubble stays in, which only makes the reading stricter.
+  - The window can miss a sine pulse's peak by at most pulse/2 x (1 - cos(2 pi d / period)), with d = max(0.45, widest gap) + widest gap/2. This run: d = 0.84 s, so 6.6% (the glyph, pulse 0.55 over 7.5 s; the lanterns lose 5.0%).
+  - The reading is raised by that share before the comparison. For these bright pixels the tone curve compresses, so this is an upper bound.
+- The membrane's flash never fires in Aether: only an `emissive` prop drive raises it, and nothing in the world or the sequences targets it.
+
+Results (`.tmp` run, exit 0; output in `t10-fix1-relic-check.txt`):
+
+| frame | portal's brightest Y (pixel, colour) | her face glow Y | ratio |
+|---|---|---|---|
+| entrance t 1 | 0.676 (950, 378) #b4dbff | intro 0.908 (none found in frame) | 0.74 |
+| entrance t 2 | 0.745 (921, 556) #c0e5ff | 0.890 (2000 px) | 0.84 |
+| entrance t 3.2 | 0.668 (837, 538) #b6d9ff | 0.873 (4008 px) | 0.76 |
+| entrance t 4.5 | 0.689 (943, 365) #b6ddff | 0.896 | 0.77 |
+| entrance t 5.5 | 0.722 (1029, 423) #cbdeff | 0.896 | 0.81 |
+| entrance t 6.5 | 0.504 (908, 460) #edaf87 | 0.908 | 0.56 |
+| entrance t 7.5 | 0.864 (900, 536) #cff6ff | 0.908 | **0.95** |
+| entrance t 8.4 | 0.749 (1008, 406) #c3e5ff | 0.908 | 0.82 |
+| pulse peak, filtered | 0.706 (844, 483), raised to 0.755 | dimmest found 0.873 (t 3.2) | 0.86 |
+| pulse peak, filtered | 0.755 | intro 0.908 | 0.83 |
+
+- **Worst ratio 0.95, at t 7.5.** Pass, but the margin is thin. That pixel is not the portal: it is a white speck on the coral before the steps (zoomed by eye). The frozen stills keep every bubble and speck in front of the portal, so they read strictly.
+- The filtered pulse peak (0.706) is itself a slow bubble at the arch's left edge, lit in three stills (8.9 to 9.8 s). The portal's own sustained light is lower.
+- Per node, filtered: glyph, lanterns and membrane 0.548 (the membrane's cyan centre); steps 0.613.
+- Two earlier runs failed, honestly, before the filter was right:
+  - one gave 1.15, from the unfiltered bubbles;
+  - one gave 1.14: a speck in a window that held no other still, under load (gaps 0.5 s). The window now always takes its neighbours.
+
+Commands (dev server on 127.0.0.1:5196; exit 0 on a pass, 1 with a `FAIL` line otherwise):
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/relic_capture.mjs <dir>`: the eight frozen entrance stills and their masks, the frozen intro and its mask, and the running pulse stills with `pulse-times.json`.
+  - It fails if a capture throws or the page errors, or if the pulse stills leave a gap over 0.9 s or cover less than one glyph period.
+  - `--pulse-only` captures the running stills again when a loaded machine left them sparse.
+- `python src/worlds/aether/review/relic_entrance.py <dir>`: the comparison above. The single-still mode stays: `relic_entrance.py capture.png "x0,y0,x1,y1"`.
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/portal_offframe.mjs [out-dir]`: the intro half.
+- They need a dev server, so they stay scripts, not vitest.
+
+Stills, in `docs/superpowers/evidence/aether/m2/`:
+- `t10-fix1-relic-entrance-t1-to-t8.4.webp` (the eight frames, one third size);
+- `t10-fix1-relic-pulse-peak-5.3s.webp` (a running still at the glyph's peak);
+- `t10-fix1-relic-check.txt`.
+
+**What is left (Task 17).**
+- These frames are the placeholder entrance: her pose is not authored for it, and at t 1 her face glow is not found.
+- Task 17 authors the real entrance. It must run `relic_capture.mjs` and `relic_entrance.py` again on it, with `ENTRANCE_T` set to its beats.
+- If Task 17 drives the membrane's `emissive` flash (up to +25%), a frame at the flash's peak must be added.
+- The worst frame (0.95) is a speck, not the portal. Still, the portal's own steady light (about 0.55 to 0.75) sits within 15 to 25% of her face glow.

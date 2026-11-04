@@ -1,0 +1,248 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import * as THREE from 'three';
+import { expect, test } from 'vitest';
+import { asBakeRecord, type BakedPointLight } from '../../../engine/world/bakedLight';
+import { farCardSize } from '../../../engine/world/farPlate';
+import { kitMaterialBrightest } from '../../../engine/world/kitMaterials';
+import { LIVE_ELEMENTS } from '../../../engine/world/live';
+import { scatterJellies } from '../../../engine/world/live/jelly';
+import { membraneFlow } from '../../../engine/world/membraneMaterial';
+import type { Vec3 } from '../../../engine/world/types';
+import { validateWorld } from '../../../engine/world/validateWorld';
+import { AETHER_STAGE_FRAMES } from '../bundle';
+import { AMBER_CORALS, CORAL_RISE, MANTA_SILHOUETTE, OBSERVATORY_STAGE, OBSERVATORY_WORLD, PORTAL_LOCAL, WINDOW_GLOW } from './config';
+import farData from './far.json';
+import { OBSERVATORY_PATH, RUBBLE_PIECES, WINDOWED_PIECES } from './kit';
+
+const ROOT = join(import.meta.dirname, '..', '..', '..', '..');
+const PUBLIC = join(ROOT, 'public');
+
+/** Her face glow's pink-white core (character.ts mantle jelly `core`; spec 7.7's face glow 253, 212, 232). */
+const FACE_GLOW = '#fdd4e8';
+
+/** Linear luminance of an sRGB hex colour, as the kit materials measure their brightest value. */
+function luminance(hex: string) {
+  const c = new THREE.Color(hex);
+  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+}
+
+/** Red, as spec 7.7 forbids it: a hue within 20 degrees of red at a saturation (HSV) above 0.5. */
+function isRed(hex: string) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === 0 || (max - min) / max <= 0.5) return false;
+  let hue = max === r ? ((g - b) / (max - min)) * 60 : max === g ? 120 + ((b - r) / (max - min)) * 60 : 240 + ((r - g) / (max - min)) * 60;
+  if (hue < 0) hue += 360;
+  return hue <= 20 || hue >= 340;
+}
+
+type ObservatoryLights = Record<'portal' | 'window' | 'lantern' | 'coral' | 'amberCoral' | 'path', BakedPointLight[]>;
+
+function readBake() {
+  const glb = readFileSync(join(PUBLIC, OBSERVATORY_WORLD.near!.url));
+  const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString('utf8')) as { scenes: { extras?: Record<string, unknown> }[] };
+  const record = asBakeRecord(json.scenes[0].extras?.nox_bake);
+  // The observatory's own lights, beside the engine's lists (which stay empty: no glyph panels, no lava).
+  return record as typeof record & { lights: ObservatoryLights };
+}
+
+test('the observatory world and the stage backdrop validate', () => {
+  expect(validateWorld(OBSERVATORY_WORLD)).toEqual([]);
+  expect(validateWorld(OBSERVATORY_STAGE)).toEqual([]);
+});
+
+/**
+ * Every colour anywhere in a config, by its path: the whole object walked. A `#rrggbb` string is
+ * taken as it is, a `color(srgb-linear r g b)` string (the skin accent) turned into `#rrggbb`.
+ * Any other string that looks like a colour (`#`, `rgb`, `hsl`, `color(`) and any number under a
+ * colour-like key fail loud: the config uses neither today, and a new form must be parsed here.
+ */
+function allColours(value: unknown, path: string, out: [string, string][] = []): [string, string][] {
+  if (typeof value === 'string') {
+    if (/^#[0-9a-f]{6}$/i.test(value)) out.push([path, value]);
+    else {
+      const lin = /^color\(srgb-linear\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/.exec(value);
+      if (lin) out.push([path, `#${new THREE.Color().setRGB(Number(lin[1]), Number(lin[2]), Number(lin[3]), THREE.LinearSRGBColorSpace).getHexString()}`]);
+      else if (/^(#|rgb|hsl|color\()/i.test(value)) throw new Error(`${path}: a colour form the no-red walk does not parse: ${value}`);
+    }
+  } else if (typeof value === 'number') {
+    if (/(colou?r|tint|rim|glow|hot|bell|filament|edge)$/i.test(path)) throw new Error(`${path}: a numeric colour the no-red walk does not parse: ${value}`);
+  } else if (Array.isArray(value)) value.forEach((item, i) => allColours(item, `${path}[${i}]`, out));
+  else if (typeof value === 'object' && value !== null) for (const [key, item] of Object.entries(value)) allColours(item, `${path}.${key}`, out);
+  return out;
+}
+
+/** The fewest colours the walk finds in OBSERVATORY_WORLD (60 at Task 9's fix round 1): fewer means a refactor hid colours from it. */
+const MIN_WORLD_COLOURS = 60;
+
+test('no red: no colour anywhere in the world config within 20 degrees of red at a saturation above 0.5 (spec 7.7)', () => {
+  const colours = allColours(OBSERVATORY_WORLD, 'world');
+  expect(colours.length).toBeGreaterThanOrEqual(MIN_WORLD_COLOURS);
+  // The walk reaches every part the spec names: lights, palette and floor, kit materials, live colours, jellyfish, water, skin accent and post.
+  const paths = colours.map(([path]) => path);
+  for (const part of [
+    'world.lights.surface.color', 'world.lights.fill.color', 'world.lights.points[0].color', 'world.palette.sand', 'world.palette.rock', 'world.palette.floorGlow.cracks',
+    'world.materials[0].params.color', 'world.materials[1].params.color', 'world.live.colours.motes.color', 'world.live.colours.snow', 'world.live.elements.jellyfish.bell',
+    'world.live.elements.jellyfish.filament', 'world.water.colours.rays', 'world.water.environment.top', 'world.skinAccent', 'world.post.contactShadow.color',
+  ]) expect(paths, part).toContain(part);
+  for (const [name, colour] of colours) expect(isRed(colour), `${name} ${colour}`).toBe(false);
+  // And every light the bake lays on the stone.
+  for (const [kind, value] of Object.entries(readBake().lights)) {
+    const list = (Array.isArray(value) ? value : [value]) as { color: string }[];
+    for (const light of list) expect(isRed(light.color), `baked ${kind} ${light.color}`).toBe(false);
+  }
+});
+
+test('the membrane: deep blue (P1), a cyan edge, and a flow within [0, 1] that holds while the world is still', () => {
+  const membrane = OBSERVATORY_WORLD.materials!.find(m => m.node === 'portal_membrane');
+  expect(membrane?.material).toBe('membrane');
+  const params = membrane!.params as { color: string; edge: string; flowSpeed: number; flowScale: number; flash: number };
+  // P1's membrane sample is #0f38a7 (15, 56, 167), but the engine draws the body at 0.32 of its
+  // colour (membraneMaterial.ts) and the fog darkens it further: #0f38a7 reads (5, 26, 91) on the
+  // page. #2876ff is the closest the engine allows (blue at 1); it reads (15, 56, 133).
+  expect(params.color).toBe('#2876ff');
+  const body = new THREE.Color(params.color);
+  expect(body.b).toBeGreaterThan(body.g);
+  expect(body.g).toBeGreaterThan(body.r);
+  const edge = new THREE.Color(params.edge);
+  expect(edge.b).toBeGreaterThan(edge.r);
+  expect(edge.g).toBeGreaterThan(edge.r);
+  for (let t = 0; t < 600; t += 0.73) {
+    const f = membraneFlow(t, params.flowSpeed);
+    expect(f).toBeGreaterThanOrEqual(0);
+    expect(f).toBeLessThanOrEqual(1);
+  }
+  expect(membraneFlow(1e9, params.flowSpeed)).toBeLessThanOrEqual(1);
+});
+
+test("every kit material's brightest emissive value is below her face glow's (spec 7.7's relic rule)", () => {
+  const core = luminance(FACE_GLOW);
+  const nodes = (OBSERVATORY_WORLD.materials ?? []).map(m => m.node).sort();
+  expect(nodes).toEqual(['portal_glyph', 'portal_lanterns', 'portal_membrane', ...WINDOWED_PIECES.map(p => `${p}_windows`), ...AMBER_CORALS].sort());
+  for (const m of OBSERVATORY_WORLD.materials ?? []) expect(kitMaterialBrightest(m), m.node).toBeLessThan(core);
+});
+
+test('the glyph pulses once every 6 to 9 s (spec 7.7), from its glow; nothing drives an emissive prop it would fight', () => {
+  const glyph = OBSERVATORY_WORLD.materials!.find(m => m.node === 'portal_glyph');
+  expect(glyph?.material).toBe('glow');
+  const { period, pulse } = glyph!.params as { period: number; pulse: number };
+  expect(period).toBeGreaterThanOrEqual(6);
+  expect(period).toBeLessThanOrEqual(9);
+  expect(pulse).toBeGreaterThan(0.3);
+  expect((OBSERVATORY_WORLD.props ?? []).filter(p => p.drive === 'emissive')).toEqual([]);
+  // Every rubble fragment bobs.
+  expect((OBSERVATORY_WORLD.props ?? []).filter(p => p.drive === 'bob').map(p => p.node).sort()).toEqual([...RUBBLE_PIECES].sort());
+});
+
+test('the live elements: jellyfish 10, 7 and 4 by tier, the manta fish, star motes, bubbles, no embers; a sand floor', () => {
+  const { live, floor, palette } = OBSERVATORY_WORLD;
+  expect(live.elements?.jellyfish?.count).toEqual({ high: 10, medium: 7, low: 4 });
+  expect([live.fish, live.motes, live.embers]).toEqual([1, 1, 0]);
+  expect(live.bubbles).toBeGreaterThan(0);
+  expect(live.fishSilhouette).toBe(MANTA_SILHOUETTE);
+  expect(MANTA_SILHOUETTE.length).toBeLessThanOrEqual(24);
+  for (const [x, y] of MANTA_SILHOUETTE) {
+    expect(Math.abs(x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(y)).toBeLessThanOrEqual(1);
+  }
+  // Nose first: its frontmost point is on +x.
+  expect(Math.max(...MANTA_SILHOUETTE.map(p => p[0]))).toBe(1);
+  expect(floor?.material).toBe('sand');
+  expect(typeof palette.sand).toBe('string');
+  expect(typeof palette.rock).toBe('string');
+});
+
+test("the jellyfish land where P2 paints its two (Task 10), among the four every tier draws, and none over her", () => {
+  const jelly = OBSERVATORY_WORLD.live.elements!.jellyfish!;
+  const swarm = scatterJellies(jelly, LIVE_ELEMENTS.jellyfish);
+  // P2's registration (world_reference.json): the stage camera at z 12 seen on the z = 0 plane, 100 px a unit, origin (257, 252).
+  const px = ([x, y, z]: readonly number[]) => [257 + (100 * x * 12) / (12 - z), 252 - (100 * y * 12) / (12 - z)];
+  const radius = (j: (typeof swarm)[number]) => (100 * j.size * 12) / (12 - j.position[2]);
+  const drawnByAll = swarm.slice(0, Math.min(jelly.count.high, jelly.count.medium, jelly.count.low));
+  // P2's left jellyfish: the bell sample (81, 155) sits in the upper half of the bell (its rim at y 165, its dome 0.75 radius tall).
+  const left = drawnByAll.map(j => ({ j, at: px(j.position) })).find(({ at }) => Math.hypot(at[0] - 81, at[1] - 165) < 3);
+  expect(left, 'a jellyfish whose bell rim is at P2 (81, 165)').toBeDefined();
+  expect(radius(left!.j)).toBeGreaterThan(15);
+  expect(165 - 0.75 * radius(left!.j)).toBeLessThan(155 - 3);
+  // P2's right jellyfish, about (427, 151).
+  expect(drawnByAll.some(j => Math.hypot(px(j.position)[0] - 427, px(j.position)[1] - 151) < 6)).toBe(true);
+  for (const j of swarm.slice(0, jelly.count.high)) {
+    // Behind her (she stands at z 0) and in front of the far plate; never inside her arm-span box (3.84 wide, P2 y 230 to 470).
+    expect(j.position[2]).toBeLessThan(-3);
+    expect(j.position[2]).toBeGreaterThan(farData.cutZ);
+    const [x, y] = px(j.position);
+    const r = radius(j);
+    expect(x + r < 257 + 7 - 192 || x - r > 257 + 7 + 192 || y + 2.4 * r < 230, `jellyfish at P2 (${x.toFixed(0)}, ${y.toFixed(0)}) over her`).toBe(true);
+  }
+});
+
+test("near.glb is baked from layout.json and the world's lights", () => {
+  const baked = readBake();
+  const { layout, lights, relics } = OBSERVATORY_WORLD;
+  // Every placement of every group, as layout.json has it: a layout edit without a new bake fails here.
+  expect(Object.keys(baked.instances).sort()).toEqual(Object.keys(layout.groups).sort());
+  for (const [group, list] of Object.entries(layout.groups)) expect(baked.instances[group].map(i => i.placement), group).toEqual(list);
+  expect([baked.lights.glyph, baked.lights.lava, baked.lights.back]).toEqual([[], [], []]);
+  expect([baked.lavaRise, baked.backRise]).toEqual([0, 0]);
+  expect(baked.spill).toBe(relics.spill);
+  expect(baked.settings).toMatchObject({ portalLocal: PORTAL_LOCAL, coralRise: CORAL_RISE, path: OBSERVATORY_PATH.map(([x, z]) => [x, z]) });
+  const close = (a: Vec3, b: Vec3) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], 4));
+  for (const [kind, rise] of [['portal', relics.spill], ['coral', 1]] as const) {
+    const config = lights.points.filter(l => l.kind === kind);
+    expect(baked.lights[kind], kind).toHaveLength(config.length);
+    baked.lights[kind].forEach((light, i) => {
+      close(light.position, config[i].position);
+      expect(light.intensity).toBeCloseTo(config[i].intensity * rise, 9);
+      expect([light.color, light.distance]).toEqual([config[i].color, config[i].distance]);
+    });
+  }
+  // The warm light the bake adds: from every window face, every lantern bead, each small amber coral, and the faint path.
+  expect(baked.lights.window.length).toBeGreaterThan(0);
+  expect(baked.lights.lantern.length).toBeGreaterThan(0);
+  expect(baked.lights.path.length).toBeGreaterThan(0);
+  for (const light of baked.lights.window) expect(light.color).toBe(WINDOW_GLOW.color);
+  // Each small amber coral rests where the bake found its rest (layout.json's y), its light just above.
+  const amber = layout.groups.corals.filter(p => p.piece.startsWith('coral_amber_'));
+  expect(baked.lights.amberCoral).toHaveLength(amber.length);
+  amber.forEach((p, i) => {
+    const rise = (baked.settings as { amberCoralRise: number }).amberCoralRise;
+    expect(baked.lights.amberCoral[i].position[1] - rise).toBeCloseTo(p.position[1], 3);
+  });
+  expect(baked.lights.fill).toEqual(lights.fill);
+  expect(baked.lights.surface).toEqual(lights.surface);
+});
+
+test("the far plate: cut past the farthest rubble, its cards sized for her intro frame, its fog the world's, its layers KTX2 within budget", () => {
+  expect(OBSERVATORY_WORLD.farPlate!.cutZ).toBe(farData.cutZ);
+  // Every floating fragment the layout places stays in the near world (and bobs).
+  for (const p of OBSERVATORY_WORLD.layout.groups.rubble ?? []) expect(p.position[2], p.piece).toBeGreaterThan(farData.cutZ);
+  expect(farData.fog).toEqual({ color: OBSERVATORY_WORLD.palette.waterFar, density: OBSERVATORY_WORLD.water.fogDensity });
+  let bytes = 0;
+  farData.layers.forEach((layer, i) => {
+    const size = farCardSize(layer.z, AETHER_STAGE_FRAMES.intro);
+    expect(layer.width, `layer ${i}`).toBeCloseTo(size.width, 2);
+    expect(layer.height, `layer ${i}`).toBeCloseTo(size.height, 2);
+    expect(layer.pixels.map(p => p % 4)).toEqual([0, 0]);
+    expect(Math.abs(layer.pixels[1] - (layer.pixels[0] * layer.height) / layer.width)).toBeLessThanOrEqual(4);
+    const { url, z } = OBSERVATORY_WORLD.farPlate!.layers[i];
+    expect(z).toBe(layer.z);
+    const data = readFileSync(join(PUBLIC, url));
+    expect(data.subarray(1, 7).toString('latin1'), url).toBe('KTX 20');
+    bytes += data.length;
+  });
+  expect(farData.layers.map(l => l.z)).toEqual([...farData.layers.map(l => l.z)].sort((a, b) => a - b));
+  expect(farData.layers[farData.layers.length - 1].near).toBe(farData.cutZ);
+  for (let i = 1; i < farData.layers.length; i++) expect(farData.layers[i].far).toBe(farData.layers[i - 1].near);
+  expect(bytes).toBeLessThan(1.2 * 1024 * 1024);
+});
+
+test('what a visitor downloads for the observatory fits the 6 MB budget', () => {
+  const folder = (dir: string): number =>
+    readdirSync(dir, { withFileTypes: true }).reduce((sum, e) => sum + (e.isDirectory() ? folder(join(dir, e.name)) : statSync(join(dir, e.name)).size), 0);
+  const kit = statSync(join(PUBLIC, OBSERVATORY_WORLD.kit.url)).size;
+  const near = statSync(join(PUBLIC, OBSERVATORY_WORLD.near!.url)).size;
+  const visitor = folder(join(PUBLIC, 'aether', 'world')) + folder(join(PUBLIC, 'nox', 'basis')) - Math.min(kit, near);
+  expect(visitor).toBeLessThan(6 * 1024 * 1024);
+});

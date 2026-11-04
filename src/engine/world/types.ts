@@ -4,9 +4,10 @@
 import type { ContactShadowSettings } from './contactShadowEffect';
 import type { FloorMaterialId } from './floors';
 import type { KitMaterialAssignment } from './kitMaterials';
-import type { LiveElementId } from './live';
-import type { PropDrive } from './props';
+import type { Point2 } from '../config/types';
 import type { QualityTier } from '../stage/quality';
+import type { StrandElementId } from './live';
+import type { BobParams, PropDrive } from './props';
 
 /** x, y, z in stage units. The camera looks down -z, so z < 0 is beyond Nox. */
 export type Vec3 = readonly [number, number, number];
@@ -161,8 +162,10 @@ export interface WorldConfig {
   /**
    * The share (0 to 1) of each live element that is drawn: 1 is the full amount. `colours` are the
    * live elements' own colours (in a world each also takes the character's face glow).
+   * `fishSilhouette` is the far fish's outline (fish.ts): at most 24 (x, y) points in the unit box
+   * (-1 to 1, nose toward +x), a simple polygon; absent is the body and tail Nox's and Veyra's have.
    */
-  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours; elements?: LiveElements };
+  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours; elements?: LiveElements; fishSilhouette?: readonly Point2[] };
 }
 
 /** The relics' multipliers, by name; `glyph`, `coral` and `spill` are the ones the engine reads. */
@@ -189,13 +192,16 @@ export interface WorldPalette {
   [name: string]: string | FloorGlow | undefined;
 }
 
-/** An animatable part of the kit, named for a sequence to target. */
-export interface WorldProp {
+/**
+ * An animatable part of the kit, named for a sequence to target. A `bob` prop carries its own
+ * motion (`bob`: amplitude and period) and bobs on the world's clock, on a phase of its own (from
+ * its id); the other drives take their value from a sequence and carry nothing.
+ */
+export type WorldProp = {
   id: string;
   /** A named node of the kit file. */
   node: string;
-  drive: PropDrive;
-}
+} & ({ drive: Exclude<PropDrive, 'bob'>; bob?: never } | { drive: 'bob'; bob: BobParams });
 
 /**
  * Instanced strands that sway from the root (live/Kelp.tsx): `count` of them, `height` tall in stage
@@ -222,8 +228,34 @@ export interface PacketsConfig {
   colours: readonly [string, string];
 }
 
-/** The live elements a world adds, by id (live/index.ts): `kelp` and `seagrass` are strands, `packets` runs along a path. */
-export type LiveElements = { [id in Exclude<LiveElementId, 'packets'>]?: StrandConfig } & { packets?: PacketsConfig };
+/** A box in stage units, from its lowest corner `min` to its highest `max`. */
+export interface Box3 {
+  min: Vec3;
+  max: Vec3;
+}
+
+/**
+ * A swarm of jellyfish (live/Jellyfish.tsx): `count` of them at each quality tier (never more at a
+ * lower one), each a bell `size[0]` to `size[1]` stage units in radius, in the colour `bell`, with
+ * filaments in `filament` (each `#rrggbb`). Each pulses once every `pulse[0]` to `pulse[1]` seconds,
+ * out of step with the rest, and the swarm drifts up at `drift` stage units a second, through
+ * `region` and round again from its floor.
+ */
+export interface JellyfishConfig {
+  count: Record<QualityTier, number>;
+  size: readonly [number, number];
+  bell: string;
+  filament: string;
+  pulse: readonly [number, number];
+  drift: number;
+  region: Box3;
+}
+
+/**
+ * The live elements a world turns on, by id (live/index.ts): `kelp` and `seagrass` are strands, by
+ * their config; `packets` run along a path; the jellyfish by theirs.
+ */
+export type LiveElements = Partial<Record<StrandElementId, StrandConfig>> & { packets?: PacketsConfig; jellyfish?: JellyfishConfig };
 
 /** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
 export interface LiveColours {

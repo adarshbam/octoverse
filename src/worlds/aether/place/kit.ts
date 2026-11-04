@@ -3,15 +3,19 @@
 // keeps clear. Task 9 names the kit from this list in the world config; layout.test.ts checks the
 // file against it.
 
+import type { WorldProp } from '../../../engine/world/types';
+
 export const OBSERVATORY_KIT = {
   url: '/aether/world/kit.glb',
   /**
-   * Placeable pieces: the portal's arch, four ruin towers, three wall pieces, five floating rubble
-   * fragments, five seabed rocks, three magenta coral fans and three small amber corals. The
-   * portal's other parts share the arch's frame (`nodes`).
+   * Placeable pieces (each with its `_lod1` in the file): the portal's arch and its steps (laid out
+   * with the arch's placement, so the bake lights them as stone), four ruin towers, three wall
+   * pieces, five floating rubble fragments, five seabed rocks, three magenta coral fans and three
+   * small amber corals. The portal's other parts share the arch's frame (`nodes`).
    */
   pieces: [
     'portal_arch',
+    'portal_steps',
     'tower_a',
     'tower_b',
     'tower_c',
@@ -38,23 +42,66 @@ export const OBSERVATORY_KIT = {
   ],
   /**
    * Named nodes that are not placed pieces. The portal's parts share the arch's frame (its origin
-   * and orientation), so a world places them with the arch's placement: `portal_steps` leads up to
-   * it on the front, `portal_membrane` is the oval in the opening, `portal_glyph` the brain on it
-   * (the `'emissive'` prop drive) and `portal_lanterns` the amber beads along the rim.
+   * and orientation), so a world places them with the arch's placement: `portal_membrane` is the
+   * oval in the opening, `portal_glyph` the brain on it and `portal_lanterns` the amber beads along
+   * the rim. Each tower and the walls with windows have their lit windows as a node of their own in
+   * the piece's frame, `<piece>_windows` (the page dresses a placed stone piece with one stone
+   * material, so the windows could not glow inside it).
    */
-  nodes: ['portal_steps', 'portal_membrane', 'portal_glyph', 'portal_lanterns'],
+  nodes: [
+    'portal_membrane',
+    'portal_glyph',
+    'portal_lanterns',
+    'tower_a_windows',
+    'tower_b_windows',
+    'tower_c_windows',
+    'tower_d_windows',
+    'wall_b_windows',
+    'wall_c_windows',
+  ],
 } as const;
 
-/** Every portal node, the arch and the four that share its frame. */
-export const PORTAL_NODES = ['portal_arch', ...OBSERVATORY_KIT.nodes] as const;
+/** The portal's parts in the arch's frame (drawn with every placement of the arch). */
+export const PORTAL_PARTS = ['portal_membrane', 'portal_glyph', 'portal_lanterns'] as const;
+
+/** Every portal node: the arch, its steps (laid out with the arch's placement) and the parts that share its frame. */
+export const PORTAL_NODES = ['portal_arch', 'portal_steps', ...PORTAL_PARTS] as const;
+
+/** The pieces with lit windows, each drawn with its `<piece>_windows` node. */
+export const WINDOWED_PIECES = ['tower_a', 'tower_b', 'tower_c', 'tower_d', 'wall_b', 'wall_c'] as const;
+
+/** What the world's `kit.attached` says: the portal's parts in the arch's frame, each window node in its piece's. */
+export const OBSERVATORY_ATTACHED = [
+  ...PORTAL_PARTS.map(node => ({ node, piece: 'portal_arch' })),
+  ...WINDOWED_PIECES.map(piece => ({ node: `${piece}_windows`, piece })),
+] as const;
+
+export const RUBBLE_PIECES = OBSERVATORY_KIT.pieces.filter(piece => piece.startsWith('rubble_float_'));
+
+/** How far each floating fragment bobs either way (stage units): too small to read as motion at a glance, enough to feel afloat. */
+export const RUBBLE_BOB_AMPLITUDE = 0.04;
+
+/** Each fragment's bob period (seconds), 7 to 11, varied so the rubble never moves in step (the engine adds a phase per prop id). */
+const RUBBLE_BOB_PERIODS: Record<string, number> = {
+  rubble_float_a: 8.2,
+  rubble_float_b: 10.4,
+  rubble_float_c: 7.4,
+  rubble_float_d: 9.3,
+  rubble_float_e: 10.9,
+};
 
 /**
- * TODO (Task 7): the floating rubble should bob. Task 7 adds the `'bob'` prop drive to the engine
- * (src/engine/world/props.ts). After it, add a `rubble_float_*` prop per fragment on `'bob'`
- * (amplitude 0.04, period 7 to 11 s) to the world's `props`. The drive does not exist yet, so
- * `validateWorld` would reject such props: none are declared now.
+ * The world's props: the portal's glyph on the `'emissive'` drive, and every floating fragment on
+ * `'bob'`. A bob prop moves the placed piece of its `node` name (the engine bobs placed layout
+ * pieces only: not corals, not nodes attached to another frame), so each `rubble_float_*` is a
+ * piece placed once in layout.json's `rubble` group.
  */
-export const RUBBLE_PIECES = OBSERVATORY_KIT.pieces.filter(piece => piece.startsWith('rubble_float_'));
+export const OBSERVATORY_PROPS: WorldProp[] = [
+  { id: 'portalGlyph', node: 'portal_glyph', drive: 'emissive' },
+  ...RUBBLE_PIECES.map(
+    (node): WorldProp => ({ id: `${node}Bob`, node, drive: 'bob', bob: { amplitude: RUBBLE_BOB_AMPLITUDE, period: RUBBLE_BOB_PERIODS[node] ?? 9 } }),
+  ),
+];
 
 /** The width of the clear path Aether swims along (stage units). */
 export const PATH_WIDTH = 2.4;
