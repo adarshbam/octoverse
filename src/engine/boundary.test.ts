@@ -148,16 +148,20 @@ const KNOWN_HUE_DEBT: Record<string, { count: number; why: string }> = {
   // Defaults for a legacy config that sets none (spec 13.3): they reproduce Nox, by design.
   'config/validate.ts': { count: 13, why: 'LEGACY: what a character config written before a field existed reads (Nox’s values, spec 13.3): the glow core and light, the orb focus, the head effect’s three colours, and the seven shader tints fix wave A moved into the palette (rim, dome front, cup highlight, orb glass)' },
   'config/lighting.ts': { count: 5, why: "INTRO_LIGHTING: Nox's stage lighting, the default for a config without `lighting`" },
-  // Artwork and tints inside the shared HTML layer.
+  // Artwork inside the shared HTML layer (wave B / the no-WebGL poster work).
   'ui/Flame.tsx': { count: 2, why: "the title flame's gradient stops (artwork)" },
   'ui/ProjectDetail.tsx': { count: 1, why: 'the detail panel shield glyph’s glow fill (artwork)' },
-  'ui/detail.css': { count: 42, why: "Nox's panel colours as CSS fallbacks beside the theme variables" },
-  'ui/exit.css': { count: 5, why: "Nox's exit link colours as CSS fallbacks" },
-  'ui/intro.css': { count: 11, why: "Nox's intro title and gradient stops as CSS fallbacks" },
-  'ui/overview.css': { count: 23, why: "Nox's overview panel colours as CSS fallbacks" },
-  'ui/poster.css': { count: 1, why: 'the no-WebGL poster’s background' },
-  'ui/skip.css': { count: 9, why: "Nox's skip-control colours as CSS fallbacks" },
-  'ui/tooltip.css': { count: 10, why: "Nox's tooltip colours as CSS fallbacks" },
+  'ui/poster.css': { count: 1, why: 'the no-WebGL poster’s background (Nox’s water)' },
+  // The stylesheets: N fallbacks are Nox's theme values inside var(--oct-*, ...) (a theme reaches
+  // them; ui/theme.test.ts holds each equal to Nox's theme), the rest are bare near-neutral colours
+  // no token reaches yet (white hairlines, violet-black panel and button fills, text greys, black
+  // shadows) and the storyboard placeholder badge's amber. No bare red or pink is left (theme.test).
+  'ui/detail.css': { count: 42, why: '17 theme fallbacks; 25 bare: white hairlines, violet-black fills, text greys, a black shadow, the placeholder badge (2)' },
+  'ui/exit.css': { count: 5, why: '5 theme fallbacks' },
+  'ui/intro.css': { count: 11, why: "7 theme fallbacks; 4 bare: the page's violet-black, two text greys, the nameplate's fill" },
+  'ui/overview.css': { count: 23, why: '15 theme fallbacks; 8 bare: white hairlines, a black shadow, violet-black fills, a text grey' },
+  'ui/skip.css': { count: 9, why: '6 theme fallbacks; 3 bare: the skip control’s violet-black fills and text grey' },
+  'ui/tooltip.css': { count: 10, why: '5 theme fallbacks; 5 bare: the violet-black fill, two text greys, the placeholder badge (2)' },
   // Black as a mask, not a hue.
   'host/WorldHost.tsx': { count: 1, why: "the `?mask` silhouette's black background" },
 };

@@ -40,6 +40,25 @@ export const NOX_THEME: UiTheme = {
   focusRing: '#ffd0dc',
   titleIcon: 'flame',
   nameplateLabel: '#d8cfe2',
+  // The red and pink glows, lines and fills the stylesheets held as literals (fix wave A), each
+  // exactly as it was: the channel tokens are given as rgb() so they read as the stylesheet's rgba() did.
+  glow: 'rgb(255, 40, 90)',
+  glowInner: 'rgb(255, 50, 100)',
+  accentGlow: 'rgb(255, 60, 90)',
+  markGlow: 'rgb(255, 50, 80)',
+  buttonGlow: 'rgb(255, 70, 100)',
+  titleAccent: '#ff3d52',
+  titleGlow: 'rgb(255, 50, 70)',
+  plateGlow: 'rgb(255, 40, 80)',
+  plateGlowInner: 'rgb(255, 50, 90)',
+  line: 'rgb(255, 120, 160)',
+  linePale: 'rgb(255, 160, 200)',
+  lineHover: 'rgb(255, 190, 215)',
+  liveFrom: '#ff5d70',
+  liveTo: '#ff2f55',
+  ink: '#1a0710',
+  markRing: '#2a1420',
+  selected: 'rgba(70, 20, 50, 0.85)',
 };
 
 export const NOX_BUNDLE: WorldBundle = {

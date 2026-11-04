@@ -6,7 +6,7 @@ import { validateProject } from '../content/validateProject';
 import type { StagePose, SwimPoseSet } from '../poses/types';
 import type { SequenceSet } from '../sequences/keys';
 import type { StageFrame } from '../stage/framing';
-import type { UiTheme } from '../ui/theme';
+import { THEME_COLOURS, type UiTheme } from '../ui/theme';
 import { TITLE_ICONS } from '../ui/titleIcons';
 import { isColour, isWorldColour } from '../world/colour';
 import type { Vec3, WorldConfig } from '../world/types';
@@ -198,8 +198,10 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   checkLeaves(rest.stage, 'stage', false);
   checkLeaves(rest.content, 'content', false);
   checkLeaves(sequenceData, 'sequences', false);
-  for (const [key, value] of Object.entries(bundle.theme)) {
-    if (key === 'titleIcon') continue;
+  // Every colour token, by name: a token a theme leaves out would show Nox's value (the stylesheets' fallback).
+  for (const key of THEME_COLOURS) {
+    const value: unknown = bundle.theme[key];
+    if (value === undefined) throw new BundleError(`theme.${key}`, 'is missing (every colour token is needed: a missing one would show the stylesheet fallback, Nox\'s)');
     if (!isColour(value)) throw new BundleError(`theme.${key}`, `"${String(value)}" is not a colour`);
   }
   if (!Object.hasOwn(TITLE_ICONS, bundle.theme.titleIcon)) throw new BundleError('theme.titleIcon', `"${bundle.theme.titleIcon}" is not one of the engine's title icons (${Object.keys(TITLE_ICONS).join(', ')})`);

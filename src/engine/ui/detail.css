@@ -42,7 +42,7 @@
   border-radius: 2.6cqw;
   border: 1.5px solid var(--oct-surface-edge, rgba(255, 70, 110, 0.7));
   background: linear-gradient(160deg, rgba(22, 13, 32, 0.95), rgba(8, 6, 16, 0.96) 60%);
-  box-shadow: 0 0 28px rgba(255, 40, 90, 0.35), inset 0 0 22px rgba(255, 50, 100, 0.08);
+  box-shadow: 0 0 28px rgba(var(--oct-glow-rgb, 255, 40, 90), 0.35), inset 0 0 22px rgba(var(--oct-glow-inner-rgb, 255, 50, 100), 0.08);
 }
 
 .detail-header {
@@ -59,7 +59,7 @@
   margin: 0 2.3cqw 0 2.2cqw;
   flex: none;
   color: var(--oct-accent, #ff3b5c);
-  filter: drop-shadow(0 0 0.9cqw rgba(255, 50, 80, 0.7));
+  filter: drop-shadow(0 0 0.9cqw rgba(var(--oct-mark-glow-rgb, 255, 50, 80), 0.7));
 }
 
 .detail-identity {
@@ -157,7 +157,7 @@
   top: 3cqh;
   bottom: 3cqh;
   width: 2px;
-  background: rgba(255, 59, 92, 0.5);
+  background: rgba(var(--oct-accent-rgb, 255, 59, 92), 0.5);
 }
 
 .detail-sections button {
@@ -192,7 +192,7 @@
   height: 1.2cqw;
   border-radius: 50%;
   background: var(--oct-accent, #ff3b5c);
-  box-shadow: 0 0 0.8cqw rgba(255, 60, 90, 0.8);
+  box-shadow: 0 0 0.8cqw rgba(var(--oct-accent-glow-rgb, 255, 60, 90), 0.8);
 }
 
 .detail-sections button[aria-current] {
@@ -207,7 +207,7 @@
 .detail-sections button[aria-current]::before {
   width: 1.2cqw;
   height: 1.2cqw;
-  border: 0.55cqw solid #2a1420;
+  border: 0.55cqw solid var(--oct-mark-ring, #2a1420);
   outline: 0.35cqw solid var(--oct-accent, #ff3b5c);
 }
 
@@ -312,8 +312,8 @@
 }
 
 .detail-live {
-  background: linear-gradient(180deg, #ff5d70 0%, #ff2f55 100%);
-  box-shadow: 0 0 2cqw rgba(255, 60, 90, 0.55);
+  background: linear-gradient(180deg, var(--oct-live-from, #ff5d70) 0%, var(--oct-live-to, #ff2f55) 100%);
+  box-shadow: 0 0 2cqw rgba(var(--oct-accent-glow-rgb, 255, 60, 90), 0.55);
 }
 
 .detail-github {
