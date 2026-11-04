@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { isColour } from './colour';
+import { kitFogProblems, kitFogShare, withKitFog } from './kitFog';
 
 // The `membrane` kit material (KIT_MATERIAL_VARIANTS, kitMaterials.ts): an energy membrane across a
 // doorway, slow light lines flowing over it, brightest at its edge. A world assigns it to a kit node
@@ -24,6 +25,8 @@ export interface MembraneParams {
   flowScale: number;
   /** The most a flash may add on top of the resting light, as a share of it (0.3 is 30% brighter at its peak). */
   flash: number;
+  /** The share of the world's fog it takes, 0 to 1 (kitFog.ts); unset, 1: the world's fog, as any surface. */
+  fog?: number;
 }
 
 /**
@@ -63,6 +66,7 @@ export function membraneProblems(params: MembraneParams, at: string): string[] {
   if (!finite(params?.flowSpeed) || params.flowSpeed < 0) problems.push(`${at}.flowSpeed must be 0 or more`);
   if (!finite(params?.flowScale) || params.flowScale <= 0) problems.push(`${at}.flowScale must be above 0`);
   if (!finite(params?.flash) || params.flash < 0) problems.push(`${at}.flash must be 0 or more`);
+  problems.push(...kitFogProblems(params, at));
   return problems;
 }
 
@@ -97,6 +101,7 @@ export function makeMembraneMaterial(params: MembraneParams) {
     uFlow: { value: 0 },
     uFlowScale: { value: params.flowScale },
     uFlashCap: { value: 1 + params.flash },
+    uKitFog: { value: kitFogShare(params) },
   };
   // A black surface that only emits: emissive white at intensity 1 is the resting level, which the
   // shader reads as its level (the `emissive` prop drive raises the intensity for a flash).
@@ -110,6 +115,7 @@ export function makeMembraneMaterial(params: MembraneParams) {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform vec3 uMembraneColor;\nuniform vec3 uMembraneEdge;\nuniform float uFlow;\nuniform float uFlowScale;\nuniform float uFlashCap;\nvarying vec2 vFlow;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>${MEMBRANE_GLSL}`);
+    withKitFog(shader, uniforms.uKitFog);
   };
   // One program for every membrane: the shader text above is the same whatever the params.
   material.customProgramCacheKey = () => 'kit-membrane';
