@@ -26,11 +26,20 @@ const engineFiles = walk(ENGINE);
 const engineCode = engineFiles.filter(isCode);
 const read = (root: string, file: string) => readFileSync(join(root, file), 'utf8');
 
-/** The module specifiers a source names: `from '...'`, `import('...')`, `import '...'`. */
+/**
+ * The module specifiers a source names: `from '...'`, `import('...')`, `import '...'`, and the file
+ * references the bundler resolves without an import: `import.meta.glob('...')` / `globEager` (one
+ * pattern or a list) and `new URL('...', import.meta.url)`. A glob pattern keeps its `*`: its
+ * folder part is what the boundary reads.
+ */
 function specifiers(code: string): string[] {
   const out: string[] = [];
   const pattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"\n]+)\1/g;
   for (let m = pattern.exec(code); m; m = pattern.exec(code)) out.push(m[2]);
+  const glob = /\bimport\.meta\.glob(?:Eager)?\s*(?:<[^>(]*>)?\s*\(\s*(\[[^\]]*\]|(['"`])[^'"`\n]+\2)/g;
+  for (let m = glob.exec(code); m; m = glob.exec(code)) for (const item of m[1].matchAll(/(['"`])([^'"`\n]+)\1/g)) out.push(item[2]);
+  const url = /\bnew\s+URL\s*\(\s*(['"`])([^'"`\n]+)\1\s*,\s*import\.meta\.url/g;
+  for (let m = url.exec(code); m; m = url.exec(code)) out.push(m[2]);
   return out;
 }
 
@@ -171,6 +180,22 @@ test('the scan sees the engine (not a vacuous pass)', () => {
   expect(engineCode).toContain('host/WorldHost.tsx');
   expect(engineCode).toContain('character/Octopus.tsx');
   expect(engineCode.filter(f => !isTest(f)).length).toBeGreaterThan(100);
+});
+
+test('the specifier scan sees imports, dynamic imports, import.meta.glob (one pattern or a list) and new URL(..., import.meta.url)', () => {
+  const code = [
+    "import a from '../a';",
+    "const b = await import('../b');",
+    "import '../c.css';",
+    "const d = import.meta.glob('../d/*/bundle.ts');",
+    "const e = import.meta.globEager<string>(['../e/*.ts', \"../f/*.json\"], { eager: true });",
+    "const g = new URL('../d/x.json', import.meta.url);",
+    "const h = new URL(path, import.meta.url);",
+    "const i = new URL('https://example.com/x');",
+  ].join('\n');
+  expect(specifiers(code)).toEqual(['../a', '../b', '../c.css', '../d/*/bundle.ts', '../e/*.ts', '../f/*.json', '../d/x.json']);
+  // And the boundary reads them like any import: a glob into src/worlds from the engine is a hit.
+  expect(landing(ENGINE, 'host/x.ts', '../../worlds/*/bundle.ts')?.startsWith('worlds/')).toBe(true);
 });
 
 test('the engine imports nothing from src/worlds', () => {
