@@ -173,7 +173,7 @@ export const FLUX: CharacterConfig = {
     gloss: 100,
     streakScale: 1,
     streakStrength: 0.3,
-    // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both. Start values from
+    // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both, denser than Veyra's (70 and 50 against her 50 and 35; spec 7.2). Start values from
     // the P2 samples (Task 6 tunes them): the mantle goes electric blue (48, 68, 239) at the crown to
     // violet (156, 87, 239) in the thick middle, with a blue rim (61, 116, 233) and a warm pink-white
     // core (254, 171, 207) sitting just below the mouth. The arms are bluer: a pale periwinkle rim
@@ -182,12 +182,12 @@ export const FLUX: CharacterConfig = {
       mantle: {
         mode: 'jelly',
         jelly: { rim: '#3d74e9', rimPower: 4, crown: '#3044ef', crownHeight: 0.5, depth: '#9c57ef', depthStrength: 1, core: '#feabcf', coreCenter: [0, -0.2, -0.35], coreWarmth: 1.4 },
-        sparkle: 50,
+        sparkle: 70,
       },
       arms: {
         mode: 'jelly',
         jelly: { rim: '#6d7df6', rimPower: 4, crown: '#4658f3', crownHeight: 0.5, depth: '#374af1', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
-        sparkle: 35,
+        sparkle: 50,
       },
     },
   },

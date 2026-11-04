@@ -4,6 +4,7 @@ import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { FLUX_BUNDLE } from './bundle';
 import { FLUX } from './character';
+import { VEYRA } from '../veyra/character';
 import { FLUX_POSES } from './poses';
 import { FLUX_STROKE_SECONDS } from './sequences/defaults';
 import targets from './review/targets.json';
@@ -108,6 +109,12 @@ test('the mantle and the arms are jelly, with sparkles (spec 7.2)', () => {
   expect(surfaces.arms.sparkle).toBeGreaterThan(0);
 });
 
+test("the sparkles are denser than Veyra's on both surfaces (spec 7.2; 'twinkling faster' has no config field)", () => {
+  const veyra = VEYRA.skin.surfaces!;
+  expect(surfaces.mantle.sparkle).toBeGreaterThan(veyra.mantle.sparkle);
+  expect(surfaces.arms.sparkle).toBeGreaterThan(veyra.arms.sparkle);
+});
+
 test('the core sits just below the mouth, glowing warm', () => {
   const j = surfaces.mantle.jelly!;
   expect(j.coreCenter[1]).toBeLessThan(0);
@@ -139,6 +146,7 @@ test('the cups are separate ovals with a glowing rim, not a frill (spec 7.2)', (
 });
 
 test('no stray red: only the core, blush, mouth and cups have red above both green and blue', () => {
+  // Allowed: the face glow's pink core (`core`, ramp stops 4 and 5), the blush, the mouth (`mouth*`, `tongue`: P2's red-pink mouth), and the cups.
   const allowed = /core|blush|mouth|tongue|sucker|style\.(edge|rim|hollow)|glow\.ramp\[[45]\]/i;
   const strays: string[] = [];
   const walk = (value: unknown, path: string): void => {
