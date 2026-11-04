@@ -5,6 +5,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 
 ## Status
 - 2026-11-04 Milestone 1 complete (Tasks 1-6 plus early Task 8a), provisional owner gate. Waiting on gate: Milestone 2 (Veyra Tasks 8 and 10, plus the shared sand floor).
+- 2026-11-05 Task 10 (Milestone 2 world look) ruled provisionally; PENDING OWNER REVIEW.
 
 ## Items
 ### Task 8a: pipeline kit (built early, PENDING OWNER REVIEW)
@@ -78,6 +79,25 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - **Tests:** tsc clean, oxlint clean, flux 55/55.
   - `src/worlds src/engine`: 842 passed and 5 timed out under load (reviewTooling x3, Nox entrance, flux targets). All 5 pass when their files are re-run alone.
 
+### Task 10: pipeline world look, Flux in the world, budget (PENDING OWNER REVIEW)
+- **Commits:** ea5ded7 (world look values), then "feat(flux): pipeline world look (provisional, pending owner review)" (docs and stills).
+- **Files:** `src/worlds/flux/place/config.ts` only (no rebake: none of the changed values is in near.glb's record); `docs/superpowers/reviews/flux.md` (Milestone 2 section).
+- **Stills** (`docs/superpowers/reviews/assets/flux/`): `world-t10-intro.webp`, `world-t10-intro-solo.webp`, `world-t10-overview-solo.webp`, `world-t10-p2-sbs.webp` (P2 beside the world), `world-t10-p1-sbs.webp` (P1 beside the entering frame), `world-t10-portal.webp` (disc before/after), `world-t10-packets.webp` (live, 2 s apart).
+- **Live:** `/?world=flux&stage=intro`, `&freeze`, `&solo`; `/?world=flux&stage=entering&freeze&solo`.
+- **Numbers:**
+  - check_stage in the world (`tier=high&solo`): the same 3 misses as Task 6 (mouthInside 35.2, armTopHighlight 31.8, cupGlow 25.7; engine gaps). Flux's samples moved by at most 0.1 delta E; water aura 5.8, mid 6.8, upper 7.1. Page without `&solo`: 5 misses, the same set as Task 6's page (placeholder orbs).
+  - Perf, under load (shared Intel UHD), intro: tier low median 67.6 / 58.5 fps (slow10 29.9 / 27.0), tier high 26.2 / 23.7 fps (slow10 18.9 / 13.8). Floor 40 met; no spec 10.1 cut.
+  - Portal region 99th-percentile luminance 73 (Task 9: 89); his face glow median 188. Red pixels outside Flux and the title: 0.
+- **Changes:** portal disc lines tamed (edge about a third of the body: a line peaks near 1.4 times the body, was about 17 times); bridge arch glow tips 5 (legs and feet dark); coral glow 0.4; packets lighter and longer (0.55).
+- **Ruling (provisional):** the packets are visible in the intro (one or two at a time, left of the left tower and beside his left arms), so the bridge layout stays; light, fog and LED intensity stay (baked; Flux's water samples pass).
+- **Check (five things):**
+  1. A sunken data centre, still underwater.
+  2. The portal is focal but quieter than his face (is it now too quiet?).
+  3. LEDs and packets alive but not busy (watch live).
+  4. No tech clutter (left-edge arch sliver, bottom-left coral chunk).
+  5. The camera hover is lively (Nox's amount at 1.2 times his pace).
+- **Known weak:** racks darker and sparser than P2's (needs kit LEDs or brighter fill, a rebake); the disc lines still faint straight pieces at 3x (finer disc mesh needed); the disc centre reads as a faint darker halo; the entering frame's near arch is a tall flat violet hoop (P1: small rings on the deck); portal off-frame at P1's square frame; packets are flat bars; bubbles uniform; glyph motes dropped.
+- **Tests:** tsc clean, oxlint clean, flux 55/55; `src/worlds src/engine` 845 passed, 2 timed out under load (reviewTooling check_stage spawn), which pass alone (3/3).
 ### Task 1 (built early, steps 1-4; PENDING OWNER REVIEW)
 - Files: `public/flux/ref/p2.png` (byte-identical to native panel), `p2-mask.png`, `scripts/ref_mask.py`, `src/worlds/flux/review/*`, `docs/superpowers/reviews/flux.md` (commit a406f10).
 - Numbers: all 14 samples within 1/channel of spec 2.1; mean inside mask (108,93,225), sat 0.657; arm span 3.97 (inside 3.8-4.2).

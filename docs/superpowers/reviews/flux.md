@@ -199,3 +199,82 @@ The floor of 40 is met, so the spec 10.1 fallback was not applied.
 - Dropped or deviating from the plan, each logged in `docs/superpowers/MORNING-REVIEW-flux.md`: glyph motes dropped (motes take no sprite set, spec 12.6); bubbles are uniform, not denser to the left (the engine has no density field); the far plate is KTX2, not webp (the engine loads only KTX2).
 - Engine-owner item: per-arc `portal_arc_<q>_inlay` membrane nodes solve the shared-stone emissive problem world-side; Task 15 props must name the `_inlay` nodes.
 - Not seen: packets are not visible in any stage frame (Task 10 judges this).
+
+## Milestone 2 (Task 10): pipeline world look, PENDING OWNER REVIEW (2026-11-05)
+
+Ruled provisionally overnight; the owner was asleep. Nothing here is approved until the owner looks.
+Live: `/?world=flux&stage=intro` (add `&freeze` for the frozen pose, `&solo` to hide the Task 2 placeholder orbs). Entering frame: `/?world=flux&stage=entering&freeze&solo`.
+
+### Stills (`docs/superpowers/reviews/assets/flux/`)
+
+- `world-t10-intro.webp`: the page, intro, frozen, 1280x720 (placeholder orbs on).
+- `world-t10-intro-solo.webp`: the same with `&solo`.
+- `world-t10-overview-solo.webp`: overview, frozen, solo.
+- `world-t10-p2-sbs.webp`: P2 (native) beside the world at P2's frame, page and solo.
+- `world-t10-p1-sbs.webp`: P1 (native) beside the entering frame, at P1's square frame and at 16:9.
+- `world-t10-portal.webp`: the portal disc, Task 9 (left) and Task 10 (right).
+- `world-t10-packets.webp`: live intro, the bridge stretch left of the left tower, two moments 2 s apart.
+
+### Step 1: Flux's samples in the world (frozen intro, `tier=high&solo&kitwait=60000`)
+
+`check_stage.py --world --stage intro --world-id flux`: FAIL with the same 3 misses as Task 6 (engine gaps, not world).
+Flux's samples did not move: every Flux region is within 0.1 delta E of the Task 6 stage capture (headRim 2.7 to 2.8, cupGlow 25.8 to 25.7, the rest equal). No world value was changed for him.
+
+| Region | Task 6 stage | World (Task 10) |
+|---|---|---|
+| crown / headMiddle / headSide / headRim | 4.2 / 3.6 / 7.1 / 2.7 | 4.2 / 3.6 / 7.1 / 2.8 |
+| faceGlow / chin / blush | 3.2 / 4.2 / 4.6 | 3.2 / 4.2 / 4.6 |
+| armBody | 8.5 | 8.5 |
+| auraWater / midWater / upperWater | 3.5 / 8.2 / 9.0 | 5.8 / 6.8 / 7.1 |
+| mouthInside (engine: tongue size) | **MISS** 35.2 | **MISS** 35.2 |
+| armTopHighlight | **MISS** 31.8 | **MISS** 31.8 |
+| cupGlow | **MISS** 25.8 | **MISS** 25.7 |
+
+Mean (114, 93, 231), saturation 0.623, brightness 0.913: all ok, the same as Task 6.
+Without `&solo` (the page): 5 misses, the same set as Task 6's page capture (saturation 0.610, cupGlow 85.7 and upperWater 20.1 from the placeholder orbs; Task 12 replaces them).
+
+### Step 2: side by side with P1 and P2
+
+- **Towers:** both sides framed as in P2; ours are darker and sparser than P2's (thin LED strips on near-black racks, where P2 has many lit windows and blue edge light).
+- **Portal:** right and back, partly behind the right rack (16:9); off-frame at P2's and P1's square frames. The disc's flow lines read as cracks up close; tamed (below).
+- **Bridge:** a dark walkway-pipe at screen height of his arms; the packets are visible: one or two at a time, left of the left tower and between it and his left arms (Task 9 thought none were). In the entering frame the near arch is a tall violet hoop behind where he stops.
+- **Shaft:** blue shafts from the upper right, as P2.
+- **No red light:** 0 red pixels (hue within 15 degrees of red, saturation > 0.45, value > 0.3) outside Flux and the title, in the intro, intro solo and entering stills. The flame title icon is the R13 placeholder (UI, not world).
+- **Portal vs face (intro):** portal region 99th-percentile luminance 73 (Task 9: 89), his face glow median 188.
+
+World changes made (config only; none of these values is in near.glb's record, so no rebake):
+- Portal disc membrane `#70a8e8` / edge `#3a6898` (was `#1e4a7a` / `#6aa8e0`): the edge was about 17 times the body, so the fan-bent flow lines read as cracks; a line now peaks near 1.4 times the body. Brightest 0.52, below the face core 0.547.
+- Bridge arch glow `tips` 1.5 to 5: the legs and feet fall dark.
+- `relics.coral` 0.6 to 0.4: the coral fans no longer read as flat pink cut-outs.
+- Packets: lighter colours (`#5ef0ff`, `#c4b0ff`), length 0.55: streaks of light through the fog.
+
+Not changed, and why:
+- Light, fog and LED intensity: all are in the bake record (config.test) or the far plate; a change means a 10-minute rebake (and a far re-render for fog) while Flux's water samples already pass. Left for the owner's call.
+- Bridge layout: moving it would mean rebake, layout tests and corridor clearance; the packets already show in the intro.
+
+### Step 3: perf (under load: three sessions share one Intel UHD GPU), `WORLD=flux node scripts/perf.mjs "stage=intro&tier=low" "stage=intro&tier=high"`
+
+| Run | Tier low median | slow10 | Tier high median | slow10 |
+|---|---|---|---|---|
+| 1 | 67.6 fps | 29.9 fps | 26.2 fps | 18.9 fps |
+| 2 | 58.5 fps | 27.0 fps | 23.7 fps | 13.8 fps |
+
+Tier low meets the 40 fps floor on the median in both runs, so no spec 10.1 cut was made. Tier high has no floor in spec 2.5.
+
+### Five things to look at
+
+1. A sunken data centre, still underwater? Navy water, the shaft, racks with blinking strips. (Weak: the racks are much darker and sparser than P2's.)
+2. The portal is focal but quieter than his face? Portal 99th-percentile 73 against his face 188. Is it now too quiet to be focal?
+3. LEDs and packets alive but not busy? Watch live: one or two packets at a time on the left, LEDs at 0.4 to 2.5 blinks a second.
+4. No tech clutter? Look at the left edge (an arch crown sliver) and the bottom-left coral chunk.
+5. The camera hover is lively? Shared hover, Nox's amount at 1.2 times his pace.
+
+### Remaining weaknesses
+
+- The racks are darker and sparser than P2's (P2: many lit windows, blue edge light). Fixing needs denser LEDs in the kit or a brighter fill, each a rebake.
+- The disc's lines still show faintly as straight pieces at 3x (the disc's fan triangles); a finer disc mesh in the kit would make them smooth curves (kit rebuild and rebake).
+- The disc's centre now reads as a faint darker halo.
+- In the entering frame the near bridge arch is a tall flat violet hoop; P1's arches are small rings on the deck.
+- The portal is off-frame at the square P1 frame, where P1 shows it centre-right.
+- Packets are flat bars (engine box mesh, no glow below the bloom threshold).
+- Bubbles uniform (no density field); glyph motes dropped (engine gaps, as Task 9).
