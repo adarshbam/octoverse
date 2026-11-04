@@ -153,3 +153,34 @@ test('validateWorld checks materials and attached nodes by name', () => {
   // The membrane's flash rides the emissive drive (its shader caps the level), so that one is allowed.
   expect(validateWorld({ ...base, props: [{ id: 'flash', node: 'membrane', drive: 'emissive' }] })).toEqual([]);
 });
+
+test("the fog param: each variant takes that share of the world's fog (1, the world's, when unset), checked by name", async () => {
+  const { KIT_FOG_FRAGMENT, kitFogShare } = await import('./kitFog');
+  // Unset: the world's fog, as any other surface.
+  expect(makeMembraneMaterial(MEMBRANE).uniforms.uKitFog.value).toBe(1);
+  expect(makeGlowMaterial(GLOW).uniforms.uKitFog.value).toBe(1);
+  expect(kitFogShare({})).toBe(1);
+  const membrane = makeMembraneMaterial({ ...MEMBRANE, fog: 0.25 });
+  const glow = makeGlowMaterial({ ...GLOW, fog: 0 });
+  expect(membrane.uniforms.uKitFog.value).toBe(0.25);
+  expect(glow.uniforms.uKitFog.value).toBe(0);
+  for (const [made, lib] of [[membrane, 'lambert'], [glow, 'standard']] as const) {
+    const shader = compiled(made.material, lib);
+    // three's fog mix is scaled by the share, and the uniform is the material's own object.
+    expect(shader.fragmentShader).toContain('mix( gl_FragColor.rgb, fogColor, fogFactor * uKitFog )');
+    expect(shader.fragmentShader).not.toContain('#include <fog_fragment>');
+    expect(shader.fragmentShader).toContain('uniform float uKitFog;');
+    expect(shader.uniforms.uKitFog).toBe(made.uniforms.uKitFog);
+  }
+  expect(KIT_FOG_FRAGMENT).toBe(THREE.ShaderChunk.fog_fragment.replace('fogFactor );', 'fogFactor * uKitFog );'));
+  // The share never brightens: the brightest values are the same whatever the fog.
+  expect(membraneBrightest({ ...MEMBRANE, fog: 0 })).toBe(membraneBrightest(MEMBRANE));
+  expect(glowBrightest({ ...GLOW, fog: 0 })).toBe(glowBrightest(GLOW));
+  // Out of [0, 1] is refused by name, for both variants.
+  const base: WorldConfig = { ...SECURITY_WORLD, kit: { ...SECURITY_WORLD.kit, nodes: ['membrane'], attached: [{ node: 'membrane', piece: 'pillar_a' }] } };
+  const problems = (materials: KitMaterialAssignment[]) => validateWorld({ ...base, materials }).join('\n');
+  expect(problems([{ node: 'membrane', material: 'membrane', params: { ...MEMBRANE, fog: 0.4 } }])).toBe('');
+  expect(problems([{ node: 'membrane', material: 'membrane', params: { ...MEMBRANE, fog: 1.5 } }])).toMatch(/materials\[0\] \(membrane\)\.params\.fog must be between 0 and 1/);
+  expect(problems([{ node: 'coral_0', material: 'glow', params: { ...GLOW, fog: -0.1 } }])).toMatch(/materials\[0\] \(coral_0\)\.params\.fog must be between 0 and 1/);
+  expect(problems([{ node: 'coral_0', material: 'glow', params: { ...GLOW, fog: Number.NaN } }])).toMatch(/fog must be between 0 and 1/);
+});

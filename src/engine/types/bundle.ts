@@ -264,11 +264,15 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
 /** The stages a face anchor is worked out for: a technology focus keeps the overview's, the entrance lands in the intro's. */
 export type FaceStage = 'intro' | 'overview' | 'detail';
 
-/** The character's face origin in a stage, x and y on the stage plane: the pose's body plus the head's face origin. */
+/**
+ * The character's face origin in a stage, x and y on the stage plane: the pose's body plus the head's
+ * face origin, scaled with the body as Octopus draws it (body + scale x content). At scale 1 (every
+ * Nox stage) the sums are exactly the unscaled ones.
+ */
 export function faceOrigin(bundle: Pick<WorldBundle, 'character' | 'poses'>, stage: FaceStage): readonly [number, number] {
   const { body } = bundle.poses[stage];
   const [ox, oy] = bundle.character.head.faceOrigin;
-  return [body.x + ox, body.y + oy];
+  return [body.x + body.scale * ox, body.y + body.scale * oy];
 }
 
 /**
@@ -280,5 +284,6 @@ export function faceOrigin(bundle: Pick<WorldBundle, 'character' | 'poses'>, sta
 export function faceAnchor(bundle: Pick<WorldBundle, 'character' | 'poses'>, stage: FaceStage): Vec3 {
   const [x, y] = faceOrigin(bundle, stage);
   const { head } = bundle.character;
-  return [x, y - 0.1, head.depth * head.halfWidth];
+  const { scale } = bundle.poses[stage].body;
+  return [x, y - 0.1 * scale, head.depth * head.halfWidth * scale];
 }

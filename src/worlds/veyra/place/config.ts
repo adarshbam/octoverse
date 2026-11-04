@@ -23,6 +23,11 @@ const palette = {
   stone: '#22403f',
   // The one warm accent: orange-yellow coral (P1, P2 lower right).
   coral: '#e8a030',
+  // The kit's own colours (the bake's albedo too): dark blue-teal seabed rock and pebbles, and the
+  // coral's orange body under its glow (P1's foreground rocks; Nox's are violet-black and red).
+  rock: '#16262c',
+  pebble: '#1c2c30',
+  coralBody: '#8a4a14',
   // The fog and the sky's horizon: the mid water of P2, as Task 7 fitted it.
   waterFar: '#020b10',
   floor: '#0c1c20',
@@ -65,13 +70,13 @@ const largest = (s: Placement['scale']) => (typeof s === 'object' ? Math.max(...
 // takes it from a little further. The plants' green, low and short. The corals' warm accent, the
 // only light whose red is not below its green and blue, kept faint (intensity at most 0.4).
 const portalLights: WorldLight[] = (layout.groups.portal ?? []).flatMap(arch =>
-  PORTAL_LOCAL.map(local => ({ kind: 'portal', position: placedPoint(arch, local), color: palette.portal, intensity: 2, distance: 4, skinRange: 3 })),
+  PORTAL_LOCAL.map(local => ({ kind: 'portal', position: placedPoint(arch, local), color: palette.portal, intensity: 5, distance: 4.5, skinRange: 3 })),
 );
 const plantLights: WorldLight[] = (layout.groups.plants ?? []).map(p => ({
   kind: 'plant',
   position: [p.position[0], p.position[1] + PLANT_RISE * largest(p.scale), p.position[2]],
   color: palette.plant,
-  intensity: 1,
+  intensity: 1.5,
   distance: 2.4,
   skinRange: 2,
 }));
@@ -89,7 +94,9 @@ const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#041c24' },
   // Task 7's bloom: a high threshold, so the cyan membrane and edges glow without clipping to white.
   bloom: { luminanceThreshold: 0.8, luminanceSmoothing: 0.2, intensity: 0.4, radius: 0.6 },
-  vignette: { offset: 0.3, darkness: 0.9 },
+  // 0.75 (Task 11, was 0.9): the portal and the corner plants of the desktop frame lit as P1 has them; 0.6 lifted
+  // her arm-top sample past delta E 10 (it is 9.3 at 0.75).
+  vignette: { offset: 0.3, darkness: 0.75 },
 };
 
 /** The water's own colours: deep blue-teal below, a teal-blue zenith (P2's upper water), the surface's cyan glow, cyan shafts leaning mint as they widen, and small blue-violet fish. */
@@ -116,16 +123,19 @@ const LIVE_COLOURS: WorldConfig['live']['colours'] = {
 
 /**
  * The kit nodes with a kit material (engine KIT_MATERIAL_VARIANTS): the doorway's membrane (P1's
- * deep teal body and mint-cyan rim), the padlock lit pale mint as P1 paints it, and the glowing
- * plants (green, brightest at the bulbs, pulsing slowly). The portal stays under her face glow's
- * brightness (spec 7.7's relic rule; config.test).
+ * cyan body and mint-cyan rim), the padlock lit pale mint as P1 paints it, and the glowing plants
+ * (teal-green, brightest at the bulbs, pulsing slowly). The portal stays under her face glow's
+ * brightness (spec 7.7's relic rule; config.test). The portal takes a quarter of the water's fog
+ * (`fog`): it is the world's one strong light and reads from the stage as P1 paints it, not greyed.
+ * The membrane draws its body at 0.32 of `color` (membraneMaterial.ts), so `color` is bright.
  */
+const PORTAL_FOG = 0.25;
 const MATERIALS: WorldConfig['materials'] = [
-  { node: 'membrane', material: 'membrane', params: { color: '#046c8c', edge: '#60e0d8', flowSpeed: 0.06, flowScale: 1, flash: 0.25 } },
-  { node: 'padlock_body', material: 'glow', params: { color: '#92f0e0', strength: 0.9, tips: 0, pulse: 0, period: 1 } },
-  { node: 'padlock_ring', material: 'glow', params: { color: '#92f0e0', strength: 0.9, tips: 0, pulse: 0, period: 1 } },
-  { node: 'glowplant_a', material: 'glow', params: { color: palette.plant, strength: 1.3, tips: 1.1, pulse: 0.35, period: 7 } },
-  { node: 'glowplant_b', material: 'glow', params: { color: palette.plant, strength: 1.3, tips: 1.1, pulse: 0.35, period: 8.5 } },
+  { node: 'membrane', material: 'membrane', params: { color: '#0fdcff', edge: '#70e6dc', flowSpeed: 0.06, flowScale: 1, flash: 0.2, fog: PORTAL_FOG } },
+  { node: 'padlock_body', material: 'glow', params: { color: '#92f0e0', strength: 1.08, tips: 0, pulse: 0, period: 1, fog: PORTAL_FOG } },
+  { node: 'padlock_ring', material: 'glow', params: { color: '#92f0e0', strength: 1.08, tips: 0, pulse: 0, period: 1, fog: PORTAL_FOG } },
+  { node: 'glowplant_a', material: 'glow', params: { color: '#5af0d8', strength: 1.15, tips: 1.3, pulse: 0.35, period: 7 } },
+  { node: 'glowplant_b', material: 'glow', params: { color: '#5af0d8', strength: 1.15, tips: 1.3, pulse: 0.35, period: 8.5 } },
 ];
 
 export const VAULT_WORLD: WorldConfig = {
@@ -170,7 +180,9 @@ export const VAULT_WORLD: WorldConfig = {
     embers: 0,
     colours: LIVE_COLOURS,
     elements: {
-      kelp: { count: 60, height: 3.2, sway: 0.22, color: '#0f5a48' },
+      // The first 15 of the kelp's seeded scatter: the 16th stands in front of the doorway (from the
+      // stage), as do the 18th, 22nd and 57th; the 15 frame the flanks and the far water.
+      kelp: { count: 15, height: 3.2, sway: 0.22, color: '#0f5a48' },
       seagrass: { count: 220, height: 0.6, sway: 0.06, color: '#1a7058' },
     },
   },

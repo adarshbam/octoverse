@@ -148,6 +148,21 @@ test("the face anchor is per character: another head or another pose moves it", 
   expect(faceAnchor(moved, 'intro')).toEqual([body.x + 0.5, body.y + 0.25 - 0.1, head.depth * head.halfWidth]);
 });
 
+test("the face anchor follows the pose's body scale: the face is drawn at body + scale x its origin", () => {
+  // Octopus draws the character at body + scale * content (its float group is placed at the body and
+  // scaled), so a stage pose with scale 1.5 carries the face 1.5 times as far from the body, the eye
+  // line's 0.1 drop and the head's front with it.
+  const scaled = { ...NOX_BUNDLE, poses: { ...NOX_BUNDLE.poses, overview: { ...NOX_BUNDLE.poses.overview, body: { x: -0.4, y: 0.25, scale: 1.5, yaw: 0 } } } };
+  const { head } = NOX_BUNDLE.character;
+  const [ox, oy] = head.faceOrigin;
+  expect(faceOrigin(scaled, 'overview')[0]).toBeCloseTo(-0.4 + 1.5 * ox, 12);
+  expect(faceOrigin(scaled, 'overview')[1]).toBeCloseTo(0.25 + 1.5 * oy, 12);
+  const [x, y, z] = faceAnchor(scaled, 'overview');
+  expect(x).toBeCloseTo(-0.4 + 1.5 * ox, 12);
+  expect(y).toBeCloseTo(0.25 + 1.5 * (oy - 0.1), 12);
+  expect(z).toBeCloseTo(1.5 * head.depth * head.halfWidth, 12);
+});
+
 /** A deep copy of plain data (functions, like the sequences' state loader, are shared). */
 const copyOf = <T,>(value: T): T => (Array.isArray(value) ? (value.map(copyOf) as T) : value && typeof value === 'object' ? (Object.fromEntries(Object.entries(value).map(([k, v]) => [k, copyOf(v)])) as T) : value);
 

@@ -416,6 +416,13 @@ test('palette and relics are string-keyed: the engine’s names are required, th
   expect(bad({ palette: extra, relics: { ...SECURITY_WORLD.relics, portal: 1.5 } })).toBe('');
   const light = { ...SECURITY_WORLD.lights.points[0], kind: 'portal' };
   expect(bad({ palette: extra, lights: { ...SECURITY_WORLD.lights, points: [...SECURITY_WORLD.lights.points, light] } })).toBe('');
+  // The kit's own colours (rock, pebble, coral body) are optional and named by the engine: Nox leaves them to Kit.tsx's.
+  for (const name of ['rock', 'pebble', 'coralBody'] as const) expect(SECURITY_WORLD.palette[name]).toBeUndefined();
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: '#14242a', pebble: '#1c2c30', coralBody: '#8a4a14' } })).toBe('');
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: 'teal' } })).toContain('palette.rock is not a #rrggbb colour');
+  // A palette key set to undefined is the same as one left out (the type allows it for the optional kit colours).
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, rock: undefined, pebble: undefined, coralBody: undefined } })).toBe('');
+  expect(bad({ palette: { ...SECURITY_WORLD.palette, portal: undefined } })).toBe('');
 });
 
 test('a world with a moss floor and a kelp live element validates, and each is checked', () => {

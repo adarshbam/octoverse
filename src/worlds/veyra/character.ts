@@ -62,7 +62,8 @@ export const VEYRA: CharacterConfig = {
     // In a world (spec 7.2): teal near her and deep blue-green below, and the water within about
     // 3 units darker and bluer than the brighter, greener water round the plants.
     aura: { inner: '#06475a', low: '#083a40', belowStart: 0.75, radius: 3.6, strength: 0.4 },
-    grade: { color: '#020e16', radius: 4, strength: 0.9 },
+    // Radius 3.2 (Task 11, was 4): the portal, about 2.5 units off her in the intro, is no longer greyed by it.
+    grade: { color: '#020e16', radius: 3.2, strength: 0.9 },
   },
   // Start values from the measured P2 samples: head crown (5, 171, 188), head side (7, 124, 154),
   // arm top (25, 185, 162), arm body (11, 180, 170), chin (49, 156, 126), cup rim (240, 234, 172).

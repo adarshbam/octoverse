@@ -18,6 +18,8 @@ const FLOOR_GLOW = ['cracks', 'lava', 'sheen', 'pores'] as const satisfies reado
 
 /** The palette colours the engine reads by name (the rest are named by lights, relics or the floor), and the relics it reads. */
 const ENGINE_PALETTE = ['stone', 'coral', 'floor', 'waterFar'] as const;
+/** The kit's colours a world may give (Kit.tsx falls back to Nox's for each one it leaves out). */
+const KIT_PALETTE = ['rock', 'pebble', 'coralBody'] as const;
 const ENGINE_RELICS = ['glyph', 'coral', 'spill'] as const;
 
 /** Optional placement fields and what each must hold when present. */
@@ -162,7 +164,9 @@ export function validateWorld(world: WorldConfig): string[] {
 
   for (const [name, value] of Object.entries(world.relics)) if (!finite(value) || value <= 0) problems.push(`relics.${name} must be above 0`);
   for (const name of ENGINE_RELICS) if (!(name in world.relics)) problems.push(`relics.${name} is missing (the engine reads it)`);
-  const { floorGlow, ...flat } = palette;
+  // A key set to undefined counts as left out (the optional kit colours allow it).
+  const { floorGlow, ...given } = palette;
+  const flat = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined));
   for (const [name, value] of Object.entries(flat)) if (!colour(value)) problems.push(`palette.${name} is not a #rrggbb colour`);
   for (const name of ENGINE_PALETTE) if (!(name in flat)) problems.push(`palette.${name} is missing (the engine reads it)`);
   if (!record(floorGlow)) problems.push('palette.floorGlow is missing (cracks, lava, sheen, pores)');
@@ -173,7 +177,7 @@ export function validateWorld(world: WorldConfig): string[] {
   else {
     const floorColours: readonly string[] = FLOOR_MATERIALS[floorMaterial].palette;
     for (const name of floorColours) if (!(name in flat)) problems.push(`palette.${name} is missing (the ${floorMaterial} floor reads it)`);
-    const named = new Set<string>([...ENGINE_PALETTE, ...lights.points.map(l => l.kind), ...Object.keys(world.relics), ...floorColours]);
+    const named = new Set<string>([...ENGINE_PALETTE, ...KIT_PALETTE, ...lights.points.map(l => l.kind), ...Object.keys(world.relics), ...floorColours]);
     for (const name of Object.keys(flat)) if (!named.has(name)) problems.push(`palette.${name} is named by no light, relic or floor`);
   }
   if (!colour(lights.surface.color) || !colour(lights.fill.color)) problems.push('the surface and fill lights need #rrggbb colours');

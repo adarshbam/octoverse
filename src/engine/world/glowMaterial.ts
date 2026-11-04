@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { isColour } from './colour';
+import { kitFogProblems, kitFogShare, withKitFog } from './kitFog';
 
 // The `glow` kit material (KIT_MATERIAL_VARIANTS, kitMaterials.ts): a piece that gives off light of
 // its own, such as a bioluminescent sprig or a lit lock, pulsing slowly. A world assigns it to a kit
@@ -19,6 +20,8 @@ export interface GlowParams {
   pulse: number;
   /** Seconds a pulse takes. */
   period: number;
+  /** The share of the world's fog it takes, 0 to 1 (kitFog.ts); unset, 1: the world's fog, as any surface. */
+  fog?: number;
 }
 
 /** The pulse's factor at time `t` for a piece whose phase is `phase` (radians): between 1 - pulse and 1, and 1 - pulse / 2 while the world's motion holds still. Mirrors the GLSL. */
@@ -41,6 +44,7 @@ export function glowProblems(params: GlowParams, at: string): string[] {
   if (!finite(params?.tips) || params.tips < 0) problems.push(`${at}.tips must be 0 or more`);
   if (!finite(params?.pulse) || params.pulse < 0 || params.pulse > 1) problems.push(`${at}.pulse must be between 0 and 1`);
   if (!finite(params?.period) || params.period <= 0) problems.push(`${at}.period must be above 0`);
+  problems.push(...kitFogProblems(params, at));
   return problems;
 }
 
@@ -65,6 +69,7 @@ export function makeGlowMaterial(params: GlowParams) {
     uGlowPulse: { value: params.pulse },
     uGlowPeriod: { value: params.period },
     uGlowTips: { value: params.tips },
+    uKitFog: { value: kitFogShare(params) },
   };
   const tips = params.tips > 0;
   // A dark surface that emits: the surface light and the water still shade it a little.
@@ -85,6 +90,7 @@ export function makeGlowMaterial(params: GlowParams) {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform float uTime;\nuniform float uMotion;\nuniform float uGlowPulse;\nuniform float uGlowPeriod;\nuniform float uGlowTips;\nvarying float vGlowPhase;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>${GLOW_GLSL}`);
+    withKitFog(shader, uniforms.uKitFog);
   };
   material.customProgramCacheKey = () => (tips ? 'kit-glow-tips' : 'kit-glow');
   return {
