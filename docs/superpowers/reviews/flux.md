@@ -2,34 +2,54 @@
 
 Newest entries last. Spec: `docs/superpowers/specs/2026-11-03-flux-3d-design.md`.
 
-## Engine as landed (provisional, E02 fix wave pending)
+## Engine as landed (re-checked 2026-11-04 at 575fe40, E02 merged; fix wave B and E02b items still to come)
 
-Checked 2026-11-04 on branch `claude/flux-world-overnight` at 3de528a (E02 merged), with
-`rg "export (const|type|interface|function) (<names>)" src/engine src/worlds`. Re-run it when the E02 fix wave lands.
+Run: `rg "export (const|type|interface|function) (<names>)" src/engine src/worlds`. Re-run when the engine moves again.
 
 | Name | Landed in | Note |
 |---|---|---|
-| `WorldBundle` (interface) | `src/engine/types/bundle.ts` | as planned |
-| `validateBundle` | `src/engine/types/bundle.ts` | `(bundle, worlds = WORLDS)`; checks against the id list below |
+| `WorldBundle` (interface) | `src/engine/types/bundle.ts` | `{ id, character, poses, swim, artifacts, sequences, place, stage: { frames, panels, introTitle }, content, theme }` |
+| `validateBundle` | `src/engine/types/bundle.ts` | `(bundle, worlds = [])`; `worlds` is the shipped ids, only the registry knows them. See the requirements list below |
 | `faceAnchor` | `src/engine/types/bundle.ts` | `(bundle, stage) => Vec3`, derived per character from `head` and `poses` |
-| `WORLDS` (id list) | `src/engine/types/bundle.ts` | `['nox'] as const`; a second world id must be added here |
-| `WORLDS` (bundle map) | `src/worlds/index.ts` | `Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE }`; same name, two files, two meanings. `WorldId` is plain `string` |
-| `resolveWorld` | `src/worlds/index.ts` | `(search) => { bundle, warning? }`; reads `?world=`; unknown id falls back to the default with a warning |
-| `useInstance` | `src/engine/host/instanceContext.ts` | as planned |
-| `InstanceState` (interface) | `src/engine/host/instance.ts` | as planned |
+| `WorldId` | `src/engine/types/bundle.ts` | plain `string`; rule `^[a-z][a-z0-9-]{1,31}$`, `u-` prefix reserved for creator bundles |
+| `WORLDS` | `src/worlds/index.ts` | `Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE }`. The engine's id list `WORLDS` in `bundle.ts` is gone; Flux is added here |
+| `resolveWorld` | `src/worlds/index.ts` | `(search) => { bundle, warning? }`; reads `?world=`, unknown id falls back to the default with a warning |
+| `WorldHost` | `src/engine/host/WorldHost.tsx` | `({ bundle, options, mode = 'page' | 'preview', ui = 'engine' | 'none', preview?, initialStage?, onStageChange?, stageRequest?, exit?, children? })`. A bad bundle shows a plain message and logs the `BundleError`; keep the bundle object stable (a new object remounts) |
+| `PreviewOptions` | `src/engine/host/options.ts` | `{ stage, tierCap?, motion: 'still' | 'ambient', place: 'full' | 'backdrop', artifacts: 'settled' | 'hidden' }` |
+| `useInstanceApi` | `src/engine/host/useInstanceApi.ts` | the page-facing API (`back`, `skip`, `attend`, ...); throws outside a `WorldHost` |
+| `useInstance`, `InstanceState` | `src/engine/host/instanceContext.ts`, `src/engine/host/instance.ts` | engine-internal instance state, as before |
 | `HEAD_EFFECTS` | `src/engine/character/headEffects/index.ts` | `{ none, glyphs }` |
-| `PLACEMENTS` | `src/engine/artifacts/strategies.ts` | `{ orbit }` |
-| `APPEARS` | `src/engine/artifacts/strategies.ts` | `{ blow }` |
-| `SELECTS` | `src/engine/artifacts/strategies.ts` | `{ suctionHold }` |
-| `resolveExpressions` | `src/engine/behavior/expressions.ts` | `(config) => Record<ExpressionId, ExpressionParams>`. Already landed (the plan lists it with the Veyra names) |
-| `clampCharacterConfig` | `src/engine/config/validate.ts` | takes `LegacyCharacterConfig` (no `lighting`, `glow`, `palette`), returns `CharacterConfig` |
+| `PLACEMENTS` / `APPEARS` / `SELECTS` | `src/engine/artifacts/strategies.ts` | `{ orbit }` / `{ blow }` / `{ suctionHold }` |
+| `resolveExpressions` | `src/engine/behavior/expressions.ts` | already landed (the plan lists it with the Veyra names) |
+| `clampCharacterConfig` | `src/engine/config/validate.ts` | takes `LegacyCharacterConfig`, returns `CharacterConfig` |
 
-Not landed yet (expected; they belong to the Veyra/Aether work): `LIVE_ELEMENTS`, `KIT_MATERIAL_VARIANTS`,
-`SurfaceLook`, `JellySettings`, `SuckerStyle`, `assignPendants`, `pendantSwing`, `tetherCurve`,
-`threadClearance`, `bloomState`, `armLiftTarget`. A looser `rg` over `src` (any form, not only `export ...`) finds none of them.
+Not landed yet (expected; Veyra/Aether work): `LIVE_ELEMENTS`, `KIT_MATERIAL_VARIANTS`, `SurfaceLook`, `JellySettings`,
+`SuckerStyle`, `assignPendants`, `pendantSwing`, `tetherCurve`, `threadClearance`, `bloomState`, `armLiftTarget`.
 
-Names that differ from the plan: none. Two things to know: `WORLDS` exists twice (above), and the plan's
-`resolveExpressions` is already in the engine.
+Differences from the plan's names: the engine id list `WORLDS` is gone (registry only); `useInstanceApi` and `WorldHost`
+are the page-facing names; `resolveExpressions` is already there.
+
+### What `validateBundle` requires (for Task 2)
+
+A bundle that lacks any of these throws a `BundleError` naming the field:
+
+- `id` matching the rule above; every one of the stages' poses with exactly eight arms; `stage.frames.<stage>` with width and height above 0.
+- `stage.panels.overview` and `stage.panels.detail`: four finite numbers `[left, top, right, bottom]` with left < right, top > bottom.
+- `stage.introTitle`: `halfWidth` above 0 and a finite `top`. `swim.stretch` and `swim.bodyX` finite.
+- `place` parts present as objects or lists: `kit`, `layout`, `camera`, `post`, `relics`, `palette`, `lights`, `glow`, `water`, `live`; lists `kit.pieces`, `layout.pillars|rocks|corals|chains|coralLights`; and `place.camera.hover`, `place.water.colours`, `place.water.environment`, `place.palette.floorGlow`, `place.live.colours`, `place.post.contactShadow|bloom|vignette`, `place.lights.surface|fill|points[]`, each layout item, `place.farPlate` when used.
+- Every number finite; every string in `character` and `place` a parseable colour unless its name ends in `id|depth|headEffect|url|kind|piece` (`skinAccent`, `floorGlow.*`, `character.palette.rimHot|domeRimHot|suckerSpecular|orbGlass.*` may use `color(srgb-linear r g b)`).
+- `theme`: every colour token (`THEME_COLOURS` in `src/engine/ui/theme.ts`) is a colour. The set is 25 tokens (the coordinator's note said 17): `accent, accentHot, surface, surfaceEdge, buttonFrom, buttonTo, focusRing, nameplateLabel, titleAccent, liveFrom, liveTo, ink, markRing, selected, glow, glowInner, accentGlow, markGlow, buttonGlow, titleGlow, plateGlow, plateGlowInner, line, linePale, lineHover`. Plus `theme.titleIcon` (a key of `TITLE_ICONS`), `theme.poster` `{ src, alt, width, height }` (all set, size above 0) and `theme.pageTitle` (non-empty).
+- `artifacts.placement.kind|appear.kind|select.kind` are engine kinds (`orbit`, `blow`, `suctionHold` today); `choosableIn` holds choosing stages; `sequences.defaults` has `entrance`, `headSwell`, `arrival` and the appear's sheet.
+- `validateWorld(place)` clean and `validateProject(content.project, catalog)` valid.
+
+### Finding: `check_stage.py` hard-codes Nox's image for the silhouette reference
+
+`scripts/check_stage.py` `main()` (about line 205) builds `ref` from `public/spike/Nox.jpeg` cropped to Nox's panel and
+computes the `silhouetteRows` reference widths from that image, whatever `--world-id` says. For Flux the width rows
+compared against Nox's panel, not `p2.png` (2 MISS on `width y=0.15` and `y=0.10`). The colour samples are not affected
+(they read `hq.image`). Engine owner to make the silhouette reference world-generic. Until then Flux's
+`stage_samples.json` has no `silhouetteRows` (or `widthTolerance`); shape is covered by the P2 mask and the IoU target in
+`targets.json`.
 
 ## Reference checks (P2)
 
@@ -58,10 +78,10 @@ Files: `src/worlds/flux/review/targets.json`, `stage_samples.json`, `world_sampl
 reference is read through world units; points are world units (`x = (px - 255.5) / 100`, `y = (255 - py) / 100`).
 `world_samples.json` uses Nox's `target` / `regions` schema, with the mean, saturation and brightness measured above
 (saturation and brightness bands are measured +-0.04; the spec sets only the saturation band) and the same 14 regions,
-water samples included. Both are provisional until E02's `check_stage.py --world-id flux` lands.
+water samples included. `check_stage.py --world-id flux` now reads them (see the finding above).
 
 ## Task 1: reference checks set up (2026-11-04)
 
 Early, partial. Done: engine drift check, P2 copy, mask, samples, targets, `targets.test.ts` (6 tests green).
-Not run: `check_stage.py --world-id flux` (E02's rewrite has not landed). Open: the engine names above are provisional
-until the E02 fix wave lands.
+Follow-up (E02 landed): `check_stage.py public/flux/ref/p2.png --stage intro --world-id flux` exits 0 with all 14 colour
+samples at delta 0, after dropping `silhouetteRows` from `stage_samples.json` (finding above). Engine names re-checked.

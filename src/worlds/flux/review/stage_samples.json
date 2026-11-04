@@ -14,7 +14,6 @@
     },
     "colorTolerance": 24,
     "deltaE": 10,
-    "widthTolerance": 0.04,
     "points": {
       "crown": [
         -0.145,
@@ -72,12 +71,6 @@
         1.375,
         1.65
       ]
-    },
-    "silhouetteRows": [
-      0.15,
-      0.1,
-      0.05,
-      0.0
-    ]
+    }
   }
 }
