@@ -1,0 +1,109 @@
+Task 10 numbers (Milestone 2 look gate). Captured on 127.0.0.1:5196, one shared Intel UHD with two other sessions: frame rates are UNDER LOAD.
+
+== P2-registered world capture (binding): WORLD=aether node scripts/world-capture.mjs intro t10-world-capture-intro.png 'tier=high&kitwait=90000' (514 x 504: the page's phone layout, so the world draws its phone tier: 4 jellyfish, 0.4 of the shafts, no fish or motes)
+python scripts/check_stage.py t10-world-capture-intro.png --world --stage intro --world-id aether; then .tmp/t6/measure.py (global checks, IoU, shape)
+panel 2  mean (144, 124, 219)  saturation 0.482  brightness 0.863  (54459 px)
+capture  mean (158, 142, 237)  saturation 0.424  brightness 0.929  (54459 px)
+ok  mean        target (154, 133, 228) +-12
+ok  saturation  target 0.418 to 0.498
+ok  brightness  target 0.86 to 0.94
+ok  region Crown sheen        panel 2 #93aaf8 capture #b0abfe deltaE   8.9  (max 10)
+ok  region Upper dome         panel 2 #5c50f4 capture #6556f7 deltaE   3.2  (max 10)
+ok  region Forehead           panel 2 #9b6cf8 capture #8263f6 deltaE   7.8  (max 10)
+ok  region Between the eyes   panel 2 #fab7f1 capture #fbbdf3 deltaE   2.5  (max 10)
+ok  region Face glow below eyes panel 2 #fdd4e8 capture #ffd7f3 deltaE   4.1  (max 10)
+ok  region Face glow below mouth panel 2 #fdd8ef capture #ffdaff deltaE   7.2  (max 10)
+ok  region Chin               panel 2 #c08af9 capture #ac81f5 deltaE   6.1  (max 10)
+ok  region Head side left     panel 2 #8967e5 capture #7766ef deltaE   7.8  (max 10)
+ok  region Head side right    panel 2 #8379f7 capture #7f6bee deltaE   6.4  (max 10)
+ok  region Blush              panel 2 #fab5cf capture #f7b4d7 deltaE   5.3  (max 10)
+ok  region Arm top rim        panel 2 #e0cef8 capture #d1c4f7 deltaE   6.7  (max 10)
+MISS region Arm body upper     panel 2 #5a82e2 capture #4957f0 deltaE  39.4  (max 10)
+ok  region Arm body lower     panel 2 #4b58e7 capture #525def deltaE   2.7  (max 10)
+ok  region Arm underside glow panel 2 #e8c3f8 capture #d6b7f2 deltaE   6.0  (max 10)
+ok  region Cup                panel 2 #cdbcef capture #e4ccfa deltaE   7.2  (max 10)
+ok  region Inside tip spiral  panel 2 #593f8d capture #473d87 deltaE   6.1  (max 10)
+MISS region Gold seed bead     panel 2 #dfa58d capture #141866 deltaE  89.0  (max 10)
+MISS region Glass seed bead    panel 2 #956d9e capture #13175e deltaE  44.4  (max 10)
+ok  region Water outside head panel 2 #0f1962 capture #141863 deltaE   1.9  (max 10)
+ok  region Mid water          panel 2 #07154d capture #0f1658 deltaE   5.9  (max 10)
+ok  region Upper water        panel 2 #022464 capture #0d276e deltaE   4.6  (max 10)
+MISS region Jellyfish bell     panel 2 #9c7be1 capture #9a71bf deltaE  13.2  (max 10)
+ok  region Ruin window light  panel 2 #b17979 capture #b37775 deltaE   2.2  (max 10)
+FAIL (4 misses)
+ok   warm core: glow R 255 - dome R 101 = 154 (>=120)
+ok   pink not white (below eyes): R-G 40 (>=25), G 215 (<=235)
+ok   pink not white (below mouth): R-G 37 (>=25), G 218 (<=235)
+ok   periwinkle arm upper: B 240 (>=200), B-R 166 (>=90)
+ok   periwinkle arm lower: B 239 (>=200), B-R 158 (>=90)
+ok   indigo water: B 88 (>=60), B-R 72 (>=55)
+MISS IoU 0.8123  (nameplate box left out of both: 0.8505)  render px 54459  P2 px 51793  render-only 6834  P2-only 4168
+head top 0.19 (0.14..0.22)  half-width 0.745 at y -0.38 (0.69..0.77)  centre x 0.065 (0.03..0.11)  arm span 3.88 (3.69..3.99)
+eye L: centre x -0.234 y -0.656  (560 dark px)
+eye R: centre x 0.470 y -0.647  (544 dark px)
+
+== Desktop-tier P2 registration (secondary): VIEW=1028x1008 SCALE=1 scripts/stage-capture.mjs intro with view=-2.57,2.52,2.57,-2.52, downsampled 2:1 (desktop layout, high world tier: 10 jellyfish, every shaft)
+panel 2  mean (144, 124, 218)  saturation 0.482  brightness 0.862  (54630 px)
+capture  mean (158, 141, 236)  saturation 0.426  brightness 0.927  (54630 px)
+ok  mean        target (154, 133, 228) +-12
+ok  saturation  target 0.418 to 0.498
+ok  brightness  target 0.86 to 0.94
+ok  region Crown sheen        panel 2 #93aaf8 capture #b0abfe deltaE   8.9  (max 10)
+ok  region Upper dome         panel 2 #5c50f4 capture #6556f7 deltaE   3.2  (max 10)
+ok  region Forehead           panel 2 #9b6cf8 capture #8264f6 deltaE   7.4  (max 10)
+ok  region Between the eyes   panel 2 #fab7f1 capture #fbbcf3 deltaE   2.5  (max 10)
+ok  region Face glow below eyes panel 2 #fdd4e8 capture #ffd7f3 deltaE   4.1  (max 10)
+ok  region Face glow below mouth panel 2 #fdd8ef capture #ffdcff deltaE   6.5  (max 10)
+ok  region Chin               panel 2 #c08af9 capture #ac81f5 deltaE   6.1  (max 10)
+ok  region Head side left     panel 2 #8967e5 capture #7665ee deltaE   7.6  (max 10)
+ok  region Head side right    panel 2 #8379f7 capture #7f6bee deltaE   6.3  (max 10)
+ok  region Blush              panel 2 #fab5cf capture #f7b4d6 deltaE   4.9  (max 10)
+ok  region Arm top rim        panel 2 #e0cef8 capture #d0c3f6 deltaE   6.7  (max 10)
+MISS region Arm body upper     panel 2 #5a82e2 capture #4957f0 deltaE  39.4  (max 10)
+ok  region Arm body lower     panel 2 #4b58e7 capture #515cef deltaE   2.5  (max 10)
+ok  region Arm underside glow panel 2 #e8c3f8 capture #d4b5f1 deltaE   6.7  (max 10)
+ok  region Cup                panel 2 #cdbcef capture #dec6f7 deltaE   4.7  (max 10)
+ok  region Inside tip spiral  panel 2 #593f8d capture #483e89 deltaE   5.9  (max 10)
+MISS region Gold seed bead     panel 2 #dfa58d capture #171a66 deltaE  88.0  (max 10)
+MISS region Glass seed bead    panel 2 #956d9e capture #131860 deltaE  44.4  (max 10)
+ok  region Water outside head panel 2 #0f1962 capture #141864 deltaE   1.9  (max 10)
+ok  region Mid water          panel 2 #07154d capture #11195a deltaE   5.7  (max 10)
+ok  region Upper water        panel 2 #022464 capture #19347f deltaE   9.4  (max 10)
+MISS region Jellyfish bell     panel 2 #9c7be1 capture #9e74c3 deltaE  12.4  (max 10)
+ok  region Ruin window light  panel 2 #b17979 capture #b37775 deltaE   2.2  (max 10)
+FAIL (4 misses)
+ok   warm core: glow R 255 - dome R 101 = 154 (>=120)
+ok   pink not white (below eyes): R-G 40 (>=25), G 215 (<=235)
+ok   pink not white (below mouth): R-G 35 (>=25), G 220 (<=235)
+ok   periwinkle arm upper: B 240 (>=200), B-R 166 (>=90)
+ok   periwinkle arm lower: B 239 (>=200), B-R 157 (>=90)
+ok   indigo water: B 90 (>=60), B-R 73 (>=55)
+MISS IoU 0.8128  (nameplate box left out of both: 0.8512)  render px 54630  P2 px 51793  render-only 6912  P2-only 4075
+head top 0.19 (0.14..0.22)  half-width 0.750 at y -0.74 (0.69..0.77)  centre x 0.160 (0.03..0.11)  arm span 3.89 (3.69..3.99)
+eye L: centre x -0.237 y -0.658  (609 dark px)
+eye R: centre x 0.472 y -0.650  (587 dark px)
+
+== Relic rule, entrance (python src/worlds/aether/review/relic_entrance.py t10-render-entering-t3.2-her-and-portal.png -3,4.165,9.5,-4.165)
+  portal_arch      box region  94790 px, brightest Y 0.625 at (839, 539) #b0d2ff
+  portal_glyph     box region  10077 px, brightest Y 0.545 at (1041, 437) #babeff
+  portal_lanterns  box region  48687 px, brightest Y 0.545 at (1041, 437) #babeff
+  portal_membrane  box region  30106 px, brightest Y 0.545 at (1041, 437) #babeff
+  portal_steps     box region  11107 px, brightest Y 0.668 at (837, 538) #b6d9ff
+portal region 99446 px (her silhouette left out)
+portal brightest  Y 0.668  at (837, 538) #b6d9ff
+face glow (4008 px) brightest  Y 0.873  at (333, 425) #ffeaff; her whole silhouette brightest Y 1.000
+ok   the portal's brightest pixel is below the face glow's (0.668 vs 0.873, ratio 0.76)
+
+== Relic rule, intro (NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/portal_offframe.mjs)
+ok   desktop 1536x1024: portal pixels in the frozen intro 0; nearest portal point 249 px outside the frame (camera fov 23.72, lens shift 98.2 px)
+ok   16:9 1920x1080: portal pixels in the frozen intro 0; nearest portal point 112 px outside the frame (camera fov 23.72, lens shift 103.5 px)
+ok   4:3 1024x768: portal pixels in the frozen intro 0; nearest portal point 251 px outside the frame (camera fov 23.72, lens shift 73.6 px)
+ok   phone 390x844: portal pixels in the frozen intro 0; nearest portal point 185 px outside the frame (camera fov 49.73, lens shift 36.7 px)
+
+== Budget, UNDER LOAD: WORLD=aether node scripts/perf.mjs 'stage=intro&tier=low', three back-to-back pairs
+stage=intro&tier=low                     median  63.7 fps  slow10  29.1 fps  mean  51.2 fps  (308 frames)
+stage=intro&tier=low                     median  33.4 fps  slow10  15.6 fps  mean  28.1 fps  (169 frames)
+stage=intro&tier=low                     median  52.1 fps  slow10  27.9 fps  mean  49.0 fps  (295 frames)
+stage=intro&tier=low                     median  67.1 fps  slow10  31.4 fps  mean  58.2 fps  (350 frames)
+stage=intro&tier=low                     median  61.3 fps  slow10  29.9 fps  mean  52.5 fps  (315 frames)
+stage=intro&tier=low                     median  54.1 fps  slow10  28.5 fps  mean  51.5 fps  (309 frames)
