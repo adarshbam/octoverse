@@ -458,6 +458,31 @@ export interface SuckerSettings {
   rowRadius: number;
   /** Strength of the soft contact shadow each cup casts onto the skin round it (0-1). */
   shadow: number;
+  /**
+   * The cups' frill style (Veyra; Aether reuses it in pink-white, amendment A1): raised cups whose
+   * outer edges stand proud of the arm's silhouette as a scalloped frill. Absent: Nox's shallow
+   * sunk discs with a slit hollow, exactly as approved.
+   */
+  style?: SuckerStyle;
+}
+
+/**
+ * A frill cup: a raised glowing rim round a round hollow, on a short wall that lifts it off the
+ * skin. Every colour is config read into a uniform (A1, A7); the numbers shape the cup.
+ */
+export interface SuckerStyle {
+  /** The rim's width, as a fraction of the cup radius (0.05 to 0.5): the ring between the hollow and the outer edge. */
+  rimWidth: number;
+  /** How far each cup's rim stands proud of the skin under it, in cup radii (0 to 1): the frill's scallops. */
+  scallop: number;
+  /** The wall below the rim, where the cup rises out of the skin. */
+  edge: string;
+  /** The raised glowing rim. */
+  rim: string;
+  /** The round hollow inside the rim. */
+  hollow: string;
+  /** How brightly the cups glow on their own (0 to 3): they are emitters the world never dims. */
+  glow: number;
 }
 
 /**

@@ -230,12 +230,13 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
     const suckerBend = new THREE.InstancedBufferAttribute(new Float32Array(suckerTotal * 2), 2).setUsage(THREE.DynamicDrawUsage);
     const cupDetail = Math.round(32 * quality.suckerScale);
-    const cupGeometry = createSuckerCup(cupDetail);
+    // A frill style (Veyra) raises the cups; its colours reach only the material, never the shape.
+    const cupGeometry = createSuckerCup(cupDetail, config.suckers.style);
     cupGeometry.setAttribute('aBend', suckerBend);
     cupGeometry.setAttribute('aCup', createCupArmAttribute(arms.map(({ row, chain }) => ({ row, length: chain.segmentLength * chain.segments }))));
     const shadowGeometry = createCupShadow(cupDetail);
     shadowGeometry.setAttribute('aBend', suckerBend);
-    const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms), suckerTotal);
+    const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms, config.suckers.style), suckerTotal);
     suckers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     suckers.frustumCulled = false;
     const cupShadows = new THREE.InstancedMesh(shadowGeometry, createCupShadowMaterial(config.palette, config.suckers, uniforms), suckerTotal);

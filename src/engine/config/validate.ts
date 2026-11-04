@@ -1,7 +1,7 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
 import { isColour, isWorldColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
-import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SurfaceLook } from './types';
+import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SuckerSettings, type SuckerStyle, type SurfaceLook } from './types';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -113,6 +113,28 @@ function clampSurface(look: Partial<SurfaceLook> | undefined, palette: Palette, 
   return { mode, jelly, sparkle };
 }
 
+/** A frill style's numbers when a config gives one that is not a number. */
+const FRILL_DEFAULTS = { rimWidth: 0.22, scallop: 0.5, glow: 1 } as const;
+
+/**
+ * The cups' frill style, when there is one (absent stays absent: Nox's discs): its shape held to
+ * what still reads as a cup, its glow to [0, 3]; a colour that is missing or does not parse reads
+ * the character's own cup colours (the engine holds no colour of its own here).
+ */
+function clampSuckers(suckers: SuckerSettings, palette: Palette): SuckerSettings {
+  if (!suckers.style) return suckers;
+  const s: Partial<SuckerStyle> = suckers.style;
+  const style: SuckerStyle = {
+    rimWidth: clamp(s.rimWidth as number, 0.05, 0.5, FRILL_DEFAULTS.rimWidth),
+    scallop: unit(s.scallop as number, FRILL_DEFAULTS.scallop),
+    edge: colour(s.edge, palette.suckerEdge),
+    rim: colour(s.rim, palette.suckerHot),
+    hollow: colour(s.hollow, palette.suckerHollow),
+    glow: clamp(s.glow as number, 0, 3, FRILL_DEFAULTS.glow),
+  };
+  return { ...suckers, style };
+}
+
 /** Expression overrides: only known ids, only keys the face has, only finite values, each held in the range the face can draw. */
 function clampExpressions(overrides: CharacterConfig['expressions']): CharacterConfig['expressions'] {
   if (!overrides) return undefined;
@@ -183,6 +205,7 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
     },
     armBend: clamp(config.armBend, 0, 0.3, DEFAULTS.armBend),
     armFlatten: clamp(config.armFlatten, 0.7, 1, DEFAULTS.armFlatten),
+    suckers: clampSuckers(config.suckers, config.palette as Palette),
     skin: {
       ...k,
       speckDensity: unit(k.speckDensity, ds.speckDensity),

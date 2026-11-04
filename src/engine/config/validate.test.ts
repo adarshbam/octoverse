@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { NOX_BUNDLE } from '../../worlds/nox/bundle';
 import { NOX } from '../../worlds/nox/character';
 import { BundleError, validateBundle } from '../types/bundle';
-import type { JellySettings } from './types';
+import type { JellySettings, SuckerStyle } from './types';
 import { clampCharacterConfig } from './validate';
 
 test('NOX is unchanged by clamping', () => {
@@ -237,4 +237,34 @@ test('validateBundle names a surface mode the engine has not got, and a jelly co
   expect(field(withSurfaces({ mode: 'glass', sparkle: 0 }))).toBe('character.skin.surfaces.mantle.mode');
   expect(field(withSurfaces({ mode: 'jelly', jelly: { ...JELLY, crown: 'bluish' }, sparkle: 0 }))).toBe('character.skin.surfaces.mantle.jelly.crown');
   expect(field(withSurfaces({ mode: 'jelly', jelly: JELLY, sparkle: 60 }))).toBeNull();
+});
+
+const FRILL: SuckerStyle = { rimWidth: 0.22, scallop: 0.6, edge: '#e0dc9c', rim: '#f6f0ba', hollow: '#6a9478', glow: 1.3 };
+const suckerStyle = (style: unknown) => clampCharacterConfig({ ...NOX, suckers: { ...NOX.suckers, style: style as SuckerStyle } }).suckers.style!;
+
+test('Nox has no cup style and the clamp adds none (absent is the sunk discs)', () => {
+  expect(NOX.suckers.style).toBeUndefined();
+  expect(clampCharacterConfig(NOX).suckers).not.toHaveProperty('style');
+  expect(clampCharacterConfig(NOX).suckers).toEqual(NOX.suckers);
+});
+
+test('a cup frill style is clamped, and a missing or unreadable colour reads the character’s own cup colours', () => {
+  expect(suckerStyle(FRILL)).toEqual(FRILL);
+  const s = suckerStyle({ ...FRILL, rimWidth: 2, scallop: -1, glow: Number.NaN, rim: 'not a colour', edge: undefined });
+  expect(s.rimWidth).toBe(0.5);
+  expect(s.scallop).toBe(0);
+  expect(s.glow).toBe(1);
+  expect([s.edge, s.rim, s.hollow]).toEqual([NOX.palette.suckerEdge, NOX.palette.suckerHot, FRILL.hollow]);
+});
+
+test('validateBundle names a cup style colour that does not parse', () => {
+  const bundle = { ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, suckers: { ...NOX_BUNDLE.character.suckers, style: { ...FRILL, hollow: 'greenish' } } } };
+  try {
+    validateBundle(bundle);
+    expect.unreachable('validateBundle took an unreadable cup colour');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BundleError);
+    expect((error as BundleError).field).toBe('character.suckers.style.hollow');
+  }
+  expect(() => validateBundle({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, suckers: { ...NOX_BUNDLE.character.suckers, style: FRILL } } })).not.toThrow();
 });

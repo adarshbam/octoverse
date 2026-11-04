@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { SuckerSettings } from '../config/types';
+import type { SuckerSettings, SuckerStyle } from '../config/types';
 import type { ArmChain } from './armChain';
 import type { ArmTube } from './armTube';
 
@@ -46,12 +46,31 @@ const smoothstep = (a: number, b: number, x: number) => {
 };
 
 /**
+ * A frill cup's profile (r, z) in cup space, the skin at z = CUP_EMBED: a round hollow, a raised
+ * rim `rimWidth` wide whose crest stands `scallop` above the skin, and a wall that falls from the
+ * rim's outer lip to below the skin, so the cup rises out of the arm with no gap under it. Packed
+ * along the arm, the walls read as a band and the crests as its scalloped edge.
+ */
+function frillProfile({ rimWidth: w, scallop: s }: Pick<SuckerStyle, 'rimWidth' | 'scallop'>): [number, number][] {
+  const crest = CUP_EMBED + s;
+  const inner = 1 - w;
+  // The hollow's depth below the crest: deeper on a taller cup, never a bowl.
+  const d = 0.06 + 0.25 * Math.min(s, 0.6);
+  return [
+    [0, crest - d], [0.35 * inner, crest - 0.94 * d], [0.7 * inner, crest - 0.65 * d], [inner, crest - 0.2 * d],
+    [inner + 0.25 * w, crest - 0.02], [1 - 0.5 * w, crest], [1 - 0.2 * w, crest - 0.12 * w], [1, crest - 0.4 * w],
+    [0.97, crest - 0.4 * w - 0.12], [0.9, CUP_EMBED + 0.35 * (crest - 0.4 * w - 0.12 - CUP_EMBED)], [0.86, CUP_EMBED - 0.25],
+  ];
+}
+
+/**
  * A sucker cup of radius 1 opening along +z, sunk CUP_EMBED into the skin as in the painting: a
  * low rim (r ~0.75) round a shallow dimple just above the skin, its outer edge below the skin so
- * no outer wall shows.
+ * no outer wall shows. With a frill `style` (only its shape is read, never its colours), the cup
+ * is raised instead: see frillProfile.
  */
-export function createSuckerCup(radialSegments = 32) {
-  const profile: [number, number][] = [
+export function createSuckerCup(radialSegments = 32, style?: Pick<SuckerStyle, 'rimWidth' | 'scallop'>) {
+  const profile: [number, number][] = style ? frillProfile(style) : [
     [0, CUP_FACE], [0.2, 0.175], [0.4, 0.205], [0.6, 0.26], [0.75, 0.275], [0.88, 0.25], [0.96, 0.18], [1.0, 0.08], [0.95, -0.2],
   ];
   const geometry = new THREE.LatheGeometry(profile.map(([r, h]) => new THREE.Vector2(r, h)), radialSegments);
