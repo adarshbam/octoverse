@@ -1,10 +1,13 @@
 import { isWorldColour } from './colour';
-import type { Placement, Vec3, WorldConfig, WorldLayout } from './types';
+import type { Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
 
 const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 const vec3 = (v: unknown): v is Vec3 => Array.isArray(v) && v.length === 3 && v.every(finite);
 const colour = (c: unknown) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** The water's own colours (`WorldConfig['water']['colours']`), every one required. */
+const WATER_COLOURS = ['deep', 'zenith', 'glow', 'opening', 'rays', 'raysWide', 'fish'] as const satisfies readonly (keyof WaterColours)[];
 
 /** Optional placement fields and what each must hold when present. */
 const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
@@ -110,6 +113,14 @@ export function validateWorld(world: WorldConfig): string[] {
   if (!finite(water.fogDensity) || water.fogDensity < 0) problems.push('water.fogDensity must be 0 or more');
   if (!finite(water.environmentIntensity) || water.environmentIntensity < 0) problems.push('water.environmentIntensity must be 0 or more');
   if (!finite(water.causticStrength) || water.causticStrength < 0) problems.push('water.causticStrength must be 0 or more');
+  if (!record(water.colours)) problems.push('water.colours is missing (deep, zenith, glow, opening, rays, raysWide, fish)');
+  else for (const name of WATER_COLOURS) if (!colour(water.colours[name])) problems.push(`water.colours.${name} is not a #rrggbb colour`);
+  if (!record(water.environment)) problems.push('water.environment is missing (top, horizon, low, seabedGlow)');
+  else {
+    for (const name of ['top', 'horizon', 'low'] as const) if (!colour(water.environment[name])) problems.push(`water.environment.${name} is not a #rrggbb colour`);
+    const glow = water.environment.seabedGlow;
+    if (glow !== null && !colour(glow)) problems.push('water.environment.seabedGlow is not a #rrggbb colour (or null for none)');
+  }
   if (!isWorldColour(world.skinAccent)) problems.push('skinAccent is not a colour (#rrggbb, or color(srgb-linear r g b))');
   if (!finite(camera.tilt)) problems.push('camera.tilt is not a number');
   if (!finite(camera.hover.amount) || camera.hover.amount < 0) problems.push('camera.hover.amount must be 0 or more');

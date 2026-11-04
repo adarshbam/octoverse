@@ -35,7 +35,15 @@ export function dummyWorld(world: WorldConfig): WorldConfig {
       fill: { color: '#6fd0c0', intensity: 1.0, position: [1.5, 10, 2] },
       points: world.lights.points.filter(l => l.kind === 'lava').map((l, i) => ({ ...l, color: palette.lava, position: layout.coralLights[i] })),
     },
-    water: { fogDensity: 0.05, surfaceDir: [-0.03, 0.45, -0.89], environmentIntensity: 0.08, causticStrength: 0.006 },
+    // Teal water with no seabed glow in its reflections (the environment keeps them, without a red band).
+    water: {
+      fogDensity: 0.05,
+      surfaceDir: [-0.03, 0.45, -0.89],
+      environmentIntensity: 0.08,
+      causticStrength: 0.006,
+      colours: { deep: '#020c0c', zenith: '#0a4a50', glow: '#3cd8c8', opening: '#8cf0e0', rays: '#46d0c0', raysWide: '#8ce8d8', fish: '#06201e' },
+      environment: { top: '#2cc8b8', horizon: '#06302e', low: '#03100e', seabedGlow: null },
+    },
     // A cooler skin accent, a slower and gentler drift, and a heavier vignette: all configuration.
     skinAccent: '#2c6a60',
     camera: { tilt: 0.05, hover: { amount: 0.6, pace: 0.5 } },

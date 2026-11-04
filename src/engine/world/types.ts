@@ -115,9 +115,41 @@ export interface WorldConfig {
   /**
    * `surfaceDir` points at the brightest patch of surface; the sky, the water's reflections and its
    * rays follow it. `causticStrength` is the caustics' share of the surface light on the character's
-   * skin: the bright lines reach their cap, the gaps stay well under it.
+   * skin: the bright lines reach their cap, the gaps stay well under it. `colours` are the water's
+   * own (the sky sphere, the shafts, the far fish) and `environment` the light every reflective
+   * surface mirrors.
    */
-  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number };
+  water: { fogDensity: number; surfaceDir: Vec3; environmentIntensity: number; causticStrength: number; colours: WaterColours; environment: WaterEnvironment };
   /** The share (0 to 1) of each live element that is drawn: 1 is the full amount. */
   live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number };
+}
+
+/** The water's own colours (Water.tsx), each `#rrggbb`. */
+export interface WaterColours {
+  /** The sky sphere below the horizon: the deep water under the ruin (`palette.waterFar` is its horizon). */
+  deep: string;
+  /** The sky sphere toward the surface overhead. */
+  zenith: string;
+  /** The surface's glow round its brightest patch, its ripples and its far shafts. */
+  glow: string;
+  /** What the glow leans toward at the very top of the frame as `glow.top` rises above 1 (the opening). */
+  opening: string;
+  /** The light shafts, and the colour they lean toward as `glow.rays` widens their fan above 1. */
+  rays: string;
+  raysWide: string;
+  /** The far school of fish, dark against the glow. */
+  fish: string;
+}
+
+/**
+ * The water's light from every direction (textures.ts `makeWaterEnvironment`), which wet stone,
+ * iron, the skin and the orbs mirror: `top` from the surface (and its sun patch), `horizon` round
+ * the middle, `low` toward the seabed, each `#rrggbb`; `seabedGlow` is a glow in patches along the
+ * seabed band, or null for none (no seabed glow, the reflections kept).
+ */
+export interface WaterEnvironment {
+  top: string;
+  horizon: string;
+  low: string;
+  seabedGlow: string | null;
 }

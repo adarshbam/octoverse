@@ -5,7 +5,7 @@ import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
 import { seeded } from './noise';
 import { WATER_SKY_ORDER } from './drawOrder';
 import { createSnowMaterial } from './particleMaterials';
-import type { WorldConfig } from './types';
+import type { WaterColours, WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
 import { useWorldTime } from './worldTime';
 
@@ -22,11 +22,11 @@ export function WaterSky({ world, caustics, opening = 1 }: { world: WorldConfig;
           uCaustics: { value: caustics },
           uSun: { value: new THREE.Vector3(...world.water.surfaceDir).normalize() },
           uHorizon: { value: new THREE.Color(world.palette.waterFar) },
-          uDeep: { value: new THREE.Color('#03050f') },
-          uZenith: { value: new THREE.Color('#0c2468') },
-          uGlow: { value: new THREE.Color('#3f8cff') },
-          // The opening at the very top of the frame: brighter and more cyan, fading in over the upper quarter.
-          uOpenGlow: { value: new THREE.Color('#3f8cff').lerp(new THREE.Color('#3fd0ff'), Math.min(opening - 1, 1)).multiplyScalar(opening) },
+          uDeep: { value: new THREE.Color(world.water.colours.deep) },
+          uZenith: { value: new THREE.Color(world.water.colours.zenith) },
+          uGlow: { value: new THREE.Color(world.water.colours.glow) },
+          // The opening at the very top of the frame: brighter and leaning toward its own colour, fading in over the upper quarter.
+          uOpenGlow: { value: new THREE.Color(world.water.colours.glow).lerp(new THREE.Color(world.water.colours.opening), Math.min(opening - 1, 1)).multiplyScalar(opening) },
         },
         vertexShader: /* glsl */ `
           varying vec3 vWorld;
@@ -98,8 +98,8 @@ const shaftsFor = (spread: number) => {
   });
 };
 
-/** Shafts of light from the surface, soft-edged, flickering as the ripples above move. `amount` is the share of the shafts drawn, evenly thinned. */
-export function GodRays({ amount = 1, spread = 1 }: { amount?: number; spread?: number }) {
+/** Shafts of light from the surface, soft-edged, flickering as the ripples above move. `amount` is the share of the shafts drawn, evenly thinned; `colours` are the water's (`rays`, leaning toward `raysWide` as the fan widens). */
+export function GodRays({ colours, amount = 1, spread = 1 }: { colours: WaterColours; amount?: number; spread?: number }) {
   const now = useWorldTime();
   const { meshes, material, disposables } = useMemo(() => {
     const material = new THREE.ShaderMaterial({
@@ -107,7 +107,7 @@ export function GodRays({ amount = 1, spread = 1 }: { amount?: number; spread?: 
       depthWrite: false,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color('#4f86ff').lerp(new THREE.Color('#4fc0ff'), Math.min(spread - 1, 1) * 0.7) } },
+      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(colours.rays).lerp(new THREE.Color(colours.raysWide), Math.min(spread - 1, 1) * 0.7) } },
       vertexShader: /* glsl */ `
         attribute float aStrength;
         varying vec3 vN;
@@ -160,7 +160,7 @@ export function GodRays({ amount = 1, spread = 1 }: { amount?: number; spread?: 
       return mesh;
     });
     return { meshes, material, disposables: [material, ...meshes.map(m => m.geometry)] };
-  }, [amount, spread]);
+  }, [colours, amount, spread]);
   useDisposables(disposables);
   useFrame(state => {
     material.uniforms.uTime.value = now(state);
@@ -204,8 +204,8 @@ export function MarineSnow({ amount = 1, glow, reach }: { amount?: number; glow?
 
 const FISH = 16;
 
-/** A loose school far down the ruin, dark against the glow, tails beating. `amount` is the share of the fish drawn. */
-export function FarFish({ amount = 1 }: { amount?: number }) {
+/** A loose school far down the ruin, dark against the glow, tails beating. `amount` is the share of the fish drawn; `colour` is theirs (the water's `fish`). */
+export function FarFish({ colour, amount = 1 }: { colour: string; amount?: number }) {
   const now = useWorldTime();
   const { mesh, clock, school, disposables } = useMemo(() => {
     const body = new THREE.SphereGeometry(1, 14, 8);
@@ -215,7 +215,7 @@ export function FarFish({ amount = 1 }: { amount?: number }) {
     tail.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1], 3));
     tail.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(12).fill(0), 2));
     const geometry = mergeTwo(body, tail);
-    const material = new THREE.MeshBasicMaterial({ color: '#0c1838' });
+    const material = new THREE.MeshBasicMaterial({ color: colour });
     const uTime = { value: 0 };
     material.onBeforeCompile = shader => {
       shader.uniforms.uTime = uTime;
@@ -240,7 +240,7 @@ export function FarFish({ amount = 1 }: { amount?: number }) {
       phase: rand() * 6.28,
     }));
     return { mesh, clock: { uTime }, school, disposables: [mesh, geometry, material] };
-  }, []);
+  }, [colour]);
   useDisposables(disposables);
   const m = useMemo(() => new THREE.Object3D(), []);
   useLayoutEffect(() => {

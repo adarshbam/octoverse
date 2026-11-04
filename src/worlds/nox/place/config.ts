@@ -77,6 +77,23 @@ const POST: WorldConfig['post'] = {
   vignette: { offset: 0.3, darkness: 0.9 },
 };
 
+/**
+ * The water's own colours: deep navy below, a blue zenith, the surface's blue glow leaning cyan at
+ * the opening, blue shafts leaning cyan as their fan widens, and dark fish against the glow.
+ */
+const WATER_COLOURS: WorldConfig['water']['colours'] = {
+  deep: '#03050f',
+  zenith: '#0c2468',
+  glow: '#3f8cff',
+  opening: '#3fd0ff',
+  rays: '#4f86ff',
+  raysWide: '#4fc0ff',
+  fish: '#0c1838',
+};
+
+/** What wet stone, iron, skin and the orbs mirror: bright blue from the surface, deep navy round the horizon, near black below, and the seabed's red glow in patches. */
+const WATER_ENVIRONMENT: WorldConfig['water']['environment'] = { top: '#2a5cff', horizon: '#0a1840', low: '#0b0712', seabedGlow: '#ff2030' };
+
 export const SECURITY_WORLD: WorldConfig = {
   id: 'security',
   kit: {
@@ -99,6 +116,6 @@ export const SECURITY_WORLD: WorldConfig = {
     fill: { color: '#6f8fff', intensity: 1.1, position: [-1.5, 10, 2] },
     points: [...glyphLights, ...lavaLights],
   },
-  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06, causticStrength: CAUSTIC_STRENGTH },
+  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06, causticStrength: CAUSTIC_STRENGTH, colours: WATER_COLOURS, environment: WATER_ENVIRONMENT },
   live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1 },
 };

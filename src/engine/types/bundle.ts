@@ -93,6 +93,8 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   list('place.kit.pieces', place.kit.pieces);
   for (const group of ['pillars', 'rocks', 'corals', 'chains', 'coralLights'] as const) list(`place.layout.${group}`, place.layout[group]);
   need('place.camera.hover', place.camera.hover);
+  need('place.water.colours', place.water.colours);
+  need('place.water.environment', place.water.environment);
   for (const part of ['contactShadow', 'bloom', 'vignette'] as const) need(`place.post.${part}`, place.post[part]);
   need('place.lights.surface', place.lights.surface);
   need('place.lights.fill', place.lights.fill);

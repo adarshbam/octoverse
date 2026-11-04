@@ -98,9 +98,8 @@ const LOGO_ALLOW_LIST = ['artifacts/logoTexture.ts'];
  */
 const KNOWN_HUE_DEBT: Record<string, { count: number; why: string }> = {
   // World values in the engine's world sources (Nox's colours, to move into place data with F01's per-world look).
-  'world/Water.tsx': { count: 8, why: "Nox's water shader colours (deep, zenith, glow, ray and surface tints); the place palette carries only waterFar" },
   'world/particleMaterials.ts': { count: 7, why: "Nox's ember, mote and spark colours" },
-  'world/textures.ts': { count: 14, why: "Nox's baked textures: the pillar's red glyphs, the sky gradient, the floor patch" },
+  'world/textures.ts': { count: 10, why: "Nox's kit art: the glyph panels' recess gradient, red rune strokes and seam (canvas textures); the environment map's colours are place data" },
   'world/Kit.tsx': { count: 5, why: "Nox's kit materials (rock, iron, coral) and a white glyph multiplier" },
   // Defaults for a legacy config that sets none (spec 13.3): they reproduce Nox, by design.
   'config/validate.ts': { count: 6, why: 'the defaults a config without glow fields reads (Nox’s), spec 13.3' },

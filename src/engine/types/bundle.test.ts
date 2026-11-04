@@ -191,7 +191,7 @@ test('the parts of the place, the sequences project id and a pose body that a cr
   for (const field of [
     'place.kit', 'place.kit.pieces', 'place.layout', 'place.layout.pillars', 'place.layout.rocks', 'place.layout.corals', 'place.layout.chains', 'place.layout.coralLights',
     'place.camera', 'place.camera.hover', 'place.post', 'place.post.contactShadow', 'place.post.bloom', 'place.post.vignette', 'place.relics', 'place.palette',
-    'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.live',
+    'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.water.colours', 'place.water.environment', 'place.live',
     'sequences.projectId', 'poses.intro.body.x', 'poses.intro.body.y', 'poses.overview.body.scale', 'poses.detail.body.yaw',
   ]) {
     expect(refusal(without(field)).field, field).toBe(field);
