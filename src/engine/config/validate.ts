@@ -1,5 +1,5 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
-import { isColour } from '../../nox3d/world/colour';
+import { isColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
 import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type Palette } from './types';
 

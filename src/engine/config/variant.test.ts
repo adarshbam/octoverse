@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { SECURITY_WORLD } from '../../nox3d/world/security/config';
-import { dummyWorld } from '../../nox3d/world/fixtures/dummy.world';
-import { validateWorld } from '../../nox3d/world/validateWorld';
+import { dummyWorld } from '../world/fixtures/dummy.world';
+import { validateWorld } from '../world/validateWorld';
 import { dummyCharacter } from './fixtures/dummy.character';
 import { NOX } from '../../nox3d/config/nox.character';
 import { clampCharacterConfig } from './validate';
@@ -75,7 +75,7 @@ describe('a variant is configuration only', () => {
   });
 
   it("the fixtures import no world's files: each is made over the base it is given (D7)", () => {
-    for (const file of ['./fixtures/dummy.character.ts', '../../nox3d/world/fixtures/dummy.world.ts']) {
+    for (const file of ['./fixtures/dummy.character.ts', '../world/fixtures/dummy.world.ts']) {
       const source = readFileSync(new URL(file, import.meta.url), 'utf8');
       const imports = [...source.matchAll(/^import .* from '([^']+)';$/gm)].map(m => m[1]);
       expect(imports, file).toEqual(['../types']);

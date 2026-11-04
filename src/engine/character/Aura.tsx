@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import type { AuraSettings } from '../config/types';
-import { useDisposables } from '../../nox3d/world/useDisposables';
+import { useDisposables } from '../world/useDisposables';
 import { createAuraMaterial } from './auraMaterial';
 
 /** How far behind the body's middle plane the aura sits (body units): just behind the rear arms. */

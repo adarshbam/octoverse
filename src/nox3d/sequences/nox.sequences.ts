@@ -1,6 +1,6 @@
 import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from './defaults';
-import type { SequenceSet } from './keys';
-import { type Sequences, type SequenceSpec, loadWorldSequences } from './theatre';
+import type { SequenceSet } from '../../engine/sequences/keys';
+import { type Sequences, type SequenceSpec, loadWorldSequences } from '../../engine/sequences/theatre';
 
 // Nox's sequences as data for the loader: his Theatre project, the keys each sheet starts from
 // (defaults.ts) and the entrance's full turn. The saved state is the repo's own (`state/`), imported

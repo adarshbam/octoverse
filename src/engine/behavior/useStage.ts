@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ChoosingStage, StageId } from '../config/types';
-import type { Project } from '../../nox3d/content/projectTypes';
+import type { Project } from '../content/projectTypes';
 import { type LinkStage, type StageEvent, type StageState, initialStage, stageReducer } from './stageMachine';
 import type { ReviewOptions } from './urlState';
 

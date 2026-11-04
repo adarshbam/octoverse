@@ -5,11 +5,11 @@ import { noxProject } from './content/noxProject';
 import { noxTechnologies } from './content/noxTechnologies';
 import { NOX_POSES } from './poses/nox.poses';
 import { SWIM_POSES } from './poses/nox.swim';
-import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from './sequences/entrance';
+import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../engine/sequences/entrance';
 import { NOX_SEQUENCES } from './sequences/nox.sequences';
-import type { StageFrame } from './stage/framing';
-import type { WorldBundle } from './types/bundle';
-import type { UiTheme } from './ui/theme';
+import type { StageFrame } from '../engine/stage/framing';
+import type { WorldBundle } from '../engine/types/bundle';
+import type { UiTheme } from '../engine/ui/theme';
 import { SECURITY_WORLD } from './world/security/config';
 
 // Nox's world as one bundle (spec 6.2): the one file that gathers his character, poses, swim,

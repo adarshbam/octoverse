@@ -3,8 +3,8 @@ import { ARM_IDS as armsIds } from '../../engine/config/arms';
 import { ARM_IDS as typesIds } from '../../engine/config/types';
 import { noxProject } from './noxProject';
 import { noxTechnologies } from './noxTechnologies';
-import { ARM_IDS as projectIds, STAGE_PANELS } from './projectTypes';
-import { validateProject } from './validateProject';
+import { ARM_IDS as projectIds, STAGE_PANELS } from '../../engine/content/projectTypes';
+import { validateProject } from '../../engine/content/validateProject';
 
 test('nox project validates against its catalog', () => {
   expect(validateProject(noxProject, noxTechnologies).issues).toEqual([]);

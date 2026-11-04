@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NOX_BUNDLE } from './bundle.nox';
-import { type HostProps, WorldHost } from './host/WorldHost';
-import type { WorldBundle } from './types/bundle';
+import { type HostProps, WorldHost } from '../engine/host/WorldHost';
+import type { WorldBundle } from '../engine/types/bundle';
 
 // The page's world until the world registry (Task 10): Nox's bundle, hosted by WorldHost.
 
@@ -16,7 +16,7 @@ export function App({ options, mode = 'page', ...host }: Omit<HostProps, 'bundle
   const wantsVariant = import.meta.env.DEV && options.variant === 'dummy';
   useEffect(() => {
     if (import.meta.env.DEV && options.variant === 'dummy') {
-      void Promise.all([import('../engine/config/fixtures/dummy.character'), import('./world/fixtures/dummy.world')]).then(([c, w]) =>
+      void Promise.all([import('../engine/config/fixtures/dummy.character'), import('../engine/world/fixtures/dummy.world')]).then(([c, w]) =>
         setVariant({ ...NOX_BUNDLE, character: c.dummyCharacter(NOX_BUNDLE.character), place: w.dummyWorld(NOX_BUNDLE.place) }),
       );
     }

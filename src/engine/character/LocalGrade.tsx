@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type * as THREE from 'three';
 import type { GradeSettings } from '../config/types';
-import { useDisposables } from '../../nox3d/world/useDisposables';
+import { useDisposables } from '../world/useDisposables';
 import { GRADE_ORDER, createGradeGeometry, createGradeMaterial } from './localGradeMaterial';
 
 /**

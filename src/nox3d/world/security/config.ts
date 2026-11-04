@@ -1,5 +1,5 @@
-import type { Placement, Vec3, WorldConfig, WorldLight } from '../types';
-import { asWorldLayout } from '../validateWorld';
+import type { Placement, Vec3, WorldConfig, WorldLight } from '../../../engine/world/types';
+import { asWorldLayout } from '../../../engine/world/validateWorld';
 import farData from './far.json';
 import layoutData from './layout.json';
 

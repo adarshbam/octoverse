@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Vec3, WorldLight } from '../../nox3d/world/types';
+import type { Vec3, WorldLight } from '../world/types';
 import type { GlowLightUniforms, GlowReach } from './glowLight';
 import type { SkinKind } from './skinMaterial';
 

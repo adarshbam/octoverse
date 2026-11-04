@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import { afterEach, expect, test, vi } from 'vitest';
 import { NOX } from '../../../nox3d/config/nox.character';
-import { type HeadDraw, headDraw, restingSwell } from '../../../nox3d/sequences/headSwell';
+import { type HeadDraw, headDraw, restingSwell } from '../../sequences/headSwell';
 import { HEAD_EFFECTS, type HeadEffectId } from './index';
 
 afterEach(() => vi.unstubAllGlobals());

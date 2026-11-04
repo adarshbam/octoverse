@@ -3,9 +3,9 @@ import type { StageId } from '../engine/config/types';
 import type { LinkStage } from '../engine/behavior/stageMachine';
 import { type ReviewOptions, parseUrlState } from '../engine/behavior/urlState';
 import { NOX_BUNDLE } from '../nox3d/bundle.nox';
-import { WorldHost } from '../nox3d/host/WorldHost';
-import { useInstanceApi } from '../nox3d/host/useInstanceApi';
-import type { WorldBundle } from '../nox3d/types/bundle';
+import { WorldHost } from '../engine/host/WorldHost';
+import { useInstanceApi } from '../engine/host/useInstanceApi';
+import type { WorldBundle } from '../engine/types/bundle';
 
 /**
  * Development only (reached from multi.html with `?embed=1`; nothing in the production build imports

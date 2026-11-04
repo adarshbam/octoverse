@@ -11,7 +11,7 @@ const SOURCES = [
   'character/auraMaterial.ts',
   'character/glowLight.ts',
   'character/Octopus.tsx',
-  '../nox3d/artifacts/orbMaterial.ts',
+  'artifacts/orbMaterial.ts',
   'character/headEffects/glyphs.ts',
 ];
 
@@ -25,9 +25,9 @@ const WIDE_SOURCES = [
   'character/headEffects/glyphs.ts',
   'character/headEffects/index.ts',
   'character/Octopus.tsx',
-  '../nox3d/artifacts/TechBubbles.tsx',
-  '../nox3d/artifacts/strategies.ts',
-  '../nox3d/artifacts/bubbleOrbits.ts',
+  'artifacts/TechBubbles.tsx',
+  'artifacts/strategies.ts',
+  'artifacts/bubbleOrbits.ts',
   '../nox3d/config/nox.artifacts.ts',
 ];
 

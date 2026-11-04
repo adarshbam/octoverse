@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import type { DomeShape, Palette } from '../../config/types';
-import type { HeadDraw } from '../../../nox3d/sequences/headSwell';
+import type { HeadDraw } from '../../sequences/headSwell';
 import { glyphsEffect } from './glyphs';
 
 // The head effects a character's swell can carry (design 9.9, spec 9.1): a closed table inside the

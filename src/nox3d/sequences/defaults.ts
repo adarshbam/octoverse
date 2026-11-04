@@ -1,4 +1,4 @@
-import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWELL_PUSH_SETTLED, hermiteKeys } from './keys.ts';
+import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWELL_PUSH_SETTLED, hermiteKeys } from '../../engine/sequences/keys.ts';
 
 // Nox's sequence defaults: the keys each of his Theatre sheets starts from (the entrance, the bubble
 // blow, the head swell and the arrival wiggle), and the entrance's shape. World data: the engine's

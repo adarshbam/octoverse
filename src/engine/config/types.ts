@@ -2,8 +2,8 @@
 // reads only these values; a new character is a new config, not new code.
 // Units are world units (1 unit = 100 storyboard panel px, +y up).
 
-import type { AppearId, SelectId } from '../../nox3d/artifacts/strategies';
-import type { Shell } from '../../nox3d/artifacts/bubbleOrbits';
+import type { AppearId, SelectId } from '../artifacts/strategies';
+import type { Shell } from '../artifacts/bubbleOrbits';
 import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
 import type { HeadEffectId } from '../character/headEffects';
 import type { StageLighting } from './lighting';

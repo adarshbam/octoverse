@@ -1,7 +1,7 @@
 import { nox } from './nox';
 import { noxTechnologies } from './noxTechnologies';
 import { placeholderSections, placeholderUsages } from './placeholders';
-import type { Project } from './projectTypes';
+import type { Project } from '../../engine/content/projectTypes';
 
 /**
  * Security Lab, hosted by Nox. Identity, links and screenshot are the owner's

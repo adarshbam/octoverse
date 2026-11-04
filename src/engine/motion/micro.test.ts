@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { NOX } from '../../nox3d/config/nox.character';
 import type { Personality } from '../config/types';
 import { loadNoxSequences } from '../../nox3d/sequences/nox.sequences';
-import type { Sequences } from '../../nox3d/sequences/theatre';
+import type { Sequences } from '../sequences/theatre';
 import { arrivalWiggle, idleGlance, seededRng, settleOvershoot, startle } from './micro';
 
 /** Samples across each window, and the time a sampling test may take on a busy machine. */

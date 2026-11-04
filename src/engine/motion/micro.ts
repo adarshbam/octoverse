@@ -1,5 +1,5 @@
 import type { Personality } from '../config/types';
-import type { Sequences } from '../../nox3d/sequences/theatre';
+import type { Sequences } from '../sequences/theatre';
 
 /**
  * The shared micro-animations (design 9.7) that are new in Task 25: the small startle, the settle

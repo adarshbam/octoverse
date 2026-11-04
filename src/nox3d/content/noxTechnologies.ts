@@ -1,4 +1,4 @@
-import type { Technology } from './projectTypes';
+import type { Technology } from '../../engine/content/projectTypes';
 
 // Membership confirmed by the user from the Nox references. No usage claims implied.
 export const noxTechnologies: readonly Technology[] = [

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { DomeShape, EffectColours } from '../../config/types';
-import { RUNES } from '../../../nox3d/world/textures';
+import { RUNES } from '../../world/textures';
 import type { HeadEffectModule } from './index';
 
 // Nox's head effect (ledger R57, the owner's words: "Glowing red glyphs"): as the head swells into

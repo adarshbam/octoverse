@@ -5,10 +5,10 @@ import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
 import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED, SWIM_STRETCH } from './nox.poses';
-import { projectToScreen } from '../stage/anchors';
+import { projectToScreen } from '../../engine/stage/anchors';
 import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../bundle.nox';
-import { fovFor } from '../stage/framing';
-import { DETAIL_PANEL_BOX } from '../ui/detailContent';
+import { fovFor } from '../../engine/stage/framing';
+import { DETAIL_PANEL_BOX } from '../../engine/ui/detailContent';
 
 /** Distance from a point to a polyline, projecting onto its segments. */
 function distance(points: number[][], x: number, y: number) {

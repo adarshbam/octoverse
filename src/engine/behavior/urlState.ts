@@ -1,7 +1,7 @@
 import type { StageId } from '../config/types';
-import type { QualityTier } from '../../nox3d/stage/quality';
-import type { Vec3 } from '../../nox3d/world/types';
-import type { WorldLevel } from '../../nox3d/world/worldLevel';
+import type { QualityTier } from '../stage/quality';
+import type { Vec3 } from '../world/types';
+import type { WorldLevel } from '../world/worldLevel';
 import { EXPRESSION_IDS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];

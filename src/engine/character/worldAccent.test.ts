@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import type { WorldLight } from '../../nox3d/world/types';
+import type { WorldLight } from '../world/types';
 import {
   ACCENT_GLSL,
   ACCENT_LIGHTS,
