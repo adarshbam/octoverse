@@ -278,3 +278,43 @@ Tier low meets the 40 fps floor on the median in both runs, so no spec 10.1 cut 
 - The portal is off-frame at the square P1 frame, where P1 shows it centre-right.
 - Packets are flat bars (engine box mesh, no glow below the bloom threshold).
 - Bubbles uniform (no density field); glyph motes dropped (engine gaps, as Task 9).
+
+## Task 11: overview pose and dome (P3), PENDING OWNER REVIEW (2026-11-05)
+
+Ruled provisionally overnight; the owner judges the look live.
+
+### What changed
+- `src/worlds/flux/poses.ts`: `OVERVIEW_TRACED` (eight arms, T1 to T8, traced in world units on the 3x P3 under a world grid), overview body (0.02, 0.13), scale 1 (P3's eyes are as far apart as P2's). The tech focus keeps the overview's arms and body with the head closed until Task 12 lifts T8.
+- `src/worlds/flux/character.ts`: `dome` fitted to P3's rim (head space centre (0, 0.405), 1.52 by 0.975, power 2.6, mantleTop -0.32); dome palette: tint `#02188e` (deep navy blue), rim `#4a9cff` (electric blue), crown rim `#b0f0ff` (blue-white), sheen `#80c8ff`.
+- `src/worlds/flux/bundle.ts`: overview panel box `[-1.22, 1.04, 1.26, -0.04]` (was the Task 2 guess `[-1.22, 1.15, 1.63, -0.07]`, whose right edge lay outside the dome).
+- Review set: `public/flux/ref/p3.png` (native panel, copy), `p3-mask.png` (`python scripts/ref_mask.py public/flux/ref/p3.png public/flux/ref/p3-mask.png --panel 3`: arms and face; dome above the head top and the 12 orbs excluded), `src/worlds/flux/review/p3_targets.json` (9 samples, dome fit, panel content box, eyes), `stage_samples.json` key `"3"` (so `check_stage.py <capture> --panel 3 --world-id flux` runs).
+
+### Stills (`docs/superpowers/reviews/assets/flux/`)
+- `overview-t11-p3-sbs.webp`: P3 beside `?world=flux&stage=overview&freeze` (1536 x 1024 capture cropped to P3's 5.15 x 5.1 frame).
+- `overview-t11-wide.webp`: the whole 1536 x 1024 capture.
+- `overview-t11-dome-bottom-2x.webp`: the dome's bottom, the sunk head top and the face at 2x.
+- `overview-t11-mask-diff.webp`: silhouette against P3's mask (white both, red P3 only, green render only).
+
+### Numbers
+- Dome fit to P3's outer rim line: 12 points, rms 0.0115, max 0.019 units (power 2.6; 2.8 to 3.5 fit worse, rms 0.014 to 0.036). In the render the rim peaks at x -1.48 / +1.48 and y 1.48 (P3 1.50); the config is 0.015 larger than the fit to bring the peak out.
+- Face anchor (overview) y -0.41; dome bottom y -0.44: 0.03 apart (test: within 0.1). P3's irises at y -0.415.
+- Panel box with a 0.04 margin inside the dome's z = 0 outline at 1536 x 1024, 1024 x 1024 and 1280 x 720 (test).
+- Every arm of the solved chain within 0.03 of its P3 trace (test).
+- Silhouette IoU against `p3-mask.png` (dome region and orbs excluded on both): 0.726. P3 paints ten tentacles (two more in the centre); the misses are those two, the rim glow at the dome's lower corners in P3's mask, and the render's lower arms a few px thicker.
+- `check_stage.py .tmp/t11/ov-r1.png --panel 3 --world-id flux` (506 x 504 capture, colour max-channel tolerance 24): 6 misses of 9. ok: domeRimBottom 19, domeInsideSide 12, faceGlow 12. MISS: domeRimTop 37 (thin line, render #6e98bb vs #58ade1), domeRimLeft 80 (render rim 1-2 px inside the patch), domeInsideTop 47 (P3 bright #073fb2, render #1a3583), domeInsideBottom 45 (P3 navy #0a1550, render bluer #15237e), headTop 52, chin 53. First pass (Task 2 palette) was 6 misses with domeRimTop 84, domeRimLeft 120, domeInsideTop 74.
+
+### Five things to look at
+1. The dome reads as a wide blue glass capsule with a bright electric-blue rim, round-cornered as P3's.
+2. The face sits at the dome's bottom with the open smile; the head top under the glass.
+3. The arms ring the dome: T1 and T8 climb beside it and curl out at about y 0.8; T2 and T7 reach out level and curl up; T3/T6 and T4/T5 curl lower.
+4. The HTML panel sits inside the glass, its buttons just above the face.
+5. Nothing of the dome crosses his eyes or the arms below it.
+
+### Remaining weaknesses
+- The dome's body is one tint (engine: no gradient), so it cannot be bright blue under the crown and navy at the bottom as P3 is: the top is darker and the bottom bluer than P3 (the two inside misses).
+- The sunk head top reads as a cut cup lip with a blue band (the engine's sunk mantle rim, as in Nox's overview); P3's head top is round under the glass.
+- The panel's copy (Flux's 22-character title and 82-character summary) wraps in the engine's 40%-wide copy column and its last line touches the GitHub button at 1536 x 1024; at 506 x 504 the panel is the phone sheet. P3's text column is wider. Engine layout (ui/overview.css) or shorter copy; a taller box makes it worse.
+- No project screenshot yet (content), so the panel's left half is empty glass.
+- The orbs are still the placeholder orbit (Task 12 hangs them on the arms).
+- IoU 0.726: the lower arms are a few px thicker and less spread than P3's.
+- The tech focus now uses the overview's arms (head closed); before it used the intro's.

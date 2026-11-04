@@ -1,13 +1,32 @@
+import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { resolveExpressions } from '../../engine/behavior/expressions';
+import { ArmChain, restFromCurve } from '../../engine/character/armChain';
+import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
+import { projectToScreen } from '../../engine/stage/anchors';
+import { fovFor } from '../../engine/stage/framing';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
-import { FLUX_BUNDLE } from './bundle';
+import { FLUX_BUNDLE, FLUX_STAGE_FRAMES, FLUX_STAGE_PANELS } from './bundle';
 import { FLUX } from './character';
-import { FLUX_POSES } from './poses';
+import { FLUX_POSES, OVERVIEW_TRACED } from './poses';
 import { FLUX_STROKE_SECONDS } from './sequences/defaults';
+import p3 from './review/p3_targets.json';
 import targets from './review/targets.json';
+
+/** Distance from a point to a polyline, projecting onto its segments. */
+const distanceToPolyline = (points: number[][], x: number, y: number) => {
+  let best = Infinity;
+  for (let k = 0; k < points.length - 1; k++) {
+    const [ax, ay] = points[k];
+    const sx = points[k + 1][0] - ax;
+    const sy = points[k + 1][1] - ay;
+    const t = Math.min(1, Math.max(0, ((x - ax) * sx + (y - ay) * sy) / (sx * sx + sy * sy || 1)));
+    best = Math.min(best, Math.hypot(ax + sx * t - x, ay + sy * t - y));
+  }
+  return best;
+};
 
 // Flux's bundle (spec 6.2, 7.1, 7.8, 7.10): the shape checks the engine's validateBundle does not
 // make for us, and the values the spec fixes for the head and the face anchor. That `?world=flux`
@@ -204,4 +223,111 @@ test('the intro face is the big open smile (P2)', () => {
 
 test('his expression overrides are in the range the face can draw', () => {
   expect(clampCharacterConfig(FLUX).expressions).toEqual(FLUX.expressions);
+});
+
+// Task 11: the overview (P3). The head opens into a wide blue glass capsule holding the project
+// panel, the face at its bottom, and the eight arms spread in a ring round it (spec 7.2, 7.4).
+
+test('the overview pose has exactly the eight arms', () => {
+  expect(Object.keys(FLUX_POSES.overview.arms)).toEqual([...ARM_IDS]);
+});
+
+/** The overview dome's outline on the stage plane: its z = 0 section (a superellipse), placed by the overview body. */
+const domeOutline = (steps = 720): THREE.Vector3[] => {
+  const { center, halfWidth, halfHeight, power } = FLUX.dome;
+  const { x, y, scale } = FLUX_POSES.overview.body;
+  const bend = (v: number) => Math.sign(v) * Math.abs(v) ** (2 / power);
+  return Array.from({ length: steps }, (_, i) => {
+    const a = (2 * Math.PI * i) / steps;
+    return new THREE.Vector3(x + scale * (center[0] + halfWidth * bend(Math.cos(a))), y + scale * (center[1] + halfHeight * bend(Math.sin(a))), 0);
+  });
+};
+
+/** Even-odd test of a screen point against a closed screen polygon. */
+const insidePolygon = (p: { x: number; y: number }, poly: { x: number; y: number }[]) => {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [a, b] = [poly[i], poly[j]];
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+};
+
+test.each([
+  ['1536 x 1024', 1536, 1024],
+  ['1024 x 1024', 1024, 1024],
+  ['1280 x 720', 1280, 720],
+])('the dome, projected at the overview frame (%s), holds the HTML panel box with a 0.04 margin', (_label, width, height) => {
+  // The same camera the panel box is laid out with (ui/useStageBox: the stage camera framing the overview, on z = 0).
+  const size = { width, height };
+  const camera = new THREE.PerspectiveCamera(fovFor(FLUX_STAGE_FRAMES.overview, size), width / height, 0.1, 60);
+  camera.position.set(0, 0, CAMERA_Z);
+  camera.updateMatrixWorld();
+  // The dome's z = 0 section is the smallest outline it shows (its front bulges toward the camera), so this is the strict case.
+  const dome = domeOutline().map(p => projectToScreen(p, camera, size));
+  const [left, top, right, bottom] = FLUX_STAGE_PANELS.overview;
+  const m = 0.04;
+  for (const [x, y] of [[left - m, top + m], [right + m, top + m], [right + m, bottom - m], [left - m, bottom - m]]) {
+    expect(insidePolygon(projectToScreen(new THREE.Vector3(x, y, 0), camera, size), dome), `corner (${x}, ${y})`).toBe(true);
+  }
+});
+
+test('the face anchor sits at the dome bottom in the overview, within 0.1', () => {
+  const [, y] = faceAnchor(FLUX_BUNDLE, 'overview');
+  const { body } = FLUX_POSES.overview;
+  const domeBottom = body.y + body.scale * (FLUX.dome.center[1] - FLUX.dome.halfHeight);
+  expect(Math.abs(y - domeBottom)).toBeLessThanOrEqual(0.1);
+});
+
+test('overview: seen from the stage camera, every arm lies on its P3 trace', () => {
+  const { body } = FLUX_POSES.overview;
+  ARM_IDS.forEach((id, i) => {
+    const chain = new ArmChain(restFromCurve(FLUX_POSES.overview.arms[id]), FLUX.arms[i], i);
+    chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+    const seen = Array.from(chain.px, (x, k) => {
+      const f = CAMERA_Z / (CAMERA_Z - chain.pz[k]);
+      return [x * f * body.scale + body.x, chain.py[k] * f * body.scale + body.y];
+    });
+    for (const [tx, ty] of OVERVIEW_TRACED[id]) {
+      expect(distanceToPolyline(seen, tx, ty), `${id} (${tx}, ${ty})`).toBeLessThan(0.03);
+    }
+  });
+});
+
+test('the overview dome is P3\'s: placed and sized as the review targets fit it, within 0.03', () => {
+  const { center, halfWidth, halfHeight, power } = FLUX.dome;
+  const { x, y, scale } = FLUX_POSES.overview.body;
+  const fit = p3.dome;
+  expect(Math.abs(x + scale * center[0] - fit.center[0])).toBeLessThanOrEqual(0.03);
+  expect(Math.abs(y + scale * center[1] - fit.center[1])).toBeLessThanOrEqual(0.03);
+  expect(Math.abs(scale * halfWidth - fit.halfWidth)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs(scale * halfHeight - fit.halfHeight)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs(power - fit.power)).toBeLessThanOrEqual(0.3);
+});
+
+test('the overview face is P3\'s: the eyes at P3\'s height, an open smile, the head open', () => {
+  const pose = FLUX_POSES.overview;
+  const [, eyeY] = FLUX.face.eye.centers[0];
+  const eyes = pose.body.y + pose.body.scale * (FLUX.head.faceOrigin[1] + eyeY);
+  expect(Math.abs(eyes - p3.eyes.y)).toBeLessThanOrEqual(0.03);
+  expect(pose.headMorph).toBe(1);
+  expect(pose.orbs).toBe(1);
+  expect(resolveExpressions(FLUX)[pose.expression].mouthOpen).toBeGreaterThanOrEqual(0.6);
+});
+
+test('the dome palette: an electric-blue rim, a bright blue-white crown rim, a deep navy body (spec 7.2)', () => {
+  const { domeTint, domeRim, domeRimTop } = FLUX.palette;
+  const [tr, tg, tb] = hexToRgb(domeTint);
+  // Deep navy: dark, blue well over red and green.
+  expect(tb).toBeLessThan(170);
+  expect(tb).toBeGreaterThan(2 * Math.max(tr, tg));
+  const [rr, rg, rb] = hexToRgb(domeRim);
+  // Electric blue: blue at full, over green, over red.
+  expect(rb).toBeGreaterThanOrEqual(230);
+  expect(rb).toBeGreaterThan(rg);
+  expect(rg).toBeGreaterThan(rr);
+  const [cr, cg, cb] = hexToRgb(domeRimTop);
+  expect(cb).toBeGreaterThanOrEqual(230);
+  expect(cg).toBeGreaterThan(rg);
+  expect(cr).toBeLessThan(cb);
 });

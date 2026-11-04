@@ -6,6 +6,7 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 ## Status
 - 2026-11-04 Milestone 1 complete (Tasks 1-6 plus early Task 8a), provisional owner gate. Waiting on gate: Milestone 2 (Veyra Tasks 8 and 10, plus the shared sand floor).
 - 2026-11-05 Task 10 (Milestone 2 world look) ruled provisionally; PENDING OWNER REVIEW.
+- 2026-11-05 Task 11 (overview pose and dome, run early) ruled provisionally; PENDING OWNER REVIEW.
 
 ## Items
 ### Task 8a: pipeline kit (built early, PENDING OWNER REVIEW)
@@ -153,3 +154,13 @@ Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 - Task 5 (engine change, for the engine owner): one commit, 52d49ee, adds the travelling cup pulse (`src/engine/character/cupPulse.ts`, shader term only when a world configures `suckers.pulse`, idle value -1e4). Nox and Veyra shader programs are unchanged. Check: baseline stills were bit-identical except the known techFocus difference.
 - Engine-owner gaps found while building Flux (worked around in the bundle): no tongue size field; `TITLE_ICONS` has only `flame` (Flux uses it as a placeholder); zero shells crashes (one plain shell used); `Kit.tsx` requires `chain` and `chain_lod1` nodes (placeholder triangles in `stage.glb`); no sparkle "twinkle faster" field; the jelly rim cannot be turned off at the bottom of the head; the core blends with the colour ramp through `max()`; `scripts/check_stage.py` silhouetteRows compared against a hard-coded `public/spike/Nox.jpeg` (Flux silhouetteRows removed); `scripts/side_by_side.py` and `scripts/zoom.py` are hard-wired to Nox's reference (Flux side-by-sides used a scratch script).
 - Pre-existing, not caused by Flux: `world.spec:101` fails alone on the pre-change tree; the Nox kit loader times out at 15 s under shared-GPU load.
+
+### Task 11: overview pose and dome (PENDING OWNER REVIEW)
+- **Commit:** "feat(flux): overview pose and dome".
+- **Files:** `src/worlds/flux/{poses.ts,character.ts,bundle.ts,bundle.test.ts}`, `src/worlds/flux/review/{p3_targets.json,stage_samples.json,targets.test.ts}`, `public/flux/ref/{p3.png,p3-mask.png}`, `scripts/ref_mask.py` (`--panel 3`; the P2 mask regenerates pixel-identical).
+- **Stills** (`docs/superpowers/reviews/assets/flux/`): `overview-t11-p3-sbs.webp` (P3 beside the page), `overview-t11-wide.webp`, `overview-t11-dome-bottom-2x.webp`, `overview-t11-mask-diff.webp`.
+- **Live:** `/?world=flux&stage=overview&freeze` (at a desktop size; under 768 px wide the panel is the phone sheet).
+- **Numbers:** dome fit to P3's rim rms 0.0115 units; face anchor 0.03 from the dome bottom (test 0.1); panel box inside the dome with a 0.04 margin at three viewports; arms within 0.03 of their P3 traces; silhouette IoU 0.726 vs P3's mask (P3 paints ten tentacles); check_stage `--panel 3`: 3 of 9 colour samples ok (rims are thin lines; the dome's inside cannot run bright-to-navy with one tint).
+- **Check:** 1) wide blue glass capsule, electric-blue rim; 2) face at the dome's bottom, open smile; 3) arms in a ring round the dome (T1/T8 beside it); 4) panel inside the glass, buttons just above the face; 5) nothing of the dome crosses the eyes.
+- **Known weak:** dome tint uniform (no navy-bottom gradient: engine); the sunk head top reads as a cut cup lip; the summary's last line touches the GitHub button at 1536 x 1024 (engine copy column 40% wide; Flux's copy is longer than Nox's); no screenshot in the panel yet; placeholder orbs (Task 12); lower arms a little thick and compact; tech focus now uses the overview arms.
+- **Engine-owner items:** a dome tint gradient (top to bottom) field; the overview copy column width or overflow; the sunk mantle rim's look.

@@ -81,10 +81,13 @@ export const FLUX: CharacterConfig = {
     suckerHot: '#fbc8f6',
     suckerHollow: '#b060e0',
     suckerShadow: '#10104a',
-    domeTint: '#0a1a60',
-    domeRim: '#4a8cff',
-    domeRimTop: '#7ab0ff',
-    domeSheen: '#a0c8ff',
+    // The overview dome (P3, Task 11): a deep navy-blue glass body (P3's inside runs from 7, 63, 178
+    // under the crown to 13, 21, 81 at the bottom; one tint over the world's water lands between
+    // them), an electric-blue rim turning blue-white over the crown (P3's top rim peaks at 200, 253, 255).
+    domeTint: '#02188e',
+    domeRim: '#4a9cff',
+    domeRimTop: '#b0f0ff',
+    domeSheen: '#80c8ff',
     orbFocus: '#4ac8ff',
     effect: { halo: 'rgba(74,166,208,0.5)', stroke: '#4aa6d0', core: '#d0f0ff' },
     rimHot: 'color(srgb-linear 0.85 0.9 1)',
@@ -196,8 +199,16 @@ export const FLUX: CharacterConfig = {
     // 152, 116, 246; T7 @0.6 151, 124, 250): the pulse shifts the hue at the cup's own peak.
     pulse: { speed: 1.33, wavelength: 0.17, strength: 0.85, colours: ['#20e0ff', '#9a78ff', '#ff8ce0'] },
   },
-  // The overview's dome (P3): a wide capsule; Milestone 3 traces it.
-  dome: { center: [0.1, 0.3], halfWidth: 1.6, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The overview's dome (P3), in the space the head is authored in: Task 11 fitted a superellipse to
+  // P3's outer rim line (rms 0.012 units; review/p3_targets.json): in the stage it is centred at
+  // (0.02, 0.53), 1.5 by 0.96 half-axes, rounder at the corners than Nox's (power 2.6). The rendered
+  // rim line peaks about 0.015 inside the dome's outline, so the dome is 0.015 larger each way than
+  // the painted rim line (1.52 by 0.975, its stage centre at 0.535). Less the overview body (0.02,
+  // 0.13), its centre here is (0, 0.405). Its bottom (stage y -0.44) runs behind the face at eye
+  // level (P3's irises at -0.415), so only its rim either side of the head shows, at about y -0.28 by
+  // x +-1, as painted. The mantle sinks to -0.32 (stage -0.19), where P3's head top shows under the
+  // glass (-0.2).
+  dome: { center: [0, 0.405], halfWidth: 1.52, halfHeight: 0.975, depth: 0.6, power: 2.6, mantleTop: -0.32 },
   // The head swell's own effect (`pipelineRun`, spec 7.6) comes with its task; until then the dome alone.
   headEffect: 'none',
   skin: {

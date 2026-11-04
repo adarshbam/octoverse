@@ -28,13 +28,18 @@ export const FLUX_STAGE_FRAMES: Record<StageId, StageFrame> = {
 };
 
 /**
- * Where Flux's HTML panels sit on his stage, in world units [left, top, right, bottom], read from
- * the native panels by eye (a first trace): the overview's project panel is the dome's inner
- * rectangle (P3, origin at its centre (257.5, 255)); the detail's is P5's project panel,
- * (211, 85) to (853, 490) px, origin at its centre (437.5, 256.5).
+ * Where Flux's HTML panels sit on his stage, in world units [left, top, right, bottom]. The
+ * overview's project panel is the dome's inner rectangle (P3, origin at its centre (257.5, 255);
+ * Task 11): P3's content spans [-1.18, 1.19, 1.14, -0.04] (screenshot's left edge, title's top, text's
+ * right end, buttons' bottom). The engine lays the panel out in fixed fractions of the box (Nox's
+ * P3, ui/overview.css), with the copy in a column 40% wide, so the box keeps P3's buttons' bottom and
+ * is about as wide for its height as Nox's (2.48 by 1.08): a taller box wraps Flux's longer title
+ * and summary further into the buttons. With a 0.04 margin its corners stay inside the dome's
+ * rounded corners (bundle.test.ts). The detail's is P5's project panel (read by eye, Task 2), (211,
+ * 85) to (853, 490) px, origin at its centre (437.5, 256.5).
  */
 export const FLUX_STAGE_PANELS: StagePanels = {
-  overview: [-1.22, 1.15, 1.63, -0.07],
+  overview: [-1.22, 1.04, 1.26, -0.04],
   detail: [-2.265, 1.715, 4.155, -2.335],
 };
 
