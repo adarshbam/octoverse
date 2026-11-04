@@ -3,6 +3,8 @@
 // <out>-mask.png (white silhouette on black) from the same URL with &mask. The view box frames
 // exactly the HQ panel 2 image (world (x, y) -> px (783.6 + 204.5 x, 495.4 - 204.5 y)), so a render
 // pixel is an HQ pixel.
+// WORLD=<id> adds world=<id> to the query (another world of the engine; unset, the page's default world, Nox).
+// The view box below is Nox's HQ panel 2 (its samples are in src/worlds/nox/review).
 // Each page is first sent through warmFonts (Poppins into the app origin's cache; a still without Poppins is refused).
 import { chromium } from '@playwright/test';
 import { warmFonts, waitForReady } from './capture-ready.mjs';
@@ -10,7 +12,8 @@ const [stage, out, extra = ''] = process.argv.slice(2);
 if (!stage || !out) throw new Error('usage: world-capture.mjs <stage> <out.png> [extra]');
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
 const VIEW = '-3.8318,2.4225,3.6792,-2.5848';
-const query = (mask) => `/?stage=${stage}&freeze&view=${VIEW}${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}`;
+const world = process.env.WORLD ? `&world=${encodeURIComponent(process.env.WORLD)}` : '';
+const query = (mask) => `/?stage=${stage}&freeze&view=${VIEW}${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}${world}`;
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 let failed = false;
 try {

@@ -2,13 +2,15 @@
 // Captures /?stage=<stage>&freeze at 506x504 (scale 2), plus <out>-mask.png (white silhouette).
 // The detail is a wide composition: it is captured at its high-quality panel's own size,
 // 1672x941 (scale 1). VIEW=WxH and SCALE=n choose another size.
+// WORLD=<id> adds world=<id> to the query (another world of the engine; unset, the page's default world, Nox).
 // Each page is first sent through warmFonts (Poppins into the app origin's cache; a still without Poppins is refused).
 import { chromium } from '@playwright/test';
 import { warmFonts, waitForReady } from './capture-ready.mjs';
 const [stage, out, extra = ''] = process.argv.slice(2);
 if (!stage || !out) throw new Error('usage: stage-capture.mjs <stage> <out.png> [extra]');
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
-const query = (mask) => `/?stage=${stage}&freeze${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}`;
+const world = process.env.WORLD ? `&world=${encodeURIComponent(process.env.WORLD)}` : '';
+const query = (mask) => `/?stage=${stage}&freeze${mask ? '&mask' : ''}${extra ? `&${extra}` : ''}${world}`;
 const VIEWS = { detail: [1672, 941, 1] };
 const [width, height, scale] = process.env.VIEW
   ? [...process.env.VIEW.split('x').map(Number), Number(process.env.SCALE ?? 1)]
