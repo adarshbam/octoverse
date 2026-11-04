@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { expect, test, vi } from 'vitest';
-import { asBakeRecord } from './bakedLight';
+import { asBakeRecord, bakedLightOf } from './bakedLight';
 import { applyPlacement, coralRest, withLod } from './placement';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 
@@ -47,7 +47,7 @@ test("each placed piece's matrix is the one the bake placed it with", async () =
       checked++;
     }
   }
-  expect(checked).toBe(SECURITY_WORLD.layout.pillars.length + SECURITY_WORLD.layout.rocks.length + SECURITY_WORLD.layout.corals.length);
+  expect(checked).toBe(SECURITY_WORLD.layout.groups.pillars.length + SECURITY_WORLD.layout.groups.rocks.length + SECURITY_WORLD.layout.groups.corals.length);
 });
 
 test('coral comes to rest on the same rock or seabed, at the same height, on the page as in the bake', async () => {
@@ -56,7 +56,7 @@ test('coral comes to rest on the same rock or seabed, at the same height, on the
   const { layout } = SECURITY_WORLD;
   // The rocks as Kit.tsx places them: each a LOD of its two levels; coral rests on the full detail.
   gltf.scene.updateMatrixWorld(true);
-  const surfaces = layout.rocks.map(p => {
+  const surfaces = layout.groups.rocks.map(p => {
     const lod = withLod(gltf.scene.getObjectByName(p.piece)!.clone(true), gltf.scene.getObjectByName(`${p.piece}_lod1`)!.clone(true));
     applyPlacement(lod, p);
     lod.updateMatrixWorld(true);
@@ -78,4 +78,13 @@ test('coral comes to rest on the same rock or seabed, at the same height, on the
   // Both kinds of rest are exercised.
   expect(on.rock).toBeGreaterThan(0);
   expect(on.seabed).toBeGreaterThan(0);
+});
+
+test('near.glb’s bake is read against the layout’s groups, and one baked from other groups is refused by name', async () => {
+  const gltf = await loadNear();
+  const baked = bakedLightOf(gltf.scene, SECURITY_WORLD.layout);
+  expect(Object.keys(baked.record.instances)).toEqual(Object.keys(SECURITY_WORLD.layout.groups));
+  const { corals: _corals, ...fewer } = SECURITY_WORLD.layout.groups;
+  expect(() => bakedLightOf(gltf.scene, { ...SECURITY_WORLD.layout, groups: fewer })).toThrow(/another layout \(corals\)/);
+  expect(() => bakedLightOf(gltf.scene, { ...SECURITY_WORLD.layout, groups: { ...SECURITY_WORLD.layout.groups, blocks: [{ piece: 'rock_0', position: [0, 0, 0] }] } })).toThrow(/another layout \(blocks\)/);
 });

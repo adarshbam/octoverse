@@ -97,12 +97,12 @@ test('layers are ordered far to near', () => {
 test('the plate takes exactly the layout pieces beyond the cut', () => {
   const { layout } = SECURITY_WORLD;
   const beyond = (list: readonly { position: Vec3 }[]) => list.filter(p => isFarPlacement(p, FAR_CUT_Z)).map(p => p.position[2]);
-  expect(beyond(layout.pillars).every(z => z < -12)).toBe(true);
-  expect(layout.pillars.filter(p => !isFarPlacement(p, FAR_CUT_Z)).every(p => p.position[2] >= -12)).toBe(true);
+  expect(beyond(layout.groups.pillars).every(z => z < -12)).toBe(true);
+  expect(layout.groups.pillars.filter(p => !isFarPlacement(p, FAR_CUT_Z)).every(p => p.position[2] >= -12)).toBe(true);
   const descending = (a: number, b: number) => b - a;
-  expect(beyond(layout.pillars).sort(descending)).toEqual([-12.5, -18, -20, -26, -29]);
-  expect(beyond(layout.rocks).sort(descending)).toEqual([-14, -16]);
-  expect(beyond(layout.corals)).toEqual([-16.5]);
+  expect(beyond(layout.groups.pillars).sort(descending)).toEqual([-12.5, -18, -20, -26, -29]);
+  expect(beyond(layout.groups.rocks).sort(descending)).toEqual([-14, -16]);
+  expect(beyond(layout.groups.corals)).toEqual([-16.5]);
   // A chain is far only when both ends are.
   expect(layout.chains.filter(chain => isFarChain(chain, FAR_CUT_Z)).length).toBe(1);
 });

@@ -18,6 +18,8 @@ export const VEYRA_THEME: UiTheme = {
   poster: { src: 'veyra/poster-intro.webp', alt: 'Veyra, the Keeper of Files, a glowing teal octopus in the dark water of her vault', width: 1536, height: 1024 },
   pageTitle: 'Veyra · Vault OS',
   nameplateLabel: '#c8f0e8',
+  // P2's plate: a dark teal glass over the water (sampled 0, 43, 49 to 12, 55, 62 inside it).
+  plate: 'rgba(2, 44, 50, 0.82)',
   glow: 'rgb(40, 220, 200)',
   glowInner: 'rgb(60, 230, 210)',
   accentGlow: 'rgb(63, 224, 197)',

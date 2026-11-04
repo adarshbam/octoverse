@@ -336,13 +336,13 @@ def place_layers(sc, KIT, bw, far, layout, built, mats):
 
     # Coral rests on the full-detail boulders under it, or the seabed, as on the page.
     rock_trees = []
-    for p in layout["rocks"] + [e for e in far["extras"] if e["piece"].startswith("rock")]:
+    for p in layout["groups"]["rocks"] + [e for e in far["extras"] if e["piece"].startswith("rock")]:
         full = built[p["piece"]][0]
         mw = KIT.stage_matrix(p)
         rock_trees.append(BVHTree.FromPolygons([mw @ v.co for v in full.data.vertices], [tuple(q.vertices) for q in full.data.polygons]))
 
     floor_y = layout["floorY"]
-    groups = [(p, "pillar") for p in layout["pillars"]] + [(p, "rock") for p in layout["rocks"]] + [(p, "coral") for p in layout["corals"]]
+    groups = [(p, "pillar") for p in layout["groups"]["pillars"]] + [(p, "rock") for p in layout["groups"]["rocks"]] + [(p, "coral") for p in layout["groups"]["corals"]]
     groups += [(e, e["piece"].split("_")[0]) for e in far["extras"]]
     for k, (p, kind) in enumerate(groups):
         layer = layer_index(far, p["position"][2])

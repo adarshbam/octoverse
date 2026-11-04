@@ -479,7 +479,7 @@ def read_layout():
 
 
 def check_layout(layout, built):
-    named = {p["piece"] for group in ("pillars", "rocks", "corals") for p in layout[group]}
+    named = {p["piece"] for group in ("pillars", "rocks", "corals") for p in layout["groups"][group]}
     if layout["chains"]:
         named.add("chain")
     missing = sorted(named - set(built))
@@ -516,15 +516,15 @@ def lay_out(layout, coll, pieces):
             c.parent = ob
         return ob
 
-    for i, p in enumerate(layout["pillars"]):
+    for i, p in enumerate(layout["groups"]["pillars"]):
         place(p["piece"], stage_matrix(p), f"pillar{i}")
-    rocks = [place(p["piece"], stage_matrix(p), f"rock{i}") for i, p in enumerate(layout["rocks"])]
+    rocks = [place(p["piece"], stage_matrix(p), f"rock{i}") for i, p in enumerate(layout["groups"]["rocks"])]
     trees = []
     for ob in rocks:
         mw = ob.matrix_world
         trees.append(BVHTree.FromPolygons([mw @ v.co for v in ob.data.vertices], [tuple(q.vertices) for q in ob.data.polygons]))
     floor_y = layout["floorY"]
-    for i, p in enumerate(layout["corals"]):
+    for i, p in enumerate(layout["groups"]["corals"]):
         x, _, z = p["position"]
         hits = [t.ray_cast(Vector((x, -z, 8.0)), Vector((0, 0, -1)))[0] for t in trees]
         y = max([h.z for h in hits if h is not None] + [floor_y]) - 0.04
