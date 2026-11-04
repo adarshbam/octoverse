@@ -3,8 +3,7 @@ import type { EntranceSheet } from '../character/Octopus';
 import type { Project, Technology } from '../content/projectTypes';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SwellSheet } from '../sequences/headSwell';
-import type { Sequences } from '../sequences/theatre';
-import { loadNoxSequences } from '../sequences/nox.sequences';
+import type { SequenceSet, Sequences } from '../sequences/theatre';
 
 /** How many bubbles orbit the octopus; the rest of the project's technologies go to the tray. */
 export const BUBBLE_COUNT = 15;
@@ -36,12 +35,18 @@ export interface InstanceSheets {
   swell: SwellSheet;
 }
 
-/** Empty holders for one instance; `blowAt` and `swellAt` are the moments a review still shows (`?freeze&blow=<s>`, `&swell=<s>`). */
-export function createSheets({ blowAt, swellAt }: { blowAt?: number; swellAt?: number } = {}): InstanceSheets {
+/**
+ * Empty holders for one instance of a world with sequence set `set` (the swell's length is its
+ * sheet's, known before the sheet loads); `blowAt` and `swellAt` are the moments a review still
+ * shows (`?freeze&blow=<s>`, `&swell=<s>`).
+ */
+export function createSheets(set: Pick<SequenceSet, 'defaults'>, { blowAt, swellAt }: { blowAt?: number; swellAt?: number } = {}): InstanceSheets {
+  const swell = set.defaults.headSwell;
+  if (!swell) throw new Error('the sequence set has no headSwell sheet');
   return {
     entrance: { sequences: null, failed: false },
     blow: { sequences: null, failed: false, at: blowAt },
-    swell: { sequences: null, failed: false, at: swellAt },
+    swell: { sequences: null, failed: false, seconds: swell.length, at: swellAt },
   };
 }
 
@@ -54,16 +59,17 @@ export interface SheetWants {
 
 /**
  * Starts loading the sheets the instance wants, beside the world and the first frame: nothing waits
- * on them. Every call gets the one Theatre project (the loader keeps its promise), so a second
+ * on them. `load` loads the world's sequences (`loadWorldSequences(bundle.sequences)`): every call
+ * gets the one Theatre project (the loader keeps its promise per project id), so a second
  * instance, or this one mounted twice by StrictMode, loads nothing again. `onEntrance` runs when the
  * entrance's sequences are in (the swim's arm shapes are worked out then, so the entrance's first
  * frame does not pay for them). The returned function stops any holder being filled after the
  * instance is gone.
  */
-export function startSheetLoaders(sheets: InstanceSheets, wants: SheetWants, onEntrance: (sequences: Sequences) => void): () => void {
+export function startSheetLoaders(sheets: InstanceSheets, wants: SheetWants, load: () => Promise<Sequences>, onEntrance: (sequences: Sequences) => void): () => void {
   let live = true;
   if (wants.entrance) {
-    loadNoxSequences().then(
+    load().then(
       sequences => {
         if (!live) return;
         onEntrance(sequences);
@@ -78,7 +84,7 @@ export function startSheetLoaders(sheets: InstanceSheets, wants: SheetWants, onE
   }
   for (const [wanted, sheet] of [[wants.blow, sheets.blow], [wants.swell, sheets.swell]] as const) {
     if (!wanted) continue;
-    loadNoxSequences().then(
+    load().then(
       sequences => {
         if (live) sheet.sequences = sequences;
       },

@@ -1,25 +1,14 @@
 import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
-import type { StageId } from '../config/types';
 
+/**
+ * What one stage frames: world units it must show, across and up, on the z = 0 plane. A world's
+ * frames are its bundle's (`WorldBundle.stage.frames`; Nox's are bundle.nox.ts NOX_STAGE_FRAMES).
+ */
 export interface StageFrame {
-  /** World units the stage must show, across and up, on the z = 0 plane. */
   width: number;
   height: number;
 }
-
-/**
- * What each stage frames, from its storyboard panel. Focusing a technology keeps the overview's
- * framing: re-framing would move every orb under the visitor's pointer as focus begins. The detail
- * frames the whole high-quality panel 5 (1672 x 941 px), registered on Nox's face at 200 px a unit.
- */
-export const STAGE_FRAMES: Record<StageId, StageFrame> = {
-  entering: { width: 5.1, height: 5.04 },
-  intro: { width: 5.06, height: 5.04 },
-  overview: { width: 5.15, height: 5.04 },
-  techFocus: { width: 5.15, height: 5.04 },
-  detail: { width: 8.36, height: 4.705 },
-};
 
 export type Layout = 'desktop' | 'tablet' | 'phone';
 

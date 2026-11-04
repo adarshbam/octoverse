@@ -1,5 +1,6 @@
 import { BubbleLive } from '../artifacts/bubbleLive';
 import { LiveAnchors } from '../stage/liveAnchors';
+import type { WorldBundle } from '../types/bundle';
 
 /**
  * Everything one running Nox keeps that is not React state or the scene: the bubbles' live places,
@@ -8,8 +9,11 @@ import { LiveAnchors } from '../stage/liveAnchors';
  * page) never write each other's frame.
  */
 export interface InstanceState {
+  /** The world's id (`bundle.id`): the key of its storage and its debug names. */
   id: string;
   mode: 'page' | 'preview';
+  /** The world this instance shows, validated (`validateBundle`): every engine module reads its data from here or from props, never from a world's files. */
+  bundle: WorldBundle;
   bubbleLive: BubbleLive;
   liveAnchors: LiveAnchors;
   /** Whether the pointer is on a technology bubble: the orbits ease to still and no arm reaches for the pointer while it is (the camera takes no notice). */
@@ -22,6 +26,6 @@ export interface InstanceState {
   reliefGate: { value: number };
 }
 
-export function createInstanceState(id: string, mode: 'page' | 'preview'): InstanceState {
-  return { id, mode, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 } };
+export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 } };
 }

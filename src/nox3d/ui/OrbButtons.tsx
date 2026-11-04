@@ -5,54 +5,65 @@ import { useWindowListeners } from '../host/listeners';
 import type { InstanceState } from '../host/instance';
 import * as THREE from 'three';
 import { FOCUS_GROW } from '../artifacts/TechBubbles';
-import { NOX } from '../config/nox.character';
 import { CAMERA_Z } from '../config/stage';
-import { NOX_POSES } from '../poses/nox.poses';
 import { projectToScreen } from '../stage/anchors';
-import { STAGE_FRAMES, fovFor } from '../stage/framing';
+import { type StageFrame, fovFor } from '../stage/framing';
+import { type WorldBundle, faceAnchor, faceOrigin } from '../types/bundle';
 
 export interface OrbChoice {
   techId: string;
   name: string;
 }
 
-function stageCamera(stage: 'intro' | 'overview', size: { width: number; height: number }) {
-  const camera = new THREE.PerspectiveCamera(fovFor(STAGE_FRAMES[stage], size), size.width / size.height, 0.1, 60);
+function stageCamera(frame: StageFrame, size: { width: number; height: number }) {
+  const camera = new THREE.PerspectiveCamera(fovFor(frame, size), size.width / size.height, 0.1, 60);
   camera.position.set(0, 0, CAMERA_Z);
   camera.updateMatrixWorld();
   return camera;
 }
 
-/** Spots worked out for a window size and a stage, so a focus change never rebuilds the camera to place things. */
-const spotCache = new Map<string, unknown>();
-function cached<T>(key: string, make: () => T): T {
+/**
+ * Spots worked out for a world, a window size and a stage, so a focus change never rebuilds the
+ * camera to place things. Kept per bundle: two worlds on a page have faces of their own.
+ */
+const spotCache = new WeakMap<WorldBundle, Map<string, FaceSpot>>();
+function cached(bundle: WorldBundle, key: string, make: () => FaceSpot): FaceSpot {
   const full = `${key}@${window.innerWidth}x${window.innerHeight}`;
-  if (!spotCache.has(full)) spotCache.set(full, make());
-  return spotCache.get(full) as T;
+  let spots = spotCache.get(bundle);
+  if (!spots) spotCache.set(bundle, (spots = new Map()));
+  let spot = spots.get(full);
+  if (!spot) spots.set(full, (spot = make()));
+  return spot;
+}
+
+/** Where the face is on the page, in CSS pixels, with the box a tooltip keeps clear of. */
+export interface FaceSpot {
+  x: number;
+  y: number;
+  bounds: { left: number; right: number; top: number; bottom: number };
 }
 
 /**
- * Where Nox's face is on the page in a stage, in CSS pixels, with its protected bounding box. In
- * the intro the box also takes in the title lines above the face, which a tooltip keeps clear of
- * as well.
+ * Where the character's face is on the page in a stage, in CSS pixels, with its protected bounding
+ * box (the bundle's face anchor, types/bundle.ts). In the intro the box also takes in the title
+ * lines above the face, which a tooltip keeps clear of as well.
  */
-export function faceSpot(stage: 'intro' | 'overview' = 'overview') {
-  return cached(`face:${stage}`, () => faceSpotNow(stage));
+export function faceSpot(bundle: WorldBundle, stage: 'intro' | 'overview' = 'overview'): FaceSpot {
+  return cached(bundle, `face:${stage}`, () => faceSpotNow(bundle, stage));
 }
 
 /** The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css). */
 const INTRO_TITLE = { halfWidth: 1.4, top: 1.55 };
 
-function faceSpotNow(stage: 'intro' | 'overview') {
+function faceSpotNow(bundle: WorldBundle, stage: 'intro' | 'overview'): FaceSpot {
   const size = { width: window.innerWidth, height: window.innerHeight };
-  const { body } = NOX_POSES[stage];
-  const [ox, oy] = NOX.head.faceOrigin;
-  const camera = stageCamera(stage, size);
-  const center = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth), camera, size);
-  const pRight = projectToScreen(new THREE.Vector3(body.x + ox + 1.05, body.y + oy - 0.1, 0), camera, size);
-  const pLeft = projectToScreen(new THREE.Vector3(body.x + ox - 1.05, body.y + oy - 0.1, 0), camera, size);
-  const pTop = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy + 0.45, 0), camera, size);
-  const pBottom = projectToScreen(new THREE.Vector3(body.x + ox, body.y + oy - 0.55, 0), camera, size);
+  const [fx, fy] = faceOrigin(bundle, stage);
+  const camera = stageCamera(bundle.stage.frames[stage], size);
+  const center = projectToScreen(new THREE.Vector3(...faceAnchor(bundle, stage)), camera, size);
+  const pRight = projectToScreen(new THREE.Vector3(fx + 1.05, fy - 0.1, 0), camera, size);
+  const pLeft = projectToScreen(new THREE.Vector3(fx - 1.05, fy - 0.1, 0), camera, size);
+  const pTop = projectToScreen(new THREE.Vector3(fx, fy + 0.45, 0), camera, size);
+  const pBottom = projectToScreen(new THREE.Vector3(fx, fy - 0.55, 0), camera, size);
   const bounds = {
     left: Math.min(pLeft.x, pRight.x),
     right: Math.max(pLeft.x, pRight.x),

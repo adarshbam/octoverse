@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
-import { fovFor, STAGE_FRAMES } from '../stage/framing';
-import { noxFaceAnchor } from '../stage/liveAnchors';
+import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../bundle.nox';
+import { fovFor } from '../stage/framing';
+import { faceAnchor } from '../types/bundle';
 import { lensShift } from './lensShift';
 import type { Vec3 } from './types';
 
@@ -22,7 +23,7 @@ function screenOf(point: Vec3, fovDeg: number, pitch: number, offsetY: number) {
 const fov = fovFor(STAGE_FRAMES.intro, SIZE);
 
 test("lens shift keeps Nox's face at the same screen place", () => {
-  const face = noxFaceAnchor('intro');
+  const face = faceAnchor(NOX_BUNDLE, 'intro');
   const before = screenOf(face, fov, 0, 0);
   for (const tilt of [0.03, 0.07, 0.12, 0.2]) {
     const { pitch, offsetY } = lensShift(tilt, face, { position: [0, 0, CAMERA_Z], fovDeg: fov });
@@ -37,7 +38,7 @@ test("lens shift keeps Nox's face at the same screen place", () => {
 });
 
 test("lens shift holds the overview's face, and any point's height, whatever its distance", () => {
-  const overview = noxFaceAnchor('overview');
+  const overview = faceAnchor(NOX_BUNDLE, 'overview');
   const before = screenOf(overview, fov, 0, 0);
   const shift = lensShift(0.07, overview, { position: [0, 0, CAMERA_Z], fovDeg: fov });
   const after = screenOf(overview, fov, shift.pitch, shift.offsetY);
@@ -49,7 +50,7 @@ test("lens shift holds the overview's face, and any point's height, whatever its
 });
 
 test('zero tilt gives zero offset', () => {
-  const { pitch, offsetY } = lensShift(0, noxFaceAnchor('intro'), { position: [0, 0, CAMERA_Z], fovDeg: fov });
+  const { pitch, offsetY } = lensShift(0, faceAnchor(NOX_BUNDLE, 'intro'), { position: [0, 0, CAMERA_Z], fovDeg: fov });
   expect(pitch).toBe(0);
   expect(offsetY).toBe(0);
 });

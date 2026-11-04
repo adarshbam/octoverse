@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
-import { BLOW_SHEET_WAIT, type BlowFrame, BlowRun, blowFrame, blowLength, blowMouth, blowPosition, bubblesExist } from './bubbleBlow';
-import { BLOW_STAGGER, SEQUENCE_DEFAULTS } from './keys';
+import { BLOW_SHEET_WAIT, BLOW_STAGGER, type BlowFrame, BlowRun, blowFrame, blowLength, blowMouth, blowPosition, bubblesExist } from './bubbleBlow';
+import { SEQUENCE_DEFAULTS } from './keys';
 import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
 
@@ -156,4 +156,14 @@ test('bubbles are blown in order, 0.18 s apart', () => {
   pops.forEach((s, i) => expect(s).toBeCloseTo(0.25 + i * 0.18, 2));
   // Every bubble is full size once the blow is over.
   for (let i = 0; i < COUNT; i++) expect(at(i, blowLength(COUNT, LENGTH())).scale).toBeCloseTo(1, 6);
+});
+
+test("a step must say how long one blow is: leaving it out is a type error (a run without it never ended)", () => {
+  const run = new BlowRun();
+  // @ts-expect-error `length` is required
+  const step: Parameters<BlowRun['step']>[0] = { exist: true, still: false, ready: true, dt: 0.05, count: COUNT };
+  run.step({ ...step, length: LENGTH() });
+  let steps = 0;
+  while (!run.done && steps++ < 1000) run.step({ ...step, length: LENGTH() });
+  expect(run.done).toBe(true);
 });

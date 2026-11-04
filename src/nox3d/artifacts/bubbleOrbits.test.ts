@@ -4,7 +4,8 @@ import { CAMERA_Z } from '../config/stage';
 import { NOX_ARTIFACTS } from '../config/nox.artifacts';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
-import { STAGE_FRAMES, fovFor } from '../stage/framing';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../bundle.nox';
+import { fovFor } from '../stage/framing';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
@@ -80,7 +81,7 @@ test('bubbles never cover the face, the title or the nameplate', () => {
       camera.position.set(0, 0, CAMERA_Z);
       camera.updateMatrixWorld();
       const { body } = NOX_POSES[stage];
-      const boxes = Object.entries(BOXES[stage]).map(([name, box]) => [name, stageBoxFor(stage, box, size)] as const);
+      const boxes = Object.entries(BOXES[stage]).map(([name, box]) => [name, stageBoxFor(STAGE_FRAMES[stage], box, size)] as const);
       const orbits = layoutOrbits(15, PLACEMENT, stage);
       const at = new THREE.Vector3();
       const edge = new THREE.Vector3();

@@ -2,12 +2,10 @@ import type { APPEARS } from '../artifacts/strategies';
 
 /**
  * The sheets the appear kinds play (amendment A1, G5): the `sheet` of each entry in the engine's
- * appear table (`APPEARS.blow.sheet` is 'bubbleBlow'); a kind with no sheet adds none. Type-only
- * import: this file also runs directly under Node (the seed script), where it is erased.
+ * appear table (`APPEARS.blow.sheet` is 'bubbleBlow'). Type-only import: this file also runs
+ * directly under Node (the seed script), where it is erased.
  */
-export type AppearSheet = {
-  [K in keyof typeof APPEARS]: (typeof APPEARS)[K] extends { readonly sheet: infer S extends string } ? S : never;
-}[keyof typeof APPEARS];
+export type AppearSheet = (typeof APPEARS)[keyof typeof APPEARS]['sheet'];
 
 /** Sequence ids: one Theatre sheet each (the big sequences of the design's section 9.11). */
 export type SequenceId = 'entrance' | 'headSwell' | 'arrival' | AppearSheet;
@@ -44,6 +42,11 @@ export interface SequenceDefaults {
 export interface EntranceShape {
   turn: number;
   spiral: true;
+  /**
+   * Where the spiral arc starts: `r0` stage units from the stage spot, at `phase` radians about +y
+   * from +z. The world's own, since the swim's path (its sheet's keys) ends where the arc begins.
+   */
+  arc: { readonly r0: number; readonly phase: number };
 }
 
 /**
@@ -53,8 +56,11 @@ export interface EntranceShape {
  */
 export interface SequenceSet {
   projectId: string;
-  /** The saved Theatre state (the studio's export); `undefined` starts the project empty. */
-  state: unknown;
+  /**
+   * The saved Theatre state (the studio's export), fetched when a sequence is first wanted, so the
+   * page does not carry it before then; resolving to `undefined` starts the project empty.
+   */
+  state: () => Promise<unknown>;
   defaults: Partial<Record<SequenceId, SequenceDefaults>>;
   entrance: EntranceShape;
 }
@@ -81,7 +87,7 @@ export function hermiteKeys(points: readonly (readonly [number, number, number])
 
 /**
  * Nox's stroke, in seconds: recovery + power + glide of `personality.swim` in
- * config/nox.character.ts (0.52 + 0.21 + 0.6). This file may not import it; entrance.test checks
+ * Nox's character config (0.52 + 0.21 + 0.6). This file may not import it; entrance.test checks
  * that the two agree.
  */
 export const NOX_STROKE_SECONDS = 1.33;
@@ -99,7 +105,7 @@ const SPIRAL_RATE = (2 * Math.log(GOLDEN)) / Math.PI;
 export const ENTRANCE_SPIRAL = { r0: 0.9, phase: Math.PI + Math.atan((1 - GOLDEN ** -4) / SPIRAL_RATE) } as const;
 
 /** Nox's entrance turn: once round (2 pi), on the golden spiral above. */
-export const NOX_ENTRANCE: EntranceShape = { turn: 2 * Math.PI, spiral: true };
+export const NOX_ENTRANCE: EntranceShape = { turn: 2 * Math.PI, spiral: true, arc: ENTRANCE_SPIRAL };
 
 /** Where the swim ends and the arc begins: the spot plus the spiral's start. */
 const ARC_START = [ENTRANCE_SPIRAL.r0 * Math.sin(ENTRANCE_SPIRAL.phase), 0, ENTRANCE_SPIRAL.r0 * Math.cos(ENTRANCE_SPIRAL.phase)] as const;
@@ -211,8 +217,7 @@ const ENTRANCE: SequenceDefaults = {
 
 // --- The bubble blow (design 9.8) ------------------------------------------------------------
 
-/** Seconds between one bubble's blow and the next's (sequences/bubbleBlow.ts plays the sheet once per bubble). */
-export const BLOW_STAGGER = 0.18;
+// The blow plays this sheet once per bubble, BLOW_STAGGER s apart (the engine's blow module, sequences/bubbleBlow.ts).
 
 /** Handles that leave a key fast and arrive slowly (an ease out, as CSS cubic-bezier(0.33, 1, 0.68, 1)). */
 const EASE_OUT_RIGHT = [1 / 3, 1 / 3, 0.33, 1] as const;

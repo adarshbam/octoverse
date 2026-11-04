@@ -1,9 +1,7 @@
-import { settledArms } from '../behavior/poseBlend';
 import { restFromCurve, type ArmRest } from '../character/armChain';
 import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
-import type { SwimShapes } from '../motion/swimArms';
-import { NOX_POSES } from './nox.poses';
-import type { StagePose } from './types';
+import { BODY_X, NOX_POSES, SWIM_STRETCH } from './nox.poses';
+import type { StagePose, SwimPoseSet } from './types';
 
 // The swim's two arm shapes (spec 9.5). A stroke blends from `trail` toward `open` as the arms
 // open in recovery and back as they sweep in the power stroke (motion/stroke.ts), while the arm
@@ -119,24 +117,16 @@ function build() {
 }
 
 /**
- * The swim's two poses. Built on first use (24 curve fits, about 15 ms), not when the page loads:
- * nothing here may delay the first frame.
+ * Nox's swim (`NOX_BUNDLE.swim`). The two poses are built on first use (24 curve fits, about
+ * 15 ms), not when the page loads: nothing here may delay the first frame.
  */
-export const SWIM_POSES: { readonly open: StagePose; readonly trail: StagePose } = {
+export const SWIM_POSES: SwimPoseSet = {
   get open() {
     return build().open;
   },
   get trail() {
     return build().trail;
   },
+  stretch: SWIM_STRETCH,
+  bodyX: BODY_X,
 };
-
-/**
- * Nox's swim shapes as arm rests at `segments` (motion/swimArms.ts): the trail, the open umbrella
- * and the intro pose he settles into. Worked out once per segment count (settledArms caches them),
- * after the swim poses are built; the first call pays both, so the stage makes it before the swim
- * starts (App.tsx), not on its first frame.
- */
-export function swimShapes(segments: number): SwimShapes {
-  return { trail: settledArms(SWIM_POSES.trail, segments), open: settledArms(SWIM_POSES.open, segments), rest: settledArms(NOX_POSES.intro, segments) };
-}

@@ -24,7 +24,7 @@
 }
 
 .project-detail :is(button, a, [tabindex='0']):focus-visible {
-  outline: 2px solid #ffd0dc;
+  outline: 2px solid var(--oct-focus-ring, #ffd0dc);
   outline-offset: 2px;
 }
 
@@ -40,7 +40,7 @@
   flex-direction: column;
   padding: 4.2cqh 2.4cqw 4cqh 3.1cqw;
   border-radius: 2.6cqw;
-  border: 1.5px solid rgba(255, 70, 110, 0.7);
+  border: 1.5px solid var(--oct-surface-edge, rgba(255, 70, 110, 0.7));
   background: linear-gradient(160deg, rgba(22, 13, 32, 0.95), rgba(8, 6, 16, 0.96) 60%);
   box-shadow: 0 0 28px rgba(255, 40, 90, 0.35), inset 0 0 22px rgba(255, 50, 100, 0.08);
 }
@@ -58,7 +58,7 @@
   height: 10.7cqh;
   margin: 0 2.3cqw 0 2.2cqw;
   flex: none;
-  color: #ff3b5c;
+  color: var(--oct-accent, #ff3b5c);
   filter: drop-shadow(0 0 0.9cqw rgba(255, 50, 80, 0.7));
 }
 
@@ -191,7 +191,7 @@
   width: 1.2cqw;
   height: 1.2cqw;
   border-radius: 50%;
-  background: #ff3b5c;
+  background: var(--oct-accent, #ff3b5c);
   box-shadow: 0 0 0.8cqw rgba(255, 60, 90, 0.8);
 }
 
@@ -208,7 +208,7 @@
   width: 1.2cqw;
   height: 1.2cqw;
   border: 0.55cqw solid #2a1420;
-  outline: 0.35cqw solid #ff3b5c;
+  outline: 0.35cqw solid var(--oct-accent, #ff3b5c);
 }
 
 .detail-shot {
@@ -280,7 +280,7 @@
 }
 
 .detail-text li::marker {
-  color: #ff3b5c;
+  color: var(--oct-accent, #ff3b5c);
 }
 
 .detail-links {
@@ -353,7 +353,7 @@
   padding: 0 1.1cqw;
   border-radius: 0.9cqw;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(26, 20, 40, 0.92);
+  background: var(--oct-surface, rgba(26, 20, 40, 0.92));
   font-size: max(11px, 1.32cqw);
   white-space: nowrap;
 }
@@ -385,7 +385,7 @@
   padding: 1.2cqh 1cqw;
   border-radius: 1.2cqw;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(26, 20, 40, 0.92);
+  background: var(--oct-surface, rgba(26, 20, 40, 0.92));
 }
 
 .detail-features svg {

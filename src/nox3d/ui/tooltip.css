@@ -96,8 +96,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ff3a55;
-  box-shadow: 0 0 6px #ff3a55;
+  background: var(--oct-accent-hot, #ff3a55);
+  box-shadow: 0 0 6px var(--oct-accent-hot, #ff3a55);
 }
 
 .tech-tooltip p {

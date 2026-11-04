@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReviewOptions } from '../behavior/urlState';
-import { debugWindow } from '../host/debugHooks';
+import { debugWindow, report, unreport } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { FrameProbe, type QualityTier, TIER_SETTINGS, pickTier } from './quality';
 
@@ -28,13 +28,11 @@ export function useQuality(url: ReviewOptions) {
   const [start] = useState(() => startingTier(url));
   const [tier, setTier] = useState(start.tier);
   // Dev server only, page instance only: lets a browser test force a tier change (the frame probe's step, on demand).
+  // (`window.__octoverse.setTier`; `__noxSetTier` for Nox.)
   useEffect(() => {
-    const w = debugWindow(instance);
-    if (!import.meta.env.DEV || !w) return;
-    w.__noxSetTier = setTier;
-    return () => {
-      delete w.__noxSetTier;
-    };
+    if (!import.meta.env.DEV || !debugWindow(instance)) return;
+    report(instance, 'setTier', setTier);
+    return () => unreport(instance, 'setTier');
   }, [instance]);
   return { tier, settings: TIER_SETTINGS[tier], adaptive: start.adaptive, step: setTier };
 }

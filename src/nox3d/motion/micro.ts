@@ -1,5 +1,4 @@
 import type { Personality } from '../config/types';
-import { SEQUENCE_DEFAULTS } from '../sequences/keys';
 import type { Sequences } from '../sequences/theatre';
 
 /**
@@ -81,8 +80,8 @@ export function settleOvershoot(t: number, p: Micro): number {
 }
 
 /**
- * The happy wiggle on arrival, `t` seconds in: the 'arrival' sheet (sequences/keys.ts, tuned in the
- * studio) stretched to `p.arrival.duration`, its fractions scaled to the personality's strengths:
+ * The happy wiggle on arrival, `t` seconds in: the world's 'arrival' sheet (Nox's: sequences/keys.ts, tuned
+ * in the studio), its own length stretched to `p.arrival.duration`, its fractions scaled to the personality's strengths:
  * `roll` (radians, the body rocking) and `armWave` (radians at the arm tips, fanning out). Zero
  * outside the duration.
  */
@@ -90,7 +89,7 @@ export function arrivalWiggle(seq: Sequences, t: number, p: Micro): { roll: numb
   const a = p.arrival;
   const u = within(t, a.duration);
   if (u === null) return { roll: 0, armWave: 0 };
-  const v = seq.sample<{ roll: number; armWave: number }>('arrival', 'main', u * SEQUENCE_DEFAULTS.arrival.length);
+  const v = seq.sample<{ roll: number; armWave: number }>('arrival', 'main', u * seq.length('arrival'));
   return { roll: a.roll * v.roll, armWave: a.armWave * v.armWave };
 }
 

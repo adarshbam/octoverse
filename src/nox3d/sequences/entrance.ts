@@ -4,7 +4,7 @@ import type { ArmId } from '../config/types';
 import { type StrokeFrame, type StrokeTiming, strokeAt, swimDrive } from '../motion/stroke';
 import { type SwimShapes, swimRests } from '../motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
-import { ENTRANCE_SPIRAL } from './keys';
+import type { EntranceShape } from './keys';
 import type { Sequences } from './theatre';
 
 // The entrance (design 9.6): Nox comes out of the murk deep in the corridor on the left, swims
@@ -15,7 +15,7 @@ import type { Sequences } from './theatre';
 // adds what is computed: the surges, the arc and the facing. No arm physics (ruling R48): the
 // follow-through is in the stroke drives, which the stage takes from `stroke`, `forward` and `open`.
 // Nothing here names a world: the stroke's timing, how far the arms and the pillars reach, and the
-// turn's size (`EntranceShape`, on the sequences) come in as arguments (Nox's: nox.sequences.ts).
+// turn's size and arc (`EntranceShape`, on the sequences) come in as arguments (Nox's: nox.sequences.ts).
 
 /** The entrance's length in seconds: the sheet's length. */
 export const ENTRANCE_SECONDS = 8.4;
@@ -93,18 +93,19 @@ const PHI_END = PHI ** -4;
 /**
  * Offset of the final arc: a golden spiral in the x-z plane round the stage spot,
  * r = r0 (phi^(-2θ/π) - phi^-4) / (1 - phi^-4), θ = 2π spin, so it reaches the spot exactly as
- * the turn completes. It starts at ENTRANCE_SPIRAL.phase, heading for the visitor, and runs the
- * way `yaw` turns, so its own heading at θ stays within 8 degrees of θ while it is more than a
- * quarter of r0 from the spot: Nox faces along the arc. Inside that it turns in to close on the spot.
- * `turn` (radians, `EntranceShape.turn`; a full turn by default) is how far round the angle goes by
- * the end of the spin; the radius still closes on the spot as the spin completes.
+ * the turn completes. It starts at the world's `arc.phase` (`EntranceShape.arc`; Nox's heads for
+ * the visitor), `arc.r0` from the spot, and runs the way `yaw` turns, so its own heading at θ stays
+ * within 8 degrees of θ while it is more than a quarter of r0 from the spot: Nox faces along the arc.
+ * Inside that it turns in to close on the spot. `turn` (radians, `EntranceShape.turn`; a full turn
+ * by default) is how far round the angle goes by the end of the spin; the radius still closes on
+ * the spot as the spin completes.
  */
-export function spiralOffset(spin: number, r0: number, turn: number = 2 * Math.PI): Vec3 {
+export function spiralOffset(spin: number, arc: EntranceShape['arc'], turn: number = 2 * Math.PI): Vec3 {
   const s = Math.min(1, Math.max(0, spin));
   if (s === 1) return [0, 0, 0];
   const theta = 2 * Math.PI * s;
-  const r = (r0 * (PHI ** ((-2 * theta) / Math.PI) - PHI_END)) / (1 - PHI_END);
-  const angle = ENTRANCE_SPIRAL.phase + turn * s;
+  const r = (arc.r0 * (PHI ** ((-2 * theta) / Math.PI) - PHI_END)) / (1 - PHI_END);
+  const angle = arc.phase + turn * s;
   return [r * Math.sin(angle), 0, r * Math.cos(angle)];
 }
 
@@ -151,9 +152,9 @@ export function entranceFrame(seq: Sequences, seconds: number, { swim }: Entranc
   const k = { ...seq.sample<EntranceProps>('entrance', 'main', t) };
   const lead = k.surge * strokeLead(k.stroke, swim);
   const path = lead === 0 ? k : seq.sample<EntranceProps>('entrance', 'main', t + lead);
-  const { turn } = seq.entrance;
-  const arc = spiralOffset(k.spin, ENTRANCE_SPIRAL.r0, turn);
-  const arcStart = spiralOffset(0, ENTRANCE_SPIRAL.r0, turn);
+  const { turn, arc: shape } = seq.entrance;
+  const arc = spiralOffset(k.spin, shape, turn);
+  const arcStart = spiralOffset(0, shape, turn);
   const round = k.spin - Math.round(k.spin);
   return {
     position: [path.x + arc[0] - arcStart[0], path.y, path.z + arc[2] - arcStart[2]],

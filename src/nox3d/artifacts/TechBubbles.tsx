@@ -2,11 +2,11 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
-import type { ArtifactConfig, Point2 } from '../config/types';
+import type { ArtifactConfig, ChoosingStage, Point2 } from '../config/types';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
-import type { BubbleLive } from './bubbleLive';
+import { type BubbleLive, sideOfFace } from './bubbleLive';
 import { APPEARS, PLACEMENTS, SELECTS } from './strategies';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
@@ -23,7 +23,7 @@ export interface BubbleState {
   /** Whether they are shown (the intro and the overview), not in the entrance or beside the detail panel. */
   show: boolean;
   /** Which stage's framing they are sized for. */
-  stage: 'intro' | 'overview';
+  stage: ChoosingStage;
   /** A bubble is hovered, held or in focus: the orbits ease to still. */
   hot: boolean;
   /** Motion off (reduced motion, `?freeze`): the orbits do not move, and the bubbles come and go at once. */
@@ -86,6 +86,8 @@ export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, fac
   const placement = PLACEMENTS[placementConfig.kind];
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
+  // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).
+  const holdCentre = useMemo(() => select.centre(placementConfig), [select, placementConfig]);
   const group = useRef<THREE.Group>(null);
   const parts = useMemo(() => {
     const sphere = new THREE.SphereGeometry(1, 48, 32);
@@ -127,7 +129,9 @@ export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, fac
     const root = group.current!;
     // The blow: it starts the first time the bubbles are shown, and until it does there are none.
     const { blow } = run;
-    blow.step({ exist: s.show, still: s.still, ready: !!s.blow?.sequences, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: appear.sheet ? s.blow?.sequences?.length(appear.sheet) : undefined, at: s.blow?.at });
+    // One blow's length is the loaded sheet's; with no sheet in, the run does not read it (it waits, or the blow is given up).
+    const sheet = s.blow?.sequences;
+    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at });
     const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
     const waiting = !blow.done && !blowing;
     // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
@@ -183,7 +187,7 @@ export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, fac
       }
       // Held: pulled along from where it was, swinging round Nox, to just off its arm's tip.
       const pull = s.hold.pull[i] ?? 0;
-      if (pull > 0) select.position(scratch.from.copy(node.position), held.copy(s.hold.tip[i]).addScaledVector(s.hold.dir[i], radius * select.offTip), pull, select.centre, node.position);
+      if (pull > 0) select.position(scratch.from.copy(node.position), held.copy(s.hold.tip[i]).addScaledVector(s.hold.dir[i], radius * select.offTip), pull, holdCentre, node.position);
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
       const breathe = s.still ? 1 : 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
@@ -194,7 +198,7 @@ export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, fac
       item.logo.opacity = shown * dim;
       // Where it is in the world and on the page, for the buttons, the tooltip and Nox's eyes.
       const world = bubbleLive.worlds[i].copy(node.position).applyMatrix4(root.matrixWorld);
-      bubbleLive.sides[i] = Math.sign(node.position.x - faceOrigin[0]) || 1;
+      bubbleLive.sides[i] = sideOfFace(node.position.x, faceOrigin);
       ndc.copy(world).project(frame.camera);
       edge.copy(world).addScaledVector(right, radius);
       const edgeX = edge.project(frame.camera).x;

@@ -5,7 +5,7 @@ import { EXPRESSION_IDS, type ExpressionId } from './expressions';
 
 const STAGES: readonly StageId[] = ['entering', 'intro', 'overview', 'techFocus', 'detail'];
 const REVIEW_POSES = ['swim-open', 'swim-trail'] as const;
-/** A swim pose (poses/nox.swim.ts) a review still shows in place of the stage's own. */
+/** A swim pose (the world bundle's `swim`) a review still shows in place of the stage's own. */
 export type ReviewPose = (typeof REVIEW_POSES)[number];
 
 export interface UrlState {

@@ -1,4 +1,4 @@
-import type { StageId } from '../config/types';
+import { CHOOSING_STAGES, type ChoosingStage, type StageId } from '../config/types';
 
 export type StageEvent =
   | { type: 'ENTRANCE_DONE' }
@@ -14,14 +14,14 @@ export interface StageState {
   /** The focused technology in `techFocus`, otherwise null. */
   techId: string | null;
   /** The stage a technology focus came from, and where letting go returns to; 'overview' elsewhere. */
-  returnTo: 'intro' | 'overview';
+  returnTo: ChoosingStage;
 }
 
 /** Idle time in the intro before Nox rests. */
 export const REST_AFTER_MS = 40000;
 
 const at = (stage: StageId): StageState => ({ stage, techId: null, returnTo: 'overview' });
-const focus = (techId: string, returnTo: 'intro' | 'overview'): StageState => ({ stage: 'techFocus', techId, returnTo });
+const focus = (techId: string, returnTo: ChoosingStage): StageState => ({ stage: 'techFocus', techId, returnTo });
 
 /** A requested stage wins; otherwise a first visit enters, unless reduced motion skips the entrance. */
 export function initialStage({ entranceSeen, requested, reducedMotion }: { entranceSeen: boolean; requested?: StageId; reducedMotion: boolean }): StageState {
@@ -29,16 +29,14 @@ export function initialStage({ entranceSeen, requested, reducedMotion }: { entra
   return at(entranceSeen || reducedMotion ? 'intro' : 'entering');
 }
 
-/** The stages in which an artifact can be chosen when a world names none: both. */
-const CHOOSABLE_IN_BOTH = ['intro', 'overview'] as const;
-
 /**
  * The stage transitions; any event a stage does not handle leaves the state as it is. `choosableIn`
- * is the stages in which `FOCUS_TECH` is accepted (the world's `ArtifactConfig.choosableIn`): in
- * the other of the intro and the overview a choice changes nothing. Moving the focus on in a
+ * is the stages in which `FOCUS_TECH` is accepted (the world's `ArtifactConfig.choosableIn`; every
+ * choosing stage when none is given): in the other of the intro and the overview a choice changes
+ * nothing. Moving the focus on in a
  * technology focus is a choice made where the focus began, so it is not asked again.
  */
-export function stageReducer(state: StageState, event: StageEvent, knownTechIds: ReadonlySet<string>, choosableIn: readonly ('intro' | 'overview')[] = CHOOSABLE_IN_BOTH): StageState {
+export function stageReducer(state: StageState, event: StageEvent, knownTechIds: ReadonlySet<string>, choosableIn: readonly ChoosingStage[] = CHOOSING_STAGES): StageState {
   switch (state.stage) {
     case 'entering':
       return event.type === 'ENTRANCE_DONE' || event.type === 'SKIP' ? at('intro') : state;

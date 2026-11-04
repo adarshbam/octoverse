@@ -1,5 +1,5 @@
 import { domeState } from '../character/domeMaterial';
-import { SEQUENCE_DEFAULTS, SWELL_PUSH_SETTLED } from './keys';
+import { SWELL_PUSH_SETTLED } from './keys';
 import type { Sequences } from './theatre';
 
 // The head swell (design 9.9): clicking the head, or the nameplate's Explore button, swells it like
@@ -20,9 +20,6 @@ export interface SwellFrame {
   effect: number;
 }
 
-/** Seconds one opening (or closing) lasts: the sheet's length. */
-export const SWELL_SECONDS = SEQUENCE_DEFAULTS.headSwell.length;
-
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 /**
@@ -30,8 +27,9 @@ const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
  * backwards. Written into `out` if given.
  */
 export function swellFrame(seq: Sequences, seconds: number, opening: boolean, out: SwellFrame = { morph: 0, squeeze: 0, push: 0, effect: 0 }): SwellFrame {
-  const s = Math.min(SWELL_SECONDS, Math.max(0, Number.isFinite(seconds) ? seconds : 0));
-  const k = seq.sample<SwellFrame>('headSwell', 'main', opening ? s : SWELL_SECONDS - s);
+  const length = seq.length('headSwell');
+  const s = Math.min(length, Math.max(0, Number.isFinite(seconds) ? seconds : 0));
+  const k = seq.sample<SwellFrame>('headSwell', 'main', opening ? s : length - s);
   out.morph = k.morph;
   out.squeeze = Math.max(0, k.squeeze);
   out.push = Math.max(0, k.push);
@@ -91,10 +89,16 @@ export function headDraw(f: SwellFrame, out: HeadDraw): HeadDraw {
   return out;
 }
 
-/** The swell's sheet as the page loads it (App.tsx): the sequences once they are in, or that they failed. */
+/** The swell's sheet as the page loads it (host/WorldHost.tsx): the sequences once they are in, or that they failed. */
 export interface SwellSheet {
   sequences: Sequences | null;
   failed: boolean;
+  /**
+   * Seconds one opening (or closing) lasts: the world's sheet length, known before the sheet loads
+   * (its defaults, which the loaded sheet's `length('headSwell')` also reads), so the swell's clock
+   * runs on it while the sheet is still on its way.
+   */
+  seconds: number;
   /** With motion off (`?freeze&swell=<s>`): the moment of the opening a still shows, in seconds. */
   at?: number;
 }
@@ -114,20 +118,28 @@ export interface SwellStep {
  * The swell's clock. The head starts where the page opens it (no swell on load); each change of
  * where it is going plays the sheet that way, on frame time. Turned round part-way, it carries on
  * from the same moment of the sheet the other way, so it never jumps. With motion off it is at its
- * end at once.
+ * end at once. `length` is one opening's seconds (`SwellSheet.seconds`: the world's sheet).
  */
 export class SwellRun {
   /** Where the head is going. */
   open = false;
-  /** Seconds into the current opening or closing; SWELL_SECONDS once it is over. */
-  seconds = SWELL_SECONDS;
+  /** Seconds into the current opening or closing; `length` once it is over. */
+  seconds: number;
   private started = false;
   /** Motion is off (and no still asks for a moment): the head is at its end, whatever drives it. */
   private still = false;
 
+  /** One opening's seconds. */
+  readonly length: number;
+
+  constructor(length: number) {
+    this.length = length;
+    this.seconds = length;
+  }
+
   /** Whether an opening or a closing is playing. */
   get moving() {
-    return this.seconds < SWELL_SECONDS;
+    return this.seconds < this.length;
   }
 
   step({ open, still, dt, at }: SwellStep) {
@@ -135,20 +147,20 @@ export class SwellRun {
     if (still && at !== undefined) {
       this.started = true;
       this.open = open;
-      this.seconds = Math.min(SWELL_SECONDS, Math.max(0, at));
+      this.seconds = Math.min(this.length, Math.max(0, at));
       return;
     }
     if (!this.started) {
       this.started = true;
       this.open = open;
-      this.seconds = SWELL_SECONDS;
+      this.seconds = this.length;
       return;
     }
     if (open !== this.open) {
       this.open = open;
-      this.seconds = Math.max(0, SWELL_SECONDS - this.seconds);
+      this.seconds = Math.max(0, this.length - this.seconds);
     }
-    this.seconds = still ? SWELL_SECONDS : Math.min(SWELL_SECONDS, this.seconds + Math.max(0, dt));
+    this.seconds = still ? this.length : Math.min(this.length, this.seconds + Math.max(0, dt));
   }
 
   /**

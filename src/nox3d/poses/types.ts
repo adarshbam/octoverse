@@ -16,3 +16,17 @@ export interface StagePose {
   /** A world point (z = 0) the eyes rest on when nothing else holds them; without one they glance about. */
   look?: Point2;
 }
+
+/**
+ * A character's swim (spec 6.2, `WorldBundle.swim`): the stroke's two arm shapes, `open` (the
+ * umbrella) and `trail` (the bundle), authored in the arms' space as stage poses are; `stretch`, how
+ * much longer the entering pose's arms are drawn than the intro's; and `bodyX`, the body's centre
+ * line in that space, which the swim turns about and the arms' roots spread about. The poses may be
+ * built on first read (Nox's are fitted to his intro arms), so nothing reads them before the swim.
+ */
+export interface SwimPoseSet {
+  readonly open: StagePose;
+  readonly trail: StagePose;
+  readonly stretch: number;
+  readonly bodyX: number;
+}

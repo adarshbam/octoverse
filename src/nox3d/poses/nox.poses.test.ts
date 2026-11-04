@@ -6,7 +6,8 @@ import { CAMERA_Z } from '../config/stage';
 import { ARM_IDS } from '../config/types';
 import { BODY_X, INTRO_TRACED, NOX_POSES, OVERVIEW_TRACED, SWIM_STRETCH } from './nox.poses';
 import { projectToScreen } from '../stage/anchors';
-import { STAGE_FRAMES, fovFor } from '../stage/framing';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../bundle.nox';
+import { fovFor } from '../stage/framing';
 import { DETAIL_PANEL_BOX } from '../ui/detailContent';
 
 /** Distance from a point to a polyline, projecting onto its segments. */

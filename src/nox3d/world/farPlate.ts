@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
-import { STAGE_FRAMES, fovFor } from '../stage/framing';
+import { type StageFrame, fovFor } from '../stage/framing';
 import { pinnedHover } from './cameraHover';
 import farData from './security/far.json';
 import type { Placement, Vec3, WorldLayout } from './types';
@@ -60,10 +60,13 @@ export function plateCardSize(z: number, camera: { z: number; fovDeg: number; as
   };
 }
 
-/** The card for the layer at depth z: large enough for every viewport in FAR_VIEWPORTS at full hover. */
-export function farCardSize(z: number) {
+/**
+ * The card for the layer at depth z: large enough for every viewport in FAR_VIEWPORTS at full
+ * hover, framed as the intro frames the stage (`introFrame`, the world's `stage.frames.intro`).
+ */
+export function farCardSize(z: number, introFrame: StageFrame) {
   const sizes = FAR_VIEWPORTS.map(viewport =>
-    plateCardSize(z, { z: CAMERA_Z, fovDeg: fovFor(STAGE_FRAMES.intro, viewport), aspect: viewport.width / viewport.height }, FAR_HOVER),
+    plateCardSize(z, { z: CAMERA_Z, fovDeg: fovFor(introFrame, viewport), aspect: viewport.width / viewport.height }, FAR_HOVER),
   );
   return { width: Math.max(...sizes.map(s => s.width)), height: Math.max(...sizes.map(s => s.height)) };
 }

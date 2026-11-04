@@ -22,8 +22,9 @@ test('a kind that is not in a table is a type error (they arrive in F01)', () =>
   const nox = NOX_ARTIFACTS;
   const pendant: ArtifactConfig = {
     ...nox,
+    // Every field the orbit placement needs, so the kind alone is the error.
     // @ts-expect-error placement.kind 'pendant' is built in F01 with Veyra
-    placement: { kind: 'pendant', slots: {}, maxPerArm: 2, sizes: nox.placement.sizes, tether: {} },
+    placement: { ...nox.placement, kind: 'pendant' },
   };
   const bloom: ArtifactConfig = {
     ...nox,
@@ -128,7 +129,9 @@ test('the blow and the suction hold are the shared modules, reached through the 
   // The arm's reach, the held bubble's place off the tip and where it swings round: the values Octopus and TechBubbles held.
   expect(SELECTS.suctionHold.arm).toEqual({ reach: 0.55, short: 0.2, draw: 0.5, lift: 0.16, bob: 0.04 });
   expect(SELECTS.suctionHold.offTip).toBe(1.25);
-  expect(SELECTS.suctionHold.centre).toEqual({ x: 0, y: 0.25 });
+  // The swing's centre is the middle of the world's rings: Nox's is where the old constant held it (0, 0.25).
+  expect(SELECTS.suctionHold.centre(NOX_ARTIFACTS.placement)).toEqual({ x: 0, y: 0.25 });
+  expect(SELECTS.suctionHold.centre({ ...NOX_ARTIFACTS.placement, centreY: 0.6 })).toEqual({ x: 0, y: 0.6 });
   const chosen: number[] = [];
   const choreography = SELECTS.suctionHold.choreography(bubble => (chosen.push(bubble), 3));
   choreography.choose(2, 0);

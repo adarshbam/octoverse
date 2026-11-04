@@ -12,7 +12,21 @@ import { ARM_IDS, type ArmId } from './arms';
 
 export { ARM_IDS, type ArmId, type HeadEffectId };
 export type Point2 = readonly [number, number];
-export type StageId = 'entering' | 'intro' | 'overview' | 'techFocus' | 'detail';
+
+/** Every stage, in the order a first visit meets them: the one stage vocabulary (spec 7). */
+export const STAGE_IDS = ['entering', 'intro', 'overview', 'techFocus', 'detail'] as const;
+export type StageId = (typeof STAGE_IDS)[number];
+
+/**
+ * The stages that can offer a choice of artifact, and that artifacts are framed and sized for: the
+ * intro and the overview. The others never do (the entrance, the detail), and a technology focus is
+ * a choice already made in one of these. The one list the stage machine, the artifact strategies and
+ * the blow read.
+ */
+export const CHOOSING_STAGES = ['intro', 'overview'] as const satisfies readonly StageId[];
+export type ChoosingStage = (typeof CHOOSING_STAGES)[number];
+/** Whether `stage` is one of CHOOSING_STAGES. */
+export const isChoosingStage = (stage: StageId): stage is ChoosingStage => (CHOOSING_STAGES as readonly StageId[]).includes(stage);
 
 /**
  * The lower face's side lobes: round cheeks that stick out below the dome, hold the
@@ -408,7 +422,7 @@ export type PlacementConfig = {
   /** The rings the artifacts circle on (artifacts/bubbleOrbits.ts). */
   shells: readonly Shell[];
   /** An artifact's radius in each stage's framing (the intro frames the character smaller, and its artifacts are smaller with it). */
-  sizes: Record<'intro' | 'overview', number>;
+  sizes: Record<ChoosingStage, number>;
   /** Where the rings are centred, in body space, and the height they show. */
   centreY: number;
   halfHeight: number;
@@ -432,7 +446,7 @@ export interface ArtifactConfig {
   appear: { kind: AppearId };
   select: { kind: SelectId };
   /** The stages in which an artifact can be chosen; the reducer ignores a choice in any other, and the buttons and the tray are not drawn there. */
-  choosableIn: readonly ('intro' | 'overview')[];
+  choosableIn: readonly ChoosingStage[];
 }
 
 export interface CharacterConfig {

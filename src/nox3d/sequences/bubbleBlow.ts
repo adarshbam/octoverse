@@ -1,8 +1,7 @@
 import type * as THREE from 'three';
 import { mantleRadius } from '../character/headGeometry';
-import type { FaceLayout, HeadShape, StageId } from '../config/types';
+import { type FaceLayout, type HeadShape, type StageId, isChoosingStage } from '../config/types';
 import type { Vec3 } from '../world/types';
-import { BLOW_STAGGER } from './keys';
 import type { Sequences } from './theatre';
 
 // The bubble blow (design 9.8): once the entrance has settled, Nox blows the technology bubbles
@@ -10,6 +9,12 @@ import type { Sequences } from './theatre';
 // pops out and wobbles as it grows to full size, on its way from the mouth to its orbit. The keys
 // live in the Theatre sheet `bubbleBlow` (defaults in keys.ts), one bubble's blow, played once per
 // bubble BLOW_STAGGER s apart. The wobble is a squash and stretch from the sheet: no arm physics.
+
+/**
+ * Seconds between one bubble's blow and the next's: the blow module's own beat (spec 18.1, F5: the
+ * blow keeps its module constants; the sheet it plays per bubble is the world's).
+ */
+export const BLOW_STAGGER = 0.18;
 
 export interface BlowFrame {
   /** 0 to 1: how far the cheeks are puffed. */
@@ -58,7 +63,7 @@ export function blowFrame(seq: Sequences, i: number, seconds: number): BlowFrame
 
 /** Whether the bubbles exist in `stage`: the intro, the overview and a technology focus; never the entrance or beside the detail. */
 export function bubblesExist(stage: StageId) {
-  return stage === 'intro' || stage === 'overview' || stage === 'techFocus';
+  return isChoosingStage(stage) || stage === 'techFocus';
 }
 
 /**
@@ -119,8 +124,11 @@ export interface BlowStep {
   dt: number;
   /** How many bubbles are blown. */
   count: number;
-  /** One bubble's blow in seconds: the loaded sheet's length (`Sequences.length`); unknown until it has loaded. */
-  length?: number;
+  /**
+   * One bubble's blow in seconds: the loaded sheet's length (`Sequences.length`). Required, so a
+   * caller cannot leave the blow without an end; before the sheet is in (`ready` false) it is not read.
+   */
+  length: number;
   /** With `still`: the moment of the blow a still shows, in seconds (for review stills). */
   at?: number;
 }
@@ -162,6 +170,6 @@ export class BlowRun {
       return;
     }
     this.seconds += dt;
-    if (length !== undefined && this.seconds >= blowLength(count, length)) this.done = true;
+    if (this.seconds >= blowLength(count, length)) this.done = true;
   }
 }

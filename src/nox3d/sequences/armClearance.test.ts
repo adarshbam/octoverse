@@ -5,15 +5,19 @@ import { NOX } from '../config/nox.character';
 import { ARM_IDS } from '../config/types';
 import { armRadius } from '../character/armTube';
 import { strokeAt } from '../motion/stroke';
-import { createSwimRests, swimArmPitch } from '../motion/swimArms';
-import { BODY_X } from '../poses/nox.poses';
-import { swimShapes } from '../poses/nox.swim';
+import { createSwimRests, swimArmPitch, swimShapes as shapesFor } from '../motion/swimArms';
+import { BODY_X, NOX_POSES } from '../poses/nox.poses';
+import { SWIM_POSES } from '../poses/nox.swim';
 import type { Placement } from '../world/types';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ENTRANCE_SECONDS, entranceDrive, entranceFrame, entranceRests } from './entrance';
 import { ENTRANCE_HOLD } from './keys';
-import { NOX_ENTRANCE_GEOMETRY, loadNoxSequences } from './nox.sequences';
+import { NOX_ENTRANCE_GEOMETRY } from '../bundle.nox';
+import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
+
+/** Nox's swim shapes at `segments`. */
+const swimShapes = (segments: number) => shapesFor(SWIM_POSES, NOX_POSES.intro, segments);
 
 // Ruling C6 (Task 19c): Nox opens his arms beside the near left pillar, before the spin. The
 // circle of reach in pathClearance cannot see the open pose's shape, so here the real arms are

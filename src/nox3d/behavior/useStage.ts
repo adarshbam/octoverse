@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import type { ChoosingStage } from '../config/types';
 import type { Project } from '../content/projectTypes';
 import { type StageEvent, type StageState, initialStage, stageReducer } from './stageMachine';
 import type { ReviewOptions } from './urlState';
@@ -42,7 +43,7 @@ export const readReducedMotion = () => window.matchMedia?.(REDUCED_MOTION).match
  */
 export function useStage(
   project: Project,
-  { worldId, mode, options, choosableIn }: { worldId: string; mode: 'page' | 'preview'; options: ReviewOptions; choosableIn: readonly ('intro' | 'overview')[] },
+  { worldId, mode, options, choosableIn }: { worldId: string; mode: 'page' | 'preview'; options: ReviewOptions; choosableIn: readonly ChoosingStage[] },
 ) {
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, readReducedMotion, () => false);
   const knownTechIds = useMemo(

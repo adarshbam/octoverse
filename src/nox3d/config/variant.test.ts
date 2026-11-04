@@ -3,11 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { DUMMY_WORLD } from '../world/fixtures/dummy.world';
+import { SECURITY_WORLD } from '../world/security/config';
+import { dummyWorld } from '../world/fixtures/dummy.world';
 import { validateWorld } from '../world/validateWorld';
-import { DUMMY } from './fixtures/dummy.character';
+import { dummyCharacter } from './fixtures/dummy.character';
 import { NOX } from './nox.character';
 import { clampCharacterConfig } from './validate';
+
+// The fixtures are made over a base (D7: they import no world's files); the page makes them over Nox's.
+const DUMMY = dummyCharacter(NOX);
+const DUMMY_WORLD = dummyWorld(SECURITY_WORLD);
 
 /** Every leaf (number, string, or array of them) of an object, as a dotted path and its value. */
 function leaves(value: unknown, path = ''): [string, unknown][] {
@@ -67,6 +72,14 @@ describe('a variant is configuration only', () => {
   it('the world differs from the security world in palette and layout', () => {
     expect(DUMMY_WORLD.palette.waterFar).not.toBe('#071535');
     expect(DUMMY_WORLD.layout.pillars.length).not.toBe(14);
+  });
+
+  it("the fixtures import no world's files: each is made over the base it is given (D7)", () => {
+    for (const file of ['./fixtures/dummy.character.ts', '../world/fixtures/dummy.world.ts']) {
+      const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+      const imports = [...source.matchAll(/^import .* from '([^']+)';$/gm)].map(m => m[1]);
+      expect(imports, file).toEqual(['../types']);
+    }
   });
 });
 

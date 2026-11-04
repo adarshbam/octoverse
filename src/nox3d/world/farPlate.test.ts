@@ -3,8 +3,9 @@ import { readFileSync, statSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
-import { STAGE_FRAMES, fovFor } from '../stage/framing';
-import { noxFaceAnchor } from '../stage/liveAnchors';
+import { NOX_BUNDLE, NOX_STAGE_FRAMES as STAGE_FRAMES } from '../bundle.nox';
+import { fovFor } from '../stage/framing';
+import { faceAnchor } from '../types/bundle';
 import { pinnedHover } from './cameraHover';
 import { leanCamera } from './lensShift';
 import { FAR_CUT_Z, FAR_HOVER, FAR_VIEWPORTS, dropMips, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
@@ -21,7 +22,7 @@ function hoverCamera(hover: Vec3, viewport: { width: number; height: number }) {
   camera.position.set(offset[0], offset[1], CAMERA_Z + offset[2]);
   camera.lookAt(offset[0] + look[0], offset[1] + look[1], CAMERA_Z + look[2]);
   // The world's lean (App.tsx): pitched up and its frame shifted down, as the page has it.
-  leanCamera(camera, SECURITY_WORLD.camera.tilt, noxFaceAnchor('intro'), [0, 0, CAMERA_Z], { fullWidth: viewport.width, fullHeight: viewport.height, x: 0, y: 0, width: viewport.width, height: viewport.height });
+  leanCamera(camera, SECURITY_WORLD.camera.tilt, faceAnchor(NOX_BUNDLE, 'intro'), [0, 0, CAMERA_Z], { fullWidth: viewport.width, fullHeight: viewport.height, x: 0, y: 0, width: viewport.width, height: viewport.height });
   camera.updateMatrixWorld(true);
   return camera;
 }
@@ -104,7 +105,7 @@ test('the plate takes exactly the layout pieces beyond the cut', () => {
 
 test('far.json sizes are the cards the page needs, and the files are within the budget', () => {
   for (const layer of farData.layers) {
-    const size = farCardSize(layer.z);
+    const size = farCardSize(layer.z, STAGE_FRAMES.intro);
     expect(layer.width, `z ${layer.z} width`).toBeCloseTo(size.width, 2);
     expect(layer.height, `z ${layer.z} height`).toBeCloseTo(size.height, 2);
   }

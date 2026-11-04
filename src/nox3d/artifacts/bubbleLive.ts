@@ -10,6 +10,15 @@ export interface BubbleSpot {
 }
 
 /**
+ * Which side of the face a bubble at body-space `x` is on: -1 left of the character's face origin
+ * (`head.faceOrigin`), 1 right of it (or on it). The face origin is the character's own, so a face
+ * set off the body's centre line moves the split with it.
+ */
+export function sideOfFace(x: number, faceOrigin: readonly [number, number]): number {
+  return Math.sign(x - faceOrigin[0]) || 1;
+}
+
+/**
  * Where the bubbles are right now, written each frame by TechBubbles (in the 3D scene) and read by
  * the page's buttons, the tooltip and Nox's eyes, so the live buttons follow the bubbles, with no
  * React render. `worlds` are the bubbles' centres in world space; `sides` is which side of Nox's

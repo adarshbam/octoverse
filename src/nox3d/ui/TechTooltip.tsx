@@ -1,13 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useInstance } from '../host/instanceContext';
-import { noxFaceAnchor, useAnchorShift } from '../stage/liveAnchors';
+import { useFaceShift } from '../stage/liveAnchors';
 import { bubbleDisc } from './OrbButtons';
 import './tooltip.css';
 import type { TooltipContent } from './tooltipContent';
 import { type Disc, type FaceInput, placeTooltip, sheetFits } from './tooltipPlacement';
-
-/** The tooltip moves as one with Nox's face (it sits beside his presented orb) as the camera hovers. */
-const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
 
 /**
  * How a technology is used in this project, beside its presented orb (panel 4): the name, the
@@ -21,7 +18,8 @@ const TOOLTIP_ANCHOR = noxFaceAnchor('overview');
 export function TechTooltip({ id, content, orb, face, others, delayMs, leaving = false, follow }: { id: string; content: TooltipContent; orb: Disc | null; face: FaceInput; others: readonly Disc[]; delayMs: number; leaving?: boolean; follow?: number }) {
   const instance = useInstance();
   const box = useRef<HTMLDivElement>(null);
-  useAnchorShift(box, TOOLTIP_ANCHOR);
+  // The tooltip moves as one with the face (it sits beside the presented orb) as the camera hovers.
+  useFaceShift(box, 'overview');
   // Where it goes; null for the sheet along the bottom. Measured as a card, which is never shorter
   // than the wider sheet, so a sheet that fits as measured fits as shown.
   const [place, setPlace] = useState<{ left: number; top: number } | null>({ left: 0, top: 0 });

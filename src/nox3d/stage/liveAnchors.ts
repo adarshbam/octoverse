@@ -1,21 +1,9 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { Vec3 } from '../world/types';
 import { projectToScreen } from './anchors';
-import { NOX } from '../config/nox.character';
-import { NOX_POSES } from '../poses/nox.poses';
 import { useInstance } from '../host/instanceContext';
-
-/**
- * Nox's face in the intro, the overview or the detail (the point the overlays stay attached to,
- * and the world camera's lens shift keeps in place): the same place the overview's face spot is
- * projected from, at the head's front.
- */
-export function noxFaceAnchor(stage: 'intro' | 'overview' | 'detail'): Vec3 {
-  const { body } = NOX_POSES[stage];
-  const [ox, oy] = NOX.head.faceOrigin;
-  return [body.x + ox, body.y + oy - 0.1, NOX.head.depth * NOX.head.halfWidth];
-}
+import { type FaceStage, faceAnchor } from '../types/bundle';
 
 /**
  * Where the live camera has moved world points on screen, against the stage camera at rest
@@ -91,4 +79,14 @@ export function useAnchorShift(ref: RefObject<HTMLElement | null>, world: Vec3):
       if (el0) el0.style.translate = '';
     };
   }, [ref, liveAnchors]);
+}
+
+/**
+ * Keeps an element attached to the character's face in `stage` as the camera hovers (`useAnchorShift`
+ * on types/bundle.ts `faceAnchor`, from the instance's world).
+ */
+export function useFaceShift(ref: RefObject<HTMLElement | null>, stage: FaceStage): void {
+  const { bundle } = useInstance();
+  const face = useMemo(() => faceAnchor(bundle, stage), [bundle, stage]);
+  useAnchorShift(ref, face);
 }

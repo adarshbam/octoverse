@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Captures the engine-extraction still set into <outdir> (the same set for baseline/, baseline-b/, current/, final/).
-# Usage, from the worktree root with the DEV server (the captures read window.__noxWorld, which only development builds write)
+# Usage, from the worktree root with the DEV server (the captures read window.__octoverse.world, which only development builds write)
 # on :5191 (NOX_URL=http://localhost:<port> for another) and no browser pane open:
 #   bash docs/superpowers/evidence/engine-extraction/capture-set.sh docs/superpowers/evidence/engine-extraction/baseline
 # Writes 14 stage stills, each with its -mask.png, the panel-2 world still with its mask, and check_stage.txt.

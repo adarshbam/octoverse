@@ -9,9 +9,12 @@ import { GLYPH_SIZE, glyphLayout } from '../character/headEffects/glyphs';
 import { NOX } from '../config/nox.character';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from './keys';
-import { type HeadDraw, SWELL_SECONDS, type SwellFrame, SwellRun, headDraw, restingSwell, swellFrame } from './headSwell';
+import { type HeadDraw, type SwellFrame, SwellRun, headDraw, restingSwell, swellFrame } from './headSwell';
 import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
+
+/** Seconds one opening lasts: Nox's sheet length (the world's data; the run and the frame read it, no engine constant). */
+const SWELL_SECONDS = SEQUENCE_DEFAULTS.headSwell.length;
 
 let seq: Sequences;
 beforeAll(async () => {
@@ -85,7 +88,7 @@ test('closing reverses the opening', () => {
   expect(open.length).toBe(close.length);
 
   // Turned round part-way, the run carries on from the same moment, the other way: no jump.
-  const run = new SwellRun();
+  const run = new SwellRun(SWELL_SECONDS);
   const out = { morph: 0, squeeze: 0, push: 0, effect: 0 };
   run.step({ open: false, still: false, dt: 0 });
   for (let i = 0; i < 60; i++) run.step({ open: true, still: false, dt: 1 / 60 });
@@ -101,12 +104,12 @@ test('closing reverses the opening', () => {
 
 test('the head starts where the page opens it, and with motion off it jumps to its end', () => {
   const out = { morph: 0, squeeze: 0, push: 0, effect: 0 };
-  const opened = new SwellRun();
+  const opened = new SwellRun(SWELL_SECONDS);
   opened.step({ open: true, still: false, dt: 1 / 60 });
   expect(opened.moving).toBe(false);
   expect(opened.frame(seq, 1, out)).toEqual(restingSwell(true));
   // Reduced motion or ?freeze: no anticipation, no overshoot, straight to the end state.
-  const still = new SwellRun();
+  const still = new SwellRun(SWELL_SECONDS);
   still.step({ open: false, still: true, dt: 1 / 60 });
   still.step({ open: true, still: true, dt: 1 / 60 });
   expect(still.moving).toBe(false);
@@ -117,11 +120,11 @@ test('the head starts where the page opens it, and with motion off it jumps to i
   still.step({ open: true, still: true, dt: 1 / 60 });
   expect(still.frame(null, 0.001, out)).toEqual(restingSwell(true));
   // A review still (`?freeze&swell=<s>`) holds that moment of the opening.
-  const shot = new SwellRun();
+  const shot = new SwellRun(SWELL_SECONDS);
   shot.step({ open: true, still: true, dt: 1 / 60, at: 0.2 });
   expect(shot.frame(seq, 1, out).squeeze).toBeCloseTo(swellFrame(seq, 0.2, true).squeeze, 6);
   // Without its sheet, the stage blend's own easing drives the head: no squeeze, no overshoot.
-  const bare = new SwellRun();
+  const bare = new SwellRun(SWELL_SECONDS);
   bare.step({ open: true, still: false, dt: 1 / 60 });
   expect(bare.frame(null, 0.5, out)).toMatchObject({ morph: 0.5, squeeze: 0 });
   expect(bare.frame(null, 1, out)).toEqual(restingSwell(true));
@@ -201,4 +204,21 @@ test('the glyphs float clear of the face and the dome\'s panel', () => {
     expect(y - GLYPH_SIZE / 2).toBeGreaterThan(panelTop);
     expect(Math.abs(seat.x + g.x)).toBeLessThan(dome.halfWidth);
   }
+});
+
+test("the swell's clock runs as long as the world's sheet says, not a Nox constant", () => {
+  const slow = new SwellRun(3);
+  slow.step({ open: false, still: false, dt: 0 });
+  slow.step({ open: true, still: false, dt: SWELL_SECONDS + 0.1 });
+  // Past Nox's 1.5 s it is still opening; at 3 s it is over.
+  expect(slow.moving).toBe(true);
+  slow.step({ open: true, still: false, dt: 3 });
+  expect(slow.moving).toBe(false);
+  expect(slow.seconds).toBe(3);
+  // A still past the end holds the end of that length.
+  const shot = new SwellRun(3);
+  shot.step({ open: true, still: true, dt: 1 / 60, at: 10 });
+  expect(shot.seconds).toBe(3);
+  // The frame reads the loaded sheet's own length: Nox's is his defaults'.
+  expect(seq.length('headSwell')).toBe(SWELL_SECONDS);
 });

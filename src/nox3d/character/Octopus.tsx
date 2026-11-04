@@ -13,16 +13,15 @@ import { ARM_IDS, type ArtifactConfig, type CharacterConfig, type StageId } from
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
 import { strokeAt } from '../motion/stroke';
-import { createSwimRests, swimArmPitch } from '../motion/swimArms';
-import { BODY_X } from '../poses/nox.poses';
-import { swimShapes } from '../poses/nox.swim';
+import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
+import type { StagePose, SwimPoseSet } from '../poses/types';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
-import type { BlowSheet } from '../sequences/bubbleBlow';
+import { type BlowSheet, bubblesExist } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
-import { debugWindow } from '../host/debugHooks';
+import { debugWindow, report, reportObject } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
@@ -70,6 +69,10 @@ export interface EntranceSheet {
 
 export interface OctopusProps {
   config: CharacterConfig;
+  /** The character's swim: the stroke's arm shapes, and the body's centre line the swim turns about (`WorldBundle.swim`). */
+  swimPoses: SwimPoseSet;
+  /** The pose the swim settles into: the intro's (`WorldBundle.poses.intro`). */
+  introPose: StagePose;
   /** How the world's artifacts are placed, appear and are chosen: the strategies this character's bubbles and hold run (artifacts/strategies.ts). */
   artifacts: ArtifactConfig;
   /** Moves Nox between stage poses; sampled every frame. */
@@ -136,8 +139,8 @@ export interface OctopusProps {
    * plays the head swell (sequences/headSwell.ts). Without it, the stage blend's headMorph decides.
    */
   headOpen?: boolean;
-  /** The head swell's sheet; until it is in (or if it fails), the stage blend opens the head as before. */
-  swellSheet?: SwellSheet;
+  /** The head swell's sheet; until it is in (or if it fails), the stage blend opens the head as before. Its `seconds` time the swell's clock. */
+  swellSheet: SwellSheet;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -147,7 +150,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
   const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
@@ -169,7 +172,8 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
   // The entrance's stroke timing (the arguments entranceFrame takes of the character).
   const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
-  const swell = useMemo(() => ({ run: new SwellRun(), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), []);
+  const swellSeconds = swellSheet.seconds;
+  const swell = useMemo(() => ({ run: new SwellRun(swellSeconds), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), [swellSeconds]);
   const bubbleState = useMemo<BubbleState>(() => ({
     show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
     orbit: orbs.map(() => new THREE.Vector3()),
@@ -596,12 +600,12 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
     const mantle = swim && stroke ? 1 + stroke.mantle * (1 - swim.settle) : 1;
     // The head swell (sequences/headSwell.ts): opening or closing plays its sheet on frame time; with
     // motion off it is at its end at once (a review still, `?freeze&swell=<s>`, holds that moment).
-    swell.run.step({ open: headOpen ?? pose.headMorph >= 0.5, still: freeze || reducedMotion, dt: Math.min(delta, ENTRANCE_MAX_STEP), at: swellSheet?.at });
-    const sf = swell.run.frame(swellSheet?.sequences ?? null, pose.headMorph, swell.frame);
+    swell.run.step({ open: headOpen ?? pose.headMorph >= 0.5, still: freeze || reducedMotion, dt: Math.min(delta, ENTRANCE_MAX_STEP), at: swellSheet.at });
+    const sf = swell.run.frame(swellSheet.sequences, pose.headMorph, swell.frame);
     const hd = headDraw(sf, swell.draw);
-    // The swell as the development build reports it, for the end-to-end tests (`window.__noxSwell`).
+    // The swell as the development build reports it, for the end-to-end tests (`window.__octoverse.swell`; `__noxSwell` for Nox).
     const probe = import.meta.env.DEV ? debugWindow(instance) : null;
-    if (probe) Object.assign((probe.__noxSwell ??= {}), { open: swell.run.open, moving: swell.run.moving, morph: sf.morph, effect: sf.effect, push: sf.push });
+    if (probe) Object.assign(reportObject(instance, 'swell', () => ({})), { open: swell.run.open, moving: swell.run.moving, morph: sf.morph, effect: sf.effect, push: sf.push });
     // Before it swells the head squeezes a little: the anticipation.
     head.current!.scale.set((1 + b * 0.016) * mantle * hd.across, (1 + b * 0.011) * mantle * hd.up, (1 + b * 0.016) * mantle * hd.across);
 
@@ -615,7 +619,7 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
     // The bubbles: shown in the intro and the overview once the entrance has settled (never in it),
     // hidden beside the detail panel. Their orbits ease to still while one is hovered, held or in
     // focus, and stand still with motion off.
-    bubbleState.show = !silhouette && !solo && (stage === 'intro' || stage === 'overview' || stage === 'techFocus');
+    bubbleState.show = !silhouette && !solo && bubblesExist(stage);
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = instance.hover.bubble || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
@@ -635,8 +639,8 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
     hold.instant = reducedMotion || (freeze && !holdStill);
     hold.choose(selected >= 0 ? selected : null, holdStill ? 0 : now);
     const holds = hold.sample(holdStill ? holdAt : now);
-    // The hold as the development build reports it, for the end-to-end tests (`window.__noxHold`).
-    if (probe) probe.__noxHold = holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release }));
+    // The hold as the development build reports it, for the end-to-end tests (`window.__octoverse.hold`; `__noxHold` for Nox).
+    if (probe) report(instance, 'hold', holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release })));
     m.holdWeight.fill(0);
     for (const sum of m.holdSum) sum.set(0, 0);
     for (const key of m.holdFrom.keys()) if (!holds.some(f => f.bubble === key)) m.holdFrom.delete(key);
@@ -658,7 +662,7 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
     const pointerArm = !armDrive && !swim && reachesForPointer(stage, out, gaze.tracking, instance.hover.bubble) ? reachingArm(rig.arms.map(({ chain }) => ({ x: chain.tipX, y: chain.tipY })), m.target, config.head) : -1;
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
-    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(rig.arms[0].chain.segments), rig.swimRests) : null;
+    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests) : null;
     const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
     const straighten = drive ? drive.straighten : armDrive?.straighten;
     let offset = 0;
@@ -674,7 +678,7 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
       chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
       // Toward the body: the swing about the root that brings this arm's tip toward the body's middle
       // (from where it was last frame). The startle draws the arms in; the arrival wiggle fans them out and back.
-      const inward = inwardSign(BODY_X, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
+      const inward = inwardSign(swimPoses.bodyX, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
       chain.solve({
         time: t,
         sway: moving * personality.sway * (1 - 0.6 * w),
@@ -740,7 +744,7 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
   const castShadow = accents !== undefined;
   return (
     <group ref={float}>
-      <group ref={swimTurn} position={[BODY_X, PIVOT_Y, 0]} rotation-order="YXZ">
+      <group ref={swimTurn} position={[swimPoses.bodyX, PIVOT_Y, 0]} rotation-order="YXZ">
       <group ref={turn}>
         {/* The aura, at the body's middle, moves and turns with him; a still's extra turn (?yaw) is
             undone, so the card stays behind him, where his skin hides its middle, and never covers him. */}
@@ -749,7 +753,7 @@ export function Octopus({ config, artifacts, blender, stage, expression, freeze,
             <Aura aura={config.glow.aura} meshRef={auraMesh} />
           </group>
         )}
-        <group ref={content} position={[-BODY_X, -PIVOT_Y, 0]}>
+        <group ref={content} position={[-swimPoses.bodyX, -PIVOT_Y, 0]}>
           {rig.arms.map(({ tube }, i) => (
             <mesh key={i} geometry={tube.geometry} material={rig.armMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}

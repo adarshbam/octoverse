@@ -1,5 +1,7 @@
+import { settledArms } from '../behavior/poseBlend';
 import type { ArmRest } from '../character/armChain';
 import { ARM_IDS, type ArmId } from '../config/types';
+import type { StagePose, SwimPoseSet } from '../poses/types';
 import { SWIM_PITCH, type StrokeFrame } from './stroke';
 
 // The arms' shape while Nox swims (spec 9.5/9.6), each frame: the stroke's trail, opened toward the
@@ -14,6 +16,16 @@ export interface SwimShapes {
   open: Record<ArmId, ArmRest>;
   /** The pose Nox settles into (the intro). */
   rest: Record<ArmId, ArmRest>;
+}
+
+/**
+ * A character's swim shapes as arm rests at `segments`: its swim's trail and open umbrella, and
+ * `rest`, the pose it settles into (the intro). Worked out once per pose and segment count
+ * (settledArms caches them); the first call builds the swim's poses, so the stage makes it before
+ * the swim starts (host/WorldHost.tsx), not on its first frame.
+ */
+export function swimShapes(swim: SwimPoseSet, rest: StagePose, segments: number): SwimShapes {
+  return { trail: settledArms(swim.trail, segments), open: settledArms(swim.open, segments), rest: settledArms(rest, segments) };
 }
 
 /**

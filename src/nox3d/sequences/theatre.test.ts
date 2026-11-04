@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { parseUrlState } from '../behavior/urlState';
 import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from './keys';
 import { NOX_PROJECT_ID, loadNoxSequences, noxSequenceSet } from './nox.sequences';
 import state from './state/octoverse.theatre.json';
-import { loadSequences } from './theatre';
+import { loadSequences, loadWorldSequences } from './theatre';
 
 test('the repo state loads in Node and samples the defaults', async () => {
   const seq = await loadNoxSequences();
@@ -49,7 +49,7 @@ test('the project loads once: every call shares one promise', () => {
 });
 
 test('loading is memoised per project id: the same id is one promise, another id is a project of its own', async () => {
-  const mine = { projectId: 'theatre-test-a', state, defaults: SEQUENCE_DEFAULTS };
+  const mine = { projectId: 'theatre-test-a', state, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE };
   const first = loadSequences(mine);
   expect(loadSequences({ ...mine })).toBe(first);
   const other = loadSequences({ ...mine, projectId: 'theatre-test-b' });
@@ -61,7 +61,7 @@ test('loading is memoised per project id: the same id is one promise, another id
 });
 
 test('a StrictMode-style double call (two calls before the first settles) makes one project: Theatre would throw on a duplicate id', async () => {
-  const spec = { projectId: 'theatre-test-strict', state, defaults: SEQUENCE_DEFAULTS };
+  const spec = { projectId: 'theatre-test-strict', state, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE };
   const calls = [loadSequences(spec), loadSequences(spec)];
   expect(calls[1]).toBe(calls[0]);
   await expect(Promise.all(calls)).resolves.toBeDefined();
@@ -70,7 +70,7 @@ test('a StrictMode-style double call (two calls before the first settles) makes 
 });
 
 test('a failed load is forgotten, so the next call tries again', async () => {
-  const bad = { projectId: 'theatre-test-bad', state: { not: 'a theatre state' }, defaults: SEQUENCE_DEFAULTS };
+  const bad = { projectId: 'theatre-test-bad', state: { not: 'a theatre state' }, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE };
   const first = loadSequences(bad);
   await expect(first).rejects.toThrow();
   const again = loadSequences({ ...bad, state });
@@ -78,15 +78,36 @@ test('a failed load is forgotten, so the next call tries again', async () => {
   await expect(again).resolves.toBeDefined();
 });
 
-test('the entrance shape travels with the project (a full turn when a spec names none), and a sequence a world did not give is named', async () => {
+test('the entrance shape travels with the project (every set names its own: there is no default), and a sequence a world did not give is named', async () => {
   const nox = await loadNoxSequences();
   expect(nox.entrance).toEqual(NOX_ENTRANCE);
   expect(noxSequenceSet(state)).toMatchObject({ projectId: NOX_PROJECT_ID, entrance: { turn: 2 * Math.PI, spiral: true } });
-  const quarter = await loadSequences({ projectId: 'theatre-test-turn', state, defaults: { arrival: SEQUENCE_DEFAULTS.arrival }, entrance: { turn: Math.PI / 2, spiral: true } });
+  const quarter = await loadSequences({ projectId: 'theatre-test-turn', state, defaults: { arrival: SEQUENCE_DEFAULTS.arrival }, entrance: { ...NOX_ENTRANCE, turn: Math.PI / 2 } });
   expect(quarter.entrance.turn).toBe(Math.PI / 2);
+  expect(quarter.entrance.arc).toEqual(NOX_ENTRANCE.arc);
   expect(() => quarter.sample('entrance', 'main', 0)).toThrow(/No sequence "entrance"/);
-  const bare = await loadSequences({ projectId: 'theatre-test-bare', state, defaults: SEQUENCE_DEFAULTS });
-  expect(bare.entrance.turn).toBe(2 * Math.PI);
+  // @ts-expect-error a sequence set without its entrance shape is not one
+  const bare: Parameters<typeof loadSequences>[0] = { projectId: 'theatre-test-bare', state, defaults: SEQUENCE_DEFAULTS };
+  expect(bare.projectId).toBe('theatre-test-bare');
+});
+
+test("a world's sequence set fetches its saved state on the first load only, and every load of its project id shares one promise", async () => {
+  const fetchState = vi.fn(() => Promise.resolve(state));
+  const set = { projectId: 'theatre-test-world', state: fetchState, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE };
+  const first = loadWorldSequences(set);
+  expect(loadWorldSequences({ ...set })).toBe(first);
+  const seq = await first;
+  expect(loadWorldSequences(set)).toBe(first);
+  expect(fetchState).toHaveBeenCalledTimes(1);
+  expect(seq.length('headSwell')).toBe(SEQUENCE_DEFAULTS.headSwell.length);
+});
+
+test("a world's state that fails to arrive is forgotten, so the next load fetches it again", async () => {
+  const fetchState = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(state);
+  const set = { projectId: 'theatre-test-world-offline', state: fetchState, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE };
+  await expect(loadWorldSequences(set)).rejects.toThrow('offline');
+  await expect(loadWorldSequences(set)).resolves.toBeDefined();
+  expect(fetchState).toHaveBeenCalledTimes(2);
 });
 
 test('studio is dev only', () => {

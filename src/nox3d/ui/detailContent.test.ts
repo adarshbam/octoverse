@@ -3,6 +3,7 @@ import { noxProject } from '../content/noxProject';
 import { noxTechnologies } from '../content/noxTechnologies';
 import type { Project } from '../content/projectTypes';
 import { DETAIL_PANEL_BOX, detailPages, detailTechnologies, featureCards, overviewText, safeHref } from './detailContent';
+import { NOX_STAGE_FRAMES } from '../bundle.nox';
 import { stageBoxFor } from './useStageBox';
 
 test('the sections listed are the overview, then every section with something in it, in order', () => {
@@ -46,7 +47,7 @@ test('only web links open', () => {
 
 test('the panel lands where panel 5 paints it, framed as panel 5', () => {
   // The high-quality panel 5 is 1672 x 941; its panel spans (722, 222) to (1637, 846).
-  const box = stageBoxFor('detail', DETAIL_PANEL_BOX, { width: 1672, height: 941 });
+  const box = stageBoxFor(NOX_STAGE_FRAMES.detail, DETAIL_PANEL_BOX, { width: 1672, height: 941 });
   expect(Math.abs(box.left - 722)).toBeLessThan(4);
   expect(Math.abs(box.top - 222)).toBeLessThan(4);
   expect(Math.abs(box.left + box.width - 1637)).toBeLessThan(4);

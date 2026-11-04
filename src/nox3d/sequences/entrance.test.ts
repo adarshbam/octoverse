@@ -3,13 +3,18 @@ import { NOX } from '../config/nox.character';
 import { ArmChain } from '../character/armChain';
 import { ARM_IDS } from '../config/types';
 import { strokeAt } from '../motion/stroke';
-import { createSwimRests } from '../motion/swimArms';
-import { swimShapes } from '../poses/nox.swim';
+import { createSwimRests, swimShapes as shapesFor } from '../motion/swimArms';
+import { NOX_POSES } from '../poses/nox.poses';
+import { SWIM_POSES } from '../poses/nox.swim';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
-import { NOX_ENTRANCE_GEOMETRY, loadNoxSequences } from './nox.sequences';
+import { NOX_ENTRANCE_GEOMETRY } from '../bundle.nox';
+import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
+
+/** Nox's swim shapes at `segments`. */
+const swimShapes = (segments: number) => shapesFor(SWIM_POSES, NOX_POSES.intro, segments);
 
 let seq: Sequences;
 beforeAll(async () => {
@@ -100,19 +105,19 @@ test('each stroke is a surge: Nox slows as the arms open and speeds up after the
 
 test('one full turn between 6.4 and 7.4 s along the spiral', () => {
   const { r0 } = ENTRANCE_SPIRAL;
-  const radius = (spin: number) => Math.hypot(...spiralOffset(spin, r0));
+  const radius = (spin: number) => Math.hypot(...spiralOffset(spin, ENTRANCE_SPIRAL));
   expect(radius(0)).toBeCloseTo(r0, 12);
-  expect(spiralOffset(1, r0)).toEqual([0, 0, 0]);
+  expect(spiralOffset(1, ENTRANCE_SPIRAL)).toEqual([0, 0, 0]);
   let last = Infinity;
   for (const spin of times(0, 1, 0.001)) {
     expect(radius(spin)).toBeLessThan(last);
     last = radius(spin);
-    expect(spiralOffset(spin, r0)[1]).toBe(0);
+    expect(spiralOffset(spin, ENTRANCE_SPIRAL)[1]).toBe(0);
   }
   expect(at(6.4).spin).toBe(0);
   expect(at(7.4).spin).toBe(1);
   // The swim ends where the arc starts, and the arc ends on the spot.
-  expect(dist(at(6.4).position, spiralOffset(0, r0))).toBeLessThan(1e-9);
+  expect(dist(at(6.4).position, spiralOffset(0, ENTRANCE_SPIRAL))).toBeLessThan(1e-9);
   expect(dist(at(7.4).position, [0, 0, 0])).toBeLessThan(1e-9);
   // Facing turns once round, the way the arc curls: on the arc Nox faces along his way.
   let turned = 0;
@@ -126,8 +131,8 @@ test('one full turn between 6.4 and 7.4 s along the spiral', () => {
   // Exactly so for a pure log spiral; this one closes on the spot (the - phi^-4), so it turns in
   // toward it at the end, inside the last quarter of r0.
   for (const spin of times(0.001, 0.999, 0.001).filter(spin => radius(spin) > 0.25 * r0)) {
-    const a = spiralOffset(spin - 1e-6, r0);
-    const b = spiralOffset(spin + 1e-6, r0);
+    const a = spiralOffset(spin - 1e-6, ENTRANCE_SPIRAL);
+    const b = spiralOffset(spin + 1e-6, ENTRANCE_SPIRAL);
     const way = [b[0] - a[0], b[2] - a[2]];
     const facing = [Math.sin(2 * Math.PI * spin), Math.cos(2 * Math.PI * spin)];
     expect((facing[0] * way[0] + facing[1] * way[1]) / Math.hypot(way[0], way[1])).toBeGreaterThan(Math.cos((8 * Math.PI) / 180));
@@ -294,7 +299,7 @@ test('the clearance check takes the arm reach and pillar footprint as arguments'
 });
 
 test('the entrance turn is data: a half turn has half the yaw all the way round', () => {
-  const half: Sequences = { ...seq, entrance: { turn: Math.PI, spiral: true } };
+  const half: Sequences = { ...seq, entrance: { ...seq.entrance, turn: Math.PI } };
   for (const s of [6.6, 6.9, 7.1, 7.3]) {
     const full = entranceFrame(seq, s, NOX_ENTRANCE_GEOMETRY).yaw;
     expect(full, `${s} s`).not.toBe(0);

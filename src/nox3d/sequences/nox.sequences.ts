@@ -1,7 +1,5 @@
-import { NOX } from '../config/nox.character';
-import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from './entrance';
 import { NOX_ENTRANCE, SEQUENCE_DEFAULTS, type SequenceSet } from './keys';
-import { type Sequences, loadSequences } from './theatre';
+import { type Sequences, type SequenceSpec, loadWorldSequences } from './theatre';
 
 // Nox's sequences as data for the loader: his Theatre project, the keys each sheet starts from
 // (keys.ts) and the entrance's full turn. The saved state is the repo's own (`state/`), imported
@@ -10,21 +8,18 @@ import { type Sequences, loadSequences } from './theatre';
 /** The Theatre project's id: part of the saved state, so it does not change with the world's name. */
 export const NOX_PROJECT_ID = 'OctoVerse';
 
-/** Nox's sequence set, with the saved state it was given. */
-export const noxSequenceSet = (state: unknown): SequenceSet => ({ projectId: NOX_PROJECT_ID, state, defaults: SEQUENCE_DEFAULTS, entrance: NOX_ENTRANCE });
+/** Nox's sequence set (`NOX_BUNDLE.sequences`): the saved state is fetched on the first load. */
+export const NOX_SEQUENCES: SequenceSet = {
+  projectId: NOX_PROJECT_ID,
+  state: () => import('./state/octoverse.theatre.json').then(module => module.default),
+  defaults: SEQUENCE_DEFAULTS,
+  entrance: NOX_ENTRANCE,
+};
 
-let noxLoad: Promise<Sequences> | null = null;
+/** Nox's sequence set with a saved state already in hand (for `loadSequences`). */
+export const noxSequenceSet = (state: unknown): SequenceSpec => ({ ...NOX_SEQUENCES, state });
 
-/** Loads Nox's project once (the loader keeps the promise per project id; this keeps the state's import too). A failed load is forgotten. */
+/** Loads Nox's project once (the loader keeps the promise per project id, from every caller). A failed load is forgotten. */
 export function loadNoxSequences(): Promise<Sequences> {
-  noxLoad ??= import('./state/octoverse.theatre.json')
-    .then(module => loadSequences(noxSequenceSet(module.default)))
-    .catch((error: unknown) => {
-      noxLoad = null;
-      throw error;
-    });
-  return noxLoad;
+  return loadWorldSequences(NOX_SEQUENCES);
 }
-
-/** What the entrance's clearance check measures Nox with: his stroke, his arms' reach and the kit's pillar footprint. */
-export const NOX_ENTRANCE_GEOMETRY: EntranceGeometry = { swim: NOX.personality.swim, armHalfSpan: ARM_HALF_SPAN, pillarHalf: PILLAR_HALF };

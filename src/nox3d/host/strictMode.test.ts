@@ -1,6 +1,11 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { attachWindowListeners } from './listeners';
+import { NOX_SEQUENCES } from '../sequences/nox.sequences';
+import { loadWorldSequences } from '../sequences/theatre';
 import { createSheets, startSheetLoaders } from './instanceModel';
+
+/** The world's loader, as the host passes it (host/WorldHost.tsx). */
+const load = () => loadWorldSequences(NOX_SEQUENCES);
 
 // The effect order React's StrictMode gives every mount in development: set up, clean up, set up
 // again. The real page under StrictMode is tests/e2e/isolation.spec.ts (f); this is the same order
@@ -29,11 +34,11 @@ function strictMount(effect: () => () => void): () => void {
 
 test('a page instance mounted under StrictMode registers its listeners once and loads its sheets and project once', async () => {
   const entranceSeen = vi.fn();
-  const sheets = createSheets();
+  const sheets = createSheets(NOX_SEQUENCES);
   const wants = { entrance: true, blow: true, swell: true };
   const stop = strictMount(() => {
     const off = attachWindowListeners('page', ['keydown', 'pointerdown'], () => {});
-    const stopSheets = startSheetLoaders(sheets, wants, entranceSeen);
+    const stopSheets = startSheetLoaders(sheets, wants, load, entranceSeen);
     return () => {
       off();
       stopSheets();
@@ -53,10 +58,10 @@ test('a page instance mounted under StrictMode registers its listeners once and 
   // Unmounted, nothing stays; mounted again (the page navigates back), one set, and no new project.
   stop();
   expect(listening()).toBe(0);
-  const again = createSheets();
+  const again = createSheets(NOX_SEQUENCES);
   const stopAgain = strictMount(() => {
     const off = attachWindowListeners('page', ['keydown', 'pointerdown'], () => {});
-    const stopSheets = startSheetLoaders(again, wants, () => {});
+    const stopSheets = startSheetLoaders(again, wants, load, () => {});
     return () => {
       off();
       stopSheets();
@@ -70,10 +75,10 @@ test('a page instance mounted under StrictMode registers its listeners once and 
 }, 30_000);
 
 test('a preview mounted under StrictMode registers no listener and still loads its sheets through the one project', async () => {
-  const sheets = createSheets();
+  const sheets = createSheets(NOX_SEQUENCES);
   const stop = strictMount(() => {
     const off = attachWindowListeners('preview', ['keydown', 'pointerdown'], () => {});
-    const stopSheets = startSheetLoaders(sheets, { entrance: false, blow: true, swell: true }, () => {});
+    const stopSheets = startSheetLoaders(sheets, { entrance: false, blow: true, swell: true }, load, () => {});
     return () => {
       off();
       stopSheets();

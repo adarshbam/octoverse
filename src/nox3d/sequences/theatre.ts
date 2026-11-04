@@ -1,5 +1,5 @@
 import type { ISheet } from '@theatre/core';
-import { type EntranceShape, type SequenceDefaults, type SequenceId, type SequenceSet } from './keys';
+import type { EntranceShape, SequenceDefaults, SequenceId, SequenceSet } from './keys';
 
 export type { SequenceId, SequenceSet } from './keys';
 
@@ -18,14 +18,30 @@ export interface Sequences {
   readonly entrance: EntranceShape;
 }
 
-/** What the loader needs of a world's sequence set: its `entrance` shape is optional (a full turn on the spiral when absent). */
-export type SequenceSpec = Pick<SequenceSet, 'projectId' | 'state' | 'defaults'> & { entrance?: EntranceShape };
-
-/** Nox's turn, used when a spec names none: once round. */
-const FULL_TURN: EntranceShape = { turn: 2 * Math.PI, spiral: true };
+/** What the loader needs of a world's sequence set, with its saved state already in hand. */
+export type SequenceSpec = Omit<SequenceSet, 'state'> & { state: unknown };
 
 /** One load per Theatre project id: `getProject` throws when an id is made twice. */
 const loading = new Map<string, Promise<Sequences>>();
+
+/**
+ * Loads a world's sequences (`WorldBundle.sequences`): fetches its saved state on the first call
+ * for its project id, then loads the project as `loadSequences` does. Every later call for that id,
+ * from any instance of the world, gets the same promise (a failed load is forgotten).
+ */
+export function loadWorldSequences(set: SequenceSet): Promise<Sequences> {
+  const known = loading.get(set.projectId);
+  if (known) return known;
+  const started = set
+    .state()
+    .then(state => load({ ...set, state }))
+    .catch((error: unknown) => {
+      loading.delete(set.projectId);
+      throw error;
+    });
+  loading.set(set.projectId, started);
+  return started;
+}
 
 /**
  * Loads a project from a world's saved state; resolves when ready. Works in Node and in the
@@ -47,7 +63,7 @@ export function loadSequences(spec: SequenceSpec): Promise<Sequences> {
   return started;
 }
 
-async function load({ projectId, state, defaults, entrance = FULL_TURN }: SequenceSpec): Promise<Sequences> {
+async function load({ projectId, state, defaults, entrance }: SequenceSpec): Promise<Sequences> {
   const { getProject, types } = await import('@theatre/core');
   const project = getProject(projectId, { state: state as never });
   await project.ready;

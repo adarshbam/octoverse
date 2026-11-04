@@ -45,7 +45,7 @@ body,
   font-weight: 500;
   letter-spacing: 0.62em;
   padding-left: 0.62em;
-  color: #ff3a55;
+  color: var(--oct-accent-hot, #ff3a55);
 }
 
 .title {
@@ -107,5 +107,5 @@ body,
 
 .nameplate span {
   font-size: 2.1cqh;
-  color: #d8cfe2;
+  color: var(--oct-nameplate-label, #d8cfe2);
 }

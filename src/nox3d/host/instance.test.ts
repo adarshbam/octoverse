@@ -4,10 +4,14 @@ import { expect, test } from 'vitest';
 import { EngineInstance } from './EngineInstance';
 import { type InstanceState, createInstanceState } from './instance';
 import { useInstance } from './instanceContext';
+import { NOX_BUNDLE } from '../bundle.nox';
+
+/** A world with this id: Nox's data under another name (the instance reads only the id and mode here). */
+const world = (id: string) => ({ ...NOX_BUNDLE, id });
 
 test('two instance states share no reference', () => {
-  const a = createInstanceState('a', 'page');
-  const b = createInstanceState('b', 'preview');
+  const a = createInstanceState(world('a'), 'page');
+  const b = createInstanceState(world('b'), 'preview');
   expect(a.bubbleLive).not.toBe(b.bubbleLive);
   expect(a.liveAnchors).not.toBe(b.liveAnchors);
   expect(a.hover).not.toBe(b.hover);
@@ -15,17 +19,17 @@ test('two instance states share no reference', () => {
 });
 
 test('an instance carries its id and mode, and starts with the relief shown and no hover', () => {
-  const state = createInstanceState('nox', 'page');
+  const state = createInstanceState(world('nox'), 'page');
   expect(state.id).toBe('nox');
   expect(state.mode).toBe('page');
   expect(state.hover.bubble).toBe(false);
   expect(state.reliefGate.value).toBe(1);
-  expect(createInstanceState('p', 'preview').mode).toBe('preview');
+  expect(createInstanceState(world('p'), 'preview').mode).toBe('preview');
 });
 
 test('writing one instance leaves the other as it was', () => {
-  const a = createInstanceState('a', 'page');
-  const b = createInstanceState('b', 'page');
+  const a = createInstanceState(world('a'), 'page');
+  const b = createInstanceState(world('b'), 'page');
   a.bubbleLive.resize(3);
   a.hover.bubble = true;
   a.reliefGate.value = 0;
@@ -36,8 +40,8 @@ test('writing one instance leaves the other as it was', () => {
 });
 
 test('one instance\'s subscribers are not told of the other\'s frame', () => {
-  const a = createInstanceState('a', 'page');
-  const b = createInstanceState('b', 'page');
+  const a = createInstanceState(world('a'), 'page');
+  const b = createInstanceState(world('b'), 'page');
   let told = 0;
   b.bubbleLive.subscribe(() => told++);
   a.bubbleLive.notify();
@@ -55,7 +59,7 @@ test('useInstance outside an EngineInstance throws a named error', () => {
 });
 
 // createElement takes the children as arguments; the props type asks for them too, so it is told they are there.
-const mount = (id: string, mode: 'page' | 'preview', ...children: ReactNode[]) => createElement(EngineInstance, { id, mode } as ComponentProps<typeof EngineInstance>, ...children);
+const mount = (id: string, mode: 'page' | 'preview', ...children: ReactNode[]) => createElement(EngineInstance, { bundle: world(id), mode } as ComponentProps<typeof EngineInstance>, ...children);
 
 test('an EngineInstance gives its children one state with its id and mode; two providers give two', () => {
   const seen: InstanceState[] = [];

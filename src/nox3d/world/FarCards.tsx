@@ -1,6 +1,7 @@
 import { useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
+import { useInstance } from '../host/instanceContext';
 import { dropMips, farCardSize } from './farPlate';
 import { holdKtx2Loader, ktx2Loader } from './kitLoader';
 import type { WorldConfig } from './types';
@@ -65,13 +66,15 @@ export function FarCards({ plate, scale = 1, onSettled }: { plate: NonNullable<W
     };
   }, [gl, plate, drop, onSettled]);
 
+  // Sized for the intro's framing of the instance's world.
+  const introFrame = useInstance().bundle.stage.frames.intro;
   const cards = useMemo(() => {
     const geometries = plate.layers.map(layer => {
-      const { width, height } = farCardSize(layer.z);
+      const { width, height } = farCardSize(layer.z, introFrame);
       return new THREE.PlaneGeometry(width, height);
     });
     return geometries;
-  }, [plate]);
+  }, [plate, introFrame]);
   useDisposables(cards);
 
   const materials = useMemo(
