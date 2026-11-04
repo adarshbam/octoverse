@@ -82,7 +82,7 @@ What changed:
 Stills, all in `docs/superpowers/evidence/aether/m2/` (no videos):
 - `t10-p2-vs-world-intro.webp` (P2 left, render right), `t10-p2-vs-world-intro-samples.webp` (with the 23 sample boxes), `t10-p2-vs-world-intro-desktop-tier.webp`;
 - `t10-render-intro-desktop-1536.webp`: the frozen intro as your page draws it;
-- `t10-render-entering-t3.2-her-and-portal.png`: her and the portal in one frame; `t10-fix1-relic-entrance-t1-to-t8.4.webp`: the eight entrance frames the relic check reads;
+- `t10-render-entering-t3.2-her-and-portal.png`: her and the portal in one frame; `t10-fix1-relic-entrance-t1-to-t8.4.webp`: the eight entrance frames the relic check reads; `t10-fix3-relic-check.txt`: its latest output;
 - `t10-world-capture-intro.png` (+ mask), `t10-world-capture-intro-desktop-tier.png`;
 - `t10-numbers.txt`: every check's output.
 
@@ -92,10 +92,13 @@ Numbers (rounds in `docs/superpowers/reviews/aether.md`, "Task 10"):
   - Open: jellyfish bell 13.2 (12.4 desktop; engine request below), plus the three Task 6 owner decisions (arm body upper 39.4, beads 89.0 / 44.4).
   - Her own samples are unchanged.
 - **All four global checks pass:** warm core 154; pink, not white R-G 40 / 37, G 215 / 218; periwinkle arms B 240 / 239; indigo water B 88, B-R 72. Mean inside her silhouette and IoU (0.8505) are unchanged.
-- **Relic, entrance (over the whole placeholder entrance, fix round 1):** her and the portal in one frame, through the same camera, at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s, plus the portal over one full glyph pulse:
-  - Portal over face glow, frame by frame: 0.74, 0.84, 0.76, 0.77, 0.81, 0.56, **0.95** (t 7.5: a white speck on the coral by the steps, Y 0.864), 0.82. At t 1 she is too far in the murk for a face glow; that frame is compared with her intro face glow (Y 0.908).
-  - The glyph pulse at its peak (frozen stills hold it at mid level): with bubbles filtered out, the portal's brightest is at most Y 0.755 (ratio 0.86 against her dimmest face glow, 0.873).
-  - Pass, worst ratio 0.95. Task 17 runs it again on the real entrance.
+- **Relic, entrance (over the whole placeholder entrance, fix rounds 1 to 3):** her and the portal in one frame, through the same camera, at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s, plus the portal over one full glyph pulse:
+  - Brightest pixel in the portal's area over her face glow in the same frame: 0.77, 0.84, 0.77, 0.77, 0.81, 0.56, 0.95, 0.82. Seven of these are bubbles or specks in front of the portal, where the portal itself draws Y 0.005 to 0.15; the 0.95 is a speck (Y 0.864) where the portal draws 0.037. The t 6.5 one (Y 0.504) is her own light on the lower-left lantern as she passes it; it counts.
+  - The portal's light, bubbles and specks taken out but her light on it kept, against her face glow at its breathing trough (x 0.949, measured): 0.51 to **0.85** (t 7.5: her light on the lantern, Y 0.734).
+  - The portal at its pulse peak (bubbles filtered out) against her dimmest face glow at its trough (0.873 x 0.949 = 0.829): 0.81 (0.87 in an earlier run).
+  - **t 1 is unverified:** she is too far in the murk for a face glow (her brightest pixel there is Y 0.511). It is compared with her dimmest measured face glow instead. In that window, the portal's own lantern (0.475) is just below her brightest pixel, and the passing bubbles (0.676) are above it.
+  - Pass: worst counted ratio 0.85 (0.87 in the earlier run). The checker's limits (a state-gated light under 850 px on a dark part of the portal, a flash under 0.9 s) are in the review doc.
+- **Look note (spec 7.7), for you:** the bubbles and specks crossing in front of the portal are brighter than anything on it. Against her face glow at its trough they reach 0.95 to 0.999 in the measured frames, and the brightest running pixel is pure white (Y 1.0). The relic rule holds for the portal, but world elements near it can outshine her face glow. Is that acceptable, or should the bubbles be dimmed near the portal?
 - **Relic, intro:** 0 portal pixels in the frozen intro at 1536 x 1024, 1920 x 1080, 1024 x 768 and 390 x 844. The nearest portal point is 112 to 251 px outside the frame. The check projects the portal through the page's own camera.
 - **fps under load** (tier low, three back-to-back pairs): 63.7 / 33.4, 52.1 / 67.1, 61.3 / 54.1.
   - Five of six runs clear 40; the median of the six is 57.7.
@@ -107,7 +110,8 @@ What to check:
 3. **Warm windows.** Few and flat in P2's box: tower_a's salmon window and faint far windows; amber slits on the side towers in the wide frame. **Owner call:** tower_a's window is `#ffaa98` (hue 10 degrees, HSV saturation 0.40) to match P2's salmon light. It passes the no-red rule, but it is the pinkest warm light in the world. Keep it, or go back to amber (the ruin sample then reads 36.1)?
 4. **The ring reads against the water.** A thin gold line with bronze beads; the beads are duller than P2's glowing orbs.
 5. **The portal off-frame in the intro.**
-6. **Overall.** The world is sparser and darker than P2: dark blank tower faces, few warm lights, and no bloom on the windows or jellyfish (bloom starts at 0.95 to keep her pupils dark). Is this calm enough, or too empty?
+6. **Bubbles past the portal (spec 7.7 look note).** Let the entrance play and watch the bubbles cross the portal: they reach pure white, brighter than her face glow at its dimmest. Keep, or dim them near the portal?
+7. **Overall.** The world is sparser and darker than P2: dark blank tower faces, few warm lights, and no bloom on the windows or jellyfish (bloom starts at 0.95 to keep her pupils dark). Is this calm enough, or too empty?
 
 ## Owner decisions (look gate)
 
@@ -181,3 +185,7 @@ Please give the real names.
 - Catchlights: spec 2.3 says "large upper, small lower". Aether's panels P2, P3 and P4 at 3x paint both upper right, so the face follows the panels. Say if you want the spec reading (one-line change).
 - `happy` (overview face) was tuned to P3 to `mouthCurve 0.75, mouthOpen 0.35, blush 0.4` (engine base is 0.8 / 0.6). Unrequested; veto if you prefer the base.
 - The open "wonder" mouth reads as a V/U with a small tongue, not P4's D-shaped mouth. This is an engine limit (the open mouth keeps the closed smile's curved top, the tongue is a fixed shape). Fixing it needs an engine change; say if you care.
+
+## Engine follow-up from the Flux merge (for the engine owner)
+
+Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same quality tier. The Aether branch keeps both (always equal, with a test holding them equal). Fold them into one name, `id` (platform's branch already carries it): a two-line change.

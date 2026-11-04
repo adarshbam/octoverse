@@ -30,11 +30,17 @@ export const VEYRA_STAGE_FRAMES: Record<StageId, StageFrame> = {
 
 /**
  * Where Veyra's HTML panels sit on her stage, in world units [left, top, right, bottom], read off
- * the native panels at 100 px a unit from each panel's centre: P3's project panel inside the head
- * and P5's project panel. Provisional until Milestone 3 registers them on her face.
+ * the native panels at 100 px a unit from each panel's centre. The overview's (Task 12) is placed
+ * so that the engine's panel layout (ui/overview.css: the preview from 6.3% across and 14.8% down,
+ * the copy column ending at 98.4%, the buttons ending 3% above the bottom) lands on P3's painted
+ * panel across: the screenshot's left edge at -1.156, the text's right edge at 1.148, and the
+ * buttons' bottom at 0.011. Its height is 1.2, not P3's 1.36 (screenshot top 1.13): the layout's
+ * type is sized by the box's height and its copy column is 40% of the width, so at 1.36 the summary
+ * wraps to five lines and runs into the buttons; at 1.2 it takes four. It sits inside the dome's
+ * rectangle (character.ts) with at least 0.12 to spare on every side. P5's is provisional until Task 14.
  */
 export const VEYRA_STAGE_PANELS: StagePanels = {
-  overview: [-1.17, 1.17, 1.05, -0.03],
+  overview: [-1.31, 1.17, 1.19, -0.03],
   detail: [-2.215, 1.825, 4.225, -2.32],
 };
 

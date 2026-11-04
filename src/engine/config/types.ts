@@ -529,7 +529,41 @@ export interface DomeShape {
 // the engine's HEAD_EFFECTS table (character/headEffects): `'none'` draws the dome alone, as
 // approved; Nox's is `'glyphs'`, glowing red runes.
 
-/** Where the artifacts sit: a closed union, one member per placement in the engine's PLACEMENTS table (`pendant` joins in F01). */
+/** A glass orb hangs on a short tether from the arm at arc fraction `at` (0 root, 1 tip); `order` is the technology's rank for the slot (0 first). */
+export interface PendantSlot {
+  arm: ArmId;
+  at: number;
+  order: number;
+}
+
+/**
+ * The thread a pendant hangs from and the cap where it meets the orb (artifacts/tether.ts). Colours
+ * are config, never engine literals. `length` is the thread's own length from the arm to the cap, in
+ * world units, and may be 0 (a cap only); `width` is its diameter; `sag` is how far it bows sideways
+ * at its middle, as a fraction of its length.
+ */
+export interface TetherStyle {
+  length: number;
+  color: string;
+  width: number;
+  sag: number;
+  cap: string;
+}
+
+/** How far a pendant swings (artifacts/pendant.ts): the largest angle from vertical (radians) and the seconds the swing takes to settle once its arm stops. */
+export interface SwingLimits {
+  maxAngle: number;
+  settle: number;
+}
+
+/** When pendants appear (seconds): the first one's start, how long one takes, and the delay between pendants in `order`. */
+export interface PendantReveal {
+  start: number;
+  span: number;
+  step: number;
+}
+
+/** Where the artifacts sit: a closed union, one member per placement in the engine's PLACEMENTS table. */
 export type PlacementConfig = | {
   kind: 'orbit';
   /** The rings the artifacts circle on (artifacts/bubbleOrbits.ts). */
@@ -544,6 +578,18 @@ export type PlacementConfig = | {
   /** How far a full swell pushes the rings out, as a fraction of their size. */
   swellPush: number;
 } | {
+  kind: 'pendant';
+  /** Each stage's slots, on the arms (at most `maxPerArm` an arm), in the stage pose's arm space. */
+  slots: Record<ChoosingStage, readonly PendantSlot[]>;
+  maxPerArm: 2;
+  /** An orb's radius in each stage's framing. */
+  sizes: Record<ChoosingStage, number>;
+  tether: TetherStyle;
+  /** The swing's limits; absent, 25 degrees and 1.2 s (Veyra's). */
+  swing?: SwingLimits;
+  /** The appear's timing; absent, the appear keeps its own (Veyra's bloom: 1.2 s in all). */
+  reveal?: PendantReveal;
+} | {
   kind: 'satellite';
   /**
    * The ring round the head the artifacts rest on (artifacts/satellite.ts), drawn in the intro and
@@ -554,6 +600,8 @@ export type PlacementConfig = | {
 
 /** The orbit placement's settings. */
 export type OrbitPlacement = Extract<PlacementConfig, { kind: 'orbit' }>;
+/** The pendant placement's settings. */
+export type PendantPlacement = Extract<PlacementConfig, { kind: 'pendant' }>;
 /** The satellite placement's settings. */
 export type SatellitePlacement = Extract<PlacementConfig, { kind: 'satellite' }>;
 

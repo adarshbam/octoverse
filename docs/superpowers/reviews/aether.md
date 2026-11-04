@@ -698,3 +698,180 @@ Stills, in `docs/superpowers/evidence/aether/m2/`:
 - Task 17 authors the real entrance. It must run `relic_capture.mjs` and `relic_entrance.py` again on it, with `ENTRANCE_T` set to its beats.
 - If Task 17 drives the membrane's `emissive` flash (up to +25%), a frame at the flash's peak must be added.
 - The worst frame (0.95) is a speck, not the portal. Still, the portal's own steady light (about 0.55 to 0.75) sits within 15 to 25% of her face glow.
+
+### Task 10, fix round 2 (re-review of c43d700): frames asserted, face-glow basis and trough, owners named
+
+Scripts only (`src/worlds/aether/review/relic_capture.mjs`, `relic_entrance.py`). No config, layout or engine change. `--pulse-only` from fix round 1 is now `--running-only`: it captures the pulse and face stills again. Evidence run: `.tmp/t10/relic4`, output in `t10-fix2-relic-check.txt`.
+
+**The verdict rule changed.** The check now counts only the portal's own light:
+- each frame's own brightest, against her face glow at its trough;
+- the pulse peak, against her dimmest face glow at its trough.
+
+The brightest pixel in the portal's area is still printed for every frame, with its owner. When that pixel is a bubble, speck or her light (see (d)), the line starts `area` and does not decide the verdict. If it is the portal's own, it counts. The last line names the worst counted ratio and, separately, how far the bubbles and specks reach.
+
+**(a) Frames asserted.**
+- `relic_capture.mjs` deletes every old `entering-t*.png`, `intro*.png`, `pulse-NNN.png`, `face-NNN.png` and `frames.json` before capturing. It then writes `frames.json`: the moments and the run's start time.
+- `relic_entrance.py` fails unless:
+  - the eight frames of `ENTRANCE_T` and their masks are there, with no other `entering-t*` file;
+  - each was written after the start time;
+  - her silhouette holds at least 200 px in every frame and in the intro.
+- Only t 1 (`FAR_T`) may lack a face glow.
+- Negative runs (`t10-fix2-relic-negative-runs.txt`), all exit 1 with a `FAIL` line:
+  - a stale extra `entering-t9.png`;
+  - a missing `entering-t5.5.png`;
+  - an all-black mask at t 4.5;
+  - a 900 px silhouette with no face glow at t 5.5;
+  - `entering-t2.png` dated before the run;
+  - no `frames.json`;
+  - face stills ending at 45 s;
+  - a missing face still.
+- The evidence run went into a folder seeded with a stale `entering-t9.png`, an old `entering-t2.png` and a `pulse-099.png`. The capture removed all three, and the check passed on the new frames.
+
+**(b) Her face glow pulses.**
+- Octopus.tsx (engine, read only) sets `uGlowStrength = (1 + 0.06 b + 0.025 live sin(0.37 t + 1.3)) (1 - 0.15 rest)`:
+  - b is her breath (Aether's breathPeriod 5.0 s);
+  - live is 0 when frozen;
+  - rest comes only in the intro after 40 s idle (stageMachine.ts `isRestful`), never in the entrance.
+- Frozen stills show strength 1.0. The entrance swings it from 0.915 to 1.085.
+- Measured from 69 running-intro stills of her face over 17.36 s. That is longer than the 17 s drift; the page age was 23.4 s, so before any rest.
+  - Her face glow's brightest pixel holds at Y 0.908 (#fff0ff) in every still. It is clipped: R and B are at 255 over 2000 to 2900 px of the patch.
+  - The patch's 90% level is not clipped. It runs from Y 0.801 to 0.845, against 0.838 frozen. It moves with her breath, her sway and the patch's size. (Fix round 3 correction: the patch's size can move it either way, since a smaller patch drops its dim fringe and raises the quantile. So this is a measurement of the glow's unclipped body, not a proven bound.)
+  - The stills may miss the joint trough by 0.013 of the strength: a breath trough within 2.5 s of the drift's trough, plus half a 0.48 s gap. So the drop is scaled by 0.085 / 0.072.
+  - Trough factor **r = 0.949** (0.944 in the earlier run).
+- The entrance frames' face-glow maxima are not all clipped (t 3.2's is a single pixel), so r is applied to every face glow the portal's own light is compared with.
+
+**(c) t 1.**
+- She is 6032 px of silhouette with no pink-white patch; her brightest pixel is Y 0.511.
+- The frame is compared with the dimmest face glow measured (0.873, t 3.2), not the intro's 0.908, and marked **UNVERIFIED** in the output.
+- In that window:
+  - the portal's own brightest (0.475, a lantern) is just below her brightest pixel (0.511);
+  - the bubbles in front of the portal (0.676, ratio 1.32 to her brightest pixel) outshine her.
+- Whether the stage camera frames the portal at t 1 of the real entrance is not checked here (Task 17).
+
+**(d) Owners named.** Each frame's brightest pixel in the area is printed with:
+- the kit nodes whose hull holds it;
+- the portal's own frozen light there.
+
+The portal's own light is the per-pixel median over the nine frozen stills (her silhouette, grown 8 px for her bloom, left out of each). A frozen world holds every glow at mid level and the membrane still, so the portal draws the same pixel in all of them, while bubbles and specks move with each still's world time. More than 0.05 above that median is transient.
+
+| t | brightest in area, Y | at | in hulls of | portal's own Y there | ratio to her face glow (same frame) | portal's own brightest vs her trough |
+|---|---|---|---|---|---|---|
+| 1 | 0.676 | (950, 378) | membrane/lanterns/arch | 0.046 | 0.774 (vs 0.873, UNVERIFIED) | 0.573 (UNVERIFIED) |
+| 2 | 0.745 | (921, 556) | steps | 0.005 | 0.836 | 0.562 |
+| 3.2 | 0.668 | (837, 538) | steps | 0.012 | 0.765 | 0.573 |
+| 4.5 | 0.689 | (943, 365) | membrane/lanterns/arch | 0.114 | 0.768 | 0.559 |
+| 5.5 | 0.722 | (1029, 423) | glyph/membrane/lanterns/arch | 0.050 | 0.805 | 0.559 |
+| 6.5 | 0.504 | (908, 460) | lanterns/arch | 0.412 (her light on the lantern) | 0.555 | 0.551 |
+| 7.5 | 0.864 | (900, 536) | steps/arch | 0.037 | 0.952 | 0.551 |
+| 8.4 | 0.749 | (1008, 406) | glyph/membrane/lanterns/arch | 0.147 | 0.824 | 0.551 |
+
+- All eight frame maxima are transient. The t 7.5 one (0.952) is a speck in front of the steps, where the portal draws 0.037. So fix round 1's "a speck, not the portal" now has evidence in the output.
+- The portal's own brightest in every frame is Y 0.475 at (909, 461), a lantern on the arch.
+
+**(e) Unfiltered beside filtered**, from the running intro (42 stills over 9.5 s, widest gap 0.28 s):
+- **Unfiltered** per-pixel maximum: Y 1.000 at (1012, 410), in glyph/membrane/lanterns/arch, where the portal's own frozen light is 0.169: a bubble.
+- **Filtered, anything in the area:** Y 0.800 at (852, 421). Only the arch's hull holds it, and the portal's own light there is 0.008. It is a slow bubble on the stone, held through the window.
+  - Raised and against her trough, it reads 0.999. It is not counted, but it is printed.
+  - The arch and steps have no kit material (config.ts names only the membrane, glyph and lanterns), so stone never brightens itself. A held stone pixel more than 0.05 above its frozen light is a slow bubble or speck.
+  - Every pixel in a glowing node's hull counts at its held value, whatever lit it.
+- **Filtered, the portal's own:** Y 0.652 at (956, 352), membrane/lanterns/arch. Raised 3.3% for the 0.59 s reach: **Y 0.674**.
+  - Per node: glyph 0.646, lanterns 0.652, membrane 0.652, steps 0.156.
+- **Pulse peak against her trough:** 0.674 / (0.873 x 0.949 = 0.829) = **0.813**. In the earlier run (34 stills, gaps to 0.55 s), 0.720 / 0.825 = **0.873**.
+- **Limit:** the filter hides anything on the portal lit for less than about 0.9 s. Nothing on the portal does that today:
+  - the membrane has no prop;
+  - the glyph's `emissive` prop is filtered out of the world (`WORLD_PROPS = OBSERVATORY_PROPS.filter(prop => prop.id !== 'portalGlyph')`, config.ts), so no flash is ever driven.
+  - If Task 17 drives one, the flash needs a frozen frame at its peak; the filtered number would not show it.
+
+**(f)** `portal_pulses()` reads each portal glow's `pulse` and `period` in either order, and fails on a portal glow missing either. Checked against a scratch config.
+
+**Result (exit 0):**
+- Worst counted ratio **0.813** (0.873 in the earlier run): the portal's pulse peak against her face glow's trough.
+- The portal's own frozen light against her trough: 0.55 to 0.57.
+- t 1 is UNVERIFIED.
+- The bubbles and specks in front of the portal reach 0.999 (a slow bubble on the arch) and 0.952 (t 7.5 speck). They are not the portal, but they are the brightest things near it.
+
+Commands (dev server on 127.0.0.1:5196; exit 0 on a pass, exit 1 with a `FAIL` line otherwise):
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/relic_capture.mjs <dir> [--running-only]`
+- `python src/worlds/aether/review/relic_entrance.py <dir>`
+
+**Still left (Task 17).**
+- Re-run on the real entrance, with `ENTRANCE_T` and `FAR_T` set to its beats.
+- Check whether the stage camera frames the portal at the early, far moments (t 1 here is unverified, and there the bubbles outshine her).
+- Add a frame at a membrane or glyph flash's peak if a sequence drives one.
+
+### Task 10, fix round 3 (re-review of 19ebcd6): positive controls, blob guard, bloom-aware exclusion
+
+Scripts only (`relic_entrance.py`). No change to config, layout or the engine, and no new capture: every run below reads the relic4 capture from fix round 2. Output: `t10-fix3-relic-check.txt`.
+
+**The classifier now.** A pixel in the portal's region is excluded as a bubble or speck only when all of these hold:
+- It sits more than 0.05 above the portal's own frozen light (the median over the nine frozen stills).
+- Its connected patch is under **BLOB_MIN = 850 px**.
+- Its own light is under **OWN_DARK = 0.2**, so it is not on a lit part of the portal.
+- For the held stone in the pulse check: it lies more than **BLOOM_PX = 20 px** from every glowing node's hull.
+
+Everything else counts, light above the median included. Each frame now counts the brightest pixel left after exclusion, against her face glow at its trough (x r). Before, only the median map was compared. So her light on the portal counts now.
+
+Each frame and the pulse check print:
+- how many pixels sit above the portal's own light, with their bounding box and largest patch;
+- how many were excluded, with the same.
+
+**Why these thresholds (measured on relic4):**
+
+- **BLOB_MIN 850.** The bubbles and specks in the portal's area are discs:
+  - at most 374 px (about 22 px across) in the frozen entrance stills;
+  - at most 806 px (32 px across, filling 0.76 to 0.82 of their box, as a disc does) in the running windows, where bubbles near the camera pass.
+
+  Her light on the lower-left lantern makes patches of 511 to 962 px. Those pixels sit on lit portal (own light 0.4 and more), so OWN_DARK counts them whatever their size.
+- **OWN_DARK 0.2.** The dark stone and the membrane body sit at 0.005 to 0.15. The lit parts (lanterns, glyph lines, the membrane's centre) sit at 0.2 and more, mostly 0.4 and more.
+- **BLOOM_PX 20.** The stone's own light shows no halo past the glowing hulls: median 0.012 at 1 to 4 px, 0.007 to 0.013 farther. Its brightest pixels reach 0.18 to 0.23 within 16 px of a hull, but at most 0.15 from 17 px on.
+- **The pulse guard runs per window.** Over all windows, the union of a slow bubble's positions is a trail: 6434 px held above the frozen light in relic4, the bubble chain on the left plus the swaying coral before the steps. Judged on that union, the slow bubble counted, at 0.999. Judged in each window before the maximum over time, it is one disc under 850 px on dark stone (held Y 0.800 around 9.03 s) and is excluded. The glowing nodes' hulls are never screened.
+
+**1. Positive controls** (`t10-fix2-relic-negative-runs.txt`, after the eight negative inputs; all on copies of relic4). Each paints a disc of sRGB (249, 249, 249), Y 0.946, into frozen stills:
+
+| control | disc | stills | result |
+|---|---|---|---|
+| (a) | radius 20 (1257 px) on the glyph at (1010, 437) | all nine | **exit 1**: 1.143 at t 3.2 |
+| (b) | the same disc | t 6.5, 7.5, 8.4 only (a late, state-gated light) | **exit 1**: 1.099 at t 8.4 |
+| (c) | radius 12 (441 px) on the glyph | the same three | **exit 1**: part of it is on lit glyph lines (OWN_DARK) |
+| (e) | radius 17 (901 px) on the dark membrane under the glyph at (1065, 475), own light at most 0.131 | the same three | **exit 1**: the size guard alone catches it |
+| (d) LIMIT | radius 12 (441 px) at (1065, 475) | the same three | **exit 0**: bubble-sized and on dark membrane, so excluded as a bubble would be |
+
+Under fix round 2's rule, (b)'s light had a near-dark median and would have been labelled transient. (d) is the classifier's stated limit, shown rather than hidden.
+
+**2. State-dependent light: limits, stated.**
+- **5 of 9:** the portal's own light is a median over nine frozen stills, needing at least five valid. A light the portal shows in four or fewer of them (an opening glow gated late in the entrance, a flash, her light) has a near-dark median. It still counts when its patch reaches 850 px or it lies on a lit part of the portal, as in (b), (c) and (e). A smaller one on dark stone or membrane is excluded, as in (d).
+- **0.9 s:** the pulse filter hides anything on the portal lit for less than about 0.9 s. The unfiltered maximum is printed beside the filtered one.
+- **Bloom:** stone within 20 px of a glowing hull is never excluded.
+
+**3. Bloom-aware stone exclusion.** The pulse check prints:
+- held stone above its own light in some window: 6434 px, x 798 to 1146, y 354 to 574;
+- excluded in some window: 4090 px, same box.
+
+The slow bubble on the arch (held 0.800 at (852, 421), own light 0.008, more than 20 px from every glowing hull) is excluded per window. The counted pulse peak is unchanged from fix round 2: 0.652 at (956, 352) in membrane/lanterns/arch, raised to 0.674, **ratio 0.813**.
+
+**Results (relic4, exit 0):**
+
+| t | brightest in area (ratio to her face glow, same frame) | what it is | portal's light counted, vs her trough |
+|---|---|---|---|
+| 1 | 0.676 (0.774, UNVERIFIED) | bubble, excluded | 0.445 at (908, 424), lantern: 0.537 (UNVERIFIED) |
+| 2 | 0.745 (0.836) | bubble, excluded | 0.442, lantern: 0.523 |
+| 3.2 | 0.668 (0.765) | bubble, excluded | 0.457, membrane: 0.551 |
+| 4.5 | 0.689 (0.768) | bubble, excluded | 0.475, lantern: 0.559 |
+| 5.5 | 0.722 (0.805) | bubble, excluded | 0.595 at (898, 473) on the arch, own light 0.089, inside a 932 px patch above its own light, counted by size: 0.700 |
+| 6.5 | 0.504 (0.555) | her light on the lantern, **counted** | 0.504: 0.585 |
+| 7.5 | 0.864 (0.952) | speck, excluded | 0.734 at (908, 460), her light on the lantern (own light 0.412): **0.852** |
+| 8.4 | 0.749 (0.824) | bubble, excluded | 0.441, lantern: 0.512 |
+| pulse | unfiltered 1.000 (bubble); filtered, anything: 0.800 (slow bubble, excluded per window) | | 0.674: 0.813 |
+
+- **Worst counted ratio 0.852**: t 7.5, her own light on the lantern, against her face glow's trough. The earlier capture (relic3) gives 0.873, its pulse peak.
+- t 1 stays UNVERIFIED.
+
+**Owner look note (spec 7.7; also in MORNING-REVIEW).** The bubbles and specks crossing in front of the portal are the brightest things near it:
+- against her face glow at its trough they reach 0.95 (the t 7.5 speck) to 0.999 (the slow bubble);
+- the brightest running pixel is pure white, Y 1.0.
+
+The relic rule holds for the portal, but world elements near it can outshine her face glow. Keeping them or dimming them near the portal is the owner's call.
+
+**Doc fixes.**
+- The face-trough wording no longer claims that a changing patch size only adds to the dip (both in the script and in fix round 2 above).
+- MORNING-REVIEW no longer calls t 6.5 a bubble: it is her light on the lantern, and it counts.

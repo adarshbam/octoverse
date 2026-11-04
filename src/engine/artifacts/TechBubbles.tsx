@@ -2,12 +2,14 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
-import type { ArtifactConfig, ChoosingStage, OrbGlass, Point2 } from '../config/types';
+import type { ArtifactConfig, ChoosingStage, OrbGlass, Point2, TetherStyle } from '../config/types';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
-import { APPEARS, SELECTS, placementOf } from './strategies';
+import { APPEARS, SELECTS, placementDriver } from './strategies';
+import type { ArmReader } from './pendant';
+import { TETHER_POINTS, capRadius } from './tether';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
 
@@ -45,6 +47,8 @@ export interface BubbleState {
    * the arm runs there (body space). A held bubble sits just off the tip, against its cups.
    */
   hold: { pull: Float32Array; tip: THREE.Vector3[]; dir: THREE.Vector3[] };
+  /** The character's live arms, in ARM_IDS order, for a placement that hangs artifacts from them (the pendant placement); the orbit placement does not read them. */
+  arms: readonly ArmReader[];
 }
 
 /** How much a bubble in focus grows. */
@@ -57,6 +61,83 @@ const RESIZE_PER_S = 3;
 /** Marks every bubble as not shown (the page's buttons go inert). */
 function hideSpots(live: BubbleLive) {
   for (const spot of live.spots) spot.visible = false;
+}
+
+/** A pendant placement's threads: one batch of thin tube segments (a stretch of every thread) and one of beads (every cap), as instances of one geometry each, in the world's tether colours. */
+function useThreads(tether: TetherStyle | null, count: number) {
+  const threads = useMemo(() => {
+    if (!tether) return null;
+    // A unit-diameter tube one unit long on y: each instance scales it to a stretch of thread (width across, length along).
+    const tube = new THREE.CylinderGeometry(0.5, 0.5, 1, 6, 1, true);
+    const bead = new THREE.SphereGeometry(1, 12, 8);
+    const threadMaterial = new THREE.MeshBasicMaterial({ color: tether.color, transparent: true, toneMapped: false, depthWrite: false });
+    const capMaterial = new THREE.MeshBasicMaterial({ color: tether.cap, transparent: true, toneMapped: false });
+    const segments = new THREE.InstancedMesh(tube, threadMaterial, count * (TETHER_POINTS - 1));
+    const caps = new THREE.InstancedMesh(bead, capMaterial, count);
+    segments.frustumCulled = caps.frustumCulled = false;
+    segments.renderOrder = 1;
+    caps.renderOrder = 2;
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const scale = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const dir = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+    const hide = (i: number) => {
+      for (let k = 0; k < TETHER_POINTS - 1; k++) segments.setMatrixAt(i * (TETHER_POINTS - 1) + k, zero);
+      caps.setMatrixAt(i, zero);
+    };
+    // Nothing is drawn until a frame writes it: every instance starts empty (an unset one would be a unit tube at the origin).
+    for (let i = 0; i < count; i++) hide(i);
+    return {
+      segments,
+      caps,
+      tube,
+      bead,
+      threadMaterial,
+      capMaterial,
+      /** Pendant `i` is not drawn (its place is not shown, or its orb is away from it). */
+      hide,
+      /** Pendant `i`'s thread along `points` (body space) and its cap at the end. */
+      write(i: number, points: readonly (readonly [number, number, number])[]) {
+        if (points.length < TETHER_POINTS) return hide(i);
+        for (let k = 0; k < TETHER_POINTS - 1; k++) {
+          const [ax, ay, az] = points[k];
+          const [bx, by, bz] = points[k + 1];
+          dir.set(bx - ax, by - ay, bz - az);
+          const length = dir.length();
+          if (length < 1e-6) {
+            segments.setMatrixAt(i * (TETHER_POINTS - 1) + k, zero);
+            continue;
+          }
+          quaternion.setFromUnitVectors(up, dir.divideScalar(length));
+          position.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
+          scale.set(tether.width, length, tether.width);
+          segments.setMatrixAt(i * (TETHER_POINTS - 1) + k, matrix.compose(position, quaternion, scale));
+        }
+        const end = points[TETHER_POINTS - 1];
+        caps.setMatrixAt(i, matrix.compose(position.set(end[0], end[1], end[2]), quaternion.identity(), scale.setScalar(capRadius(tether))));
+      },
+      /** The frame's writes are done: upload them and fade the batch with the bubbles. */
+      finish(shown: number) {
+        segments.instanceMatrix.needsUpdate = true;
+        caps.instanceMatrix.needsUpdate = true;
+        threadMaterial.opacity = shown;
+        capMaterial.opacity = shown;
+      },
+    };
+  }, [tether, count]);
+  useEffect(() => () => {
+    if (!threads) return;
+    threads.segments.dispose();
+    threads.caps.dispose();
+    threads.tube.dispose();
+    threads.bead.dispose();
+    threads.threadMaterial.dispose();
+    threads.capMaterial.dispose();
+  }, [threads]);
+  return threads;
 }
 
 /**
@@ -85,7 +166,6 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const { bubbleLive } = useInstance();
   // The strategies the config names (artifacts/strategies.ts).
   const { placement: placementConfig } = artifacts;
-  const placement = placementOf(placementConfig);
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
   // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).
@@ -116,9 +196,11 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     }
   }, [parts]);
 
-  const layouts = useMemo(() => ({ intro: placement.layout(bubbles.length, placementConfig, 'intro'), overview: placement.layout(bubbles.length, placementConfig, 'overview') }), [bubbles.length, placement, placementConfig]);
-  // The orbit clock, the speed spring that eases it, each bubble's current size, and how far all are shown.
-  const run = useMemo(() => ({ clock: 0, speed: { x: 1, v: 0 }, size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun() }), [bubbles.length, appear]);
+  // The placement's run for this many bubbles (the orbit clock and its speed spring, or the pendants' swings), each bubble's current size, and how far all are shown.
+  const driver = useMemo(() => placementDriver(placementConfig, bubbles.length), [placementConfig, bubbles.length]);
+  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun() }), [bubbles.length, appear]);
+  // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
+  const threads = useThreads(placementConfig.kind === 'pendant' ? placementConfig.tether : null, bubbles.length);
   const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
@@ -148,36 +230,37 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
         hideSpots(bubbleLive);
         bubbleLive.notify();
         run.hidden = true;
+        // Not stepped while hidden: forget the arms' last places, so they reappear unkicked.
+        driver.reset?.();
       }
       s.puff = s.mouthRound = 0;
       return;
     }
     run.hidden = false;
-    // The orbit clock runs at the eased speed; motion off, it stands where it is.
-    const pace = placement.pace(s.hot, dt, run.speed);
-    if (!s.still) run.clock += dt * pace;
+    // The placement advances: the orbit clock at its eased speed (motion off, it stands where it is), or the pendants' swings from their arms' motion.
+    driver.step({ stage: s.stage, swell: s.swell, dt, hot: s.hot, still: s.still }, s.arms);
     const shown = run.shown * run.shown * (3 - 2 * run.shown);
     root.updateWorldMatrix(true, false);
     const { edge, ndc, right, orbit: target, held } = scratch;
     const e = frame.camera.matrixWorld.elements;
     right.set(e[0], e[1], e[2]).normalize();
     const strongest = s.focus.reduce((a, b) => Math.max(a, b), 0);
-    const orbits = layouts[s.stage];
     const t = frame.clock.elapsedTime;
     parts.items.forEach((item, i) => {
       const node = root.children[i];
-      const orbit = orbits[i];
-      // A placement with no places (a world that has not laid its artifacts out yet) draws and offers none.
-      if (!orbit) {
+      const size = driver.size(s.stage, i);
+      // A placement with no place for it (a world that has not laid its artifacts out yet, or a stage with fewer slots than artifacts) draws and offers none.
+      if (size === null) {
         node.visible = false;
         bubbleLive.spots[i].visible = false;
+        threads?.hide(i);
         return;
       }
-      placement.point(orbit, run.clock, s.swell, target, placementConfig);
+      driver.point(s.stage, i, s.swell, target);
       s.orbit[i]?.copy(target);
       const f = s.focus[i];
       // A bubble grows into its stage's size.
-      run.size[i] = Number.isNaN(run.size[i]) || s.still ? orbit.size : run.size[i] + (orbit.size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
+      run.size[i] = Number.isNaN(run.size[i]) || s.still ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
       let radius = run.size[i] * (0.4 + 0.6 * shown) * (1 + (FOCUS_GROW[s.stage] - 1) * f);
       // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching.
       const b = blowing ? appear.frame(blowing, i, blow.seconds!) : null;
@@ -196,6 +279,11 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       // Held: pulled along from where it was, swinging round Nox, to just off its arm's tip.
       const pull = s.hold.pull[i] ?? 0;
       if (pull > 0) select.position(scratch.from.copy(node.position), held.copy(s.hold.tip[i]).addScaledVector(s.hold.dir[i], radius * select.offTip), pull, holdCentre, node.position);
+      // Its thread, from the arm to the cap on the orb: not while it flies from the mouth to its place, nor once an arm has taken it off its thread.
+      if (threads && driver.pendants) {
+        if ((b && b.emerged < 1) || pull > 0.001) threads.hide(i);
+        else threads.write(i, driver.pendants[i].points);
+      }
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
       const breathe = s.still ? 1 : 1 + 0.1 * Math.sin(t * (0.5 + 0.045 * i) + i * 2.1);
@@ -218,6 +306,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     });
     s.puff = puff;
     s.mouthRound = mouthRound;
+    threads?.finish(shown);
     bubbleLive.notify();
   });
 
@@ -230,6 +319,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
           <mesh geometry={parts.plane} material={item.logo} scale={2.1} position={[0, 0, 0.02]} renderOrder={3} />
         </group>
       ))}
+      {threads && (
+        <>
+          <primitive object={threads.segments} />
+          <primitive object={threads.caps} />
+        </>
+      )}
     </group>
   );
 }

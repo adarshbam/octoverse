@@ -1,0 +1,35 @@
+relic_entrance.py offline runs on copies of the relic4 capture (fix round 3 code). Each line: the FAIL or final line, then the run and its exit code.
+
+== negative inputs ==
+FAIL unexpected entrance frames in <dir>: ['entering-t9.png'] (stale from another run?)
+  -> stale extra frame entering-t9.png: exit 1 (expected 1)
+FAIL missing entrance frames in <dir>: ['entering-t5.5.png']
+  -> missing entering-t5.5.png: exit 1 (expected 1)
+FAIL her silhouette in entering-t4.5.png is 0 px (under 200): the mask is empty or wrong
+  -> all-black her-mask at t 4.5: exit 1 (expected 1)
+FAIL no face glow found in entering-t5.5.png (her silhouette 900 px): only FAR_T ('1',) may lack one
+  -> 900 px silhouette, no face glow, at t 5.5: exit 1 (expected 1)
+FAIL <dir>\entering-t2.png was written before this run started (frames.json): a stale frame
+  -> entering-t2.png older than the run: exit 1 (expected 1)
+FAIL no frames.json in <dir>: run relic_capture.mjs (without --running-only) first
+  -> no frames.json: exit 1 (expected 1)
+FAIL the face stills ended 45.0 s after the page started: she may have begun to rest (40 s)
+  -> face stills ending at 45 s: exit 1 (expected 1)
+FAIL 68 face stills against 69 recorded times
+  -> a face still missing: exit 1 (expected 1)
+== positive controls: a brightened portal ==
+painted 1257 px into 9 stills
+FAIL worst counted ratio 1.143 (the portal's light at t 3.2 vs her trough): the portal is not below her face glow there; UNVERIFIED at t 1 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) reach ratio 0.999 (pulse, anything in the area)
+  -> (a) a static Y 0.946 disc, radius 20 (1257 px), on the glyph at (1010, 437) in all nine frozen stills: exit 1 (expected 1)
+painted 1257 px into 3 stills
+FAIL worst counted ratio 1.099 (the portal's light at t 8.4 vs her trough): the portal is not below her face glow there; UNVERIFIED at t 1 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) reach ratio 0.999 (pulse, anything in the area)
+  -> (b) the same disc in only three frozen stills (t 6.5, 7.5, 8.4: a late, state-gated light): exit 1 (expected 1)
+painted 441 px into 3 stills
+FAIL worst counted ratio 1.099 (the portal's light at t 8.4 vs her trough): the portal is not below her face glow there; UNVERIFIED at t 1 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) reach ratio 1.043 (entrance t 8.4)
+  -> (c) a smaller disc, radius 12 (441 px), on the glyph (some of it on lit glyph lines, own light 0.2 and more) in the same three stills: exit 1 (expected 1)
+painted 441 px into 3 stills
+ok   worst counted ratio 0.852 (the portal's light at t 7.5 vs her trough): the portal stays below her face glow; UNVERIFIED at t 1 (no face glow found there); 
+  -> (d) LIMIT: the radius-12 disc (441 px) on the dark membrane under the glyph at (1065, 475; own light at most 0.131) in three stills: bubble-sized and dark, so excluded: exit 0 (expected 0)
+painted 901 px into 3 stills
+FAIL worst counted ratio 1.099 (the portal's light at t 8.4 vs her trough): the portal is not below her face glow there; UNVERIFIED at t 1 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) reach ratio 0.999 (pulse, anything in the area)
+  -> (e) the same spot, radius 17 (901 px, own light at most 0.131) in three stills: the size guard alone must catch it: exit 1 (expected 1)
