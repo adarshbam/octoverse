@@ -216,9 +216,19 @@ test('the place is the vault: its kit, baked near world and far plate, and a cam
   }
 });
 
-test('her artifacts have no places yet: no shells, nothing chosen in any stage (the pendants task adds them)', () => {
-  expect(VEYRA_BUNDLE.artifacts.placement).toMatchObject({ kind: 'orbit', shells: [] });
-  expect(VEYRA_BUNDLE.artifacts.choosableIn).toEqual([]);
+test('her artifacts are pendants on tethers: slots on her arms in both choosing stages, her palette on the thread, the blow and the suction hold until Task 19', () => {
+  const { placement, appear, select, choosableIn } = VEYRA_BUNDLE.artifacts;
+  expect(placement.kind).toBe('pendant');
+  if (placement.kind !== 'pendant') return;
+  expect(placement.slots.intro.length).toBeGreaterThanOrEqual(12);
+  expect(placement.slots.overview.length).toBeGreaterThanOrEqual(12);
+  expect(placement.tether.color).toBe(VEYRA_BUNDLE.character.palette.wet);
+  expect(placement.tether.cap).toBe(VEYRA_BUNDLE.character.palette.suckerBody);
+  // No swing and no reveal: the defaults (25 degrees and 1.2 s; the bloom's own timing).
+  expect(placement.swing).toBeUndefined();
+  expect(placement.reveal).toBeUndefined();
+  expect([appear.kind, select.kind]).toEqual(['blow', 'suctionHold']);
+  expect(choosableIn).toEqual(['intro', 'overview']);
 });
 
 test('the sequences are her own project, and the entrance placeholder holds her landed in the intro', () => {

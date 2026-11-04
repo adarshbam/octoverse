@@ -518,3 +518,28 @@ Tuning rounds (the stop rule's four): r1 the pose, dome and panel box (every com
 - `faceSpot` (the tooltip's keep-clear box round the face, ui/OrbButtons.tsx) still uses fixed offsets (1.05 across, 0.45 up, 0.55 down), not scaled with the pose: 10% small for Veyra's overview. Not changed (it is Nox's output too; the pendants task meets it).
 - Motion not judged (no videos): the blend from the intro (tilt 0.18, scale 1) into the overview (tilt 0, scale 1.1) and the dome's reveal should be checked live.
 - The background is the vault (Task 11), not P3's dark plant-lit water: no world change here.
+
+## Task 13: pendant placement and tethers (engine variant; no owner gate)
+
+What landed. The engine's `PLACEMENTS` table has a second entry, `pendant` (`src/engine/artifacts/pendant.ts`, `tether.ts`, wired through `strategies.ts` and `TechBubbles.tsx`). Veyra's `artifacts.ts` now hangs her technologies as pendants: 13 slots in the intro, 12 in the overview, at most two an arm, her cyan wet-skin highlight on the thread and her cups' cream on the cap. `swing` and `reveal` are absent (defaults: 25 degrees and 1.2 s; the bloom's own timing). The appear and the select are still `blow` and `suctionHold` until Task 19, and `choosableIn` is now `['intro', 'overview']`, so the buttons, the tooltip and the tray run on the pendants' `bubbleLive` places unchanged. Stills: `assets/veyra/t13-pendants-overview.png`, `t13-pendants-intro.png`, `t13-pendants-zoom.png` (frozen: pendants hang straight down).
+
+Numbers (`threadClearance`, thread 0.08 long and 0.014 wide, orbs 0.12 intro and 0.15 overview, her arms' own thickness taken off; the arms as the rig draws them with the rest bend, and on the pose's rest curves):
+
+| Measure | Intro | Overview |
+|---|---|---|
+| Least distance from any thread or orb to another arm or the face, hanging straight down, arms as drawn | 0.067 | 0.066 |
+| The same on the pose's own rest curves | 0.083 | 0.072 |
+| Swung to plus and minus 2 degrees (the idle sway) | 0.062 | 0.062 |
+| Swung to plus and minus 10 degrees | 0.038 | 0.048 |
+| Swung to plus and minus 25 degrees | -0.008 | 0.038 |
+| Gap between any two orbs at rest | held above 0.02 by a test | held above 0.02 by a test |
+
+The test holds the first two rows (above 0.05) and the idle sway; it does not promise the full swing: a thread at plus or minus 25 degrees in the intro touches a neighbouring arm. Swing: a step of 3 units a second for 0.6 s stays within 25 degrees (18 with Flux's limits) and is within 1 degree of the idle sway 1.2 s (0.8 s) after the arm stops.
+
+What the owner will see later, and what I could not fit:
+
+- **The orbs are small.** P3's orbs are about 0.28 on the stage (radius); twelve at that size with a thread under each do not fit under the curled upper arms without touching them. Mine are 0.12 and 0.15 (0.165 on the stage in the overview). The intro has no pendant on T8 (it hooks over T7 with 0.2 between them), so a technology's arm differs a little between the two stages. Task 14 re-places the slots against P3 and decides the size.
+- **The thread is barely there.** 0.08 long: the cap bead reads, the cyan thread is a few pixels. Longer needs fewer slots.
+- **A mid-arm slot can hang over its own arm** (T4's second slot in the overview: the Cloudflare orb sits on the arm). `threadClearance` counts other arms and the face only, as the contract says.
+- **Suction-hold flare (carried note).** Choosing a pendant still runs Nox's suction hold: the nearest arm pulls the orb off its thread to its tip and flares its cups. Not judged here (no live review of the hold on pendants); Task 14 / 19 replace it with the arm lift.
+- Carried minor M1 (Task 12): `Octopus` gaze centre and `nearFace` used the unscaled face origin; now `toStage(faceOrigin, body)` (Veyra's overview 1.1; Nox's scale is 1 and its stills are bit-identical). M2 (`faceSpot` offsets in `OrbButtons.tsx`) is left for Task 14.
