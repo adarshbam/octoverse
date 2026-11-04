@@ -48,6 +48,8 @@ export interface UiTheme {
   pageTitle: string;
   /** The nameplate's second line (the character's epithet). */
   nameplateLabel: string;
+  /** The nameplate's fill. */
+  plate: string;
   /** The panels' outer glow (the detail, the overview sheet, the tooltip). */
   glow: string;
   /** The panels' inner glow (the detail, the tooltip). */
@@ -93,6 +95,7 @@ export const THEME_VARS = {
   buttonTo: '--oct-button-to',
   focusRing: '--oct-focus-ring',
   nameplateLabel: '--oct-nameplate-label',
+  plate: '--oct-plate',
   titleAccent: '--oct-title-accent',
   liveFrom: '--oct-live-from',
   liveTo: '--oct-live-to',
