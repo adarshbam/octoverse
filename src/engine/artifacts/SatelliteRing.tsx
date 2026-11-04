@@ -6,7 +6,7 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import type { SatellitePlacement } from '../config/types';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbMaterial } from './orbMaterial';
-import { beadAnglesInto, beadPeriod, ringLineVisible, ringLineWidth, ringPointInto, ringShown } from './satellite';
+import { beadAnglesInto, beadPeriod, flightProgress, holdProgress, ringFlight, ringLineVisible, ringLineWidth, ringPointInto, ringShown } from './satellite';
 import type { PlacementFormProps } from './strategies';
 
 /** Straight pieces the ring line is drawn in. */
@@ -19,6 +19,10 @@ const CONSTELLATION_LEVEL = 0.45;
 const RIM_SHARE = 0.5;
 /** How much of its own colour a bead's glass body holds: an unlit bead is dim glass, a lit one glows. */
 const BODY = { glass: 0.3, lit: 0.6 } as const;
+/** How much a bead grows as it brightens before the flight, and again as it flares and splits into its orbs. */
+const GROW = { bright: 0.3, flare: 0.7 } as const;
+/** How much brighter the ring line glows as the beads brighten. */
+const LINE_GLOW = 0.6;
 
 /** `text`'s colour at `share` of its strength, as the linear light an orb's glass compiles in (world/colour.ts). */
 function dimmed(text: string, share: number): string {
@@ -31,7 +35,10 @@ function dimmed(text: string, share: number): string {
  * fading out across the face, and its seed beads swaying about their homes in the rear arc, faint
  * constellation lines joining neighbours. Lives in the head's space, centred on the head's axis.
  * Drawn in the intro and the detail, fading in and out as the stage changes; with motion off the
- * beads stand at their homes and the ring comes and goes at once.
+ * beads stand at their homes and the ring comes and goes at once. In the overview it stays until the
+ * flight takes it (satellite.ts `ringFlight`, on the head swell's progress): the beads stop swaying
+ * and brighten, flare and split into the orbs (TechBubbles draws those) as the line fades; closing,
+ * it comes back the same way. Once the orbs have landed it stays gone through a technology focus.
  *
  * One line batch draws the ring and the constellation lines; the beads are instanced orb glass with
  * no logo (the lit ones with the orb halo), each depth-tested, so the head hides the ones behind it.
@@ -105,30 +112,34 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
   }, [parts]);
 
   // The sway clock, how far the ring is shown, and the scratch a frame writes into.
-  const run = useMemo(() => ({ clock: 0, shown: Number.NaN, angles: new Array<number>(ring.beadCount).fill(0), bead: new THREE.Vector3(), next: new THREE.Vector3(), matrix: new THREE.Matrix4(), centre: new THREE.Vector3() }), [ring.beadCount]);
+  const run = useMemo(() => ({ clock: 0, shown: Number.NaN, angles: new Array<number>(ring.beadCount).fill(0), bead: new THREE.Vector3(), next: new THREE.Vector3(), matrix: new THREE.Matrix4(), centre: new THREE.Vector3(), latch: { landed: false } }), [ring.beadCount]);
 
   useFrame((state, delta) => {
     const f = frame();
     const root = group.current!;
     const dt = Math.min(delta, 0.05);
-    const goal = ringShown(f.stage) ? 1 : 0;
+    // The flight (satellite.ts): the overview, and a focus from it, hold the orbs once they have landed.
+    const flight = ringFlight(holdProgress(run.latch, f.stage === 'techFocus' ? 'focus' : f.stage === 'overview' ? 'overview' : 'free', flightProgress(f.swell), f.still), f.reducedMotion ?? false);
+    const goal = ringShown(f.stage) || f.stage === 'overview' ? 1 : 0;
     run.shown = f.still || Number.isNaN(run.shown) ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
-    root.visible = run.shown > 0.001;
+    root.visible = run.shown > 0.001 && (flight.line > 0 || flight.bead > 0);
     if (!root.visible) return;
     if (!f.still) run.clock += dt;
     const shown = run.shown * run.shown * (3 - 2 * run.shown);
     const { slots, positions, colours, constellation } = parts;
     const { bead, next, matrix, angles } = run;
 
-    // The beads, each at its angle on the ring.
+    // The beads, each at its angle on the ring (drawn home as they brighten for the flight), growing as they brighten and flare.
     beadAnglesInto(angles, run.clock, ring, f.still);
+    if (flight.sway < 1) for (let i = 0; i < angles.length; i++) angles[i] = ring.homes[i] + (angles[i] - ring.homes[i]) * flight.sway;
+    const size = ring.beadSize * (1 + GROW.bright * flight.bright + GROW.flare * flight.flare);
     for (let i = 0; i < slots.length; i++) {
       ringPointInto(bead, angles[i], ring);
-      matrix.makeScale(ring.beadSize, ring.beadSize, ring.beadSize).setPosition(bead);
+      matrix.makeScale(size, size, size).setPosition(bead);
       const slot = slots[i];
       if (slot.lit) {
         parts.litBeads.setMatrixAt(slot.index, matrix);
-        matrix.makeScale(ring.beadSize * ORB_HALO_SCALE, ring.beadSize * ORB_HALO_SCALE, ring.beadSize * ORB_HALO_SCALE).setPosition(bead);
+        matrix.makeScale(size * ORB_HALO_SCALE, size * ORB_HALO_SCALE, size * ORB_HALO_SCALE).setPosition(bead);
         parts.litHalos.setMatrixAt(slot.index, matrix);
       } else parts.glassBeads.setMatrixAt(slot.index, matrix);
     }
@@ -140,7 +151,7 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
       ringPointInto(bead, angles[k], ring).toArray(positions, at);
       ringPointInto(next, angles[k + 1], ring).toArray(positions, at + 3);
       const flicker = f.still ? 0 : 0.5 + 0.5 * Math.sin((2 * Math.PI * run.clock) / beadPeriod(k, ring) + k * 1.7);
-      const level = CONSTELLATION_LEVEL * (1 - ring.line.flicker * flicker);
+      const level = CONSTELLATION_LEVEL * (1 - ring.line.flicker * flicker) * flight.line;
       for (let end = 0; end < 2; end++) {
         colours[at + end * 3] = constellation.r * level;
         colours[at + end * 3 + 1] = constellation.g * level;
@@ -149,8 +160,10 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
     }
     parts.positionBuffer.needsUpdate = parts.colourBuffer.needsUpdate = true;
 
-    parts.beadGlass.uniforms.uOpacity.value = parts.litGlass.uniforms.uOpacity.value = parts.litHalo.uniforms.uOpacity.value = shown;
-    parts.material.color.setScalar(shown);
+    parts.beadGlass.uniforms.uOpacity.value = parts.litGlass.uniforms.uOpacity.value = parts.litHalo.uniforms.uOpacity.value = shown * flight.bead;
+    // Brightening, every bead's edge turns to the rim's gold.
+    parts.beadGlass.uniforms.uFocus.value = RIM_SHARE + (1 - RIM_SHARE) * flight.bright;
+    parts.material.color.setScalar(shown * flight.line * (1 + LINE_GLOW * flight.bright));
     // The line's width in pixels: its authored width at the scale a world unit is seen at here.
     root.getWorldPosition(run.centre);
     const pxPerUnit = (state.camera.projectionMatrix.elements[5] * state.size.height) / 2 / Math.max(1e-3, state.camera.position.distanceTo(run.centre));

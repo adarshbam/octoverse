@@ -683,12 +683,15 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = instance.hover.bubble || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
+    bubbleState.reducedMotion = reducedMotion;
+    bubbleState.focused = stage === 'techFocus';
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
     placementFrame.stage = stage;
     placementFrame.swell = sf.push;
     placementFrame.still = freeze || reducedMotion;
+    placementFrame.reducedMotion = reducedMotion;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
     // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it
@@ -843,7 +846,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} headCentreX={config.head.centerX} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

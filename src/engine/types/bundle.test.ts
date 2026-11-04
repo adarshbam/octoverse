@@ -350,3 +350,21 @@ test("an orb style (rim beads and cap) is optional; given, its count, colours an
     ['gold', 'artifacts.orbStyle'],
   ] as const) expect(refusal(withStyle(bad)).field).toBe(field);
 });
+
+test("a satellite's active form (slots, sizes, tether, swing) is checked by name, all three or none", () => {
+  const ring = { radius: 1.25, tilt: 1.36, roll: 0.14, centreY: -0.28, beadCount: 5, beadSize: 0.075, homes: [1.3, 2.2, 3.1, 4.1, 5], sway: { amplitude: 0.21, period: [6, 9] }, keepOut: Math.PI / 4, line: { color: '#d99982', width: 1.4, constellation: '#d99982', flicker: 0.5 }, beads: { glass: '#93699a', rim: '#d99982', lit: [1, 3] } };
+  const slots = ARM_IDS.flatMap((arm, i) => [{ arm, at: 0.9, order: 2 * i }, { arm, at: 0.5, order: 2 * i + 1 }]);
+  const active = { kind: 'satellite', ring, slots: { overview: slots }, sizes: { overview: 0.3 }, tether: { length: 0.16, color: '#d99982', width: 0.012, sag: 0.2, cap: '#d99982' } };
+  const withPlacement = (placement: unknown): WorldBundle => ({ ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, placement } as WorldBundle['artifacts'] });
+  expect(validateBundle(withPlacement(active)).artifacts.placement).toBe(active);
+  // The ring alone (no active form) is a satellite too.
+  expect(() => validateBundle(withPlacement({ kind: 'satellite', ring }))).not.toThrow();
+  for (const [bad, field] of [
+    [{ ...active, tether: undefined }, 'artifacts.placement.tether'],
+    [{ ...active, sizes: { overview: 0 } }, 'artifacts.placement.sizes.overview'],
+    [{ ...active, slots: { overview: [...slots, { arm: 'T1', at: 0.3, order: 16 }] } }, 'artifacts.placement.slots.overview[16].arm'],
+    [{ ...active, slots: { overview: [{ arm: 'T9', at: 0.3, order: 0 }] } }, 'artifacts.placement.slots.overview[0].arm'],
+    [{ ...active, tether: { ...active.tether, color: 'gold-ish' } }, 'artifacts.placement.tether.color'],
+    [{ ...active, swing: { maxAngle: 0, settle: 1.4 } }, 'artifacts.placement.swing.maxAngle'],
+  ] as const) expect(refusal(withPlacement(bad)).field).toBe(field);
+});

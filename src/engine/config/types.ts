@@ -593,9 +593,19 @@ export type PlacementConfig = | {
   kind: 'satellite';
   /**
    * The ring round the head the artifacts rest on (artifacts/satellite.ts), drawn in the intro and
-   * the detail. Its active form (pendant slots, sizes and tether) joins with the pendant code.
+   * the detail.
    */
   ring: RingStyle;
+  /**
+   * The active form (overview and technology focus): the pendant slots the orbs fly out to from the
+   * ring's beads as the head swells (at most two an arm; more go to the tray), the orbs' radius there,
+   * the thread each hangs on and its swing (absent: at most 15 degrees, settled in 1.4 s). All three
+   * of slots, sizes and tether, or none: without them the satellite is the ring alone and places no artifact.
+   */
+  slots?: { overview: readonly PendantSlot[] };
+  sizes?: { overview: number };
+  tether?: TetherStyle;
+  swing?: SwingLimits;
 };
 
 /** The orbit placement's settings. */

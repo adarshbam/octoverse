@@ -45,7 +45,7 @@ const DEG = Math.PI / 180;
 export const DEFAULT_SWING: SwingLimits = { maxAngle: 25 * DEG, settle: 1.2 };
 
 /** The swing's limits a placement config names; absent, Veyra's. */
-export const swingLimits = (placement: PendantPlacement): SwingLimits => placement.swing ?? DEFAULT_SWING;
+export const swingLimits = (placement: Pick<PendantPlacement, 'tether' | 'swing'>): SwingLimits => placement.swing ?? DEFAULT_SWING;
 
 /** The swing's own period: a pendant on a short thread swings slowly, like something hung in water. */
 const SWING_PERIOD = 1.6;
@@ -265,7 +265,7 @@ export function resetPendants(run: ReturnType<typeof createPendantRun>) {
  * `places` are the stage's (layoutPendants); a null place is left alone. With motion off the clock
  * stands still and the pendants hang straight down. Nothing is kept but `run`.
  */
-export function stepPendants(run: ReturnType<typeof createPendantRun>, places: readonly (PendantPlace | null)[], frame: PendantFrame, arms: readonly ArmReader[], placement: PendantPlacement) {
+export function stepPendants(run: ReturnType<typeof createPendantRun>, places: readonly (PendantPlace | null)[], frame: PendantFrame, arms: readonly ArmReader[], placement: Pick<PendantPlacement, 'tether' | 'swing'>) {
   const dt = frame.reducedMotion ? 0 : frame.dt;
   run.clock += dt;
   const limits = swingLimits(placement);
