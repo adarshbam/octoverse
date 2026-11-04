@@ -172,7 +172,7 @@
   },
   "measured": {
     "note": "Task 7: how the render is compared with the painting for the shape numbers. head.halfWidth and head.top are CONFIG ranges (the authored dome); the rest is like for like on the picture.",
-    "segmentation": "G>=95 and G-R>=40 and B>=0.7G, or R>150 and G>150; rows 196-427 (title and nameplate out); bubble r17 at (432, 392) out; 3x3 close, largest component, holes filled. Reproduces p2-mask.png at IoU 0.990.",
+    "segmentation": "G>=95 and G-R>=40 and B>=0.7G, or R>150 and G>150; rows 196-427 (title and nameplate out); bubble r17 at (432, 392) out; 3x3 close, largest component, holes filled. On P2 itself it gives IoU 0.992 with p2-mask.png on rows 196-427. Run: python scripts/veyra_shape.py <capture.png>.",
     "visibleHalfWidth": {
       "rows": [
         196,

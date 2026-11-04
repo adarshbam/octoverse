@@ -34,7 +34,7 @@ const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1, rootRadius: number): ArmSpec
 export const VEYRA: CharacterConfig = {
   id: 'veyra',
   lighting: VEYRA_LIGHTING,
-  // A tall round dome, wider and higher than Nox's (spec 2.2: half-width 0.92, top 0.48), over small
+  // A tall round dome, wider and higher than Nox's (half-width 0.88, top 0.5: Task 7's fit to P2, within spec 2.2's 0.88 to 0.96 and 0.44 to 0.52), over small
   // cheek lobes that carry the blush. The dome's axis (centerX) is also the neck the head tilts
   // about: the intro leans the head about 10 degrees (poses.ts), which carries the crown from the
   // axis to P2's x 0.06. The eyes land at y -0.50 (faceOrigin y -0.40 plus the eyes' -0.10).
@@ -176,7 +176,8 @@ export const VEYRA: CharacterConfig = {
     focused: { browTilt: 0.1, browLift: 0.55, lidRest: -0.05, mouthCurve: 0.5, mouthOpen: 0.12, blush: 0.25 },
   },
   arms: [rear('T1', 0.22), middle('T2', 0.24), side('T3', 0.165), lower('T4', 1, 0.175), lower('T5', -1, 0.19), side('T6', 0.15), middle('T7', 0.165), rear('T8', 0.165)],
-  // Slimmer than Nox's at the root and tapering longer, so the spirals stay tidy (spec 7.1).
+  // The root radii are per arm (above: thick upper arms, as P2 paints them); the taper comes late
+  // (taperPower 0.9) so the arms stay thick almost to the curl, as P2's do, and end in a fine tip.
   tipRadius: 0.036,
   taperPower: 0.9,
   armBend: 0.2,
@@ -184,8 +185,8 @@ export const VEYRA: CharacterConfig = {
   // Cream-gold cups, larger against the arm than Nox's and packed into a scalloped frill (spec 7.1):
   // raised cups whose rims stand proud of the arm's outline, cream from the P2 cup sample
   // (224, 220, 156), a brighter glowing rim and a darker teal-cream hollow. Bigger than Nox's and
-  // packed nearly touching (spacing 2.05; the layout keeps a 5% gap), turned a little less toward
-  // the viewer (tilt 22) so the row reads as a frill along the edge, with a light contact shadow.
+  // packed nearly touching (spacing 1.85; the layout keeps a 5% gap), turned less toward the
+  // viewer (tilt 12) so the row reads as a frill along the edge, with a light contact shadow.
   suckers: {
     size: 0.34, sizePower: 0.7, spacing: 1.85, elongation: 1.18, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
     style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.5 },
