@@ -4,7 +4,7 @@ import type { StageId } from '../../engine/config/types';
 import { aetherProject } from './content/aetherProject';
 import { aetherTechnologies } from './content/aetherTechnologies';
 import { AETHER_POSES } from './poses';
-import { OBSERVATORY_STAGE } from './place/config';
+import { OBSERVATORY_WORLD } from './place/config';
 import { AETHER_SEQUENCES } from './sequences/index';
 import { SWIM_POSES } from './swim';
 import { AETHER_THEME } from './theme';
@@ -49,7 +49,7 @@ export const AETHER_BUNDLE: WorldBundle = {
   swim: SWIM_POSES,
   artifacts: AETHER_ARTIFACTS,
   sequences: AETHER_SEQUENCES,
-  place: OBSERVATORY_STAGE,
+  place: OBSERVATORY_WORLD,
   stage: { frames: AETHER_STAGE_FRAMES, panels: AETHER_STAGE_PANELS, introTitle: AETHER_INTRO_TITLE },
   content: { project: aetherProject, technologies: aetherTechnologies },
   theme: AETHER_THEME,
