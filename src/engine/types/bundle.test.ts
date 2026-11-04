@@ -71,7 +71,7 @@ test('a number that is not finite is refused loudly, by field, where the clamp w
   expect(refusal(nan).field).toBe('character.armBend');
   const inf = { ...NOX_BUNDLE, place: { ...NOX_BUNDLE.place, camera: { ...NOX_BUNDLE.place.camera, tilt: Infinity } } };
   expect(refusal(inf).field).toBe('place.camera.tilt');
-  const frame = { ...NOX_BUNDLE, stage: { frames: { ...NOX_BUNDLE.stage.frames, detail: { width: Number.NaN, height: 4 } } } };
+  const frame = { ...NOX_BUNDLE, stage: { ...NOX_BUNDLE.stage, frames: { ...NOX_BUNDLE.stage.frames, detail: { width: Number.NaN, height: 4 } } } };
   expect(refusal(frame).field).toBe('stage.frames.detail');
   const key = { ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, entrance: { ...NOX_BUNDLE.sequences.entrance, turn: Number.NaN } } };
   expect(refusal(key).field).toBe('sequences.entrance.turn');
@@ -164,7 +164,7 @@ function without(path: string): WorldBundle {
 test('a part the bundle needs but lacks is a BundleError naming its field, not a TypeError', () => {
   for (const field of [
     'character', 'character.head', 'place', 'poses', 'swim', 'artifacts', 'artifacts.placement', 'artifacts.appear', 'artifacts.select', 'artifacts.choosableIn',
-    'sequences', 'sequences.defaults', 'theme', 'stage', 'stage.frames', 'content', 'content.project', 'content.technologies', 'poses.intro.body', 'poses.detail.body',
+    'sequences', 'sequences.defaults', 'theme', 'stage', 'stage.frames', 'stage.panels', 'stage.introTitle', 'content', 'content.project', 'content.technologies', 'poses.intro.body', 'poses.detail.body',
   ]) {
     expect(refusal(without(field)).field, field).toBe(field);
   }
@@ -233,4 +233,19 @@ test("the poster and the page title are the world's: a bundle without them, or w
   // Nox's values, as the page held them before the bundle carried them.
   expect(NOX_BUNDLE.theme.poster).toEqual({ src: 'nox/poster-intro.webp', alt: 'Nox, the octopus guide to Security Lab, in the dark water of his lab', width: 1536, height: 1024 });
   expect(NOX_BUNDLE.theme.pageTitle).toBe('Nox · Security Lab');
+});
+
+test("the traced UI boxes are the world's own (stage.panels, stage.introTitle): Nox's values as they were, and a box that cannot place a panel is refused by name", () => {
+  expect(NOX_BUNDLE.stage.panels).toEqual({ overview: [-1.22, 1.14, 1.33, 0.06], detail: [-0.57, 1.2425, 4.005, -1.8775] });
+  expect(NOX_BUNDLE.stage.introTitle).toEqual({ halfWidth: 1.4, top: 1.55 });
+  const stage = (edit: object) => ({ ...NOX_BUNDLE, stage: { ...NOX_BUNDLE.stage, ...edit } }) as unknown as WorldBundle;
+  const panels = (edit: object) => stage({ panels: { ...NOX_BUNDLE.stage.panels, ...edit } });
+  expect(refusal(panels({ overview: [0, 1, 2] })).field).toBe('stage.panels.overview');
+  expect(refusal(panels({ detail: [0, 1, 2, Number.NaN] })).field).toBe('stage.panels.detail');
+  expect(refusal(panels({ detail: ['0', 1, 2, 0] })).field).toBe('stage.panels.detail');
+  // Left of right, and top above bottom.
+  expect(refusal(panels({ overview: [2, 1, 1, 0] })).field).toBe('stage.panels.overview');
+  expect(refusal(panels({ overview: [0, 0, 1, 1] })).field).toBe('stage.panels.overview');
+  expect(refusal(stage({ introTitle: { halfWidth: 0, top: 1 } })).field).toBe('stage.introTitle');
+  expect(refusal(stage({ introTitle: { halfWidth: 1, top: Number.POSITIVE_INFINITY } })).field).toBe('stage.introTitle');
 });

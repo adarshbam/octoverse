@@ -7,7 +7,7 @@ import { NOX_POSES } from './poses';
 import { SWIM_POSES } from './swim';
 import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../../engine/sequences/entrance';
 import { NOX_SEQUENCES } from './sequences/index';
-import type { StageFrame } from '../../engine/stage/framing';
+import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/framing';
 import type { WorldBundle } from '../../engine/types/bundle';
 import type { UiTheme } from '../../engine/ui/theme';
 import { SECURITY_WORLD } from './place/config';
@@ -28,6 +28,19 @@ export const NOX_STAGE_FRAMES: Record<StageId, StageFrame> = {
   techFocus: { width: 5.15, height: 5.04 },
   detail: { width: 8.36, height: 4.705 },
 };
+
+/**
+ * Where Nox's HTML panels sit on his stage, in world units, traced from his high-quality panels:
+ * the overview's project panel is the dome's inner rectangle (panel 3); the detail's is panel 5's
+ * project panel, (722, 222) to (1637, 846) px at 200 px a unit.
+ */
+export const NOX_STAGE_PANELS: StagePanels = {
+  overview: [-1.22, 1.14, 1.33, 0.06],
+  detail: [-0.57, 1.2425, 4.005, -1.8775],
+};
+
+/** The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css). */
+export const NOX_INTRO_TITLE: IntroTitleBox = { halfWidth: 1.4, top: 1.55 };
 
 /** Nox's UI: the colours the stylesheets were written in (each reads `var(--oct-*, <this value>)`), and his flame. */
 export const NOX_THEME: UiTheme = {
@@ -71,7 +84,7 @@ export const NOX_BUNDLE: WorldBundle = {
   artifacts: NOX_ARTIFACTS,
   sequences: NOX_SEQUENCES,
   place: SECURITY_WORLD,
-  stage: { frames: NOX_STAGE_FRAMES },
+  stage: { frames: NOX_STAGE_FRAMES, panels: NOX_STAGE_PANELS, introTitle: NOX_INTRO_TITLE },
   content: { project: noxProject, technologies: noxTechnologies },
   theme: NOX_THEME,
 };

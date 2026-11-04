@@ -5,7 +5,7 @@ import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
 import type { StagePose, SwimPoseSet } from '../poses/types';
 import type { SequenceSet } from '../sequences/keys';
-import type { StageFrame } from '../stage/framing';
+import type { IntroTitleBox, StageFrame, StagePanels } from '../stage/framing';
 import { THEME_COLOURS, type UiTheme } from '../ui/theme';
 import { TITLE_ICONS } from '../ui/titleIcons';
 import { isColour, isWorldColour } from '../world/colour';
@@ -37,8 +37,12 @@ export interface WorldBundle {
   artifacts: ArtifactConfig;
   sequences: SequenceSet;
   place: WorldConfig;
-  /** What each stage frames (stage/framing.ts `fovFor`). */
-  stage: { frames: Record<StageId, StageFrame> };
+  /**
+   * What each stage frames (stage/framing.ts `fovFor`), where the overview's and the detail's HTML
+   * panels sit in world units, and the intro title's box: all traced from the world's own storyboard
+   * (they are placed on the 3D scene, so they belong with its framing, not with the theme's colours).
+   */
+  stage: { frames: Record<StageId, StageFrame>; panels: StagePanels; introTitle: IntroTitleBox };
   content: { project: Project; technologies: readonly Technology[] };
   theme: UiTheme;
 }
@@ -143,6 +147,8 @@ function checkPresent(bundle: WorldBundle) {
   need('theme', bundle.theme);
   need('stage', bundle.stage);
   need('stage.frames', bundle.stage.frames);
+  need('stage.panels', bundle.stage.panels);
+  need('stage.introTitle', bundle.stage.introTitle);
   need('content', bundle.content);
   need('content.project', bundle.content.project);
   if (!Array.isArray(bundle.content.technologies)) throw new BundleError('content.technologies', 'is missing (the technologies, as a list)');
@@ -186,6 +192,14 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     const frame = bundle.stage.frames[stage];
     if (!frame || !(finite(frame.width) && frame.width > 0) || !(finite(frame.height) && frame.height > 0)) throw new BundleError(`stage.frames.${stage}`, 'needs a width and a height above 0');
   }
+  for (const panel of ['overview', 'detail'] as const) {
+    const box: unknown = bundle.stage.panels[panel];
+    if (!Array.isArray(box) || box.length !== 4 || !box.every(finite)) throw new BundleError(`stage.panels.${panel}`, 'needs four finite numbers [left, top, right, bottom] (world units)');
+    const [left, top, right, bottom] = box as number[];
+    if (!(left < right) || !(top > bottom)) throw new BundleError(`stage.panels.${panel}`, 'needs left < right and top > bottom (a box on the z = 0 plane, y up)');
+  }
+  const { halfWidth, top: titleTop } = bundle.stage.introTitle;
+  if (!(finite(halfWidth) && halfWidth > 0) || !finite(titleTop)) throw new BundleError('stage.introTitle', 'needs a halfWidth above 0 and a finite top (world units)');
   if (!finite(bundle.swim.stretch) || !finite(bundle.swim.bodyX)) throw new BundleError('swim', 'needs a finite stretch and bodyX');
 
   // Every number, everywhere but the swim (its poses are built on first read) and the sequences' state (a loader).

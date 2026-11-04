@@ -2,10 +2,11 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { logoColour, logoIcon } from '../artifacts/logoTexture';
 import type { StageEvent } from '../behavior/stageMachine';
 import type { Project, Technology } from '../content/projectTypes';
+import { useInstance } from '../host/instanceContext';
 import { layoutFor } from '../stage/framing';
 import './detail.css';
 import { GitHubMark, OpenMark } from './OverviewPanel';
-import { DETAIL_PANEL_BOX, detailPages, detailTechnologies, featureCards, overviewText, safeHref } from './detailContent';
+import { detailPages, detailTechnologies, featureCards, overviewText, safeHref } from './detailContent';
 import { useStageBox } from './useStageBox';
 
 /** The project's mark in the header: panel 5's shield with a keyhole. */
@@ -65,7 +66,8 @@ export function ProjectDetail({ project, technologies, open, showPlaceholders, f
   dispatch: (event: StageEvent) => void;
 }) {
   const id = useId();
-  const box = useStageBox('detail', DETAIL_PANEL_BOX);
+  // The project panel's rectangle, traced from the world's own panel (`stage.panels.detail`).
+  const box = useStageBox('detail', useInstance().bundle.stage.panels.detail);
   const sheet = forceSheet || portraitPhone() || box.width < MIN_PANEL_WIDTH;
   const side = sheet && !portraitPhone();
   const pages = detailPages(project, showPlaceholders);
