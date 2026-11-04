@@ -1,0 +1,356 @@
+{
+  "url": "/octoverse/world/reef/kit.glb",
+  "pieces": [
+    "gate_arch",
+    "rock_a",
+    "rock_b",
+    "rock_c",
+    "rock_d",
+    "coral_magenta_a",
+    "coral_magenta_b",
+    "coral_magenta_c",
+    "coral_orange_a",
+    "coral_orange_b",
+    "card_glass_01",
+    "card_glass_02",
+    "card_glass_03",
+    "card_glass_04",
+    "card_glass_05",
+    "card_glass_06",
+    "card_glass_07",
+    "card_glass_08"
+  ],
+  "nodes": [
+    "gate_windows",
+    "gate_membrane",
+    "gate_glyph"
+  ],
+  "attached": [
+    {
+      "node": "gate_windows",
+      "piece": "gate_arch"
+    },
+    {
+      "node": "gate_membrane",
+      "piece": "gate_arch"
+    },
+    {
+      "node": "gate_glyph",
+      "piece": "gate_arch"
+    }
+  ],
+  "info": {
+    "gate_arch": {
+      "bounds": {
+        "min": [
+          -1.8893,
+          -0.0005,
+          -0.4413
+        ],
+        "max": [
+          1.8454,
+          3.4941,
+          1.031
+        ]
+      },
+      "radius": 1.9834
+    },
+    "rock_a": {
+      "bounds": {
+        "min": [
+          -1.209,
+          -0.3131,
+          -1.0159
+        ],
+        "max": [
+          1.1702,
+          0.8561,
+          0.9398
+        ]
+      },
+      "radius": 1.244
+    },
+    "rock_b": {
+      "bounds": {
+        "min": [
+          -0.863,
+          -0.3917,
+          -1.3243
+        ],
+        "max": [
+          1.0195,
+          1.1336,
+          1.2436
+        ]
+      },
+      "radius": 1.3271
+    },
+    "rock_c": {
+      "bounds": {
+        "min": [
+          -0.9246,
+          -0.6333,
+          -0.7579
+        ],
+        "max": [
+          0.7828,
+          1.8358,
+          0.8038
+        ]
+      },
+      "radius": 0.9297
+    },
+    "rock_d": {
+      "bounds": {
+        "min": [
+          -1.8295,
+          -0.4184,
+          -1.2449
+        ],
+        "max": [
+          1.694,
+          1.1162,
+          1.2702
+        ]
+      },
+      "radius": 1.8686
+    },
+    "coral_magenta_a": {
+      "bounds": {
+        "min": [
+          -0.3457,
+          0.0163,
+          -0.1349
+        ],
+        "max": [
+          0.2747,
+          0.5136,
+          0.0625
+        ]
+      },
+      "radius": 0.3487
+    },
+    "coral_magenta_b": {
+      "bounds": {
+        "min": [
+          -0.2356,
+          0.0143,
+          -0.055
+        ],
+        "max": [
+          0.2571,
+          0.4398,
+          0.0545
+        ]
+      },
+      "radius": 0.2573
+    },
+    "coral_magenta_c": {
+      "bounds": {
+        "min": [
+          -0.3039,
+          0.0182,
+          -0.1357
+        ],
+        "max": [
+          0.3919,
+          0.5988,
+          0.0907
+        ]
+      },
+      "radius": 0.3989
+    },
+    "coral_orange_a": {
+      "bounds": {
+        "min": [
+          -0.2916,
+          0.0184,
+          -0.0702
+        ],
+        "max": [
+          0.2566,
+          0.5191,
+          0.0352
+        ]
+      },
+      "radius": 0.293
+    },
+    "coral_orange_b": {
+      "bounds": {
+        "min": [
+          -0.2093,
+          0.0176,
+          -0.0732
+        ],
+        "max": [
+          0.2228,
+          0.4678,
+          0.0265
+        ]
+      },
+      "radius": 0.2229
+    },
+    "card_glass_01": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_02": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_03": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_04": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_05": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_06": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_07": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "card_glass_08": {
+      "bounds": {
+        "min": [
+          -0.5,
+          -0.35,
+          -0.015
+        ],
+        "max": [
+          0.5,
+          0.35,
+          0.031
+        ]
+      },
+      "radius": 0.5002
+    },
+    "gate_windows": {
+      "bounds": {
+        "min": [
+          -0.9077,
+          0.2903,
+          0.31
+        ],
+        "max": [
+          0.8039,
+          2.8116,
+          0.36
+        ]
+      }
+    },
+    "gate_membrane": {
+      "bounds": {
+        "min": [
+          -0.52,
+          0.12,
+          -0.11
+        ],
+        "max": [
+          0.52,
+          2.34,
+          -0.11
+        ]
+      }
+    },
+    "gate_glyph": {
+      "bounds": {
+        "min": [
+          -0.3904,
+          0.73,
+          -0.098
+        ],
+        "max": [
+          0.3904,
+          1.586,
+          -0.082
+        ]
+      }
+    }
+  }
+}
