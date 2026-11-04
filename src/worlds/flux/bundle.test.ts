@@ -1,9 +1,11 @@
 import { expect, test } from 'vitest';
+import { resolveExpressions } from '../../engine/behavior/expressions';
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { FLUX_BUNDLE } from './bundle';
 import { FLUX } from './character';
+import { NOX } from '../nox/character';
 import { VEYRA } from '../veyra/character';
 import { FLUX_POSES } from './poses';
 import { FLUX_STROKE_SECONDS } from './sequences/defaults';
@@ -163,4 +165,41 @@ test('no stray red: only the core, blush, mouth and cups have red above both gre
   };
   walk(FLUX, '');
   expect(strays).toEqual([]);
+});
+
+// Task 4: Flux's face (spec 2.3, 7.3), traced from panel 2.
+
+test("his face: two short outer lashes, brows thicker than Nox's, a navy-to-violet iris, a strong pink blush", () => {
+  const { eye, brow } = FLUX.face;
+  expect(eye.lashes.length).toBe(2);
+  expect(brow.thickness).toBeGreaterThan(NOX.face.brow.thickness);
+  const iris = FLUX.facePalette.iris;
+  // Navy-black at the top: blue leads red, and every channel stays dark.
+  const [tr, tg, tb] = hexToRgb(iris[0]);
+  expect(tb).toBeGreaterThan(tr);
+  for (const v of [tr, tg, tb]) expect(v).toBeLessThan(60);
+  // Violet-lavender at the bottom: blue over green, red over green.
+  const [br, bg, bb] = hexToRgb(iris[iris.length - 1]);
+  expect(bb).toBeGreaterThan(bg);
+  expect(br).toBeGreaterThan(bg);
+  expect(hexToRgb(FLUX.facePalette.blush)[0]).toBeGreaterThanOrEqual(240);
+});
+
+test("his eager face (the focused override) opens the mouth and the eyes wider than Nox's focused face", () => {
+  const flux = resolveExpressions(FLUX).focused;
+  const nox = resolveExpressions(NOX).focused;
+  expect(flux.mouthOpen).toBeGreaterThan(0);
+  // Lid open is one less the resting lid.
+  expect(1 - flux.lidRest).toBeGreaterThan(1 - nox.lidRest);
+  expect(flux.browLift).toBeGreaterThan(nox.browLift);
+});
+
+test('the intro face is the big open smile (P2)', () => {
+  const intro = resolveExpressions(FLUX)[FLUX_POSES.intro.expression];
+  expect(intro.mouthOpen).toBeGreaterThanOrEqual(0.6);
+  expect(intro.mouthCurve).toBeGreaterThan(0.5);
+});
+
+test('his expression overrides are in the range the face can draw', () => {
+  expect(clampCharacterConfig(FLUX).expressions).toEqual(FLUX.expressions);
 });

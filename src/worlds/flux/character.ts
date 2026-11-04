@@ -5,7 +5,7 @@ import type { StageLighting } from '../../engine/config/lighting';
 // native px; 1 unit = 100 px, origin at the panel's centre, +y up). This is the first pass (Task 2):
 // the head's size, the face's place, the arms' anatomy, the blue-violet-pink palette and the eager
 // personality. Task 3 gives the body its jelly look, its sparkles and the cups their style (start
-// values, Task 6 tunes them); Task 4 the face its layers and expressions.
+// values, Task 6 tunes them); Task 4 the face's layers, colours and expressions (traced from the 3x P2).
 
 // Arms fan out in depth from the body as Nox's do (rear arms behind the head, side arms in front),
 // a touch thicker at the root than a slimmer octopus, and they taper steadily to the tip.
@@ -91,58 +91,77 @@ export const FLUX: CharacterConfig = {
     },
   },
   face: {
-    // Eyes large and round at about x +-0.37, y -0.54 in the stage (the face origin is at y -0.44);
-    // two short lashes at each outer corner (spec 7.3); Task 4 draws the layers to the reference.
+    // Eyes large and round at about x +-0.37, y -0.54 in the stage (the face origin is at y -0.44),
+    // traced from the 3x P2 panel (spec 2.3, 7.3).
     eye: {
       rx: 0.165,
       ry: 0.175,
       centers: [[-0.37, -0.1], [0.37, -0.1]],
-      border: { outer: 0.022, upperOuter: 0.03, top: 0.03, upperInner: 0.022, inner: 0.008, lowerInner: 0.008, bottom: 0.0075, lowerOuter: 0.011 },
-      iris: { rx: 0.84, ry: 0.92, inset: 0.16, rim: 0.1 },
-      pupil: { rx: 0.55, ry: 0.6, drop: 0.08, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
-      catchlights: [{ x: -0.4, y: 0.45, r: 0.19 }, { x: 0.4, y: 0.25, r: 0.1 }],
+      // A heavy dark lash line along the top, thin beside the nose and along the bottom.
+      border: { outer: 0.024, upperOuter: 0.034, top: 0.034, upperInner: 0.024, inner: 0.008, lowerInner: 0.008, bottom: 0.008, lowerOuter: 0.012 },
+      // A big iris set a little toward the nose, leaving a white crescent on the outer side; the
+      // black pupil nearly fills its dark upper part.
+      iris: { rx: 0.84, ry: 0.92, inset: 0.18, rim: 0.1 },
+      pupil: { rx: 0.64, ry: 0.68, drop: -0.02, inner: { dx: -0.12, dy: 0.06, rx: 0.65, ry: 0.8 } },
+      // Two white catchlights high in the iris: a large one upper left, a smaller one upper right.
+      catchlights: [{ x: -0.42, y: 0.5, r: 0.18 }, { x: 0.42, y: 0.56, r: 0.12 }],
+      // The violet-lavender light low in the iris only.
       glows: [
-        { x: -0.55, y: -0.4, rx: 0.34, ry: 0.4, strength: 0.8 },
-        { x: 0.55, y: -0.38, rx: 0.3, ry: 0.36, strength: 0.7 },
-        { x: 0, y: -0.7, rx: 0.55, ry: 0.26, strength: 0.8 },
+        { x: -0.55, y: -0.45, rx: 0.32, ry: 0.36, strength: 0.75 },
+        { x: 0.55, y: -0.43, rx: 0.3, ry: 0.34, strength: 0.65 },
+        { x: 0, y: -0.74, rx: 0.6, ry: 0.24, strength: 0.85 },
       ],
-      spot: { x: 0.05, y: -0.74, rx: 0.24, ry: 0.13 },
-      lid: { inner: 0.012, outer: 0.016 },
+      spot: { x: 0.05, y: -0.78, rx: 0.28, ry: 0.13 },
+      lid: { inner: 0.012, outer: 0.018 },
       rim: 0.01,
       fold: { width: 0.008, band: 0.016, from: -0.7, to: 0.7 },
+      // Two short lashes flicking out at each outer corner.
       lashes: [
-        { at: 0.66, length: 0.04, width: 0.016, angle: 70 },
-        { at: 0.86, length: 0.04, width: 0.016, angle: 40 },
+        { at: 0.78, length: 0.046, width: 0.018, angle: 52 },
+        { at: 0.93, length: 0.048, width: 0.018, angle: 24 },
       ],
     },
-    // Short, thick, dark arcs set high (P2: abs y about -0.2); thicker than a slimmer face's.
-    brow: { inner: [0.29, 0.25], control: [0.37, 0.28], outer: [0.45, 0.22], thickness: 0.034 },
-    // A wide open smile at y -0.81 (the face origin is at -0.44); the blush under the outer eye corners.
-    mouth: { center: [0, -0.37], halfWidth: 0.14, depth: 0.06, thickness: 0.016, dimple: 0.01 },
-    blush: { centers: [[-0.54, -0.3], [0.54, -0.3]], rx: 0.105, ry: 0.06 },
+    // Short, thick, dark navy arcs set high (P2: about 0.2 above the lid), arched, the outer end
+    // hooking down; thicker than Nox's.
+    brow: { inner: [0.31, 0.26], control: [0.4, 0.33], outer: [0.47, 0.2], thickness: 0.034 },
+    // A wide open "D" smile: a nearly flat top and a deep round bottom (P2: corners at y -0.72, the
+    // bottom at -0.89); closed it is a wide, shallow upturned line. The blush under the outer eye corners.
+    mouth: { center: [0.01, -0.28], halfWidth: 0.14, depth: 0.026, thickness: 0.018, dimple: 0.014 },
+    blush: { centers: [[-0.52, -0.31], [0.52, -0.31]], rx: 0.12, ry: 0.075 },
   },
   facePalette: {
-    // Navy-black irises turning violet-lavender below, a white sclera with a faint lavender edge.
-    sclera: ['#8a84c8', '#ffffff', '#ece6ff', '#b0a4e8'],
-    iris: ['#0a0c3a', '#3a30b0', '#b8a0ff'],
-    irisRim: ['#060824', '#4a3ca8'],
-    irisGlow: '#8a78ff',
-    irisPool: '#c8b4ff',
-    irisPoolEdge: '#7a60e8',
-    pupil: ['#04041a', '#10104a'],
-    pupilRing: '#02020e',
+    // Navy-black irises (P2's upper iris: 7, 0, 65) turning violet-lavender at the bottom (188, 128,
+    // 255 to 222, 170, 245); a white sclera with a faint lavender edge (248, 208, 255).
+    sclera: ['#7a70c0', '#fcf8ff', '#f6dcff', '#c8a8f0'],
+    iris: ['#06043a', '#2a1c98', '#c890ff'],
+    irisRim: ['#04031c', '#5a3cc8'],
+    irisGlow: '#a070ff',
+    irisPool: '#e4b4ff',
+    irisPoolEdge: '#8a50f0',
+    pupil: ['#000010', '#02021a'],
+    pupilRing: '#000008',
     catchlight: '#ffffff',
-    lid: '#050620',
-    border: ['#050620', '#10124a', '#7a6ad0'],
+    lid: '#0a0228',
+    border: ['#0a0228', '#14104a', '#7a6ad0'],
     lidFold: '#1a1860',
     lidSkin: '#6a58e8',
-    outline: '#e8e0ff',
-    brow: '#0a0c40',
-    mouth: '#3a0a40',
-    mouthInside: '#5a1a60',
-    tongue: '#f6607f',
-    blush: '#f99ccf',
-    blushGlow: '#ff7ac0',
+    outline: '#f0e4ff',
+    // Deep navy-blue brows (P2's darkest brow pixels: 8, 10, 147).
+    brow: '#060880',
+    // A dark plum rim and inside (P2: 62, 22, 74), set darker than the sample because the face glow
+    // lifts it in the render (about 108, 71, 94 at this value); a pink tongue (239, 90, 119).
+    mouth: '#120216',
+    mouthInside: '#140418',
+    tongue: '#f45a7a',
+    // Pink blush, stronger than Veyra's peach (P2: 250, 155, 205).
+    blush: '#ff8cc4',
+    blushGlow: '#ff6ab4',
+  },
+  // The intro and overview faces are the big open smile (P2), with a stronger blush; the tech-focus
+  // face is the eager one (spec 7.3): eyes wider, brows up, mouth a little open.
+  expressions: {
+    happy: { mouthOpen: 1, blush: 0.6 },
+    focused: { lidRest: -0.06, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.7, mouthOpen: 0.3, blush: 0.45 },
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
   tipRadius: 0.045,
