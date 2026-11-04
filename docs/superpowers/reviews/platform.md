@@ -80,3 +80,25 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 
 - `world_samples.json` brightness range (meanInside +- 0.05) is the implementer's choice: the spec fixes only the RGB tolerance (12 per channel) and the saturation window (0.04).
 - `check_stage.py` reads every sample through a fixed 6 x 6 px patch (`r = 3`), while the spec's sample sizes run from 3 to 12 px (`size` in `targets.json`). The render-check task should compare per-sample sizes (as `targets.test.ts` does) rather than rely on that patch.
+
+## Task 2: host bundle, intro pose and stage backdrop (2026-11-04)
+
+### Landed names that differ from the plan
+
+- `WORLDS` exists only in `src/worlds/index.ts` (the registry). The engine has no list of shipped ids: `WorldId` is `string`, checked by pattern in `validateBundle`, whose `worlds` argument defaults to `[]` (not `WORLDS`). The "Engine as landed" table above names an engine `WORLDS` that is not there. Registering `octoverse` needed no engine edit.
+- `Project` has `name`, not `title`: `HOST_CONTENT.project` is `{ id: 'octoverse', name: 'OctoVerse', tagline: 'Create. Showcase. Belong.', ... }` (plus the required `characterName`, `characterEpithet`, `introduction`).
+- `HOST_CONTENT` is `{ project, technologies }` (the bundle's `content` shape); the sequence set is `HOST_SEQUENCES` in `bundle.ts`, the swim `HOST_SWIM` in `swim.ts`.
+- The registry test (`src/worlds/index.test.ts`) lists the shipped ids, so it changed with the registration (`['nox', 'octoverse']`) and holds the `resolveWorld('?world=octoverse')` test: a world's own tests may not import the registry (boundary test). Each shipped world also needs `review/world_reference.json` (added for P2).
+
+### Measured (P2 frame, 512 x 508 at scale 2, frozen intro)
+
+- Head: half-width 0.84, top 0.33, centre x 0.00 (config; the render's mask gives top 0.33 and row half-widths 0.31, 0.55, 0.68, 0.77, 0.82, 0.84 at y 0.29 down to -0.16, against P2's 0.31, 0.52, 0.69, 0.74, 0.84, 0.86).
+- Face anchor (intro): (0, -0.560, 0.714).
+- Arm span: 4.656 from the traced curves and tube radii (the unit test), 4.68 on the render's mask (x -2.54 to +2.14). P2's own mask spans 4.42; the shoulder and low arms are spread 1.06 to meet spec 2.2's 4.70.
+- Mask IoU against `p2-mask.png`: 0.714 (gate 0.85 belongs to the look tasks). Mean inside the P2 mask: (134, 90, 173) against (164, 116, 204).
+- Water: mid water (17, 34, 92), delta E 5.8; just outside the head (18, 37, 94), 7.8; upper water (14, 89, 160), 18.3. Character samples are Task 3's (skin is still the shared skin).
+
+### Gaps found
+
+1. A world with no kit: the engine has no "no kit" option. `REEF_STAGE.kit` is `{ url: '', pieces: [] }`; the kit loader fetches `''`, fails twice (two page errors, `Could not load : Unexpected token '<'`), and the world steps down to its last level (water, fog, light), which is what the stage backdrop wants.
+2. `scripts/stage-capture.mjs` refuses a still whose kit did not load (`window.__octoverse.world.kit` must be true), so it cannot capture the host. The Task 2 still was taken with a scratch copy that waits for the same ready flag, sequences and frames but skips the kit check. A later task should teach the script about kitless worlds (or the engine about them).

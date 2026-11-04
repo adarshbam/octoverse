@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { BundleError, validateBundle } from '../engine/types/bundle';
 import { DEFAULT_WORLD, WORLDS, resolveWorld } from './index';
 import { NOX_BUNDLE } from './nox/bundle';
+import { HOST_BUNDLE } from './octoverse/bundle';
 
 /** The ids of the worlds that ship: the registry's own keys. */
 const SHIPPED_IDS = Object.keys(WORLDS);
@@ -35,8 +36,15 @@ test('an unknown world falls back to Nox with a warning that names it', () => {
   }
 });
 
+test('?world=octoverse is the host (platform spec 8.3)', () => {
+  const { bundle, warning } = resolveWorld('?world=octoverse');
+  expect(bundle.id).toBe('octoverse');
+  expect(bundle).toBe(HOST_BUNDLE);
+  expect(warning).toBeUndefined();
+});
+
 test('the registry holds exactly the shipped worlds, each valid and under its own id', () => {
-  expect(Object.keys(WORLDS)).toEqual(['nox']);
+  expect(Object.keys(WORLDS)).toEqual(['nox', 'octoverse']);
   for (const [id, bundle] of Object.entries(WORLDS)) {
     expect(bundle.id).toBe(id);
     expect(() => validateBundle(bundle, SHIPPED_IDS), id).not.toThrow();
