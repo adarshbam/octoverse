@@ -1,3 +1,4 @@
+import { type ArmId, isArmId } from '../config/arms';
 import type { StageId } from '../config/types';
 import type { QualityTier } from '../stage/quality';
 import type { Vec3 } from '../world/types';
@@ -54,6 +55,8 @@ export interface UrlState {
   swell?: number;
   /** `?freeze&hold=<ms>`: a still of the suction hold that moment after a bubble is chosen. */
   hold?: number;
+  /** `?freeze&pulse=<arm>@<s>` (`t2@0.35`): a still of that arm's cup pulse, fired at clock 0, at that moment. */
+  pulse?: { arm: ArmId; seconds: number };
   /** The most a preview's quality tier may be (the tier is the lower of the device's and this). Set by `previewToReview`, never read from the address. */
   tierCap?: QualityTier;
   /** The world level a preview starts at (0 all of it; the last is the water, fog and light alone). Set by `previewToReview`. */
@@ -113,5 +116,8 @@ export function parseUrlState(search: string): UrlState {
   if (blow !== undefined) state.blow = blow;
   if (swell !== undefined) state.swell = swell;
   if (hold !== undefined) state.hold = hold;
+  const pulse = /^(t[1-8])@(\d+(?:\.\d+)?)$/i.exec(params.get('pulse') ?? '');
+  const arm = pulse?.[1].toUpperCase();
+  if (pulse && isArmId(arm)) state.pulse = { arm, seconds: Number(pulse[2]) };
   return state;
 }
