@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
+import type { OrbitPlacement } from '../config/types';
 import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
 import { NOX } from '../../worlds/nox/character';
 import { NOX_POSES } from '../../worlds/nox/poses';
@@ -14,7 +15,7 @@ import { SWELL_PUSH_SETTLED } from '../sequences/keys';
 
 type Stage = 'intro' | 'overview';
 /** Nox's orbit placement: the shells and constants the bubbles run on. */
-const PLACEMENT = NOX_ARTIFACTS.placement;
+const PLACEMENT = NOX_ARTIFACTS.placement as OrbitPlacement;
 const NOX_SHELLS = PLACEMENT.shells;
 type Box = readonly [number, number, number, number];
 const STAGES: Stage[] = ['intro', 'overview'];

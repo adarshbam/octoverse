@@ -7,7 +7,7 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
-import { APPEARS, PLACEMENTS, SELECTS } from './strategies';
+import { APPEARS, SELECTS, placementOf } from './strategies';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
 
@@ -85,7 +85,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const { bubbleLive } = useInstance();
   // The strategies the config names (artifacts/strategies.ts).
   const { placement: placementConfig } = artifacts;
-  const placement = PLACEMENTS[placementConfig.kind];
+  const placement = placementOf(placementConfig);
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
   // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).

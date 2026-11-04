@@ -26,7 +26,7 @@ import { debugWindow, report, reportObject } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
-import { APPEARS, SELECTS } from '../artifacts/strategies';
+import { APPEARS, type PlacementFrame, SELECTS, placementOf } from '../artifacts/strategies';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -172,6 +172,10 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
   const mouth = useMemo(() => appear.origin(config.head, config.face), [appear, config.head, config.face]);
+  // What the placement draws of its own round the head (the satellite's ring; none for the orbit), and what it is given each frame.
+  const PlacementForm = placementOf(artifacts.placement).Form;
+  const placementFrame = useMemo<PlacementFrame>(() => ({ stage: 'entering', swell: 0, still: false }), []);
+  const readPlacement = useMemo(() => () => placementFrame, [placementFrame]);
   // The entrance's stroke timing (the arguments entranceFrame takes of the character).
   const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
@@ -673,6 +677,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
+    placementFrame.stage = stage;
+    placementFrame.swell = sf.push;
+    placementFrame.still = freeze || reducedMotion;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
     // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it
@@ -830,6 +837,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
               <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
               {effect?.root && <primitive object={effect.root} />}
+              {PlacementForm && !silhouette && !solo && !hideArtifacts && <PlacementForm config={artifacts.placement} frame={readPlacement} glass={config.palette.orbGlass} head={config.head} />}
               <mesh
                 ref={head}
                 geometry={rig.headGeometry}

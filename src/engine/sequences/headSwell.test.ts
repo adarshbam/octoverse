@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { beforeAll, expect, test } from 'vitest';
 import { layoutOrbits, orbitPoint } from '../artifacts/bubbleOrbits';
 import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
+import type { OrbitPlacement } from '../config/types';
 import { createDomeMaterial } from '../character/domeMaterial';
 import { HEAD_EFFECTS } from '../character/headEffects';
 import { GLYPH_SIZE, glyphLayout } from '../character/headEffects/glyphs';
@@ -139,10 +140,11 @@ test('bubbles are pushed out while swollen', () => {
   const settled = restingSwell(true);
   expect(settled.push).toBeGreaterThan(0);
   expect(restingSwell(false).push).toBe(0);
-  for (const o of layoutOrbits(15, NOX_ARTIFACTS.placement, 'overview')) {
+  const placement = NOX_ARTIFACTS.placement as OrbitPlacement;
+  for (const o of layoutOrbits(15, placement, 'overview')) {
     for (let t = 0; t < 30; t += 3) {
-      orbitPoint(o, t, 0, calm, NOX_ARTIFACTS.placement);
-      orbitPoint(o, t, settled.push, pushed, NOX_ARTIFACTS.placement);
+      orbitPoint(o, t, 0, calm, placement);
+      orbitPoint(o, t, settled.push, pushed, placement);
       expect(pushed.distanceTo(origin)).toBeGreaterThan(calm.distanceTo(origin));
     }
   }
