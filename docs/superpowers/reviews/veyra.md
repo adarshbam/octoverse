@@ -182,10 +182,119 @@ Nox: all seven of his expression stills (`?expression=<id>`, intro) captured bef
 
 Stills (`docs/superpowers/reviews/assets/veyra/`): `t6-face-vs-p2.png` (left the P2 crop at 3x, right the render at the same box), `t6-eyes-vs-p2.png` (the eyes and mouth at 4.5x), `t6-expressions.png` (gentle, focused, happy at 3x), `t6-intro.png` (the stage intro).
 
-What reads right: big round eyes with near-black irises, a green-gold crescent low in each, two white catchlights, a cream crescent on the outer side, two lashes at each outer corner, thin high brows, a small dark smile with dimples, peach ovals under the outer corners; the focused face reads interested, not narrowed; the happy face's open smile is dark inside with a pink tongue (as P3).
+What reads right: big round eyes with near-black irises, a green-gold crescent low in each, two white catchlights, a cream crescent on the outer side, two lashes at each outer corner, thin high brows, a small dark smile with dimples, peach ovals under the outer corners; the focused face reads interested, not narrowed.
 
 Not there yet, honestly:
 - **Pupils and lid lines are not black in the render:** the scene's light, haze and bloom over the head lift them to dark grey-teal (P2's are pure black). That is the head's material and the bloom (Task 7), not the face canvas.
 - **The right blush is dim:** the viewer's-right cheek is in shade (render about 187, 152, 119 there; P2 250, 212, 157). The face light is Task 7's.
 - **The right eye:** P2's head turns a little toward the viewer's right, so its right eye is narrower than its left; the render's face is frontal (the head's yaw is the pose's, Task 7).
 - **Face glow:** still over-exposed round the mouth (Task 3's note; Task 7).
+- **Deviation from the spec text (the painting wins, ruling R-V8):** the happy face's open smile is dark maroon inside with a pink tongue, as P3 paints it; spec 7.3's text says warm pink inside. One colour holds it: `facePalette.mouthInside` (`#7a3a40`; the tongue `#f08a8e`).
+
+## Task 7 - Milestone 1 gate: PENDING OWNER REVIEW
+
+Look at it live: http://localhost:5191/?world=veyra&stage=intro (moving) and http://localhost:5191/?world=veyra&stage=intro&freeze (the frozen frame the numbers are taken on). Under the overnight rules this gate is recorded as pending your review (ruling R-V2); nothing after it assumes you have passed it.
+
+Stills (`docs/superpowers/reviews/assets/veyra/`, left P2, right the render, the same box):
+- `t7-intro-vs-p2.png`: the whole P2 frame beside the frozen intro (1.5x).
+- `t7-face-closeup-vs-p2.png`, `t7-dome-closeup-vs-p2.png`: the face and the dome at 3x (the native 3x panel beside a 3x capture of the same view box).
+- `t7-arms-left-vs-p2.png`, `t7-arms-right-vs-p2.png`: the arms, cups and curls at 3x.
+- `t7-intro.png`: the render alone (488 x 495, P2's frame); `t7-page.png`: the whole page with the title and the nameplate.
+
+### Numbers (frozen intro, `check_stage.py --world --stage intro --world-id veyra`: exit 0)
+
+Delta E (CIE76) of each 7 x 7 patch against P2, before Task 7 (r0, the Task 6 commit) and now:
+
+| Sample | P2 | Before | Now |
+|---|---|---|---|
+| Head crown | #04a7b9 | 1.4 | 4.0 |
+| Head middle | #016067 | 5.0 | 3.4 |
+| Head side | #087997 | 16.7 | 6.8 |
+| Face glow | #b9d192 | 20.2 | 7.8 |
+| Chin | #32997c | 52.5 | 9.0 |
+| Blush | #fbbd89 | 6.9 | 4.9 |
+| Mouth line highlight | #c3b781 | 17.8 | 7.6 |
+| Arm top surface | #17baa1 | 3.1 | 8.4 |
+| Arm body | #12aba3 | 13.5 | 9.4 |
+| Sucker cup rim | #e5e6a9 | 72.0 | 6.1 |
+| Water outside head | #012c38 | 7.3 | 2.1 |
+| Mid water | #01090e | 12.2 | 9.5 |
+| Upper water | #054d6d | 6.0 | 7.1 |
+
+All 13 within 10 (before: 6 misses). Inside the engine's silhouette: mean (71, 162, 142) against (69, 161, 144) +-12 (before (86, 170, 145), a miss); saturation 0.661 against 0.655 to 0.735 (before 0.576, a miss); brightness 0.649 against 0.611 to 0.691 (before 0.675).
+
+Shape, measured like for like (the same colour segmentation on the render as made `p2-mask.png`, rows 196 to 427; the recipe and tolerances are in `targets.json` `measured`):
+
+| | P2 | Before | Now |
+|---|---|---|---|
+| Visible head half-width at y 0.175 / 0.075 / -0.025 / -0.125 | 0.72 / 0.77 / 0.80 / 0.835 | 0.73 / 0.805 / 0.86 / 0.905 | 0.69 / 0.755 / 0.815 / 0.85 (all within 0.03) |
+| Head top (segmented) | 0.515 | 0.505 | 0.505 |
+| Arm span (segmented) | 3.75 | 3.73 | 3.72 (within 0.05) |
+| IoU with the P2 mask | | 0.781 | 0.829; 0.854 with the two extra P2 arms left out of both |
+
+The config head is halfWidth 0.88, top 0.5 (spec ranges 0.88 to 0.96 and 0.44 to 0.52 hold). The spec's 0.88 to 0.96 is the config dome; the visible dome is narrower because the rim fades into the water, so the comparison with the painting is made on the picture, not the config. P2's 3.75 span includes its arms' halo glow; segmented the same way the render reaches 3.72. P2 paints nine or ten arms and Veyra has eight (spec 2.5): the two boxes where the extra arms hang are left out for the second IoU figure.
+
+### The five things to look at, with my verdict
+
+1. **The face reads warm: yes.** The warm-on-cool contrast is there (face glow 7.8, chin 9.0, blush 4.9): a soft yellow-green glow from the mouth up to the eyes, peach cheeks, a cool dome above. The glow is a touch yellower and brighter than P2's at its centre.
+2. **The head reads as glassy jelly, not plastic: mostly.** A bright cyan rim, a lighter crown, a darker clear middle and twinkling flecks; nothing reads as a hard plastic highlight. It is cleaner glass than P2's painterly wet jelly: P2 has soft streaks and a broad sheen inside the dome that the render has not, and the render's flecks are larger and more even (48 counted on the head's front at 3x; P2's are finer). A wet-highlight engine addition was tried and dropped (below).
+3. **The cups read as a frill: partly.** A cream band of touching raised cups along each arm (the rim 6.1), smaller toward the tips. P2's band is wider and continuous with small scallops on its edge; on the right arms P2's frill runs along the upper edge where the render's runs along the lower.
+4. **The spirals are tidy: yes for five.** T2, T3, T6, T7 and T8 end in a full turn (364, 383, 384, 391 and 375 degrees on the traces); T1, T4 and T5 end in hooks (236, 186, 242 degrees), as P2's rising and hanging arms do. All curls roll the same way on each side and none crosses another arm.
+5. **She is not a recoloured Nox: partly.** Her material (jelly glass, flecks, cream frill), palette, face and pose are her own. The construction still shows Nox: a round dome on a short neck with the arms leaving from under it. P2's head base flows into the arm roots, lit warm from the face glow; in the render a teal neck shows between the arms under the chin.
+
+### Remaining weaknesses (mine)
+
+- **The neck and the arm roots** (point 5): the biggest difference from P2 at a glance. It is the shared body construction, not a value in her bundle.
+- **The face sits a little high on the dome** and the eyes are a little larger than P2's at 3x (Task 6's fit, made before Task 7 moved the head); the dome continues below the cheeks where P2's head ends.
+- **Flecks larger and more even than P2's** (the sparkle size is an engine constant).
+- **The frill band** is narrower than P2's (point 3).
+- **Thin margins:** saturation 0.661 (floor 0.655), mid water 9.5 and arm body 9.4 (limit 10). The arms are a little brighter and more cyan than P2's.
+- **The backdrop is plain** (Milestone 2: the vault kit and far plate are not built).
+- **The intro text touches the dome:** the last line of the two-line introduction ("secure access control.") sits on the dome's halo at the full page (`t7-page.png`). P2 shows only the tagline, no introduction, so the painting does not say where the paragraph goes. The introduction is storyboard placeholder text (`content/veyra.ts`); a shorter one, none, or the engine's title block moved up are your choice. Not changed here.
+- **The nameplate** was Nox's violet-black glass; it is now a theme token (`plate`) and hers is P2's dark teal glass.
+
+### What changed, by group (the plan's order)
+
+1. **Head shape:** centerX 0.25 to 0.19, halfWidth 0.92 to 0.88, top 0.48 to 0.5.
+2. **Arm traces:** every trace re-fitted against the P2 mask by measuring band middles and widths at each trace point (render against painting); the root radii set per arm (0.15 to 0.24; P2's upper arms are thick at the root, which wins over spec 7.1's slimmer roots); T7's curl one point longer to a full turn.
+3. **Jelly rim, crown and depth:** mantle rim `#3ee6f0` to `#28e2f2`; arms crown `#30dcc8` to `#3ae0d4`, depth `#0a9a8c` to `#0a9c98`.
+4. **Core glow:** the face glow's centre moved up and in ([0.3, -0.88, 0.6] to [0.27, -0.66, 0.6]), its spread narrowed (spreadX 0.52, reachUp 0.4, reachDown 0.3) and its ramp re-graded from teal through mint to a pale yellow; the underside glow 0.8 to 1.1; the key light 1.0 to 0.85.
+5. **Arms:** body `#14b8a8` to `#18c4b8`; taperPower 1.8 to 0.9 (P2's arms stay thick to the curl); armBend 0.2.
+6. **Cups:** size 0.3 to 0.34, spacing 2.05 to 1.85, tilt 22 to 12, glow 1.3 to 1.5.
+7. **Aura and grade:** the halo thinner (head 0.05 to 0.03, arms 0.035 to 0.022); the local grade darker and stronger (`#05202c`, 0.8 to `#020e16`, 0.9). The bloom was the grey cast's cause (with it off, the mean and saturation pass): threshold 0.66 to 0.8, smoothing 0.25 to 0.2, intensity 1.05 to 0.4, radius 0.85 to 0.6.
+8. **Water:** far colour `#031219` to `#020b10`, zenith `#033452` to `#043c5e`.
+
+No world light was added to her (spec 7.2): the key light went down, not up.
+
+Engine: one addition, the nameplate fill as a theme token (`UiTheme.plate`, `--oct-plate`, Nox's `rgba(12, 6, 18, 0.78)` as its value and the stylesheet's fallback; tested in `ui/theme.test.ts`). A wet highlight (`JellySettings.wet`: colour, direction, strength, sharpness, off by default) was built and tested, then dropped: at the key light's direction it washed the head milky (head middle 15.3, saturation 0.609); from above left at a strength the numbers allow it changed at most 33 levels on a small patch and could not be told apart from the frame without it, while the crown moved further from P2. No cup config field was needed.
+
+Nox after the engine commit (`83c40c7`): vitest 717 passed, both tsc builds clean, lint 0 errors and 50 warnings, the build ok, the still gate PASS (every still bit-identical but techFocus's known residual, within its floor). His e2e passed 52 of 56 in one run on a loaded machine; the four misses are timing: three pass run alone, and isolation (f) (listener counts under StrictMode) fails the same way with the token change reverted.
+
+### Perf (`node scripts/perf.mjs "stage=intro&tier=low"`, 1536 x 1024, headless Edge, interleaved on the same tree; CPU is the machine's average over 5 s before and after each run)
+
+| Run | CPU before | Median fps | Slow10 fps | Mean fps | CPU after |
+|---|---|---|---|---|---|
+| Veyra 1 | 22.9% | 64.5 | 28.6 | 50.6 | 30.1% |
+| Nox | 41.5% | 55.9 | 27.8 | 46.2 | 24.1% |
+| Veyra 2 | 35.8% | 74.6 | 49.5 | 71.1 | 49.1% |
+| Nox 2 | 25.0% | 64.5 | 32.5 | 58.8 | 32.9% |
+
+Veyra is at least as fast as Nox on every pairing and well over 40 fps (the criterion is within 10% of Nox or 40 fps). No sparkle on/off run was needed.
+
+### Close-up at 3x (Step 3)
+
+Captured at P2's view box at 3x (1464 x 1485) beside the 3x panel:
+- **Eyes:** big, round, near-black irises with the green-gold crescent low and two catchlights; a cream crescent on the outer side. A little larger and higher than P2's.
+- **Lashes:** two at each outer corner (as Task 6; the count stays 2).
+- **Brows:** thin dark-teal arcs, high over each eye.
+- **Mouth:** a small dark smile with dimples, centred between the eyes' lower edges.
+- **Blush:** peach ovals under the outer corners; the right one dimmer than P2's (it is in the head's shade).
+- **Jelly rim:** a continuous bright cyan rim all round the dome, thinner and brighter than P2's soft glow.
+- **Crown and centre:** a lighter crown band over a darker clear middle; no hard edge.
+- **Sparkles:** 48 flecks on the head's front (outside the eyes, brows and mouth), at least 40 needed.
+- **Cup frill:** cream raised cups in a touching row, smaller toward the tips, with darker hollows.
+- **Curls:** five arms with a full turn (T2, T3, T6, T7, T8).
+
+## Task 12: notes carried in
+
+- The overview's opened dome (Task 3 review, minor 2): `jellyLook` runs after the HEAD shader's `capped` darkening and ignores `uMorph`, so in the overview the sunk mantle top still gets the full crown band and rim. Check it there and fix it if it shows.

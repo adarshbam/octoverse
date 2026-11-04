@@ -17,7 +17,7 @@ const palette = {
   coral: '#e8a030',
   lava: '#1fb890',
   // The fog and the sky's horizon: the mid water of P2, a little lifted so it reads at a distance.
-  waterFar: '#031219',
+  waterFar: '#020b10',
   floor: '#0c1c20',
   // No seabed glow: no cracks, no lava, no sheen, no pores.
   floorGlow: {
@@ -31,14 +31,14 @@ const palette = {
 /** Soft shadows where arms cross and pass under the head; Nox's reach and range (the character sits at the same distance), in a deep teal. */
 const POST: WorldConfig['post'] = {
   contactShadow: { reach: 0.22, minGap: 0.04, maxGap: 1.0, near: 10.8, far: 13.6, strength: 0.6, color: '#041c24' },
-  bloom: { luminanceThreshold: 0.66, luminanceSmoothing: 0.25, intensity: 1.05, radius: 0.85 },
+  bloom: { luminanceThreshold: 0.8, luminanceSmoothing: 0.2, intensity: 0.4, radius: 0.6 },
   vignette: { offset: 0.3, darkness: 0.9 },
 };
 
 /** The water's own colours: deep blue-teal below, a teal-blue zenith (P2's upper water), the surface's cyan glow, cyan shafts leaning mint as they widen, and small blue-violet fish. */
 const WATER_COLOURS: WorldConfig['water']['colours'] = {
   deep: '#010609',
-  zenith: '#033452',
+  zenith: '#043c5e',
   glow: '#0678ae',
   opening: '#1ab8c8',
   rays: '#2a9ab8',
