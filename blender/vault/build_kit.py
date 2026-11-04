@@ -373,7 +373,10 @@ def build_membrane(name, coll, mats, rings=8):
         f = bm.faces.new(verts)
         for loop, (u, v) in zip(f.loops, flow):
             loop[uv0].uv = planar(loop.vert.co)
-            loop[uv1].uv = (u, v)
+            # glTF's v runs down the image where Blender's runs up: the exporter writes 1 - v. The
+            # page reads the file's v, so the flow's v (0 at the edge) is stored here as 1 - v
+            # (check_flow holds it on the export; Task 11 found the edge drawn in the middle).
+            loop[uv1].uv = (u, 1.0 - v)
         return f
 
     for k in range(rings):
@@ -863,6 +866,40 @@ def compress(raw, out):
     gltf_transform("optimize", raw, out, "--compress", "meshopt", "--texture-compress", TEXTURE_COMPRESS, *KEEP_STRUCTURE)
 
 
+def glb_accessor(path, doc_and_bin, index):
+    """An uncompressed glb accessor's float data as a list of tuples (the raw export only)."""
+    doc, binary = doc_and_bin
+    acc = doc["accessors"][index]
+    view = doc["bufferViews"][acc["bufferView"]]
+    width = {"VEC2": 2, "VEC3": 3}[acc["type"]]
+    assert acc["componentType"] == 5126, f"{path}: accessor {index} is not float"
+    start = view.get("byteOffset", 0) + acc.get("byteOffset", 0)
+    stride = view.get("byteStride", 4 * width)
+    return [struct.unpack_from(f"<{width}f", binary, start + i * stride) for i in range(acc["count"])]
+
+
+def check_flow(raw):
+    """The membrane's flow map as the page reads the file: v is 0 at the doorway's edge and 1 at
+    its middle (the vertices farthest from and nearest to the membrane's centre)."""
+    data = raw.read_bytes()
+    json_len = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(data[20:20 + json_len])
+    binary = data[20 + json_len + 8:]
+    node = next(n for n in doc["nodes"] if n.get("name") == "membrane")
+    attrs = doc["meshes"][node["mesh"]]["primitives"][0]["attributes"]
+    pos = glb_accessor(raw, (doc, binary), attrs["POSITION"])
+    flow = glb_accessor(raw, (doc, binary), attrs["TEXCOORD_1"])
+    # The rings shrink toward the hub at (0, SPRING / 2 + 0.1) up the doorway (glTF y up).
+    cx, cy = 0.0, SPRING * 0.5 + 0.1
+    dist = [math.hypot(p[0] - cx, p[1] - cy) for p in pos]
+    far = max(dist)
+    edge = [f[1] for f, d in zip(flow, dist) if d > 0.9 * far]
+    middle = [f[1] for f, d in zip(flow, dist) if d < 0.02 * far]
+    assert edge and max(edge) < 0.2, f"the membrane's flow v at its edge is {max(edge or [None])}, not about 0"
+    assert middle and min(middle) > 0.8, f"the membrane's flow v at its middle is {min(middle or [None])}, not about 1"
+    print(f"checked the membrane's flow map: v {max(edge):.2f} at the edge, {min(middle):.2f} at the middle")
+
+
 def check_output(path, wanted):
     """The glb names every piece (and each placed piece its lod1), the membrane has two UV sets and
     every placed piece carries its radius."""
@@ -943,8 +980,12 @@ def build_in(scene, pieces_coll, world_coll, sheet_coll, out, sheet, preview):
     full = {name: pair[0] for name, pair in built.items()}
     scene.camera = lay_out(layout, world_coll, full)
     export(pieces_coll)
-    raw = RAW.stat().st_size
-    compress(RAW, out)
+    try:
+        check_flow(RAW)
+        raw = RAW.stat().st_size
+        compress(RAW, out)
+    finally:
+        RAW.unlink(missing_ok=True)
     check_output(out, PLACED + NODES)
     for name, (piece, far) in built.items():
         lod = f", lod1 {triangles(far)} ({triangles(far) / triangles(piece):.0%})" if far else ""

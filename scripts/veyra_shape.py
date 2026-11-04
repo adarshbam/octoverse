@@ -16,6 +16,12 @@ rows 196 to 427 (`measured.visibleHalfWidth.rows`):
     latter held to `iou`.
 It also reports the recipe's IoU on P2 itself against p2-mask.png, and the engine mask (<capture>-mask.png) beside
 the segmented render. Exit 0 when every held number passes, 1 otherwise.
+
+In the vault world (Task 10 on), the recipe also picks up the world's green plants and seagrass where they stand
+near her arm tips, which P2's backdrop does not have there. The held numbers are then taken on the "her" row:
+the recipe's pixels within `measured.nearHer.px` of the engine mask (her own silhouette, dilated), which keeps her
+halo as the recipe sees it on P2 and leaves out the world beyond it. The plain recipe row ("render") is printed
+beside it. On a capture with no engine mask the plain row is held, as before.
 """
 import json
 import sys
@@ -97,11 +103,13 @@ def main():
     render = clip(segment(Image.open(capture)))
     engine_path = capture.with_name(capture.stem + '-mask.png')
     engine = clip(np.asarray(Image.open(engine_path).convert('L')) > 127) if engine_path.exists() else None
+    near = MEASURED['nearHer']['px']
+    her = None if engine is None else render & cv2.dilate(engine.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * near + 1, 2 * near + 1))).astype(bool)
     boxes = MEASURED['iouExcluding']['boxes']
 
     print(f"recipe on P2 vs p2-mask.png: IoU {iou(clip(segment(p2)), p2_mask):.3f}")
     ref = shape(p2_mask)
-    rows = [('p2 mask', p2_mask), ('render', render)] + ([('engine', engine)] if engine is not None else [])
+    rows = [('p2 mask', p2_mask), ('render', render)] + ([('her', her), ('engine', engine)] if engine is not None else [])
     for name, m in rows:
         s = shape(m)
         line = f"{name:8} top {s['top']:.3f} span {s['span']:.2f} halfwidth@y{MEASURED['visibleHalfWidth']['atY']} {s['halfWidth']}"
@@ -109,7 +117,9 @@ def main():
             line += f"  IoU {iou(m, p2_mask):.3f}, excluding the extra arms {iou(m, p2_mask, boxes):.3f}"
         print(line)
 
-    s = shape(render)
+    held = render if her is None else her
+    print(f"held: the {'render' if her is None else 'her'} row")
+    s = shape(held)
     tol = MEASURED['visibleHalfWidth']['tolerance']
     p2_widths = MEASURED['visibleHalfWidth']['p2']
     checks = [
@@ -117,7 +127,7 @@ def main():
         (f'visible half-width within {tol}', all(w is not None and abs(w - p) <= tol + 1e-9 for w, p in zip(s['halfWidth'], p2_widths))),
         (f"span within {MEASURED['armSpan']['tolerance']} of {MEASURED['armSpan']['p2Segmented']}",
          abs(s['span'] - MEASURED['armSpan']['p2Segmented']) <= MEASURED['armSpan']['tolerance'] + 1e-9),
-        (f"IoU excluding the extra arms >= {TARGETS['iou']}", iou(render, p2_mask, boxes) >= TARGETS['iou']),
+        (f"IoU excluding the extra arms >= {TARGETS['iou']}", iou(held, p2_mask, boxes) >= TARGETS['iou']),
     ]
     for name, ok in checks:
         print(f"{'ok  ' if ok else 'MISS'} {name}")

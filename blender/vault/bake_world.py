@@ -76,10 +76,10 @@ STEPS = ("direct", "indirect", "ao")
 # The portal's spill: point lights in the arch's own frame (stage axes: x across the doorway, y up,
 # z out of it toward the camera), placed with each arch's placement. Two in the doorway (low and
 # high) and one before it, over the threshold. WorldLight, kind portal.
-PORTAL = {"color": "#3ad8e8", "intensity": 2.0, "distance": 4.0}
+PORTAL = {"color": "#3ad8e8", "intensity": 5.0, "distance": 4.5}
 PORTAL_LOCAL = [[0.0, 0.8, 0.15], [0.0, 2.4, 0.15], [0.0, 1.3, 1.2]]
 # The glowing plants' light: one at each sprig, PLANT_RISE times its scale above its foot. WorldLight, kind plant.
-PLANT = {"color": "#38e0a0", "intensity": 1.0, "distance": 2.4}
+PLANT = {"color": "#38e0a0", "intensity": 1.5, "distance": 2.4}
 PLANT_RISE = 0.45
 # The orange corals' warm accent: one at each coral, CORAL_RISE above the floor. WorldLight, kind coral_orange.
 CORAL = {"color": "#e8a030", "intensity": 0.3, "distance": 1.8}
@@ -91,10 +91,10 @@ SURFACE_CONE = (0.6, 0.55)  # three's angle and penumbra
 # the WorldLight data. Veyra's accents keep the data as it is.
 SPILL = 1.2
 SEABED = {"width": 26, "nearZ": 7, "farZ": -62, "segments": [110, 260]}
-# The page's albedos, for the bounce: stone (palette.stone), rock and coral (Kit.tsx's own), the
-# plants' dark body (they glow on the page; here they only stand in the light) and the seabed
-# (palette.floor).
-ALBEDO = {"stone": "#22403f", "rock": "#211a26", "coral": "#7a0a18", "plant": "#0c2a22", "seabed": "#0c1c20"}
+# The page's albedos, for the bounce: stone (palette.stone), rock and coral (palette.rock and
+# palette.coralBody: Veyra's dark blue-teal rock and orange coral body, Task 11), the plants' dark
+# body (they glow on the page; here they only stand in the light) and the seabed (palette.floor).
+ALBEDO = {"stone": "#22403f", "rock": "#16262c", "coral": "#8a4a14", "plant": "#0c2a22", "seabed": "#0c1c20"}
 # The kit's pieces by what the page dresses them as (their name's start), and the bake's materials.
 MATERIAL_KINDS = ("stone", "rock", "coral", "plant")
 KINDS = {"arch": "stone", "block": "stone", "wall": "stone", "steps": "stone", "rock": "rock", "coral": "coral", "glowplant": "plant"}
@@ -617,8 +617,10 @@ def setup():
     # Every group of the layout, in its order, whatever its name.
     groups = [(group, p) for group, placements in layout["groups"].items() for p in placements]
     squares = {}
+    # The glowing plants are drawn with their own glow material on the page and never read their
+    # lightmap: each keeps the smallest square (the record holds a rect for every placement).
     for level in LEVELS:
-        needs = [kinds[(p["piece"], level)][2] * area_scale(p) / kinds[(p["piece"], level)][3] for _, p in groups]
+        needs = [0.0 if kinds[(p["piece"], level)][0] == "plant" else kinds[(p["piece"], level)][2] * area_scale(p) / kinds[(p["piece"], level)][3] for _, p in groups]
         density, sides, spots = atlas_squares(needs, ATLAS[level])
         squares[level] = (density, sides, spots)
 
@@ -1003,6 +1005,7 @@ def finish():
     bake_record = record()
     with in_scene():
         KIT.export(colls[PIECES], RAW)
+    KIT.check_flow(RAW)
 
     def add_record(doc):
         doc["scenes"][doc.get("scene", 0)].setdefault("extras", {})["nox_bake"] = bake_record

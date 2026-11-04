@@ -69,5 +69,214 @@
       1.15,
       1.475
     ]
+  },
+  "p1": {
+    "note": "Task 11: the vault world against P1 (native panel, colour truth). Each sample is the median of its boxes (x0, y0, x1, y1, px; 'without' boxes left out), or with stat top25 the median of the brightest quarter of those pixels (small glowing sprigs over dark ground). The render boxes are on the intro at the owner's desktop size: /?world=veyra&stage=intro&freeze&tier=high at 1536 x 1024 (scale 1). 'relic' is spec 7.7's rule on the pixels: the portal's 99.5th-percentile linear luminance stays below the face's; 'noClip': no white pixel (R, G, B all 250 or more) on the membrane. Run: python scripts/veyra_world.py <capture.png>.",
+    "panel": "docs/design/references/Veyra/native-panels/01 - Veyra Enters the Vault OS World.png",
+    "capture": "/?world=veyra&stage=intro&freeze&tier=high, 1536 x 1024",
+    "deltaE": 15,
+    "samples": {
+      "membrane body": {
+        "p1": {
+          "boxes": [
+            [
+              403,
+              185,
+              460,
+              325
+            ]
+          ],
+          "without": [
+            [
+              412,
+              222,
+              450,
+              292
+            ]
+          ]
+        },
+        "render": {
+          "boxes": [
+            [
+              1186,
+              400,
+              1376,
+              780
+            ]
+          ],
+          "without": [
+            [
+              1222,
+              535,
+              1328,
+              705
+            ],
+            [
+              1326,
+              380,
+              1366,
+              800
+            ]
+          ]
+        }
+      },
+      "membrane edge": {
+        "p1": {
+          "boxes": [
+            [
+              395,
+              200,
+              401,
+              300
+            ]
+          ],
+          "stat": "top25"
+        },
+        "render": {
+          "boxes": [
+            [
+              1176,
+              450,
+              1186,
+              760
+            ]
+          ],
+          "stat": "top25"
+        },
+        "capped": "P1's rim (186, 255, 248) is 0.89 in linear luminance, above her face core's 0.81: spec 7.7's relic rule keeps the portal's brightest below her face, so this sample cannot be met by design. It is printed, not held."
+      },
+      "padlock": {
+        "p1": {
+          "boxes": [
+            [
+              420,
+              250,
+              445,
+              280
+            ]
+          ]
+        },
+        "render": {
+          "boxes": [
+            [
+              1240,
+              595,
+              1310,
+              645
+            ]
+          ]
+        }
+      },
+      "plants": {
+        "p1": {
+          "boxes": [
+            [
+              330,
+              340,
+              370,
+              380
+            ],
+            [
+              270,
+              360,
+              300,
+              400
+            ]
+          ],
+          "stat": "top25"
+        },
+        "render": {
+          "boxes": [
+            [
+              100,
+              840,
+              280,
+              960
+            ]
+          ],
+          "stat": "top25"
+        }
+      },
+      "portal stone": {
+        "p1": {
+          "boxes": [
+            [
+              350,
+              250,
+              375,
+              320
+            ]
+          ]
+        },
+        "render": {
+          "boxes": [
+            [
+              1118,
+              450,
+              1165,
+              750
+            ]
+          ]
+        }
+      },
+      "mid water": {
+        "p1": {
+          "boxes": [
+            [
+              330,
+              150,
+              380,
+              200
+            ]
+          ]
+        },
+        "render": {
+          "boxes": [
+            [
+              1340,
+              60,
+              1500,
+              170
+            ]
+          ]
+        }
+      }
+    },
+    "relic": {
+      "face": [
+        640,
+        520,
+        940,
+        700
+      ],
+      "portal": [
+        1150,
+        370,
+        1400,
+        820
+      ]
+    },
+    "noClip": {
+      "boxes": [
+        [
+          1174,
+          470,
+          1192,
+          770
+        ],
+        [
+          1366,
+          470,
+          1384,
+          770
+        ],
+        [
+          1200,
+          392,
+          1360,
+          420
+        ]
+      ]
+    }
   }
 }

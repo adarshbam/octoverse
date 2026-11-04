@@ -214,6 +214,10 @@
         ]
       ],
       "reason": "The painting shows nine or ten arms; Veyra has eight (spec 2.5). The two boxes hold the extra hanging arms (between T5 and T6, and behind T3); the iou target is met with them left out of both masks."
+    },
+    "nearHer": {
+      "px": 4,
+      "reason": "Task 11: in the vault world the recipe also takes the world's green plants and seagrass beside her arm tips (span 3.94, IoU 0.850 at Task 10). The held numbers are taken on the recipe's pixels within 4 px (0.04 units) of the engine's silhouette: P2's segmented span is 0.04 over the engine's (3.75 against 3.71), so 4 px keeps her halo as the recipe sees it and leaves the world beyond it out. The targets are unchanged. Sensitivity on the Task 10 frame (span, IoU without the extra arms): 3 px 3.72 / 0.860, 4 px 3.73 / 0.859, 6 px 3.76 / 0.856, 8 px 3.78 / 0.854, 12 px 3.83 / 0.852 (the world creeps in from 6 px)."
     }
   }
 }
