@@ -57,14 +57,14 @@ KTX_BIN = os.environ.get("KTX_SOFTWARE_BIN", r"C:\Program Files\KTX-Software\bin
 SCENE = "VeyraWorld vault far plate"
 PREFIX = "veyrafar."
 
-# How it looks: the page's colours (config.ts palette and materials, Kit.tsx's rock and coral), and
+# How it looks: the page's colours (config.ts palette and materials: rock and coralBody too), and
 # the knobs that bring the render to the page's lighting (the page also has the water's
 # environment light and the lightmaps' bounce, which AMBIENT stands in for).
-STONE, ROCK, CORAL = "#22403f", "#211a26", "#7a0a18"
+STONE, ROCK, CORAL = "#22403f", "#16262c", "#8a4a14"
 CORAL_GLOW, CORAL_GLOW_RISE = "#e8a030", 1.0  # palette.coral x relics.coral
 # The glowing plants (config.ts materials glowplant_*): colour, strength, the vertex colour's power,
 # and the pulse's middle (1 - pulse / 2: the still page's level).
-PLANT_GLOW, PLANT_STRENGTH, PLANT_TIPS, PLANT_PULSE = "#38e0a0", 1.3, 1.1, 0.35
+PLANT_GLOW, PLANT_STRENGTH, PLANT_TIPS, PLANT_PULSE = "#4ee8c0", 1.1, 2.0, 0.35
 LOOK = {
     "ambient": 1.0,  # the water's glow on the pieces
     "ambient_linear": (0.004, 0.03, 0.045),  # its colour (linear RGB): deep teal
@@ -427,7 +427,10 @@ def render(opts, exr):
         rgba, stats = fogged(colour, depth, fog)
         png = (opts["png"] or exr) / f"far-{i}.png"
         png.parent.mkdir(parents=True, exist_ok=True)
-        write_png(png, rgba)
+        # Stored bottom row first: the page's KTX2 loader uploads the file's first row to t = 0, the
+        # card's bottom (flipY never applies to a compressed texture), so a top-first image stood
+        # upside down on the page (Task 11: rocks floating with their plants hanging under them).
+        write_png(png, rgba[::-1])
         out = OUT / f"far-{i}.ktx2"
         ktx(png, out)
         total += out.stat().st_size
