@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
@@ -16,7 +16,7 @@ import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed
 import { strokeAt } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
 import type { StagePose, SwimPoseSet } from '../poses/types';
-import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
+import { type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
 import { type BlowSheet, bubblesExist } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
@@ -222,7 +222,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const centre = a === 'T4' && b === 'T5';
       return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u), centre ? 0.14 : 0.2, centre ? 0 : undefined);
     });
-    const webMaterial = createSkinMaterial('ARM', uniforms);
+    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot);
     webMaterial.side = THREE.DoubleSide;
     // The cups and their contact shadows share one set of placements and bends.
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
@@ -254,8 +254,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       suckers,
       cupShadows,
       suckerBend,
-      headMaterial: createSkinMaterial('HEAD', uniforms, { texture: face.texture, rect: FACE_RECT }),
-      armMaterial: createSkinMaterial('ARM', uniforms),
+      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }),
+      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot),
       coreGlow: createGlowMaterial(config.glow.core, CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
@@ -383,6 +383,22 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     return () => document.documentElement.removeEventListener('mouseleave', leave);
   }, [instance.mode]);
 
+  // The pointer cursor over the head, for the page's instance only (a preview shares the page's body and must not set its cursor);
+  // given back when the pointer leaves, when the head stops being pickable, and when the instance goes.
+  const pointing = useRef(false);
+  const point = useCallback(
+    (on: boolean) => {
+      if (instance.mode !== 'page' || pointing.current === on) return;
+      pointing.current = on;
+      document.body.style.cursor = on ? 'pointer' : '';
+    },
+    [instance.mode],
+  );
+  useEffect(() => {
+    if (!onSelect) point(false);
+  }, [onSelect, point]);
+  useEffect(() => () => point(false), [point]);
+
   useFrame((state, delta) => {
     const dt = Math.min(delta, 1 / 20);
     const t = freeze ? 0 : state.clock.elapsedTime;
@@ -420,7 +436,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
             e.settling = true;
             onEntranceSettling?.();
           }
-          if (!e.done && seconds >= ENTRANCE_SECONDS) {
+          if (!e.done && seconds >= sheet.length('entrance')) {
             e.done = true;
             onEntranceDone?.();
           }
@@ -791,7 +807,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
@@ -804,8 +820,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
                 position={[faceX, faceY, 0]}
                 castShadow={castShadow}
                 onClick={onSelect && (event => { event.stopPropagation(); onSelect(); })}
-                onPointerOver={onSelect && (() => { document.body.style.cursor = 'pointer'; })}
-                onPointerOut={onSelect && (() => { document.body.style.cursor = ''; })}
+                onPointerOver={onSelect && (() => point(true))}
+                onPointerOut={onSelect && (() => point(false))}
               >
                 {!silhouette && <mesh geometry={rig.haloGeometry} material={rig.headHalo} />}
               </mesh>

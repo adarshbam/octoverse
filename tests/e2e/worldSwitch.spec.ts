@@ -165,3 +165,24 @@ test('?world=nope loads Nox and logs the warning; ?world=nox is Nox; the test wo
   await expect(explore(page)).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("another world's boot veil and title carry none of Nox: no Security Lab, no flame, not his water; Nox's own veil is as it was", async ({ page }) => {
+  test.setTimeout(150_000);
+  const problems = watch(page);
+  await page.goto('/?world=nox-b&testworld=1', { waitUntil: 'commit' });
+  const veil = page.locator('#boot-veil');
+  await expect(veil.getByText('OCTOVERSE')).toBeVisible();
+  await expect(veil.getByText('Security Lab')).toHaveCount(0);
+  await expect(veil.locator('svg')).toHaveCount(0);
+  expect(await veil.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe('rgb(7, 21, 53)');
+  expect(await page.title()).not.toMatch(/Nox|Security Lab/);
+  // Once the world is up the title is the world's own (the test world names itself), still not Nox's.
+  await expect.poll(() => page.title(), { timeout: 90_000 }).toBe('OctoVerse test world');
+  await drawn(page);
+
+  // Nox's page keeps its veil words and its title.
+  await page.goto('/', { waitUntil: 'commit' });
+  await expect(page.locator('#boot-veil').getByText('Security Lab')).toBeVisible();
+  expect(await page.title()).toBe('Nox · Security Lab');
+  expect(problems).toEqual([]);
+});

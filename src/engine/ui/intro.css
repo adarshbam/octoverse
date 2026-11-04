@@ -61,13 +61,13 @@ body,
 }
 
 .title .lab {
-  color: #ff3d52;
+  color: var(--oct-title-accent, #ff3d52);
 }
 
 .title svg {
   width: 6cqh;
   height: 6.9cqh;
-  filter: drop-shadow(0 0 1.2cqh rgba(255, 50, 70, 0.75));
+  filter: drop-shadow(0 0 1.2cqh rgba(var(--oct-title-glow-rgb, 255, 50, 70), 0.75));
 }
 
 .tag {
@@ -91,9 +91,9 @@ body,
   width: 27.2%;
   height: 8.9%;
   border-radius: 999px;
-  border: 0.3cqh solid rgba(255, 70, 100, 0.65);
+  border: 0.3cqh solid rgba(var(--oct-button-glow-rgb, 255, 70, 100), 0.65);
   background: rgba(12, 6, 18, 0.78);
-  box-shadow: 0 0 2cqh rgba(255, 40, 80, 0.35), inset 0 0 1.4cqh rgba(255, 50, 90, 0.18);
+  box-shadow: 0 0 2cqh rgba(var(--oct-plate-glow-rgb, 255, 40, 80), 0.35), inset 0 0 1.4cqh rgba(var(--oct-plate-glow-inner-rgb, 255, 50, 90), 0.18);
   display: flex;
   flex-direction: column;
   justify-content: center;

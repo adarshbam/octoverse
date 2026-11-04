@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { GlowLightUniforms, GlowReach } from '../character/glowLight';
+import type { LiveColours } from './types';
 import { seeded } from './noise';
 import { createMoteMaterial } from './particleMaterials';
 import { useDisposables } from './useDisposables';
@@ -10,11 +11,11 @@ import { useWorldTime } from './worldTime';
 const COUNT = 900;
 
 /**
- * Red motes rising off the glowing seabed, thickest round the pillars' feet and the lower
- * corners; the nearest are big and soft, out of focus in front of the lens. `amount` is the
- * share of the motes drawn. In a world, `glow` tints them with Nox's face glow.
+ * Motes rising off the glowing seabed in the world's `colours` (red in Nox), thickest round the
+ * pillars' feet and the lower corners; the nearest are big and soft, out of focus in front of the
+ * lens. `amount` is the share of the motes drawn. In a world, `glow` tints them with Nox's face glow.
  */
-export function Motes({ amount = 1, glow, reach }: { amount?: number; glow?: GlowLightUniforms; reach?: GlowReach }) {
+export function Motes({ colours, amount = 1, glow, reach }: { colours: LiveColours['motes']; amount?: number; glow?: GlowLightUniforms; reach?: GlowReach }) {
   const now = useWorldTime();
   const { geometry, material, disposables } = useMemo(() => {
     const rand = seeded(61);
@@ -48,9 +49,9 @@ export function Motes({ amount = 1, glow, reach }: { amount?: number; glow?: Glo
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 3));
-    const material = createMoteMaterial(glow, reach);
+    const material = createMoteMaterial(colours, glow, reach);
     return { geometry, material, disposables: [geometry, material] };
-  }, [glow, reach]);
+  }, [colours, glow, reach]);
   useDisposables(disposables);
   // A lower amount draws only the first part of the motes, which are scattered in random order.
   useLayoutEffect(() => geometry.setDrawRange(0, Math.round(COUNT * amount)), [geometry, amount]);

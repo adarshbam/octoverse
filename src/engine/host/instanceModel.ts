@@ -5,7 +5,13 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SwellSheet } from '../sequences/headSwell';
 import type { SequenceSet, Sequences } from '../sequences/theatre';
 
-/** How many bubbles orbit the octopus; the rest of the project's technologies go to the tray. */
+/**
+ * How many bubbles orbit the octopus; the rest of the project's technologies go to the tray. A
+ * platform default, not Nox's data: the orbit placement draws any count on its shells (15 is what
+ * fits round the title and nameplate at the stage's size). It becomes placement config when the
+ * pendant placement (F01) arrives, whose slots are fixed by the character: that placement's
+ * owner, F01, makes `createProjectModel` take the capacity from the bundle then.
+ */
 export const BUBBLE_COUNT = 15;
 
 /**

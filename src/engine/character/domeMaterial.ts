@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { DomeShape, Palette } from '../config/types';
+import { glslColour } from '../world/colour';
 
 /**
  * How far the reveal must travel to show the whole dome: the reveal front is an ellipse growing
@@ -87,7 +88,7 @@ export function createDomeMaterial(palette: Palette, dome: DomeShape) {
         float m = length(vec2(vLocal.x / uHalfWidth, (vLocal.y + uHalfHeight) / (2.0 * uHalfHeight)));
         float shown = 1.0 - smoothstep(uReveal - 0.07, uReveal, m);
         float front = exp(-pow((m - (uReveal - 0.05)) / 0.035, 2.0)) * (1.0 - smoothstep(1.3, ${DOME_REACH.toFixed(2)}, uReveal));
-        col += mix(uRim, vec3(1.0, 0.85, 0.95), 0.35) * front * 1.8;
+        col += mix(uRim, ${glslColour(palette.domeRimHot)}, 0.35) * front * 1.8;
         alpha = max(alpha, front * 0.9) * shown;
         gl_FragColor = vec4(col, alpha * uOpacity);
       }

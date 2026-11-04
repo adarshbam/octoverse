@@ -10,6 +10,24 @@ export interface StageFrame {
   height: number;
 }
 
+/** A rectangle on the z = 0 plane in world units: [left, top, right, bottom] (top above bottom). */
+export type WorldBox = readonly [number, number, number, number];
+
+/**
+ * The HTML panels the stage lays over the 3D scene, traced in world units from the world's own
+ * storyboard: the project panel inside the overview's dome, and the full project view's panel.
+ */
+export interface StagePanels {
+  overview: WorldBox;
+  detail: WorldBox;
+}
+
+/** The intro's title lines, in world units: the widest line's half width, and the top of the kicker (the stage % of intro.css). */
+export interface IntroTitleBox {
+  halfWidth: number;
+  top: number;
+}
+
 export type Layout = 'desktop' | 'tablet' | 'phone';
 
 /** The vertical field of view, in degrees, that shows the whole frame: tall viewports widen, nothing is cropped. */

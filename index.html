@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nox · Security Lab</title>
+    <script>
+      /*
+       * The static page carries Nox's look (the title, the flame, the water and "Security Lab" in the boot veil)
+       * for the page that will show Nox: no ?world=, an empty one, or "nox" (resolveWorld, src/worlds/index.ts,
+       * reads the same parameter). Any other world gets a neutral veil and title until its own is up (the host
+       * sets the title from the bundle's theme). An id that is not a world falls back to Nox in the end, after
+       * a neutral veil. tests: src/engine/ui/bootVeil.test.ts runs this script.
+       */
+      (function () {
+        var id = new URLSearchParams(location.search).get('world');
+        if (id === null || id === '' || id === 'nox') return;
+        document.documentElement.setAttribute('data-boot-world', 'other');
+        document.title = 'OctoVerse';
+        document.addEventListener('DOMContentLoaded', function () {
+          var title = document.querySelector('#boot-veil .bv-title');
+          if (title) title.remove();
+        });
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Poppins loads without blocking the first paint (the boot veil shows at once, in the system font until it arrives). -->
@@ -116,6 +135,33 @@
 
       #boot-veil .bv-dots i:nth-child(3) {
         animation-delay: 0.4s;
+      }
+
+      /* Any world but Nox: the same veil without his water, his flame or his words (see the script in the head). */
+      html[data-boot-world='other'],
+      html[data-boot-world='other'] body {
+        background: #0b0d12;
+      }
+
+      html[data-boot-world='other'] #boot-veil {
+        background-color: #0b0d12;
+        background-image: radial-gradient(ellipse 90% 70% at 50% 0%, #20242d 0%, #0b0d12 58%, #07080b 100%);
+      }
+
+      html[data-boot-world='other'] #boot-veil .bv-ray {
+        background: linear-gradient(to bottom, rgba(220, 225, 235, 0.16), rgba(220, 225, 235, 0.05) 45%, rgba(220, 225, 235, 0) 80%);
+      }
+
+      html[data-boot-world='other'] #boot-veil .bv-kicker {
+        color: #c8ccd4;
+      }
+
+      html[data-boot-world='other'] #boot-veil .bv-title {
+        display: none;
+      }
+
+      html[data-boot-world='other'] #boot-veil .bv-dots i {
+        background: #d5d8de;
       }
 
       @keyframes bv-pulse {

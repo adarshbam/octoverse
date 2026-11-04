@@ -5,8 +5,8 @@ import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
 import type { StagePose, SwimPoseSet } from '../poses/types';
 import type { SequenceSet } from '../sequences/keys';
-import type { StageFrame } from '../stage/framing';
-import type { UiTheme } from '../ui/theme';
+import type { IntroTitleBox, StageFrame, StagePanels } from '../stage/framing';
+import { THEME_COLOURS, type UiTheme } from '../ui/theme';
 import { TITLE_ICONS } from '../ui/titleIcons';
 import { isColour, isWorldColour } from '../world/colour';
 import type { Vec3, WorldConfig } from '../world/types';
@@ -19,12 +19,11 @@ import { validateWorld } from '../world/validateWorld';
 
 /**
  * A world's id: lower case letters, digits and hyphens, starting with a letter, 2 to 32 long. The
- * `u-` prefix is reserved for creator bundles (amendment A2, P4): no shipped world uses it.
+ * `u-` prefix is reserved for creator bundles (amendment A2, P4): no shipped world uses it (the
+ * engine does not list the shipped worlds: the registry's test, src/worlds/index.test.ts, holds the rule
+ * against the registry's own ids).
  */
 export type WorldId = string;
-
-/** The worlds that ship with the engine (their bundles are in the repo). */
-export const WORLDS = ['nox'] as const satisfies readonly WorldId[];
 
 const WORLD_ID = /^[a-z][a-z0-9-]{1,31}$/;
 const CREATOR_PREFIX = 'u-';
@@ -38,8 +37,12 @@ export interface WorldBundle {
   artifacts: ArtifactConfig;
   sequences: SequenceSet;
   place: WorldConfig;
-  /** What each stage frames (stage/framing.ts `fovFor`). */
-  stage: { frames: Record<StageId, StageFrame> };
+  /**
+   * What each stage frames (stage/framing.ts `fovFor`), where the overview's and the detail's HTML
+   * panels sit in world units, and the intro title's box: all traced from the world's own storyboard
+   * (they are placed on the 3D scene, so they belong with its framing, not with the theme's colours).
+   */
+  stage: { frames: Record<StageId, StageFrame>; panels: StagePanels; introTitle: IntroTitleBox };
   content: { project: Project; technologies: readonly Technology[] };
   theme: UiTheme;
 }
@@ -63,10 +66,16 @@ const record = (value: unknown): value is Record<string, unknown> => typeof valu
  * The string fields of the character and the place that are not colours: ids, the arms' depth
  * layer, the head effect, file urls, kinds, and the kit's piece names. Every other string in them
  * is a colour and must parse (`isColour`): a field added later is checked as one until it is named
- * here, so a colour three would draw black never passes unnoticed. `skinAccent` has its own grammar
- * (world/colour.ts `isWorldColour`).
+ * here, so a colour three would draw black never passes unnoticed. The fields WORLD_COLOUR names
+ * have the world's grammar (world/colour.ts `isWorldColour`).
  */
 const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece)$|\.pieces\[\d+\]$/;
+
+/**
+ * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g
+ * b)` (world/colour.ts `isWorldColour`): the skin accent and the colours a shader compiles in.
+ */
+const WORLD_COLOUR = /\.skinAccent$|\.floorGlow\.[a-zA-Z]+$|^character\.palette\.(?:rimHot|domeRimHot|suckerSpecular|orbGlass\.[a-zA-Z]+)$/;
 
 /** Every number in `value` is finite and every colour parses, or a BundleError names the field. */
 function checkLeaves(value: unknown, path: string, colours: boolean) {
@@ -74,7 +83,7 @@ function checkLeaves(value: unknown, path: string, colours: boolean) {
     if (!Number.isFinite(value)) throw new BundleError(path, `${value} is not a finite number`);
   } else if (typeof value === 'string') {
     if (!colours || NOT_COLOUR.test(path)) return;
-    const ok = path.endsWith('.skinAccent') ? isWorldColour(value) : isColour(value);
+    const ok = WORLD_COLOUR.test(path) ? isWorldColour(value) : isColour(value);
     if (!ok) throw new BundleError(path, `"${value}" is not a colour three can read`);
   } else if (Array.isArray(value)) {
     value.forEach((item, i) => checkLeaves(item, `${path}[${i}]`, colours));
@@ -93,6 +102,10 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   list('place.kit.pieces', place.kit.pieces);
   for (const group of ['pillars', 'rocks', 'corals', 'chains', 'coralLights'] as const) list(`place.layout.${group}`, place.layout[group]);
   need('place.camera.hover', place.camera.hover);
+  need('place.water.colours', place.water.colours);
+  need('place.water.environment', place.water.environment);
+  need('place.palette.floorGlow', place.palette.floorGlow);
+  need('place.live.colours', place.live.colours);
   for (const part of ['contactShadow', 'bloom', 'vignette'] as const) need(`place.post.${part}`, place.post[part]);
   need('place.lights.surface', place.lights.surface);
   need('place.lights.fill', place.lights.fill);
@@ -134,6 +147,8 @@ function checkPresent(bundle: WorldBundle) {
   need('theme', bundle.theme);
   need('stage', bundle.stage);
   need('stage.frames', bundle.stage.frames);
+  need('stage.panels', bundle.stage.panels);
+  need('stage.introTitle', bundle.stage.introTitle);
   need('content', bundle.content);
   need('content.project', bundle.content.project);
   if (!Array.isArray(bundle.content.technologies)) throw new BundleError('content.technologies', 'is missing (the technologies, as a list)');
@@ -163,9 +178,10 @@ function checkPoses(poses: unknown) {
  * frame, the artifact kinds and the sheets they play, the title icon, the world (validateWorld) and
  * the project (validateProject, against the bundle's technologies). Numbers that are not finite and
  * colours that do not parse are refused here, by name, before the character's clamp would quietly
- * read a default in their place. `worlds` is the list of shipped worlds (WORLDS).
+ * read a default in their place. `worlds` is the list of shipped worlds' ids, which only a caller that
+ * has the registry knows (default: none): a bundle with the creator prefix that claims one of them is refused.
  */
-export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] = WORLDS): WorldBundle {
+export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] = []): WorldBundle {
   const { id } = bundle;
   if (typeof id !== 'string' || !WORLD_ID.test(id)) throw new BundleError('id', `"${String(id)}" is not a world id (lower case letters, digits and hyphens, starting with a letter, 2 to 32 long)`);
   if (id.startsWith(CREATOR_PREFIX) && worlds.includes(id)) throw new BundleError('id', `"${id}" is a shipped world, but the "${CREATOR_PREFIX}" prefix is reserved for creator bundles`);
@@ -176,6 +192,14 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     const frame = bundle.stage.frames[stage];
     if (!frame || !(finite(frame.width) && frame.width > 0) || !(finite(frame.height) && frame.height > 0)) throw new BundleError(`stage.frames.${stage}`, 'needs a width and a height above 0');
   }
+  for (const panel of ['overview', 'detail'] as const) {
+    const box: unknown = bundle.stage.panels[panel];
+    if (!Array.isArray(box) || box.length !== 4 || !box.every(finite)) throw new BundleError(`stage.panels.${panel}`, 'needs four finite numbers [left, top, right, bottom] (world units)');
+    const [left, top, right, bottom] = box as number[];
+    if (!(left < right) || !(top > bottom)) throw new BundleError(`stage.panels.${panel}`, 'needs left < right and top > bottom (a box on the z = 0 plane, y up)');
+  }
+  const { halfWidth, top: titleTop } = bundle.stage.introTitle;
+  if (!(finite(halfWidth) && halfWidth > 0) || !finite(titleTop)) throw new BundleError('stage.introTitle', 'needs a halfWidth above 0 and a finite top (world units)');
   if (!finite(bundle.swim.stretch) || !finite(bundle.swim.bodyX)) throw new BundleError('swim', 'needs a finite stretch and bodyX');
 
   // Every number, everywhere but the swim (its poses are built on first read) and the sequences' state (a loader).
@@ -188,10 +212,16 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   checkLeaves(rest.stage, 'stage', false);
   checkLeaves(rest.content, 'content', false);
   checkLeaves(sequenceData, 'sequences', false);
-  for (const [key, value] of Object.entries(bundle.theme)) {
-    if (key === 'titleIcon') continue;
+  // Every colour token, by name: a token a theme leaves out would show Nox's value (the stylesheets' fallback).
+  for (const key of THEME_COLOURS) {
+    const value: unknown = bundle.theme[key];
+    if (value === undefined) throw new BundleError(`theme.${key}`, 'is missing (every colour token is needed: a missing one would show the stylesheet fallback, Nox\'s)');
     if (!isColour(value)) throw new BundleError(`theme.${key}`, `"${String(value)}" is not a colour`);
   }
+  const { poster, pageTitle } = bundle.theme;
+  if (!record(poster) || typeof poster.src !== 'string' || poster.src === '' || typeof poster.alt !== 'string' || poster.alt === '') throw new BundleError('theme.poster', 'needs a src and an alt (the still shown where there is no WebGL)');
+  if (!(finite(poster.width) && poster.width > 0) || !(finite(poster.height) && poster.height > 0)) throw new BundleError('theme.poster', 'needs a width and a height above 0 (in pixels)');
+  if (typeof pageTitle !== 'string' || pageTitle === '') throw new BundleError('theme.pageTitle', 'is missing (the document title once the world is up)');
   if (!Object.hasOwn(TITLE_ICONS, bundle.theme.titleIcon)) throw new BundleError('theme.titleIcon', `"${bundle.theme.titleIcon}" is not one of the engine's title icons (${Object.keys(TITLE_ICONS).join(', ')})`);
 
   const { placement, appear, select, choosableIn } = bundle.artifacts;

@@ -3,14 +3,8 @@ import type { StageEvent } from '../behavior/stageMachine';
 import type { Project } from '../content/projectTypes';
 import './overview.css';
 import { useFaceShift } from '../stage/liveAnchors';
+import { useInstance } from '../host/instanceContext';
 import { useStageBox } from './useStageBox';
-
-/**
- * The dome's inner rectangle, traced in world units from the high-quality panel 3. Nox's trace: the
- * shared layout still lays the overview panel on it, since every world's overview frame is Nox's
- * (a world with its own panel box takes it through the bundle, with F01).
- */
-export const DOME_PANEL_BOX = [-1.22, 1.14, 1.33, 0.06] as const;
 
 export function GitHubMark() {
   return (
@@ -38,7 +32,8 @@ export function OpenMark() {
  * instead, with a close button that returns to the intro.
  */
 export function OverviewPanel({ project, open, sheet = false, dispatch }: { project: Project; open: boolean; sheet?: boolean; dispatch: (event: StageEvent) => void }) {
-  const box = useStageBox('overview', DOME_PANEL_BOX);
+  // The dome's inner rectangle, traced from the world's own overview panel (`stage.panels.overview`).
+  const box = useStageBox('overview', useInstance().bundle.stage.panels.overview);
   const panel = useRef<HTMLElement>(null);
   // The panel moves as one with the face, so it keeps its place in the dome as the camera hovers.
   useFaceShift(panel, 'overview');

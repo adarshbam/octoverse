@@ -4,7 +4,7 @@ import { ARM_IDS, STAGE_IDS } from '../config/types';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { clampCharacterConfig } from '../config/validate';
 import { dummyWorld } from '../world/fixtures/dummy.world';
-import { BundleError, WORLDS, type WorldBundle, faceAnchor, faceOrigin, validateBundle } from './bundle';
+import { BundleError, type WorldBundle, faceAnchor, faceOrigin, validateBundle } from './bundle';
 
 /** A copy of Nox's bundle whose `poses` can be edited without touching his. */
 function withPoses(edit: (poses: Record<string, { arms: Record<string, unknown> }>) => void): WorldBundle {
@@ -62,9 +62,8 @@ test('every stage needs a pose', () => {
 test('the id is checked: its form, and the creator prefix that no shipped world may use', () => {
   for (const id of ['', 'n', 'Nox', '1nox', 'nox_3d', `n${'o'.repeat(32)}`, 'nox world']) expect(refusal({ ...NOX_BUNDLE, id }).field, id).toBe('id');
   for (const id of ['nox', 'veyra', 'u-adarsh', 'a1', `n${'o'.repeat(31)}`]) expect(() => validateBundle({ ...NOX_BUNDLE, id }), id).not.toThrow();
-  // A creator id is fine until it names a shipped world.
-  expect(refusal({ ...NOX_BUNDLE, id: 'u-nox' }, [...WORLDS, 'u-nox']).message).toMatch(/reserved for creator bundles/);
-  expect(WORLDS.filter(id => id.startsWith('u-'))).toEqual([]);
+  // A creator id is fine until it names a shipped world (the caller that knows the shipped ids passes them; the registry test does).
+  expect(refusal({ ...NOX_BUNDLE, id: 'u-nox' }, ['nox', 'u-nox']).message).toMatch(/reserved for creator bundles/);
 });
 
 test('a number that is not finite is refused loudly, by field, where the clamp would quietly read a default', () => {
@@ -72,7 +71,7 @@ test('a number that is not finite is refused loudly, by field, where the clamp w
   expect(refusal(nan).field).toBe('character.armBend');
   const inf = { ...NOX_BUNDLE, place: { ...NOX_BUNDLE.place, camera: { ...NOX_BUNDLE.place.camera, tilt: Infinity } } };
   expect(refusal(inf).field).toBe('place.camera.tilt');
-  const frame = { ...NOX_BUNDLE, stage: { frames: { ...NOX_BUNDLE.stage.frames, detail: { width: Number.NaN, height: 4 } } } };
+  const frame = { ...NOX_BUNDLE, stage: { ...NOX_BUNDLE.stage, frames: { ...NOX_BUNDLE.stage.frames, detail: { width: Number.NaN, height: 4 } } } };
   expect(refusal(frame).field).toBe('stage.frames.detail');
   const key = { ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, entrance: { ...NOX_BUNDLE.sequences.entrance, turn: Number.NaN } } };
   expect(refusal(key).field).toBe('sequences.entrance.turn');
@@ -165,7 +164,7 @@ function without(path: string): WorldBundle {
 test('a part the bundle needs but lacks is a BundleError naming its field, not a TypeError', () => {
   for (const field of [
     'character', 'character.head', 'place', 'poses', 'swim', 'artifacts', 'artifacts.placement', 'artifacts.appear', 'artifacts.select', 'artifacts.choosableIn',
-    'sequences', 'sequences.defaults', 'theme', 'stage', 'stage.frames', 'content', 'content.project', 'content.technologies', 'poses.intro.body', 'poses.detail.body',
+    'sequences', 'sequences.defaults', 'theme', 'stage', 'stage.frames', 'stage.panels', 'stage.introTitle', 'content', 'content.project', 'content.technologies', 'poses.intro.body', 'poses.detail.body',
   ]) {
     expect(refusal(without(field)).field, field).toBe(field);
   }
@@ -191,7 +190,7 @@ test('the parts of the place, the sequences project id and a pose body that a cr
   for (const field of [
     'place.kit', 'place.kit.pieces', 'place.layout', 'place.layout.pillars', 'place.layout.rocks', 'place.layout.corals', 'place.layout.chains', 'place.layout.coralLights',
     'place.camera', 'place.camera.hover', 'place.post', 'place.post.contactShadow', 'place.post.bloom', 'place.post.vignette', 'place.relics', 'place.palette',
-    'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.live',
+    'place.lights', 'place.lights.surface', 'place.lights.fill', 'place.lights.points', 'place.glow', 'place.water', 'place.water.colours', 'place.water.environment', 'place.palette.floorGlow', 'place.live', 'place.live.colours',
     'sequences.projectId', 'poses.intro.body.x', 'poses.intro.body.y', 'poses.overview.body.scale', 'poses.detail.body.yaw',
   ]) {
     expect(refusal(without(field)).field, field).toBe(field);
@@ -220,4 +219,33 @@ test('a far plate with no cut, or a layer with no url, is refused by validateBun
   expect(refusal(place({ cutZ: -5, layers: [{ url: '', z: -9 }] })).message).toContain('farPlate.layers[0] has no url');
   expect(refusal(place(7)).field).toBe('place.farPlate');
   expect(() => validateBundle(place(undefined))).not.toThrow();
+});
+
+test("the poster and the page title are the world's: a bundle without them, or with a poster that cannot be drawn, is refused by name", () => {
+  const theme = (edit: object) => ({ ...NOX_BUNDLE, theme: { ...NOX_BUNDLE.theme, ...edit } }) as unknown as WorldBundle;
+  expect(refusal(theme({ poster: undefined })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, src: '' } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, alt: '' } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, width: 0 } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, height: Number.NaN } })).field).toBe('theme.poster');
+  expect(refusal(theme({ pageTitle: undefined })).field).toBe('theme.pageTitle');
+  expect(refusal(theme({ pageTitle: '' })).field).toBe('theme.pageTitle');
+  // Nox's values, as the page held them before the bundle carried them.
+  expect(NOX_BUNDLE.theme.poster).toEqual({ src: 'nox/poster-intro.webp', alt: 'Nox, the octopus guide to Security Lab, in the dark water of his lab', width: 1536, height: 1024 });
+  expect(NOX_BUNDLE.theme.pageTitle).toBe('Nox · Security Lab');
+});
+
+test("the traced UI boxes are the world's own (stage.panels, stage.introTitle): Nox's values as they were, and a box that cannot place a panel is refused by name", () => {
+  expect(NOX_BUNDLE.stage.panels).toEqual({ overview: [-1.22, 1.14, 1.33, 0.06], detail: [-0.57, 1.2425, 4.005, -1.8775] });
+  expect(NOX_BUNDLE.stage.introTitle).toEqual({ halfWidth: 1.4, top: 1.55 });
+  const stage = (edit: object) => ({ ...NOX_BUNDLE, stage: { ...NOX_BUNDLE.stage, ...edit } }) as unknown as WorldBundle;
+  const panels = (edit: object) => stage({ panels: { ...NOX_BUNDLE.stage.panels, ...edit } });
+  expect(refusal(panels({ overview: [0, 1, 2] })).field).toBe('stage.panels.overview');
+  expect(refusal(panels({ detail: [0, 1, 2, Number.NaN] })).field).toBe('stage.panels.detail');
+  expect(refusal(panels({ detail: ['0', 1, 2, 0] })).field).toBe('stage.panels.detail');
+  // Left of right, and top above bottom.
+  expect(refusal(panels({ overview: [2, 1, 1, 0] })).field).toBe('stage.panels.overview');
+  expect(refusal(panels({ overview: [0, 0, 1, 1] })).field).toBe('stage.panels.overview');
+  expect(refusal(stage({ introTitle: { halfWidth: 0, top: 1 } })).field).toBe('stage.introTitle');
+  expect(refusal(stage({ introTitle: { halfWidth: 1, top: Number.POSITIVE_INFINITY } })).field).toBe('stage.introTitle');
 });

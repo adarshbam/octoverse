@@ -1,40 +1,16 @@
-import { armDepth, restFromCurve } from '../../engine/character/armChain';
 import { NOX } from './character';
-import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
+import { armLength, flattenForDepth, toContent, withLength, withRoot as withRootAt } from '../../engine/poses/authoring';
 import type { StagePose } from '../../engine/poses/types';
 
 /** Centre the hidden arm roots gather around, and where the roots sit. */
 export const BODY_X = 0.04;
 const ROOT_Y = -1.02;
 
-/**
- * Prepends the hidden root under the mantle so all eight arms share one body.
- * Front arms root lower so their thick base tucks under the chin, not over the mouth.
- */
-function withRoot(spec: ArmSpec, visible: readonly Point2[], spread = 0.2, root?: Point2): Point2[] {
-  if (root) return [root, ...visible];
-  const [x] = visible[0];
-  const rootY = spec.depth === 'front' ? ROOT_Y - 0.1 : ROOT_Y;
-  return [[BODY_X + (x - BODY_X) * spread, rootY], ...visible];
-}
+/** The engine's root helper, bound to Nox's body line and root height. */
+const withRoot = (spec: ArmSpec, visible: readonly Point2[], spread?: number, root?: Point2) => withRootAt(spec, visible, { bodyX: BODY_X, rootY: ROOT_Y }, spread, root);
 
 const spec = (id: ArmId) => NOX.arms.find(arm => arm.id === id)!;
-
-/**
- * The flat curve an arm is built from, so that at its depth (it fans forward or back from the
- * body) the stage camera still sees the traced curve: each point moves toward the view axis by
- * (CAMERA_Z - z) / CAMERA_Z, with z read at the point's arc fraction along the curve.
- */
-export function flattenForDepth(curve: readonly Point2[], arm: ArmSpec): Point2[] {
-  const along = [0];
-  for (let i = 1; i < curve.length; i++) along.push(along[i - 1] + Math.hypot(curve[i][0] - curve[i - 1][0], curve[i][1] - curve[i - 1][1]));
-  const total = along[along.length - 1] || 1;
-  return curve.map(([x, y], i) => {
-    const f = (CAMERA_Z - armDepth(along[i] / total, arm)) / CAMERA_Z;
-    return [x * f, y * f] as Point2;
-  });
-}
 
 // Panel 2, re-traced in world units against the high-quality panel
 // (docs/design/references/Nox/Nox Introduces the Security Lab.png). The painting shows two extra
@@ -71,9 +47,6 @@ export const OVERVIEW_TRACED: Record<ArmId, Point2[]> = {
   T7: [[1.05, -0.42], [1.35, -0.36], [1.6, -0.24], [1.78, -0.06], [1.86, 0.15], [1.82, 0.3], [1.72, 0.34], [1.66, 0.27], [1.7, 0.2]],
   T8: [[1.0, -0.15], [1.28, 0.05], [1.5, 0.32], [1.62, 0.62], [1.65, 0.88], [1.56, 1.06], [1.42, 1.12], [1.3, 1.06], [1.3, 0.97], [1.38, 0.94]],
 };
-
-/** A world-unit trace moved into the space the arms are authored in, under the stage's body placement. */
-const toContent = (points: readonly Point2[], body: StagePose['body']) => points.map(([x, y]) => [(x - body.x) / body.scale, (y - body.y) / body.scale] as Point2);
 
 const OVERVIEW_ARMS = Object.fromEntries(
   ARM_IDS.map(id => [id, flattenForDepth(withRoot(spec(id), toContent(OVERVIEW_TRACED[id], OVERVIEW_BODY)), spec(id))]),
@@ -114,18 +87,6 @@ const ENTERING_TRACED: Record<ArmId, Point2[]> = {
 
 /** The arms stretch out by a fifth as Nox swims; they gather to their intro lengths as it turns. */
 export const SWIM_STRETCH = 1.2;
-
-const armLength = (curve: readonly Point2[]) => {
-  const rest = restFromCurve(curve);
-  return rest.segmentLength * rest.angles.length;
-};
-
-/** A curve scaled about its root to `length`. */
-function withLength(curve: readonly Point2[], length: number): Point2[] {
-  const k = length / armLength(curve);
-  const [rx, ry] = curve[0];
-  return curve.map(([x, y]) => [rx + (x - rx) * k, ry + (y - ry) * k] as Point2);
-}
 
 const ENTERING_ARMS = Object.fromEntries(
   ARM_IDS.map(id => [id, withLength(flattenForDepth([INTRO_TRACED[id][0], ...ENTERING_TRACED[id]], spec(id)), SWIM_STRETCH * armLength(INTRO_ARMS[id]))]),

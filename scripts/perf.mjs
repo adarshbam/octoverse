@@ -5,7 +5,7 @@
 // `--gpu` also prints the GPU time per frame from EXT_disjoint_timer_query_webgl2 around each
 // animation-frame callback (the renderer draws inside it): median and best10 (the fastest tenth).
 // `--dpr=2` sets the device pixel ratio (default 1). Close the browser pane first.
-// WORLD=<id> adds world=<id> to every query (another world of the engine; unset, the page's default world, Nox).
+// WORLD=<id> (or OCTO_WORLD=<id>, which wins) adds world=<id> to every query (another world of the engine; unset, the page's default world, Nox).
 // NOX_URL picks the server (default http://localhost:5191). Derived from spike-env/perf.mjs.
 import { chromium } from '@playwright/test';
 
@@ -15,7 +15,8 @@ const secs = Number(args.find(a => a.startsWith('--secs='))?.slice(7) ?? 6);
 const dpr = Number(args.find(a => a.startsWith('--dpr='))?.slice(6) ?? 1);
 const queries = args.filter(a => !a.startsWith('--'));
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
-const world = process.env.WORLD ? `&world=${encodeURIComponent(process.env.WORLD)}` : '';
+const worldId = process.env.OCTO_WORLD || process.env.WORLD || '';
+const world = worldId ? `&world=${encodeURIComponent(worldId)}` : '';
 const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
 // Times each animation-frame callback on the GPU. Installed before the page's scripts run.

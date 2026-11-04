@@ -58,15 +58,15 @@ export function SurfaceLight({ spot, caustics }: ReturnType<typeof useSurfaceLig
 export function WaterEnvironment({ world }: { world: WorldConfig }) {
   const gl = useThree(s => s.gl);
   const scene = useThree(s => s.scene);
-  const { surfaceDir, environmentIntensity } = world.water;
+  const { surfaceDir, environmentIntensity, environment } = world.water;
   useLayoutEffect(() => {
-    const env = makeWaterEnvironment(gl, new THREE.Vector3(...surfaceDir));
+    const env = makeWaterEnvironment(gl, environment, new THREE.Vector3(...surfaceDir));
     scene.environment = env.texture;
     scene.environmentIntensity = environmentIntensity;
     return () => {
       scene.environment = null;
       env.dispose();
     };
-  }, [gl, scene, surfaceDir, environmentIntensity]);
+  }, [gl, scene, surfaceDir, environmentIntensity, environment]);
   return null;
 }

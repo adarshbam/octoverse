@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { isFarChain, isFarPlacement } from './farPlate';
 import { useInstance } from '../host/instanceContext';
 import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, stoneLights, withBakedLight } from './bakedLight';
+import { glslColour } from './colour';
 import { type WorldKit, bakedGeometry } from './kitLoader';
 import { fbm2, seeded } from './noise';
 import { applyPlacement, coralRest, withLod } from './placement';
@@ -166,7 +167,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
           {
             float pore = smoothstep(0.72, 0.88, rn(vRockWorld * 14.0)) * smoothstep(0.4, 0.66, rn(vRockWorld * 2.1 + 4.0));
             float low = 1.0 - smoothstep(-2.4, -1.0, vRockWorld.y);
-            totalEmissiveRadiance += vec3(1.0, 0.16, 0.05) * pore * (0.45 + 2.4 * low) * ${world.glow.crevice.toFixed(2)};
+            totalEmissiveRadiance += ${glslColour(palette.floorGlow.pores)} * pore * (0.45 + 2.4 * low) * ${world.glow.crevice.toFixed(2)};
           }`,
         );
     };

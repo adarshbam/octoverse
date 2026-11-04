@@ -26,11 +26,20 @@ const engineFiles = walk(ENGINE);
 const engineCode = engineFiles.filter(isCode);
 const read = (root: string, file: string) => readFileSync(join(root, file), 'utf8');
 
-/** The module specifiers a source names: `from '...'`, `import('...')`, `import '...'`. */
+/**
+ * The module specifiers a source names: `from '...'`, `import('...')`, `import '...'`, and the file
+ * references the bundler resolves without an import: `import.meta.glob('...')` / `globEager` (one
+ * pattern or a list) and `new URL('...', import.meta.url)`. A glob pattern keeps its `*`: its
+ * folder part is what the boundary reads.
+ */
 function specifiers(code: string): string[] {
   const out: string[] = [];
   const pattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"\n]+)\1/g;
   for (let m = pattern.exec(code); m; m = pattern.exec(code)) out.push(m[2]);
+  const glob = /\bimport\.meta\.glob(?:Eager)?\s*(?:<[^>(]*>)?\s*\(\s*(\[[^\]]*\]|(['"`])[^'"`\n]+\2)/g;
+  for (let m = glob.exec(code); m; m = glob.exec(code)) for (const item of m[1].matchAll(/(['"`])([^'"`\n]+)\1/g)) out.push(item[2]);
+  const url = /\bnew\s+URL\s*\(\s*(['"`])([^'"`\n]+)\1\s*,\s*import\.meta\.url/g;
+  for (let m = url.exec(code); m; m = url.exec(code)) out.push(m[2]);
   return out;
 }
 
@@ -79,42 +88,89 @@ function withoutComments(source: string, css: boolean): string {
 }
 
 /**
- * Every spelling of a colour a source could hold: #rrggbb, #rrggbbaa, rgb( and rgba( with a number
- * in them, hsl( and hsla( likewise, and 0xRRGGBB. (`rgba(${r}` built from variables is a formatter,
- * not a hue; `rgba(palette.x, a)` is a call, not a literal; a short `#000` is black, as the
- * character hue test has always let through.)
+ * Every spelling of a colour a source could hold in a string: #rrggbb, #rrggbbaa, rgb( and rgba(
+ * with a number in them, hsl( and hsla( likewise, and 0xRRGGBB. (`rgba(${r}` built from variables
+ * is a formatter, not a hue; `rgba(palette.x, a)` is a call, not a literal; a short `#000` is
+ * black, as the character hue test has always let through.)
  */
 const HUE = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6})\b|\b(?:rgba?|hsla?)\(\s*\d|\b0x[0-9a-fA-F]{6}\b/g;
-const hueCount = (file: string) => (withoutComments(read(ENGINE, file), file.endsWith('.css')).match(HUE) ?? []).length;
+
+/**
+ * A colour written as three numbers, the spellings HUE cannot see:
+ *   - a GLSL float triple, `vec3(r, g, b)` or `vec4(r, g, b, a)` with three number literals;
+ *   - a linear colour string, `color(srgb-linear r g b)` (world/colour.ts);
+ *   - a CSS channel triple, `var(--oct-name, r, g, b)`: a token's fallback a stylesheet passes to rgba().
+ * Each counts as a hue only when its three numbers are a colour and not grey (`isTripleHue`).
+ */
+const TRIPLE = /(?<!normalize\(\s*)\bvec[34]\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*[,)]|\bcolor\(srgb-linear\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s*\)|\bvar\(--oct-[a-z-]+,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)/g;
+
+/**
+ * Number triples that are not colours, named: the Rec. 709 luminance weights (a dot product that
+ * measures brightness) and the hash's multipliers (Dave Hoskins' hash31, a noise function).
+ */
+const NOT_COLOURS: Record<string, string> = {
+  '0.2126,0.7152,0.0722': 'the Rec. 709 luminance weights',
+  '0.1031,0.103,0.0973': "the noise hash's multipliers",
+};
+
+/**
+ * Whether three numbers, as a triple of TRIPLE spells them, are a hue: every channel in its
+ * colour's range (0 to 1 for GLSL and linear light, where brightness goes in a factor; 0 to 255
+ * for a CSS channel), not grey (the three not all equal: black, white and greys carry no hue), not
+ * made of 0s and 1s alone in GLSL (an axis or a lattice offset, `vec3(1, 0, 0)`: a pure primary is
+ * read as one too), and not one of the NOT_COLOURS. A minus sign never matches TRIPLE (a direction
+ * with a negative component is not a colour), and neither does a triple handed to normalize().
+ */
+function isTripleHue(numbers: readonly string[], css: boolean): boolean {
+  const n = numbers.map(Number);
+  if (n.some(v => !Number.isFinite(v) || v < 0 || v > (css ? 255 : 1))) return false;
+  if (n[0] === n[1] && n[1] === n[2]) return false;
+  if (!css && n.every(v => v === 0 || v === 1)) return false;
+  return !Object.hasOwn(NOT_COLOURS, n.join(','));
+}
+
+/** Every hue literal in a source text (comments already out): HUE's and the coloured triples. */
+function hues(text: string): string[] {
+  const found: string[] = [...(text.match(HUE) ?? [])];
+  for (const m of text.matchAll(TRIPLE)) {
+    const numbers = (m[1] !== undefined ? m.slice(1, 4) : m[4] !== undefined ? m.slice(4, 7) : m.slice(7, 10)) as string[];
+    if (isTripleHue(numbers, m[7] !== undefined)) found.push(m[0]);
+  }
+  return found;
+}
+const hueCount = (file: string) => hues(withoutComments(read(ENGINE, file), file.endsWith('.css'))).length;
 
 /** The technologies' own marks: brand colours, not a world's. */
 const LOGO_ALLOW_LIST = ['artifacts/logoTexture.ts'];
 
 /**
- * The hue literals still in engine sources after the extraction (Task 9), file by file, with how
- * many each holds. Each is artwork, a tint, or a world value the bundle does not carry yet; none
- * is new. The count is exact: more fails the test (a new hue in the engine), fewer fails it too
- * (lower the number, or delete the entry once the file is clean).
+ * The hue literals still in engine sources after the extraction (Task 9) and fix wave A, file by
+ * file, with how many each holds (every spelling `hues` sees, GLSL and linear triples included).
+ * Each is Nox's kit art, a legacy default, artwork, or a stylesheet colour no theme token reaches
+ * yet; none is new. The count is exact: more fails the test (a new hue in the engine), fewer fails
+ * it too (lower the number, or delete the entry once the file is clean).
  */
 const KNOWN_HUE_DEBT: Record<string, { count: number; why: string }> = {
-  // World values in the engine's world sources (Nox's colours, to move into place data with F01's per-world look).
-  'world/Water.tsx': { count: 8, why: "Nox's water shader colours (deep, zenith, glow, ray and surface tints); the place palette carries only waterFar" },
-  'world/particleMaterials.ts': { count: 7, why: "Nox's ember, mote and spark colours" },
-  'world/textures.ts': { count: 14, why: "Nox's baked textures: the pillar's red glyphs, the sky gradient, the floor patch" },
-  'world/Kit.tsx': { count: 5, why: "Nox's kit materials (rock, iron, coral) and a white glyph multiplier" },
+  // Nox's kit art in the engine's world sources (Veyra's M2 kit work moves these into kit/place data).
+  'world/textures.ts': { count: 10, why: "Nox's kit art: the glyph panels' recess gradient, red rune strokes and seam (canvas textures); the environment map's colours are place data" },
+  'world/Kit.tsx': { count: 5, why: "Nox's kit materials: the rock, pebble, iron and coral body colours, and the glyph panels' white multiplier" },
   // Defaults for a legacy config that sets none (spec 13.3): they reproduce Nox, by design.
-  'config/validate.ts': { count: 6, why: 'the defaults a config without glow fields reads (Nox’s), spec 13.3' },
+  'config/validate.ts': { count: 13, why: 'LEGACY: what a character config written before a field existed reads (Nox’s values, spec 13.3): the glow core and light, the orb focus, the head effect’s three colours, and the seven shader tints fix wave A moved into the palette (rim, dome front, cup highlight, orb glass)' },
   'config/lighting.ts': { count: 5, why: "INTRO_LIGHTING: Nox's stage lighting, the default for a config without `lighting`" },
-  // Artwork and tints inside the shared HTML layer.
+  // Artwork inside the shared HTML layer (wave B / the no-WebGL poster work).
   'ui/Flame.tsx': { count: 2, why: "the title flame's gradient stops (artwork)" },
   'ui/ProjectDetail.tsx': { count: 1, why: 'the detail panel shield glyph’s glow fill (artwork)' },
-  'ui/detail.css': { count: 42, why: "Nox's panel colours as CSS fallbacks beside the theme variables" },
-  'ui/exit.css': { count: 5, why: "Nox's exit link colours as CSS fallbacks" },
-  'ui/intro.css': { count: 11, why: "Nox's intro title and gradient stops as CSS fallbacks" },
-  'ui/overview.css': { count: 23, why: "Nox's overview panel colours as CSS fallbacks" },
-  'ui/poster.css': { count: 1, why: 'the no-WebGL poster’s background' },
-  'ui/skip.css': { count: 9, why: "Nox's skip-control colours as CSS fallbacks" },
-  'ui/tooltip.css': { count: 10, why: "Nox's tooltip colours as CSS fallbacks" },
+  'ui/poster.css': { count: 1, why: 'the no-WebGL poster’s background (Nox’s water)' },
+  // The stylesheets: N fallbacks are Nox's theme values inside var(--oct-*, ...) (a theme reaches
+  // them; ui/theme.test.ts holds each equal to Nox's theme), the rest are bare near-neutral colours
+  // no token reaches yet (white hairlines, violet-black panel and button fills, text greys, black
+  // shadows) and the storyboard placeholder badge's amber. No bare red or pink is left (theme.test).
+  'ui/detail.css': { count: 42, why: '17 theme fallbacks; 25 bare: white hairlines, violet-black fills, text greys, a black shadow, the placeholder badge (2)' },
+  'ui/exit.css': { count: 5, why: '5 theme fallbacks' },
+  'ui/intro.css': { count: 11, why: "7 theme fallbacks; 4 bare: the page's violet-black, two text greys, the nameplate's fill" },
+  'ui/overview.css': { count: 23, why: '15 theme fallbacks; 8 bare: white hairlines, a black shadow, violet-black fills, a text grey' },
+  'ui/skip.css': { count: 9, why: '6 theme fallbacks; 3 bare: the skip control’s violet-black fills and text grey' },
+  'ui/tooltip.css': { count: 10, why: '5 theme fallbacks; 5 bare: the violet-black fill, two text greys, the placeholder badge (2)' },
   // Black as a mask, not a hue.
   'host/WorldHost.tsx': { count: 1, why: "the `?mask` silhouette's black background" },
 };
@@ -124,6 +180,22 @@ test('the scan sees the engine (not a vacuous pass)', () => {
   expect(engineCode).toContain('host/WorldHost.tsx');
   expect(engineCode).toContain('character/Octopus.tsx');
   expect(engineCode.filter(f => !isTest(f)).length).toBeGreaterThan(100);
+});
+
+test('the specifier scan sees imports, dynamic imports, import.meta.glob (one pattern or a list) and new URL(..., import.meta.url)', () => {
+  const code = [
+    "import a from '../a';",
+    "const b = await import('../b');",
+    "import '../c.css';",
+    "const d = import.meta.glob('../d/*/bundle.ts');",
+    "const e = import.meta.globEager<string>(['../e/*.ts', \"../f/*.json\"], { eager: true });",
+    "const g = new URL('../d/x.json', import.meta.url);",
+    "const h = new URL(path, import.meta.url);",
+    "const i = new URL('https://example.com/x');",
+  ].join('\n');
+  expect(specifiers(code)).toEqual(['../a', '../b', '../c.css', '../d/*/bundle.ts', '../e/*.ts', '../f/*.json', '../d/x.json']);
+  // And the boundary reads them like any import: a glob into src/worlds from the engine is a hit.
+  expect(landing(ENGINE, 'host/x.ts', '../../worlds/*/bundle.ts')?.startsWith('worlds/')).toBe(true);
 });
 
 test('the engine imports nothing from src/worlds', () => {
@@ -173,6 +245,19 @@ test('the debt list names only files that exist', () => {
 });
 
 test('the scan finds a hue where there is one (the pattern is not dead)', () => {
+  // GLSL float triples, linear colour strings and CSS channel triples that are colours count ...
+  for (const sample of ['vec3(1.0, 0.09, 0.05)', 'vec4(0.62, 0.36, 1.0, 1.0)', 'mix(rim, vec3(1.0, 0.85, 1.0), 0.3)', 'vec3(.5, .25, 1.)', "'color(srgb-linear 1 0.09 0.05)'", 'rgba(var(--oct-glow-rgb, 255, 40, 90), 0.35)']) {
+    expect(hues(sample), sample).toHaveLength(1);
+  }
+  // ... and grey, black, white, axes, directions, out-of-range vectors and the named constants do not.
+  for (const sample of [
+    'vec3(1.0)', 'vec3(0.6, 0.6, 0.6)', 'vec4(0.0, 0.0, 0.0, 1.0)', 'vec3(1, 0, 0)', 'rh(i + vec3(0.0, 1.0, 1.0))', 'vec4(position, 1.0)',
+    'normalize(vec3(0.45, 0.6, 0.7))', 'normalize(vec3(-0.45, 0.6, 0.7))', 'vec3(-0.5, 0.7, 0.5)', 'p * vec3(30.0, 8.0, 30.0)',
+    'dot(c, vec3(0.2126, 0.7152, 0.0722))', 'fract(p * vec3(0.1031, 0.103, 0.0973))', "'color(srgb-linear 0.5 0.5 0.5)'", 'var(--oct-ink-rgb, 20, 20, 20)',
+  ]) {
+    expect(hues(sample), sample).toEqual([]);
+  }
+  expect(Object.keys(NOT_COLOURS)).toHaveLength(2);
   for (const sample of ["'#1a2b3c'", "'#1a2b3c4d'","'rgb(1,2,3)'", "`rgba(255, 0, 0, ${a})`", "'hsl(10 50% 50%)'", '0xff8800']) expect(sample.match(HUE), sample).not.toBeNull();
   expect("fill('#000')".match(HUE)).toBeNull();
   expect(withoutComments("// #ff0000\nconst a = 1; /* rgb(1,2,3) */", false).match(HUE)).toBeNull();

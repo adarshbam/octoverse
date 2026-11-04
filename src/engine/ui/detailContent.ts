@@ -1,11 +1,5 @@
 import type { Project, ProjectSection, Technology } from '../content/projectTypes';
 
-/**
- * The project panel, traced in world units from the high-quality panel 5: (722, 222) to (1637, 846) px at 200 px a unit.
- * Nox's trace: the shared layout still lays the detail panel on it (a world with its own takes it through the bundle, with F01).
- */
-export const DETAIL_PANEL_BOX = [-0.57, 1.2425, 4.005, -1.8775] as const;
-
 export interface DetailPage {
   id: string;
   title: string;

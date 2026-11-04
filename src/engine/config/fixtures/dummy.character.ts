@@ -50,6 +50,10 @@ export function dummyCharacter(base: CharacterConfig): CharacterConfig {
       domeSheen: '#a0f0e8',
       orbFocus: '#30e0c0',
       effect: { halo: 'rgba(32,208,168,0.5)', stroke: '#20d0a8', core: '#b4f0e0' },
+      rimHot: 'color(srgb-linear 0.85 1 0.95)',
+      domeRimHot: 'color(srgb-linear 0.8 1 0.95)',
+      suckerSpecular: 'color(srgb-linear 1 0.95 0.75)',
+      orbGlass: { below: 'color(srgb-linear 0.9 0.7 0.1)', above: 'color(srgb-linear 0.2 0.8 0.75)', side: 'color(srgb-linear 0.15 0.5 0.9)', base: 'color(srgb-linear 0.001 0.003 0.003)' },
     },
     headEffect: 'none',
     personality: {

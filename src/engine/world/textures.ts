@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { WaterEnvironment } from './types';
 
 // Procedural textures for the world: tiling stone grain, glowing glyph runes and the water's
 // light all round (the environment map that wet stone and iron reflect).
@@ -294,20 +295,20 @@ export function makeGlyphTexture(runes: readonly string[], aspect: number, wear 
 }
 
 /**
- * The water's light from every direction, prefiltered for reflections: bright blue from the
- * surface above, deep navy round the horizon, the seabed's red glow below. Returns the render
- * target: `.texture` is the environment map, and disposing the target frees it.
+ * The sphere the water's environment map is rendered from: `top` from the surface above (and
+ * brightest toward `sunDir`), `horizon` round the middle, `low` toward the seabed, and the seabed's
+ * glow in patches along the band below the horizon (`seabedGlow`; null is none: black, so the band
+ * adds nothing). The colours are the world's (`place.water.environment`).
  */
-export function makeWaterEnvironment(renderer: THREE.WebGLRenderer, sunDir: THREE.Vector3) {
-  const scene = new THREE.Scene();
-  const material = new THREE.ShaderMaterial({
+export function createWaterEnvironmentMaterial(environment: WaterEnvironment, sunDir: THREE.Vector3) {
+  return new THREE.ShaderMaterial({
     side: THREE.BackSide,
     uniforms: {
       uSun: { value: sunDir.clone().normalize() },
-      uTop: { value: new THREE.Color('#2a5cff') },
-      uHorizon: { value: new THREE.Color('#0a1840') },
-      uLow: { value: new THREE.Color('#0b0712') },
-      uRed: { value: new THREE.Color('#ff2030') },
+      uTop: { value: new THREE.Color(environment.top) },
+      uHorizon: { value: new THREE.Color(environment.horizon) },
+      uLow: { value: new THREE.Color(environment.low) },
+      uRed: { value: environment.seabedGlow === null ? new THREE.Color(0, 0, 0) : new THREE.Color(environment.seabedGlow) },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -328,13 +329,24 @@ export function makeWaterEnvironment(renderer: THREE.WebGLRenderer, sunDir: THRE
         vec3 c = mix(uHorizon, uTop, smoothstep(0.0, 0.85, d.y));
         c = mix(c, uLow, smoothstep(0.0, -0.35, d.y));
         c += uTop * 4.0 * pow(max(dot(d, uSun), 0.0), 24.0);
-        // Patches of red glow along the seabed.
+        // Patches of the seabed's glow along the seabed (uRed: the world's seabedGlow, black for none).
         float band = smoothstep(-0.05, -0.3, d.y) * (0.5 + 0.5 * sin(atan(d.z, d.x) * 5.0));
         c += uRed * 0.1 * band;
         gl_FragColor = vec4(c, 1.0);
       }
     `,
   });
+}
+
+/**
+ * The water's light from every direction, prefiltered for reflections (the world's
+ * `water.environment` colours: in Nox, bright blue from the surface above, deep navy round the
+ * horizon, the seabed's red glow below). Returns the render target: `.texture` is the environment
+ * map, and disposing the target frees it.
+ */
+export function makeWaterEnvironment(renderer: THREE.WebGLRenderer, environment: WaterEnvironment, sunDir: THREE.Vector3) {
+  const scene = new THREE.Scene();
+  const material = createWaterEnvironmentMaterial(environment, sunDir);
   const sphere = new THREE.SphereGeometry(10, 64, 32);
   scene.add(new THREE.Mesh(sphere, material));
   const pmrem = new THREE.PMREMGenerator(renderer);

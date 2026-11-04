@@ -162,8 +162,31 @@ export interface Palette {
   domeSheen: string;
   /** The hot ring a technology's orb glows with while it is in focus. */
   orbFocus: string;
+  /**
+   * The colours the skin's and the dome's shaders compile in, as linear light (`color(srgb-linear
+   * r g b)`, or `#rrggbb`; world/colour.ts): `rimHot` the white-hot line right at the skin's rim
+   * (head and arms), `domeRimHot` the dome's glowing reveal front, `suckerSpecular` the tint of the
+   * cups' wet highlight.
+   */
+  rimHot: string;
+  domeRimHot: string;
+  suckerSpecular: string;
+  /** What a technology orb's glass picks up round its edge (orbMaterial.ts), as linear light like `rimHot`. */
+  orbGlass: OrbGlass;
   /** The head effect's strokes (a soft halo, the stroke, a hot core): CSS colours, as the canvas takes them. */
   effect: EffectColours;
+}
+
+/**
+ * The surroundings an orb's glass edge picks up: `below` from under it (Nox: the lava's orange),
+ * `above` from over it (violet), `side` from its left (blue), mostly overlaid by the logo's own
+ * colour; and `base`, the faint colour its dark centre never falls below.
+ */
+export interface OrbGlass {
+  below: string;
+  above: string;
+  side: string;
+  base: string;
 }
 
 /** A head effect's three colours: the wide soft halo, the stroke, and the thin hot core. */

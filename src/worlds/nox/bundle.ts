@@ -7,7 +7,7 @@ import { NOX_POSES } from './poses';
 import { SWIM_POSES } from './swim';
 import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../../engine/sequences/entrance';
 import { NOX_SEQUENCES } from './sequences/index';
-import type { StageFrame } from '../../engine/stage/framing';
+import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/framing';
 import type { WorldBundle } from '../../engine/types/bundle';
 import type { UiTheme } from '../../engine/ui/theme';
 import { SECURITY_WORLD } from './place/config';
@@ -29,6 +29,19 @@ export const NOX_STAGE_FRAMES: Record<StageId, StageFrame> = {
   detail: { width: 8.36, height: 4.705 },
 };
 
+/**
+ * Where Nox's HTML panels sit on his stage, in world units, traced from his high-quality panels:
+ * the overview's project panel is the dome's inner rectangle (panel 3); the detail's is panel 5's
+ * project panel, (722, 222) to (1637, 846) px at 200 px a unit.
+ */
+export const NOX_STAGE_PANELS: StagePanels = {
+  overview: [-1.22, 1.14, 1.33, 0.06],
+  detail: [-0.57, 1.2425, 4.005, -1.8775],
+};
+
+/** The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css). */
+export const NOX_INTRO_TITLE: IntroTitleBox = { halfWidth: 1.4, top: 1.55 };
+
 /** Nox's UI: the colours the stylesheets were written in (each reads `var(--oct-*, <this value>)`), and his flame. */
 export const NOX_THEME: UiTheme = {
   accent: '#ff3b5c',
@@ -39,7 +52,28 @@ export const NOX_THEME: UiTheme = {
   buttonTo: '#ff4c62',
   focusRing: '#ffd0dc',
   titleIcon: 'flame',
+  poster: { src: 'nox/poster-intro.webp', alt: 'Nox, the octopus guide to Security Lab, in the dark water of his lab', width: 1536, height: 1024 },
+  pageTitle: 'Nox · Security Lab',
   nameplateLabel: '#d8cfe2',
+  // The red and pink glows, lines and fills the stylesheets held as literals (fix wave A), each
+  // exactly as it was: the channel tokens are given as rgb() so they read as the stylesheet's rgba() did.
+  glow: 'rgb(255, 40, 90)',
+  glowInner: 'rgb(255, 50, 100)',
+  accentGlow: 'rgb(255, 60, 90)',
+  markGlow: 'rgb(255, 50, 80)',
+  buttonGlow: 'rgb(255, 70, 100)',
+  titleAccent: '#ff3d52',
+  titleGlow: 'rgb(255, 50, 70)',
+  plateGlow: 'rgb(255, 40, 80)',
+  plateGlowInner: 'rgb(255, 50, 90)',
+  line: 'rgb(255, 120, 160)',
+  linePale: 'rgb(255, 160, 200)',
+  lineHover: 'rgb(255, 190, 215)',
+  liveFrom: '#ff5d70',
+  liveTo: '#ff2f55',
+  ink: '#1a0710',
+  markRing: '#2a1420',
+  selected: 'rgba(70, 20, 50, 0.85)',
 };
 
 export const NOX_BUNDLE: WorldBundle = {
@@ -50,7 +84,7 @@ export const NOX_BUNDLE: WorldBundle = {
   artifacts: NOX_ARTIFACTS,
   sequences: NOX_SEQUENCES,
   place: SECURITY_WORLD,
-  stage: { frames: NOX_STAGE_FRAMES },
+  stage: { frames: NOX_STAGE_FRAMES, panels: NOX_STAGE_PANELS, introTitle: NOX_INTRO_TITLE },
   content: { project: noxProject, technologies: noxTechnologies },
   theme: NOX_THEME,
 };
