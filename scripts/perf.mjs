@@ -1,10 +1,11 @@
 // Usage: node scripts/perf.mjs [--gpu] [--secs=6] "stage=intro&tier=high" "stage=intro&tier=low" ...
 // Measures the stage at 1536x1024, pixel ratio 1 by default, headless Edge, one page per query: waits for
-// window.__noxReady (set 40 frames after the world loads), then prints the median and slow10 frame
+// window.__octoverse.ready (window.__noxReady for Nox; set 40 frames after the world loads), then prints the median and slow10 frame
 // rate (the rate of the slowest tenth of frames) over `secs` seconds.
 // `--gpu` also prints the GPU time per frame from EXT_disjoint_timer_query_webgl2 around each
 // animation-frame callback (the renderer draws inside it): median and best10 (the fastest tenth).
 // `--dpr=2` sets the device pixel ratio (default 1). Close the browser pane first.
+// WORLD=<id> adds world=<id> to every query (another world of the engine; unset, the page's default world, Nox).
 // NOX_URL picks the server (default http://localhost:5191). Derived from spike-env/perf.mjs.
 import { chromium } from '@playwright/test';
 
@@ -14,6 +15,7 @@ const secs = Number(args.find(a => a.startsWith('--secs='))?.slice(7) ?? 6);
 const dpr = Number(args.find(a => a.startsWith('--dpr='))?.slice(6) ?? 1);
 const queries = args.filter(a => !a.startsWith('--'));
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
+const world = process.env.WORLD ? `&world=${encodeURIComponent(process.env.WORLD)}` : '';
 const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
 // Times each animation-frame callback on the GPU. Installed before the page's scripts run.
@@ -50,11 +52,11 @@ const TIMER = `(() => {
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge', args: ['--ignore-gpu-blocklist', '--disable-frame-rate-limit'] });
 try {
   for (const raw of queries.length ? queries : ['stage=intro&tier=high']) {
-    const query = raw;
+    const query = raw + world;
     const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: dpr });
     if (gpu) await page.addInitScript(TIMER);
     await page.goto(`${base}/?${query}`, { waitUntil: 'load' });
-    await page.waitForFunction(() => window.__noxReady === true, null, { timeout: 180000, polling: 250 });
+    await page.waitForFunction(() => window.__octoverse?.ready === true || window.__noxReady === true, null, { timeout: 180000, polling: 250 });
     await page.waitForTimeout(1500);
     const { times, gpuMs } = await page.evaluate(ms => new Promise(done => {
       window.__gpuOn = true; window.__gpuMs = window.__gpuMs || [];

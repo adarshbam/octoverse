@@ -79,7 +79,7 @@ LEVELS = ("lod0", "lod1")
 STEPS = ("direct", "indirect", "ao")
 
 # --- What the page has. near.glb records these and validateWorld.test checks that they still
-# agree with src/nox3d/world/security/config.ts, seabed.ts and layout.json. ---------------------
+# agree with src/worlds/nox/place/config.ts, src/engine/world/seabed.ts and layout.json. ---------------------
 GLYPH = {"color": "#ff2436", "intensity": 1.7, "distance": 2.1}  # WorldLight, kind glyph
 GLYPH_LIGHT_REACH = 0.985  # in front of the pillar's axis (config.ts)
 LAVA = {"color": "#ff3418", "intensity": 3.4, "distance": 5}  # WorldLight, kind lava

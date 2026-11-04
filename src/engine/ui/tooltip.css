@@ -1,0 +1,122 @@
+/* The technology tooltip (panel 4): a dark glass card with a glowing pink edge and red bullets. */
+.tech-tooltip {
+  position: absolute;
+  box-sizing: border-box;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px 10px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 70, 110, 0.75);
+  background: rgba(10, 6, 18, 0.92);
+  box-shadow: 0 0 22px rgba(255, 40, 90, 0.35), inset 0 0 14px rgba(255, 50, 100, 0.12);
+  color: #f3eef8;
+  font-family: 'Poppins', system-ui, sans-serif;
+  pointer-events: auto;
+  animation: tech-tooltip-in 350ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+  z-index: 50;
+}
+
+@keyframes tech-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The tooltip before, fading out quickly as the next technology is chosen or Nox lets go. */
+.tech-tooltip.is-leaving {
+  animation: tech-tooltip-out 180ms ease forwards;
+  pointer-events: none;
+}
+
+@keyframes tech-tooltip-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* On a phone held upright the tooltip is a sheet along the bottom, clear of Nox's face (sheetFits). */
+.tech-tooltip.is-sheet {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 24px;
+  width: auto;
+  max-width: none;
+}
+
+.tech-tooltip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tech-tooltip h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.tech-tooltip-badge {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 190, 120, 0.6);
+  color: #ffd2a0;
+}
+
+.tech-tooltip-role {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #c9b9d8;
+}
+
+.tech-tooltip ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tech-tooltip li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.tech-tooltip li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--oct-accent-hot, #ff3a55);
+  box-shadow: 0 0 6px var(--oct-accent-hot, #ff3a55);
+}
+
+.tech-tooltip p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tech-tooltip,
+  .tech-tooltip.is-leaving {
+    animation-duration: 1ms;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* On a phone the tray of technologies runs along the bottom: the sheet rides above it (SHEET_MARGIN in tooltipPlacement.ts must equal the 182px below: 12 px + 160 px tray + 10 px). */
+@media (max-width: 767px) {
+  .tech-tooltip.is-sheet {
+    bottom: 182px;
+  }
+}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { SEABED_ORDER, WATER_SKY_ORDER } from '../../src/nox3d/world/drawOrder';
+import { SEABED_ORDER, WATER_SKY_ORDER } from '../../src/engine/world/drawOrder';
 
 // GL checks for the performance tiers, the floor's baked noise, the face texture and the opaque draw order. three.js announces its renderer
 // to __THREE_DEVTOOLS__ when the hook is present; the dev server's `__noxSetTier` forces a tier.

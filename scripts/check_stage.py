@@ -2,6 +2,9 @@
 Usage: python scripts/check_stage.py render.png --panel N
        (panels 3 to 5: composition only, from the capture's mask, against stage_samples.json's baseline)
        python scripts/check_stage.py capture.png --world [--stage intro] [--mask mask.png]
+Both take --world-id <id> (default nox): the world whose samples are read, from
+src/worlds/<id>/review/stage_samples.json and world_samples.json. (--world means "the world scene
+mode" and keeps that meaning; --world-id says which world's samples.)
 Colour: mean of a small patch at each sample point, max channel delta. A panel whose samples
 name an "hq" reference is read from that high-quality image instead, through its registration
 (world (x, y) -> px (origin + pxPerUnit * (x, -y))), and from a capture of any size framing `frame`
@@ -13,7 +16,7 @@ render from <render>-mask.png (exact geometry) when present.
 World mode (--world): the capture comes from scripts/world-capture.mjs, which frames exactly the
 high-quality panel 2 (1536 x 1024), so a capture pixel is a panel pixel. Inside the silhouette mask
 (<capture>-mask.png) it measures the mean colour and the mean per-pixel HSV saturation and value
-against the targets in scripts/world_samples.json, and prints the same measures for panel 2.
+against the targets in the world's world_samples.json, and prints the same measures for panel 2.
 --mask names a capture's mask for an image that is not a capture (panel 2 itself): the capture
 mask is used exactly as captured, because the view box registers it to the painting (render px = panel px).
 Registered, panel 2 reads (118, 26, 89), saturation 0.867, brightness 0.538. The spec's (119, 23, 79) came
@@ -46,13 +49,20 @@ def half_width(lum, s, wy, w, h, threshold):
     if not xs: return None
     return ((xs[-1] - xs[0]) / s / 100) / 2
 
-WORLD_SAMPLES = 'scripts/world_samples.json'
 WORLD_HQ = {'image': 'public/spike/nox-panel2-hq.jpg', 'origin': (783.6, 495.4), 'pxPerUnit': 204.5}
 WORLD_PATCH = 3  # radius: 7 x 7 px
 
 def option(name):
     a = sys.argv[1:]
     return a[a.index(name) + 1] if name in a else None
+
+def samples_path(name):
+    """The world's review samples file (--world-id, default nox): src/worlds/<id>/review/<name>."""
+    path = pathlib.Path('src/worlds') / (option('--world-id') or 'nox') / 'review' / name
+    if not path.exists():
+        print(f'no {name} for world {option("--world-id") or "nox"!r}: expected {path}')
+        sys.exit(2)
+    return path
 
 def silhouette_stats(img, mask):
     """Mean RGB, mean per-pixel HSV saturation and mean per-pixel HSV value over the mask pixels."""
@@ -76,7 +86,7 @@ def world_patch(img, wx, wy, r=WORLD_PATCH):
     return np.asarray(img.crop((cx - r, cy - r, cx + r + 1, cy + r + 1)), dtype=float).reshape(-1, 3).mean(0)
 
 def world():
-    spec = json.loads(pathlib.Path(WORLD_SAMPLES).read_text())
+    spec = json.loads(samples_path('world_samples.json').read_text())
     target = spec['target']
     render_path = sys.argv[1]
     mask_path = pathlib.Path(option('--mask') or render_path.replace('.png', '-mask.png'))
@@ -120,7 +130,7 @@ def world():
 def composition(render_path, spec):
     """Panels 3 to 5 in the 3D world: only Nox's place and shape are compared (the world has no storyboard
     colours to match). The capture's mask gives his silhouette: its extent along each row and its box, in
-    world units, against the baseline recorded in stage_samples.json. Exit 1 on any miss."""
+    world units, against the baseline recorded in the world's stage_samples.json. Exit 1 on any miss."""
     comp, (fw, fh) = spec['composition'], spec['frame']
     mask = np.asarray(Image.open(render_path.replace('.png', '-mask.png')).convert('L'), dtype=float) > 127
     h, w = mask.shape
@@ -143,7 +153,7 @@ def main():
     if '--world' in sys.argv:
         world()
     render_path, panel = args()
-    spec = json.loads(pathlib.Path('scripts/stage_samples.json').read_text())[str(panel)]
+    spec = json.loads(samples_path('stage_samples.json').read_text())[str(panel)]
     if 'composition' in spec:
         composition(render_path, spec)
     x0, y0, x1, y1 = PANELS[panel]
