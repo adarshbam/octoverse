@@ -4,9 +4,8 @@ import type { StageLighting } from '../../engine/config/lighting';
 // Flux, "the Pipeline Runner" (spec 7.1, 7.2, 7.3, 7.8), traced against Flux panel 2 (P2, 511 x 510
 // native px; 1 unit = 100 px, origin at the panel's centre, +y up). This is the first pass (Task 2):
 // the head's size, the face's place, the arms' anatomy, the blue-violet-pink palette and the eager
-// personality. Task 3 gives the body its jelly look and the cups their style; Task 4 the face its
-// layers and expressions. Until the engine lands the jelly surfaces (`SurfaceLook`), both surfaces
-// read the engine's `skin` block.
+// personality. Task 3 gives the body its jelly look, its sparkles and the cups their style (start
+// values, Task 6 tunes them); Task 4 the face its layers and expressions.
 
 // Arms fan out in depth from the body as Nox's do (rear arms behind the head, side arms in front),
 // a touch thicker at the root than a slimmer octopus, and they taper steadily to the tip.
@@ -150,7 +149,14 @@ export const FLUX: CharacterConfig = {
   taperPower: 2.0,
   armBend: 0.2,
   armFlatten: 0.86,
-  suckers: { size: 0.22, sizePower: 0.7, spacing: 2.4, elongation: 1.15, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6 },
+  // Separate glowing pink ovals (spec 7.2), not a frill: each cup sits flat on the arm with a clear gap
+  // to the next (spacing 2.6) and its rim stands barely proud (scallop 0.1). The cup edge and rim are
+  // P2's cup glow (243, 175, 239); the hollow is a deeper violet-pink. The cups shrink faster than the
+  // arm toward the tip (sizePower 0.9), and glow 1.2 keeps them lit in the dark water.
+  suckers: {
+    size: 0.22, sizePower: 0.9, spacing: 2.6, elongation: 1.15, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
+    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f3afef', rim: '#f3afef', hollow: '#a850c8', glow: 1.2 },
+  },
   // The overview's dome (P3): a wide capsule; Milestone 3 traces it.
   dome: { center: [0.1, 0.3], halfWidth: 1.6, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
   // The head swell's own effect (`pipelineRun`, spec 7.6) comes with its task; until then the dome alone.
@@ -167,6 +173,23 @@ export const FLUX: CharacterConfig = {
     gloss: 100,
     streakScale: 1,
     streakStrength: 0.3,
+    // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both. Start values from
+    // the P2 samples (Task 6 tunes them): the mantle goes electric blue (48, 68, 239) at the crown to
+    // violet (156, 87, 239) in the thick middle, with a blue rim (61, 116, 233) and a warm pink-white
+    // core (254, 171, 207) sitting just below the mouth. The arms are bluer: a pale periwinkle rim
+    // (110, 126, 247), a deep blue body (55, 74, 241) and only a violet hint of core.
+    surfaces: {
+      mantle: {
+        mode: 'jelly',
+        jelly: { rim: '#3d74e9', rimPower: 4, crown: '#3044ef', crownHeight: 0.5, depth: '#9c57ef', depthStrength: 1, core: '#feabcf', coreCenter: [0, -0.2, -0.35], coreWarmth: 1.4 },
+        sparkle: 50,
+      },
+      arms: {
+        mode: 'jelly',
+        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#4658f3', crownHeight: 0.5, depth: '#374af1', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
+        sparkle: 35,
+      },
+    },
   },
   // The eager runner (spec 7.8): quicker, livelier, bouncier than the slimmer guides.
   personality: {
