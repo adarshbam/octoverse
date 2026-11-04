@@ -1,11 +1,11 @@
-// Writes src/nox3d/sequences/state/octoverse.theatre.json from the defaults in sequences/keys.ts.
+// Writes src/nox3d/sequences/state/octoverse.theatre.json from the defaults in sequences/defaults.ts.
 // Runs only when the file is missing (or with --force): studio exports replace it afterwards.
 // Naming sheets (`node scripts/theatre-seed.mjs entrance`) rewrites just those sheets in the
 // existing file and keeps the rest, studio edits included.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SEQUENCE_DEFAULTS } from '../src/nox3d/sequences/keys.ts';
+import { SEQUENCE_DEFAULTS } from '../src/nox3d/sequences/defaults.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'src/nox3d/sequences/state/octoverse.theatre.json');

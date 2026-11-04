@@ -10,7 +10,8 @@ import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
-import { SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from '../sequences/keys';
+import { SWELL_PUSH_PEAK } from '../sequences/defaults';
+import { SWELL_PUSH_SETTLED } from '../sequences/keys';
 
 type Stage = 'intro' | 'overview';
 /** Nox's orbit placement: the shells and constants the bubbles run on. */

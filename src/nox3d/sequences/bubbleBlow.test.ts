@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../config/nox.character';
 import { BLOW_SHEET_WAIT, BLOW_STAGGER, type BlowFrame, BlowRun, blowFrame, blowLength, blowMouth, blowPosition, bubblesExist } from './bubbleBlow';
-import { SEQUENCE_DEFAULTS } from './keys';
+import { SEQUENCE_DEFAULTS } from './defaults';
 import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
 

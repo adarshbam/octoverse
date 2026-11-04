@@ -52,7 +52,10 @@ export function faceSpot(bundle: WorldBundle, stage: 'intro' | 'overview' = 'ove
   return cached(bundle, `face:${stage}`, () => faceSpotNow(bundle, stage));
 }
 
-/** The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css). */
+/**
+ * The intro's title lines, in world units: the widest line's half width, and the top of the kicker (stage % from intro.css).
+ * Nox's trace, shared by every world's intro layout until F01 gives the bundle its own.
+ */
 const INTRO_TITLE = { halfWidth: 1.4, top: 1.55 };
 
 function faceSpotNow(bundle: WorldBundle, stage: 'intro' | 'overview'): FaceSpot {

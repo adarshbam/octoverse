@@ -80,7 +80,7 @@ export function settleOvershoot(t: number, p: Micro): number {
 }
 
 /**
- * The happy wiggle on arrival, `t` seconds in: the world's 'arrival' sheet (Nox's: sequences/keys.ts, tuned
+ * The happy wiggle on arrival, `t` seconds in: the world's 'arrival' sheet (Nox's: sequences/defaults.ts, tuned
  * in the studio), its own length stretched to `p.arrival.duration`, its fractions scaled to the personality's strengths:
  * `roll` (radians, the body rocking) and `armWave` (radians at the arm tips, fanning out). Zero
  * outside the duration.

@@ -6,7 +6,7 @@ import type { Sequences } from './theatre';
 // a thought into the overview's glass dome. A small squeeze first (the anticipation), then the
 // swell, running past full and settling back; the bubbles are pushed out with it and the head's
 // effect (Nox's glowing red glyphs) fades in as it settles. Closing (Escape, or clicking the head
-// again) plays it backwards. The keys live in the Theatre sheet `headSwell` (defaults in keys.ts).
+// again) plays it backwards. The keys live in the Theatre sheet `headSwell` (Nox's defaults in sequences/defaults.ts).
 // No physics (ledger R52, R56): the overshoot is in the timeline.
 
 export interface SwellFrame {

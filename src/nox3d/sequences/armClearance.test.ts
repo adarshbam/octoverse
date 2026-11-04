@@ -11,7 +11,7 @@ import { SWIM_POSES } from '../poses/nox.swim';
 import type { Placement } from '../world/types';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ENTRANCE_SECONDS, entranceDrive, entranceFrame, entranceRests } from './entrance';
-import { ENTRANCE_HOLD } from './keys';
+import { ENTRANCE_HOLD } from './defaults';
 import { NOX_ENTRANCE_GEOMETRY } from '../bundle.nox';
 import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';

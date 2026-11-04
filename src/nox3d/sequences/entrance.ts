@@ -11,7 +11,7 @@ import type { Sequences } from './theatre';
 // toward the visitor and to the centre in whole strokes, each a surge, turns once round his
 // vertical axis on a short golden-spiral arc into the stage spot, and settles into the intro pose.
 // His arms open into that pose before the turn, so he turns with them fully out (owner request).
-// The keys live in the Theatre sheet `entrance` (defaults in keys.ts); this file reads them and
+// The keys live in the Theatre sheet `entrance` (Nox's defaults in sequences/defaults.ts); this file reads them and
 // adds what is computed: the surges, the arc and the facing. No arm physics (ruling R48): the
 // follow-through is in the stroke drives, which the stage takes from `stroke`, `forward` and `open`.
 // Nothing here names a world: the stroke's timing, how far the arms and the pillars reach, and the

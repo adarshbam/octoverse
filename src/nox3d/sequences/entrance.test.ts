@@ -8,7 +8,7 @@ import { NOX_POSES } from '../poses/nox.poses';
 import { SWIM_POSES } from '../poses/nox.swim';
 import { SECURITY_WORLD } from '../world/security/config';
 import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
-import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './keys';
+import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from './defaults';
 import { NOX_ENTRANCE_GEOMETRY } from '../bundle.nox';
 import { loadNoxSequences } from './nox.sequences';
 import type { Sequences } from './theatre';
@@ -53,7 +53,7 @@ test('starts left of centre, deep in the corridor', () => {
   expect(expression).toBe('happy');
 });
 
-// Ruling (keys.ts): the spec's four or five strokes in 1 to 4.5 s cannot be swum at its own stroke
+// Ruling (defaults.ts): the spec's four or five strokes in 1 to 4.5 s cannot be swum at its own stroke
 // timing, so the stroke runs at Nox's own rate: three whole strokes from 0.51 to 4.5 s, every
 // surge between 1 and 4.5 s.
 test("three whole strokes at Nox's own stroke timing, every surge between 1 and 4.5 s", () => {

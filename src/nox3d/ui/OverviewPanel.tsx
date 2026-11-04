@@ -5,7 +5,11 @@ import './overview.css';
 import { useFaceShift } from '../stage/liveAnchors';
 import { useStageBox } from './useStageBox';
 
-/** The dome's inner rectangle, traced in world units from the high-quality panel 3. */
+/**
+ * The dome's inner rectangle, traced in world units from the high-quality panel 3. Nox's trace: the
+ * shared layout still lays the overview panel on it, since every world's overview frame is Nox's
+ * (a world with its own panel box takes it through the bundle, with F01).
+ */
 export const DOME_PANEL_BOX = [-1.22, 1.14, 1.33, 0.06] as const;
 
 export function GitHubMark() {

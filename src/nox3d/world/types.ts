@@ -62,10 +62,10 @@ export interface WorldConfig {
   near?: { url: string };
   /**
    * The ruin beyond the near world as transparent cards (blender/security/render_far.py), farthest
-   * first. When it is there the near world leaves out the pieces beyond `FAR_CUT_Z` (farPlate.ts),
+   * first. When it is there the near world leaves out the pieces beyond `cutZ` (farPlate.ts),
    * and a layer that fails to load leaves its range to the water's fog.
    */
-  farPlate?: { layers: readonly { url: string; z: number }[] };
+  farPlate?: { cutZ: number; layers: readonly { url: string; z: number }[] };
   layout: WorldLayout;
   /**
    * The camera's lean: it pitches up by `tilt` radians (a low camera looking up, so the pillars

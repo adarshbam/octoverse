@@ -8,10 +8,13 @@ import { fovFor } from '../stage/framing';
 import { faceAnchor } from '../types/bundle';
 import { pinnedHover } from './cameraHover';
 import { leanCamera } from './lensShift';
-import { FAR_CUT_Z, FAR_HOVER, FAR_VIEWPORTS, dropMips, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
+import { FAR_HOVER, FAR_VIEWPORTS, dropMips, farCardSize, farLayerOf, isFarChain, isFarPlacement, plateCardSize } from './farPlate';
 import { SECURITY_WORLD } from './security/config';
 import farData from './security/far.json';
 import type { Vec3 } from './types';
+
+const FAR_CUT_Z = farData.cutZ;
+const FAR_LAYERS = farData.layers;
 
 const PUBLIC = new URL('../../../public/', import.meta.url);
 
@@ -77,30 +80,31 @@ test('layers are ordered far to near', () => {
   const spans = [...farData.layers].sort((a, b) => b.z - a.z);
   expect(spans.map(s => [s.near, s.far])).toEqual([[-12, -20], [-20, -34], [-34, null]]);
   expect(FAR_CUT_Z).toBe(-12);
+  expect(SECURITY_WORLD.farPlate!.cutZ).toBe(FAR_CUT_Z);
   expect(spans[0].near).toBe(FAR_CUT_Z);
   for (let i = 1; i < spans.length; i++) expect(spans[i].near).toBe(spans[i - 1].far);
   // The page draws far to near, and the files are numbered the same way.
   expect(layers.map(l => l.url)).toEqual([0, 1, 2].map(i => `/nox/world/security/far-${i}.ktx2`));
   // A piece belongs to the layer whose range holds its z; the cut is the first layer's near edge.
-  expect(farLayerOf(-12)).toBeNull();
-  expect(farLayerOf(-12.5)?.z).toBe(-16);
-  expect(farLayerOf(-20)?.z).toBe(-16);
-  expect(farLayerOf(-20.01)?.z).toBe(-27);
-  expect(farLayerOf(-34)?.z).toBe(-27);
-  expect(farLayerOf(-40)?.z).toBe(-45);
+  expect(farLayerOf(-12, FAR_CUT_Z, FAR_LAYERS)).toBeNull();
+  expect(farLayerOf(-12.5, FAR_CUT_Z, FAR_LAYERS)?.z).toBe(-16);
+  expect(farLayerOf(-20, FAR_CUT_Z, FAR_LAYERS)?.z).toBe(-16);
+  expect(farLayerOf(-20.01, FAR_CUT_Z, FAR_LAYERS)?.z).toBe(-27);
+  expect(farLayerOf(-34, FAR_CUT_Z, FAR_LAYERS)?.z).toBe(-27);
+  expect(farLayerOf(-40, FAR_CUT_Z, FAR_LAYERS)?.z).toBe(-45);
 });
 
 test('the plate takes exactly the layout pieces beyond the cut', () => {
   const { layout } = SECURITY_WORLD;
-  const beyond = (list: readonly { position: Vec3 }[]) => list.filter(isFarPlacement).map(p => p.position[2]);
+  const beyond = (list: readonly { position: Vec3 }[]) => list.filter(p => isFarPlacement(p, FAR_CUT_Z)).map(p => p.position[2]);
   expect(beyond(layout.pillars).every(z => z < -12)).toBe(true);
-  expect(layout.pillars.filter(p => !isFarPlacement(p)).every(p => p.position[2] >= -12)).toBe(true);
+  expect(layout.pillars.filter(p => !isFarPlacement(p, FAR_CUT_Z)).every(p => p.position[2] >= -12)).toBe(true);
   const descending = (a: number, b: number) => b - a;
   expect(beyond(layout.pillars).sort(descending)).toEqual([-12.5, -18, -20, -26, -29]);
   expect(beyond(layout.rocks).sort(descending)).toEqual([-14, -16]);
   expect(beyond(layout.corals)).toEqual([-16.5]);
   // A chain is far only when both ends are.
-  expect(layout.chains.filter(isFarChain).length).toBe(1);
+  expect(layout.chains.filter(chain => isFarChain(chain, FAR_CUT_Z)).length).toBe(1);
 });
 
 test('far.json sizes are the cards the page needs, and the files are within the budget', () => {

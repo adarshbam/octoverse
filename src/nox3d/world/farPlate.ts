@@ -2,20 +2,18 @@ import * as THREE from 'three';
 import { CAMERA_Z } from '../config/stage';
 import { type StageFrame, fovFor } from '../stage/framing';
 import { pinnedHover } from './cameraHover';
-import farData from './security/far.json';
 import type { Placement, Vec3, WorldLayout } from './types';
 
 // The far plate: the ruin beyond the near world as three transparent cards, rendered in Blender
-// from the panel 2 camera (blender/security/render_far.py). Its layers and their sizes are data
-// (security/far.json), which the render script reads too; the tests pin the sizes to the
+// from the panel 2 camera (blender/security/render_far.py). Its layers and their sizes are the
+// world's data (Nox's far.json, which the render script reads too); the world's place config hands
+// the cut and the layers to the engine as `WorldConfig.farPlate`. The tests pin the sizes to the
 // functions here, so an edit on either side fails by name until the layers are rendered again.
 
 /** The deepest the camera hovers (cameraHover.ts): x, y, z offsets at full amount. */
 export const FAR_HOVER: Vec3 = [0.9, 0.3, 1.2];
 /** The widest and tallest views the intro framing is shown in: a wide desktop window and a phone. */
 export const FAR_VIEWPORTS = [{ width: 2560, height: 1080 }, { width: 390, height: 844 }] as const;
-/** Live pieces beyond this z are in the plate instead. */
-export const FAR_CUT_Z = farData.cutZ;
 /** World units each card grows past the frustum on every side, so a hover never reaches its edge. */
 export const FAR_OVERSCAN = 0.6;
 
@@ -26,19 +24,21 @@ export interface FarLayer {
   near: number;
   far: number | null;
 }
-/** The plate's layers as far.json has them, farthest first (the order they are drawn in). */
-export const FAR_LAYERS: readonly FarLayer[] = farData.layers;
 
-/** The layer a piece at depth `z` is drawn in; null for a piece the near world keeps. */
-export function farLayerOf(z: number): FarLayer | null {
-  if (z >= FAR_CUT_Z) return null;
-  return FAR_LAYERS.find(layer => layer.near > z && (layer.far === null || z >= layer.far)) ?? null;
+/**
+ * The layer a piece at depth `z` is drawn in, among a world's `layers` (farthest first, as the
+ * world's far.json has them); null for a piece the near world keeps: live pieces at or beyond
+ * `cutZ` are in the plate instead.
+ */
+export function farLayerOf(z: number, cutZ: number, layers: readonly FarLayer[]): FarLayer | null {
+  if (z >= cutZ) return null;
+  return layers.find(layer => layer.near > z && (layer.far === null || z >= layer.far)) ?? null;
 }
 
-/** Whether the near world leaves this placement to the plate. */
-export const isFarPlacement = (p: Pick<Placement, 'position'>) => p.position[2] < FAR_CUT_Z;
+/** Whether the near world leaves this placement to the plate (the world's `farPlate.cutZ`). */
+export const isFarPlacement = (p: Pick<Placement, 'position'>, cutZ: number) => p.position[2] < cutZ;
 /** A chain is the plate's only when both of its ends are beyond (or on) the cut. */
-export const isFarChain = (chain: WorldLayout['chains'][number]) => chain.from[2] <= FAR_CUT_Z && chain.to[2] <= FAR_CUT_Z;
+export const isFarChain = (chain: WorldLayout['chains'][number], cutZ: number) => chain.from[2] <= cutZ && chain.to[2] <= cutZ;
 
 /**
  * Card width and height at depth z so it covers the frustum with the camera displaced by up to

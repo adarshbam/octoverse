@@ -7,7 +7,7 @@ import type { Sequences } from './theatre';
 // The bubble blow (design 9.8): once the entrance has settled, Nox blows the technology bubbles
 // from his mouth, one after another. Before each, his cheeks puff and his mouth rounds; the bubble
 // pops out and wobbles as it grows to full size, on its way from the mouth to its orbit. The keys
-// live in the Theatre sheet `bubbleBlow` (defaults in keys.ts), one bubble's blow, played once per
+// live in the Theatre sheet `bubbleBlow` (Nox's defaults in sequences/defaults.ts), one bubble's blow, played once per
 // bubble BLOW_STAGGER s apart. The wobble is a squash and stretch from the sheet: no arm physics.
 
 /**

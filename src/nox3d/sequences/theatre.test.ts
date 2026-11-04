@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, vi } from 'vitest';
 import { parseUrlState } from '../behavior/urlState';
-import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from './keys';
+import { NOX_ENTRANCE, SEQUENCE_DEFAULTS } from './defaults';
 import { NOX_PROJECT_ID, loadNoxSequences, noxSequenceSet } from './nox.sequences';
 import state from './state/octoverse.theatre.json';
 import { loadSequences, loadWorldSequences } from './theatre';
