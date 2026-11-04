@@ -115,6 +115,9 @@ describe('the face', () => {
     const p = faces[HOST_FACES.presenting];
     const w = faces[HOST_FACES.welcome];
     expect(p.mouthOpen).toBeGreaterThan(0.3);
+    // P3's presenting face is a wide open smile, nearly the welcome's (Task 6 fix round 1).
+    expect(p.mouthOpen).toBeGreaterThanOrEqual(0.85);
+    expect(p.mouthCurve).toBeGreaterThanOrEqual(0.9);
     expect(p.browLift).toBeGreaterThan(w.browLift);
     expect(p.lidRest).toBeLessThan(w.lidRest);
   });

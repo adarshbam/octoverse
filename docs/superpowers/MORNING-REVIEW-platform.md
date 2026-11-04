@@ -74,22 +74,26 @@ Stills (`docs/superpowers/evidence/platform/m2/`, frozen, kit and far plate load
 - `task6-swim-sheet.png`: the host's new swim shapes (`?pose=swim-open`, `?pose=swim-trail`, and the trail at `&yaw=90`, the profile P1 shows).
 - `task6-intro.png`: the intro re-captured after the crown change below (P2 regression check).
 
+Fix round 1 (commit `fix(octoverse): overview arms spread like P3`): the overview arms are re-traced, and the presenting mouth is the open smile (mouthOpen 0.6 to 0.85, mouthCurve 0.85 to 0.9). The stills above are re-captured.
+
 Numbers:
-- Overview head on the still (`python scripts/host_panel_check.py p3 <still>`): top -0.20, half-width 0.80, centre x 0.00 (spec -0.24, 0.81, +0.03, each ± 0.05). The head is turned 10.9 degrees: its top leans to the viewer's right, so the eye line falls to the right as P3's does (about 11 degrees).
-- P3 samples: upper head 9.4, face glow 5.7 (both within delta E 10).
+- Overview head on the still (`python scripts/host_panel_check.py p3 <still>`): top -0.20, half-width 0.79, centre x -0.01 (spec -0.24, 0.81, +0.03, each ± 0.05). The head is turned 10.9 degrees: its top leans to the viewer's right, so the eye line falls to the right as P3's does (about 11 degrees).
+- P3 samples: upper head 9.4, face glow 5.8 (both within delta E 10).
+- Arm span on the still: x -2.20 to 1.82 (4.02 stage units). Tips (x, y): T1 (-1.15, -0.45), T2 (-1.92, -2.26), T3 (-1.07, -2.33), T4 (-0.45, -2.16), T5 (0.48, -2.16), T6 (0.72, -2.35), T7 (1.66, -2.41), T8 (1.29, -0.41). T2 fans out under Aether; T7 runs under the gold card's bottom edge and curls below it.
 - P2 after the crown change: still 12 of 17 within 10, the same five misses; crown 3.2 to 5.3, upper head 8.9 to 8.3; crown B - R 140.2 (floor 140); IoU 0.856.
 - Gate in the intro: unchanged (0.230 against the face's 0.712). It cannot leave the intro frame: see the gaps below.
 
 What to check, live at `?world=octoverse&stage=overview`:
 1. Head turned and low: the host sits low and a little smaller, its head leaning right as P3's.
-2. T1 and T8 rising beside the cards: T1 under Veyra's column, T8 under Nox's, curling near y -0.5.
-3. Clear space for five cards: the lower six arms spread under the face, and no arm tip sits on a card box (the overlay still).
-4. Face clear: no card box covers the face.
+2. T1 and T8 rising beside the cards: they leave the body low and wide, rise more than a unit and curl outward near y -0.4.
+3. Clear space for five cards: the lower six arms fan wide under the face (T2 under Aether, T7 under the gold card), and no arm tip sits on a card box (the overlay still).
+4. The presenting face: an open smile, close to the welcome's.
+5. Face clear: no card box covers the face.
 
 Known gaps for the owner to rule on:
 - "Turned 8 to 15 degrees right" is built as a lean of the head about its neck (the eye line's fall in P3). P3 shows no turn about the vertical; if anything its face sits left of the dome's middle. Say if a turn about the vertical was meant.
 - The host's face (P2's layout) sits lower and wider on its dome than P3 paints it. To land P3's face-glow sample on the chin and not the lip, the body sits 0.03 left and 0.04 higher than centred. That leaves the measured top at -0.20, 0.01 inside the tolerance.
 - The crown cap starts higher (crownHeight 0.45 to 0.58): P3's upper dome is violet nearer the top than P2's. P2's crown B - R margin is now 0.2.
-- P3's arms are longer and flow further out than these. The host's head is larger relative to its arms than P3 paints it.
+- The arms now spread as wide as P3's (span 4.02). The host's head is still larger relative to its arms than P3 paints it: the arm length is the config's, unchanged here.
 - The gate stands fully visible behind the Nox and gold cards in How It Works (P3 shows no gate). In the intro it stays soft beside the host: the engine's stage frame is a size only, centred on the stage, so it cannot move the view off the gate (E02b or owner: a frame offset, or a per-stage layout).
 - P1's head position at 3 s (spec 2.2: -0.36, -0.36, profile right) belongs to the entrance sheet (Task 12). Today the head sits at the intro spot (about 0, -0.2).

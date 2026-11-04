@@ -232,7 +232,7 @@ export const HOST: CharacterConfig = {
     gentle: WELCOME,
     [HOST_FACES.welcome]: WELCOME,
     // How It Works: the open smile, brows up, eyes a little wider (the look toward the card is attend's).
-    [HOST_FACES.presenting]: { lidRest: -0.08, lidBottom: 0, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.85, mouthOpen: 0.6, blush: 0.45 },
+    [HOST_FACES.presenting]: { lidRest: -0.08, lidBottom: 0, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.9, mouthOpen: 0.85, blush: 0.45 },
     // The arrival beat: eyes squeezed into happy arcs for a moment, the mouth wide.
     [HOST_FACES.delighted]: { lidRest: 0.42, lidBottom: 0.8, browLift: 0.35, browTilt: 0.15, mouthCurve: 1, mouthOpen: 1, blush: 0.75 },
     // The idle layer's soft closed smile, never a rest face.

@@ -235,3 +235,11 @@ Verdict: provisional, pending owner.
 2. P1's head place and profile belong to the entrance sheet (Task 12). The entering pose is P1's arm shapes only, as Nox's is.
 3. The face sits lower on the dome than P3 paints it, so the body is offset within tolerance to keep the face-glow sample on the chin.
 4. The crown change trades P2 crown margin for P3's upper head.
+
+### Fix round 1: overview arms spread like P3 (2026-11-05)
+
+- The overview arms are re-traced. The lower six fan out (T2 to x -2.1 under Aether, T7 under the gold card's bottom edge). T1 and T8 leave the body low and wide, rise more than a unit and curl outward near y -0.4.
+- The presenting face is the open smile: mouthOpen 0.6 to 0.85, mouthCurve 0.85 to 0.9.
+- Still: arm span x -2.20 to 1.82 (4.02); head top -0.20, half-width 0.79, centre -0.01; P3 upper head 9.4, face glow 5.8.
+- Intro untouched: 12 of 17, IoU 0.856, crown B - R 140.2.
+- Gap 4 of the craft list (arms short, lower arms bunched, small mouth) is closed for the spread and the mouth. The head is still large relative to the arms: arm length is the config's.

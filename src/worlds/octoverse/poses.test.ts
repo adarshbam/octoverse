@@ -216,8 +216,14 @@ describe('the overview pose (How It Works, P3)', () => {
     for (const [id, arm] of [['T1', t1], ['T8', t8]] as const) {
       expect(arm.tip[1], id).toBeGreaterThan(-0.75);
       expect(arm.tip[1], id).toBeLessThan(-0.3);
-      expect(arm.top - arm.start[1], `${id} rises`).toBeGreaterThan(0.7);
+      // Long arms, not stubs (fix round 1): each rises more than 1.0 from where it leaves the body.
+      expect(arm.top - arm.start[1], `${id} rises`).toBeGreaterThan(1.0);
     }
+    // Each curls outward at the top: the curl's outermost point lies outside where the arm rises.
+    const seen1 = seenArm(overview, 'T1'), seen8 = seenArm(overview, 'T8');
+    const riseX = (seen: ReturnType<typeof seenArm>) => seen.find(([, y, u]) => u > 0.3 && y > -0.9)![0];
+    expect(Math.min(...seen1.filter(([, , u]) => u > 0.8).map(([x]) => x))).toBeLessThan(riseX(seen1) - 0.08);
+    expect(Math.max(...seen8.filter(([, , u]) => u > 0.8).map(([x]) => x))).toBeGreaterThan(riseX(seen8) + 0.08);
     // Outside the head, under the upper card of each column and above the lower one.
     expect(t1.tip[0]).toBeLessThan(head.left);
     expect(t8.tip[0]).toBeGreaterThan(head.right);
@@ -230,11 +236,17 @@ describe('the overview pose (How It Works, P3)', () => {
     expect(t8.tip[1]).toBeGreaterThan(card('yours').y0);
   });
 
-  test('the lower six spread out below the face, under the cards', () => {
+  test('the lower six spread out wide below the face, flowing out under the cards (fix round 1)', () => {
     const tips = (['T2', 'T3', 'T4', 'T5', 'T6', 'T7'] as const).map(id => seenArm(overview, id).at(-1)!);
     for (const [x, y] of tips) expect(y, `tip at ${x.toFixed(2)}`).toBeLessThan(-1.6);
     const xs = tips.map(([x]) => x);
-    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(1.6);
+    // The outer pair reach well past the head (half-width 0.81) on both sides, under Aether and the gold card.
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(3.2);
+    expect(Math.min(...xs)).toBeLessThan(-1.7);
+    expect(Math.max(...xs)).toBeGreaterThan(1.5);
+    // The middle pairs fan out too: T3 and T6 reach past the head's sides.
+    expect(xs[1]).toBeLessThan(-0.9);
+    expect(xs[4]).toBeGreaterThan(0.6);
     // Left to right in order, T2 the farthest left.
     for (let k = 1; k < xs.length; k++) expect(xs[k], `T${k + 2}`).toBeGreaterThan(xs[k - 1]);
   });

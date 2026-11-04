@@ -100,25 +100,28 @@ const OVERVIEW_TILT = -0.19;
  * Each arm's centre line as the stage camera sees it, in stage units, from where it leaves the body
  * to its tip (the hidden root is the intro's, so nothing moves under the mantle as the stage changes).
  * As painted:
- * - T1, T8: rise from behind the head, outward beside it, between the cards: T1 under Veyra and
- *   right of Aether, T8 under Nox and above "Your Octopus", their tips curling up near y -0.5
- *   (spec 2.2). T8's curl is lifted a little above P3's (which sits on the gold card's corner) and
- *   T1's held 0.1 in from P3's, so no tip lies on a card (the cards are drawn over the stage).
- * - T2: out low to the left, under Aether, curling down at x -1.25.
- * - T3, T4 / T5, T6: hang down the front in two pairs, curling toward each other near the floor.
- * - T7: down beside the gold card's left edge, curling under at y -2.0 (P3 runs it behind the card).
+ * - T1, T8: leave the body low and wide, then rise outward beside the head, between the cards: T1
+ *   under Veyra and right of Aether, T8 under Nox and above "Your Octopus". Each rises more than a
+ *   unit and curls outward at the top, near y -0.4 (spec 2.2: "near y -0.5"). T8's curl sits above
+ *   P3's (which is on the gold card's corner) and T1's stays right of Aether's edge, so no tip lies
+ *   on a card (the cards are drawn over the stage).
+ * - The lower six fan out wide under the face and the cards (fix round 1, the controller's look
+ *   check: P3's lower arms fill the panel's lower half; tucked under the head they read small):
+ *   T2 sweeps out left under Aether's card to x -2.1, curling at the floor; T3 down-left to x -1.2;
+ *   T4 and T5 down the front, curling outward; T6 down-right to x 0.8; T7 out right, under the gold
+ *   card (hidden behind it as P3's is) and along its bottom edge, curling at x 1.7 below it.
  * Every tip curls the way it does in the intro (left side counter-clockwise for T1 to T3, the centre
  * pair inward, the right side mirrored), so the blend from the intro never turns one inside out.
  */
 export const OVERVIEW_TRACED: Record<ArmId, Point2[]> = {
-  T1: [[-0.62, -1.4], [-0.78, -1.31], [-0.9, -1.18], [-0.98, -1.03], [-1.03, -0.88], [-1.06, -0.74], [-1.07, -0.63], [-1.08, -0.55], [-1.11, -0.49], [-1.16, -0.48], [-1.19, -0.53], [-1.17, -0.58], [-1.13, -0.57]],
-  T2: [[-0.5, -1.5], [-0.7, -1.56], [-0.9, -1.63], [-1.08, -1.69], [-1.22, -1.76], [-1.3, -1.85], [-1.3, -1.94], [-1.24, -2.0], [-1.16, -1.99], [-1.13, -1.93], [-1.17, -1.9]],
-  T3: [[-0.4, -1.62], [-0.5, -1.82], [-0.58, -2.02], [-0.63, -2.18], [-0.61, -2.3], [-0.54, -2.35], [-0.48, -2.31], [-0.49, -2.25], [-0.53, -2.26]],
-  T4: [[-0.14, -1.62], [-0.16, -1.8], [-0.16, -1.98], [-0.17, -2.12], [-0.23, -2.18], [-0.28, -2.13], [-0.26, -2.07], [-0.22, -2.09]],
-  T5: [[0.18, -1.62], [0.19, -1.8], [0.19, -1.98], [0.2, -2.12], [0.26, -2.18], [0.31, -2.13], [0.29, -2.07], [0.25, -2.09]],
-  T6: [[0.38, -1.62], [0.45, -1.85], [0.5, -2.05], [0.53, -2.2], [0.5, -2.32], [0.43, -2.35], [0.38, -2.3], [0.4, -2.24], [0.45, -2.25]],
-  T7: [[0.55, -1.42], [0.67, -1.52], [0.75, -1.65], [0.78, -1.8], [0.76, -1.93], [0.71, -2.02], [0.64, -2.04], [0.61, -1.98], [0.64, -1.93], [0.69, -1.95]],
-  T8: [[0.6, -1.38], [0.72, -1.24], [0.82, -1.1], [0.9, -0.97], [0.97, -0.85], [1.03, -0.74], [1.08, -0.63], [1.13, -0.54], [1.2, -0.48], [1.27, -0.48], [1.31, -0.53], [1.3, -0.59], [1.25, -0.6], [1.22, -0.56]],
+  T1: [[-0.55, -1.5], [-0.78, -1.48], [-0.95, -1.38], [-1.06, -1.22], [-1.1, -1.05], [-1.1, -0.88], [-1.08, -0.72], [-1.06, -0.58], [-1.07, -0.45], [-1.12, -0.37], [-1.19, -0.37], [-1.23, -0.43], [-1.21, -0.5], [-1.16, -0.5], [-1.15, -0.45]],
+  T2: [[-0.55, -1.45], [-0.82, -1.5], [-1.1, -1.58], [-1.38, -1.7], [-1.65, -1.82], [-1.88, -1.95], [-2.05, -2.08], [-2.12, -2.22], [-2.08, -2.34], [-1.98, -2.38], [-1.9, -2.33], [-1.92, -2.26]],
+  T3: [[-0.42, -1.6], [-0.6, -1.78], [-0.8, -1.95], [-1.0, -2.1], [-1.15, -2.24], [-1.2, -2.36], [-1.14, -2.44], [-1.05, -2.43], [-1.02, -2.36], [-1.07, -2.33]],
+  T4: [[-0.15, -1.62], [-0.19, -1.82], [-0.24, -2.0], [-0.3, -2.14], [-0.37, -2.24], [-0.45, -2.28], [-0.51, -2.24], [-0.5, -2.17], [-0.45, -2.16]],
+  T5: [[0.18, -1.62], [0.22, -1.82], [0.27, -2.0], [0.33, -2.14], [0.4, -2.24], [0.48, -2.28], [0.54, -2.24], [0.53, -2.17], [0.48, -2.16]],
+  T6: [[0.42, -1.62], [0.55, -1.8], [0.67, -1.98], [0.77, -2.14], [0.83, -2.28], [0.83, -2.4], [0.76, -2.47], [0.68, -2.44], [0.67, -2.37], [0.72, -2.35]],
+  T7: [[0.6, -1.42], [0.85, -1.52], [1.05, -1.68], [1.2, -1.88], [1.3, -2.08], [1.39, -2.24], [1.5, -2.32], [1.62, -2.34], [1.71, -2.38], [1.74, -2.45], [1.69, -2.5], [1.62, -2.48], [1.61, -2.42], [1.66, -2.41]],
+  T8: [[0.6, -1.38], [0.72, -1.22], [0.82, -1.06], [0.9, -0.92], [0.98, -0.79], [1.05, -0.66], [1.1, -0.53], [1.14, -0.42], [1.2, -0.33], [1.28, -0.3], [1.36, -0.33], [1.39, -0.4], [1.36, -0.46], [1.3, -0.46], [1.29, -0.41]],
 };
 
 /**
