@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { ARM_IDS, type ArmId, type PendantSlot, type SwingLimits } from '../config/types';
 import type { StagePose } from '../poses/types';
 import { pendantFixture } from './fixtures/pendant';
-import { DEFAULT_SWING, type SwingState, armPoint, assignPendants, idleSway, pendantSwing, restSwing, swingLimits, threadClearance } from './pendant';
+import { DEFAULT_SWING, type SwingState, armPoint, assignPendants, createPendantRun, idleSway, layoutPendants, pendantSwing, resetPendants, restSwing, stepPendants, swingLimits, threadClearance } from './pendant';
 import type { Box } from './suctionHold';
 
 const DEG = Math.PI / 180;
@@ -201,4 +201,25 @@ test('the arm point is found on the arm, by arc fraction', () => {
   expect(armPoint(line, 0)[1]).toBeCloseTo(0, 6);
   expect(armPoint(line, 0.5)[1]).toBeCloseTo(-1, 2);
   expect(armPoint(line, 1)[1]).toBeCloseTo(-2, 6);
+});
+
+// --- Hidden pendants ---------------------------------------------------------------------------
+
+test('after a reset a pendant that was hidden while its arm moved far is not kicked on reappearing', () => {
+  const place = layoutPendants(1, pendantFixture(), 'overview');
+  const frame = { stage: 'overview' as const, swell: 0, dt: 1 / 60, reducedMotion: false };
+  const at = { x: 0, y: 0 };
+  const arm = { pointAt: (u: number, out: { x: number; y: number; z: number }) => { out.x = at.x; out.y = at.y - 2 * u; out.z = 0; } };
+  const run = createPendantRun(1);
+  stepPendants(run, place, frame, [arm, arm, arm, arm, arm, arm, arm, arm], pendantFixture());
+  // The arm travels 5 units while the pendants are hidden (not stepped).
+  at.x = 5;
+  // Without a reset (what a hidden branch that only stops stepping does) the whole 5 units is one frame's travel.
+  const kicked = { clock: run.clock, live: [{ ...run.live[0], prev: [...run.live[0].prev] as [number, number, number], attach: [...run.live[0].attach] as [number, number, number] }] };
+  stepPendants(kicked, place, frame, [arm, arm, arm, arm, arm, arm, arm, arm], pendantFixture());
+  expect(Math.abs(kicked.live[0].swing.x) + Math.abs(kicked.live[0].swing.w)).toBeGreaterThan(0.1);
+  resetPendants(run);
+  stepPendants(run, place, frame, [arm, arm, arm, arm, arm, arm, arm, arm], pendantFixture());
+  expect(run.live[0].swing.x).toBe(0);
+  expect(run.live[0].swing.w).toBe(0);
 });

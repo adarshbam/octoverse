@@ -4,7 +4,7 @@ import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosit
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
-import { type ArmReader, type PendantLive, type PendantPlace, createPendantRun, layoutPendants, stepPendants } from './pendant';
+import { type ArmReader, type PendantLive, type PendantPlace, createPendantRun, layoutPendants, resetPendants, stepPendants } from './pendant';
 import { HOLD_BEATS, HoldChoreography, nearestArm, pullPosition } from './suctionHold';
 
 // The artifact strategies (spec 9.2): where a world's artifacts sit (placement), how they appear
@@ -49,6 +49,8 @@ export interface PlacementDriver {
   size(stage: ArtifactStage, i: number): number | null;
   /** Where artifact `i` is now (body space), written into `out`; `swell` pushes it out where the placement does that. */
   point(stage: ArtifactStage, i: number, swell: number, out: THREE.Vector3): THREE.Vector3;
+  /** Forgets what the last frame left (called when the artifacts are hidden and not stepped); absent where there is nothing to forget. */
+  reset?(): void;
   /** The live pendants (their threads and orbs), for a placement that hangs artifacts on threads; undefined for one that does not. */
   readonly pendants?: readonly PendantLive[];
 }
@@ -81,8 +83,11 @@ const orbitPlacement = {
 /** Artifacts hung as pendants on tethers from slots on the character's arms (artifacts/pendant.ts, tether.ts). */
 const pendantPlacement = {
   layout: layoutPendants,
-  /** One per slot: the most either stage offers (the rest of a project's technologies go to the tray). */
-  capacity: (config: PendantPlacement): number => Math.max(config.slots.intro.length, config.slots.overview.length),
+  /**
+   * One per slot of the stage with fewer: a technology past it goes to the tray in every stage, so it is
+   * never placed in one stage and neither drawn nor offered in the other (a tray is the project's, not a stage's).
+   */
+  capacity: (config: PendantPlacement): number => Math.min(config.slots.intro.length, config.slots.overview.length),
   driver(config: PendantPlacement, count: number): PlacementDriver {
     const places: Record<ArtifactStage, (PendantPlace | null)[]> = { intro: layoutPendants(count, config, 'intro'), overview: layoutPendants(count, config, 'overview') };
     const run = createPendantRun(count);
@@ -91,6 +96,7 @@ const pendantPlacement = {
       step: ({ stage, swell, dt, still }, arms) => stepPendants(run, places[stage], { stage, swell, dt, reducedMotion: still }, arms, config),
       size: (stage, i) => places[stage][i]?.size ?? null,
       point: (_stage, i, _swell, out) => out.set(...run.live[i].orbCentre),
+      reset: () => resetPendants(run),
       pendants: run.live,
     };
   },

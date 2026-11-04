@@ -2,6 +2,9 @@ import { expect, test, vi } from 'vitest';
 import { noxProject } from '../../worlds/nox/content/noxProject';
 import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
 import { NOX_SEQUENCES, loadNoxSequences } from '../../worlds/nox/sequences/index';
+import { pendantFixture } from '../artifacts/fixtures/pendant';
+import { layoutPendants } from '../artifacts/pendant';
+import { placementCapacity } from '../artifacts/strategies';
 import type { Sequences } from '../sequences/theatre';
 import { BUBBLE_COUNT, createProjectModel, createSheets, startSheetLoaders } from './instanceModel';
 
@@ -13,6 +16,21 @@ test('the project model puts the first technologies in bubbles and the rest in t
   expect(model.overflow).toEqual(order.slice(BUBBLE_COUNT));
   expect(model.orbs.every(o => o.name && o.iconKey)).toBe(true);
   expect(model.trayItem('nope')).toEqual({ techId: 'nope', name: 'nope', iconKey: 'nope' });
+});
+
+test('with unequal slot counts in the two stages every technology is placed in every stage or in the tray, none dropped', () => {
+  const placement = pendantFixture();
+  // 13 slots in the intro, 12 in the overview; 13 technologies.
+  placement.slots.intro = [...placement.slots.intro, { arm: 'T5', at: 0.5, order: 12 }];
+  expect([placement.slots.intro.length, placement.slots.overview.length]).toEqual([13, 12]);
+  const ids = Array.from({ length: 13 }, (_, i) => `tech-${i}`);
+  const model = createProjectModel({ ...noxProject, primaryTechnologyIds: ids }, noxTechnologies, placementCapacity(placement));
+  expect([...model.orbs.map(o => o.techId), ...model.overflow]).toEqual(ids);
+  for (const stage of ['intro', 'overview'] as const) {
+    const places = layoutPendants(model.orbs.length, placement, stage);
+    expect(places.every(place => place !== null), `${stage}: every orb has a place`).toBe(true);
+  }
+  expect(model.overflow).toEqual(['tech-12']);
 });
 
 test('two models and two sets of sheets share no object', () => {

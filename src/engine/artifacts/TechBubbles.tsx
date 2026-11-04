@@ -230,6 +230,8 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
         hideSpots(bubbleLive);
         bubbleLive.notify();
         run.hidden = true;
+        // Not stepped while hidden: forget the arms' last places, so they reappear unkicked.
+        driver.reset?.();
       }
       s.puff = s.mouthRound = 0;
       return;

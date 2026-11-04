@@ -251,6 +251,15 @@ export function createPendantRun(count: number): { clock: number; live: PendantL
 }
 
 /**
+ * Forgets where each pendant's attach point was last frame: call it when the pendants have not been
+ * stepped for a while (hidden), so the first frame after is not read as the arm's whole travel in
+ * the hidden time in one step (a kick to the swing's limit).
+ */
+export function resetPendants(run: ReturnType<typeof createPendantRun>) {
+  for (const live of run.live) live.hasPrev = false;
+}
+
+/**
  * Advances every placed pendant a frame (the module's `step`): finds its attach point on the arm,
  * the arm's speed there, the swing that speed drives, and the thread and orb that hang from it.
  * `places` are the stage's (layoutPendants); a null place is left alone. With motion off the clock

@@ -173,7 +173,9 @@ const armsAt = (move: (t: number) => number): { pointAt(u: number, out: { x: num
   ARM_IDS.map((_, k) => ({ pointAt: (u, out) => { out.x = k + move(clock.t); out.y = -2 * u; out.z = 0.1 * k; } }));
 
 test("the pendant placement's capacity is its slots, the orbit's is 15, and a world's model takes it", () => {
-  expect(placementCapacity(PENDANT)).toBe(Math.max(PENDANT.slots.intro.length, PENDANT.slots.overview.length));
+  expect(placementCapacity(PENDANT)).toBe(Math.min(PENDANT.slots.intro.length, PENDANT.slots.overview.length));
+  // Unequal stages: the smaller one sets it, so a technology past it is in the tray everywhere.
+  expect(placementCapacity({ ...PENDANT, slots: { ...PENDANT.slots, intro: PENDANT.slots.intro.slice(0, 9) } })).toBe(9);
   expect(placementCapacity(PENDANT)).toBeGreaterThanOrEqual(12);
   expect(placementCapacity(NOX_ARTIFACTS.placement)).toBe(15);
   expect(PLACEMENTS.orbit.capacity()).toBe(ORBIT_CAPACITY);
