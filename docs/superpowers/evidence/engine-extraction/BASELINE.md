@@ -205,3 +205,6 @@ Found by the three `rg` scans of Step 1 (run with the Grep tool, `rg` is not ins
 | D11 | module state in scan 3 not in spec 4.3 | Constants and scratch (`HOLD_CENTRE`, `PUFF`, `ROUND_MOUTH`, `OVERVIEW_BODY`, `SIZE`, `INTRO_TITLE`, `SKIN_WARMTH`, `SHAFT_TOP`, `PILLAR_HALF`, `tmp*` vectors in suckerRow, armWeb, anchors) are immutable or pure scratch. Memos of pure results: `spotCache` (OrbButtons), `settledCache` (poseBlend, WeakMap), `ends` (bubbleBlow, WeakMap), `leadTable` (entrance), `built` (nox.swim), `holders` and `releases` (kitLoader, WeakMap by renderer), `pending` (useDisposables, WeakMap). The spec's rows (`reachState`, `bubbleLive`, `liveAnchors`, `RELIEF_GATE`, `bubblePointer`, theatre `loading`) are unchanged. | none new | T2, T3 as the spec |
 
 No row changes the plan's task list; D1, D2, D4 and D5 add to Task 3's list (instance-scoped state, listeners, ids).
+
+## Protected e2e specs after the file moves (ruling R-E12, Task 9)
+`worldTiers.spec.ts` line 2 imports `../../src/engine/world/drawOrder` (was `../../src/nox3d/world/drawOrder`): a path-only edit, no shim. Its blob id is now `128aa261`; the other five protected blobs are unchanged. Any later diff of this spec against this commit must show only that line.
