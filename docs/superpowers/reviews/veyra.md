@@ -362,6 +362,9 @@ What is in:
 - **The far plate is a thin band**: each layer covers 3.5 to 5% of its card, and the farthest (z -42) is 95% fog, nearly invisible.
 - **Kit.tsx's rock and coral albedo are Nox's** (`#211a26`, `#7a0a18`); the bake uses the same, so they match, but they are not Veyra's.
 - **Kelp and seagrass stand through the kit** (Task 9's note), and a block on the left reads as floating from the stage view.
+- **The Milestone 1 shape gate needs a ruling (Task 11 action).** `veyra_shape.py`'s colour-segmentation row now misses (span 3.94, IoU without the extra arms 0.850) because it picks up the world's green plants. Task 11: run `veyra_shape.py` on a world-free capture, or switch the gate to the engine-mask row, and re-quote the gate's numbers on the row the owner approves.
+- **The bake spends atlas space on the glowing plants** (they are drawn with their kit material and never read their lightmap). Task 11: leave them out of the atlas.
+- **Bloom clipping is not measured yet.** Re-measure whether cyan clips to white once Task 11 brightens the portal.
 
 ## Task 12: notes carried in
 

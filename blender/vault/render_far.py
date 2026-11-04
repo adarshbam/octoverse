@@ -12,8 +12,9 @@ Rebuild (a few minutes on a CPU; needs Blender 5.2, KTX-Software 4.3+ for `ktx`)
 
     "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --factory-startup -P blender/vault/render_far.py
 
-Options after `--`:  --reuse  skip the renders, redo the fog, PNGs and KTX2 from the EXRs of the
-last run (to tune LOOK below); --png <folder>  also keep the layer PNGs there.
+Options after `--`:  --exr <folder>  keep the renders (EXRs) there instead of a temp folder this run
+deletes; --reuse  (with --exr) skip the renders, redo the fog, PNGs and KTX2 from the EXRs in that
+folder (to tune LOOK below); --png <folder>  also keep the layer PNGs there.
 
 Pieces are the kit's own builders (blender/vault/build_kit.py: same seeds, same geometry) at lod1,
 as the page draws them past 16 units, lit as the page lights them: the fill and the surface light
@@ -32,6 +33,7 @@ import importlib.util
 import json
 import math
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -48,7 +50,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 FAR = ROOT / "src/worlds/veyra/place/far.json"
 OUT = ROOT / "public/veyra/world/far"
-TMP = Path(tempfile.gettempdir()) / "veyra-far-plate"
+# This run's own temp folder (its pid in the name), deleted when the run ends; --exr keeps the renders elsewhere.
+TMP = Path(tempfile.gettempdir()) / f"veyra-far-plate-{os.getpid()}"
 KTX_BIN = os.environ.get("KTX_SOFTWARE_BIN", r"C:\Program Files\KTX-Software\bin")
 
 SCENE = "VeyraWorld vault far plate"
@@ -86,8 +89,11 @@ def load_module(name, path):
 
 def options():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    png = Path(args[args.index("--png") + 1]) if "--png" in args else None
-    return {"reuse": "--reuse" in args, "png": png}
+    png = Path(args[args.index("--png") + 1]).resolve() if "--png" in args else None
+    exr = Path(args[args.index("--exr") + 1]).resolve() if "--exr" in args else None
+    if "--reuse" in args and exr is None:
+        raise SystemExit("--reuse needs --exr <folder>: the renders of an earlier run kept there")
+    return {"reuse": "--reuse" in args, "png": png, "exr": exr}
 
 
 # --- Scene -------------------------------------------------------------------------------------
@@ -355,10 +361,17 @@ def ktx(png, out):
 
 def main():
     opts = options()
+    try:
+        render(opts, opts["exr"] or TMP)
+    finally:
+        shutil.rmtree(TMP, ignore_errors=True)
+
+
+def render(opts, exr):
     t0 = time.time()
     far = json.loads(FAR.read_text(encoding="utf-8"))
     fog = far["fog"]
-    TMP.mkdir(exist_ok=True)
+    exr.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     bw = load_module("veyra_bake_world_for_far", HERE / "bake_world.py")
     KIT = bw.load_kit()
@@ -403,16 +416,16 @@ def main():
             set_camera(sc, layer)
             t1 = time.time()
             print(f"layer {i} (z {layer['z']}): {len(by_layer[i])} objects, {len(lights)} plant lights, {layer['pixels'][0]} x {layer['pixels'][1]}")
-            render_exr(sc, TMP / f"far-{i}-colour.exr")
-            render_exr(sc, TMP / f"far-{i}-depth.exr", depth_mat)
+            render_exr(sc, exr / f"far-{i}-colour.exr")
+            render_exr(sc, exr / f"far-{i}-depth.exr", depth_mat)
             print(f"  rendered in {time.time() - t1:.0f} s")
 
     total = 0
     for i, layer in enumerate(far["layers"]):
-        colour = read_exr(TMP / f"far-{i}-colour.exr")
-        depth = read_exr(TMP / f"far-{i}-depth.exr")
+        colour = read_exr(exr / f"far-{i}-colour.exr")
+        depth = read_exr(exr / f"far-{i}-depth.exr")
         rgba, stats = fogged(colour, depth, fog)
-        png = (opts["png"] or TMP) / f"far-{i}.png"
+        png = (opts["png"] or exr) / f"far-{i}.png"
         png.parent.mkdir(parents=True, exist_ok=True)
         write_png(png, rgba)
         out = OUT / f"far-{i}.ktx2"

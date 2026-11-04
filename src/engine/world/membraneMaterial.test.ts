@@ -139,4 +139,17 @@ test('validateWorld checks materials and attached nodes by name', () => {
   expect(problems({ ...base, materials: [{ node: 'membrane', material: 'membrane', params: { ...MEMBRANE, flowScale: 0 } }] })).toMatch(/flowScale must be above 0/);
   expect(problems({ ...base, materials: [{ node: 'lock', material: 'glow', params: { ...GLOW, pulse: 1.5 } }] })).toMatch(/pulse must be between 0 and 1/);
   expect(problems({ ...base, materials: [{ node: 'lock', material: 'glow', params: { ...GLOW, period: 0 } }] })).toMatch(/period must be above 0/);
+  // A material on a node the page never draws (not laid out, not attached to a laid-out piece) is named.
+  expect(problems({ ...base, materials: [{ node: 'lock', material: 'glow', params: GLOW }] })).toMatch(/materials\[0\] \(lock\) names "lock", which is neither laid out nor attached to a laid-out piece/);
+  // Nox's chain is a kit piece in no layout group (the chains are drawn apart, without kit materials).
+  expect(Object.values(SECURITY_WORLD.layout.groups).flat().some(p => p.piece === 'chain')).toBe(false);
+  expect(problems({ ...base, materials: [{ node: 'chain', material: 'glow', params: GLOW }] })).toMatch(/materials\[0\] \(chain\) names "chain", which is neither laid out .* never drawn/);
+  const offLayout = { ...base, kit: { ...base.kit, attached: [{ node: 'membrane', piece: 'chain' }] } };
+  expect(problems(offLayout)).toMatch(/materials\[0\] \(membrane\) names "membrane", which is neither laid out/);
+  // An emissive drive on a glow node would lift it past its measured brightest value: refused by name.
+  const driven = (drive: 'emissive' | 'rotateZ') => ({ ...base, props: [{ id: 'flash', node: 'coral_0', drive }] });
+  expect(problems(driven('emissive'))).toMatch(/props\[0\] \(flash\) drives the emissive of "coral_0", which has a glow material/);
+  expect(validateWorld(driven('rotateZ'))).toEqual([]);
+  // The membrane's flash rides the emissive drive (its shader caps the level), so that one is allowed.
+  expect(validateWorld({ ...base, props: [{ id: 'flash', node: 'membrane', drive: 'emissive' }] })).toEqual([]);
 });

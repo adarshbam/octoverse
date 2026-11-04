@@ -40,6 +40,7 @@ import json
 import math
 import os
 import random
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -1032,12 +1033,16 @@ def check_near(path):
 
 
 def main():
-    setup()
-    for level in LEVELS:
-        for step in STEPS:
-            bake(level, step)
-        bake_geometry(level)
-    finish()
+    try:
+        setup()
+        for level in LEVELS:
+            for step in STEPS:
+                bake(level, step)
+            bake_geometry(level)
+        finish()
+    finally:
+        # This run's own temp folder (its pid is in the name), whether the bake finished or not.
+        shutil.rmtree(TMP, ignore_errors=True)
 
 
 if __name__ == "__main__":

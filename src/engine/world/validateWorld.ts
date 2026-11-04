@@ -187,13 +187,22 @@ export function validateWorld(world: WorldConfig): string[] {
     if (!kitNodes.has(a?.node)) problems.push(`kit.attached[${i}] names "${String(a?.node)}", which is not one of kit.nodes`);
     if (!pieces.has(a?.piece)) problems.push(`kit.attached[${i}] (${String(a?.node)}) names the piece "${String(a?.piece)}", which is not in the kit`);
   });
+  // What the page draws: the laid-out pieces, and the nodes attached to one of them.
+  const laidOut = new Set(Object.values(world.layout.groups ?? {}).flatMap(list => (Array.isArray(list) ? list.map(p => p?.piece) : [])));
+  const drawn = new Set([...laidOut, ...(world.kit.attached ?? []).filter(a => laidOut.has(a?.piece)).map(a => a?.node)]);
   const assigned = new Set<string>();
   (world.materials ?? []).forEach((m, i) => {
     const at = `materials[${i}] (${String(m?.node)})`;
     if (!nodes.has(m?.node)) problems.push(`${at} names the kit node "${String(m?.node)}", which is not in the kit`);
     else if (assigned.has(m.node)) problems.push(`${at} assigns "${m.node}" a second material`);
+    else if (!drawn.has(m.node)) problems.push(`${at} names "${m.node}", which is neither laid out nor attached to a laid-out piece, so it is never drawn`);
     assigned.add(m?.node);
     if (record(m)) problems.push(...kitMaterialProblems(m, at));
+  });
+  // A glow's brightest value is its colour times its strength; an emissive drive would raise it past that bound.
+  (world.props ?? []).forEach((prop, i) => {
+    const material = (world.materials ?? []).find(m => m?.node === prop.node)?.material;
+    if (prop.drive === 'emissive' && material === 'glow') problems.push(`props[${i}] (${prop.id}) drives the emissive of "${prop.node}", which has a glow material: a glow sets its own level`);
   });
   const { colours: liveColours, elements, ...shares } = live;
   for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {

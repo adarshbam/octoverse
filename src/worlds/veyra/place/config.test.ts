@@ -42,6 +42,10 @@ test('no red light: each light\'s red is below its green and its blue, but the c
     const c = new THREE.Color(light.color);
     if (light.kind === 'coral_orange') {
       expect(light.intensity, `${light.kind} ${light.color}`).toBeLessThanOrEqual(0.4);
+      // Orange, not red: its green above its blue, and (as sRGB bytes) at least half its red.
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(light.color.slice(i, i + 2), 16));
+      expect(g, `${light.kind} ${light.color}`).toBeGreaterThan(b);
+      expect(g, `${light.kind} ${light.color}`).toBeGreaterThanOrEqual(r / 2);
       continue;
     }
     expect(c.r, `${light.kind} ${light.color}`).toBeLessThan(c.g);
