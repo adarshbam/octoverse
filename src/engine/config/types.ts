@@ -465,6 +465,29 @@ export interface SuckerSettings {
    * sunk discs with a slit hollow, exactly as approved.
    */
   style?: SuckerStyle;
+  /**
+   * A band of light that travels along an arm's cups, root to tip, when that arm's trigger fires
+   * (Flux, contract 18.1 F1; character/cupPulse.ts). Absent, or `strength` 0: the cups exactly as
+   * they were (Nox, Veyra).
+   */
+  pulse?: CupPulse;
+}
+
+/**
+ * The cup pulse (contract 18.1 F1): its head moves `speed` arc fractions a second, its band is
+ * `wavelength` of the arm long, and at full `strength` a lit cup turns wholly to the band's colour
+ * at the head (`colours[0]`), its middle (`colours[1]`) or its tail (`colours[2]`), brightening by
+ * at most 15%: mostly a hue shift (Flux spec 2.4). Every colour is config read into a uniform.
+ */
+export interface CupPulse {
+  /** Arc fractions per second (0.2 to 5): 1.33 runs root to tip in 0.75 s. */
+  speed: number;
+  /** The band's length as a fraction of the arm (0.02 to 0.5). */
+  wavelength: number;
+  /** How far a lit cup turns to the band's colour (0 to 1; 0 is no pulse at all). */
+  strength: number;
+  /** The head's, the middle's and the tail's colour. */
+  colours: readonly [string, string, string];
 }
 
 /**

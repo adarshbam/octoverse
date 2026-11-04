@@ -15,6 +15,7 @@ import { KitBoundary } from './WorldBoundary';
 import { useWorldKit } from './kitLoader';
 import { Motes } from './Motes';
 import { WORLD_BUBBLES } from './bubbleField';
+import { Packets } from './Packets';
 import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
@@ -75,6 +76,7 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
       {tier.motes && <Motes colours={live.colours.motes} amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
       {!solo && <Bubbles colours={live.colours.bubbles} density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
       {STRAND_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}
+      {live.elements?.packets && world.layout.paths?.[live.elements.packets.path] && <Packets config={live.elements.packets} path={world.layout.paths[live.elements.packets.path]} tier={tier.id} />}
       {live.elements?.jellyfish && <Jellyfish config={live.elements.jellyfish} tier={tier} />}
       <Embers colours={live.colours.embers} density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
     </WorldTimeProvider>

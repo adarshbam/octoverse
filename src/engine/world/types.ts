@@ -55,6 +55,11 @@ export interface WorldLayout {
   chains: { from: Vec3; to: Vec3; sag: number }[];
   /** Where the lava's red light pools, low round the coral. */
   coralLights: Vec3[];
+  /**
+   * Named polylines in stage units, each at least two points, in the order they are travelled (a
+   * deck a stream of packets runs along: live element `packets` names one). Optional; Nox has none.
+   */
+  paths?: Record<string, readonly Vec3[]>;
 }
 
 export interface WorldConfig {
@@ -209,6 +214,20 @@ export interface StrandConfig {
   color: string;
 }
 
+/**
+ * Packets of light that run along a `layout.paths` path (live/Packets.tsx): one instanced mesh, at
+ * most 12. `path` names the path; `count` is how many run at each quality tier (whole numbers, not
+ * more at a lower tier); `speed` is stage units a second along the path; `length` the stage units
+ * each packet is long; `colours` the two colours they alternate between (`#rrggbb`).
+ */
+export interface PacketsConfig {
+  path: string;
+  count: Record<QualityTier, number>;
+  speed: number;
+  length: number;
+  colours: readonly [string, string];
+}
+
 /** A box in stage units, from its lowest corner `min` to its highest `max`. */
 export interface Box3 {
   min: Vec3;
@@ -232,8 +251,11 @@ export interface JellyfishConfig {
   region: Box3;
 }
 
-/** The live elements a world turns on (live/index.ts): strands by their config, the jellyfish by theirs. */
-export type LiveElements = Partial<Record<StrandElementId, StrandConfig>> & { jellyfish?: JellyfishConfig };
+/**
+ * The live elements a world turns on, by id (live/index.ts): `kelp` and `seagrass` are strands, by
+ * their config; `packets` run along a path; the jellyfish by theirs.
+ */
+export type LiveElements = Partial<Record<StrandElementId, StrandConfig>> & { packets?: PacketsConfig; jellyfish?: JellyfishConfig };
 
 /** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
 export interface LiveColours {

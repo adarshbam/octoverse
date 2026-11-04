@@ -17,8 +17,8 @@ function compiled(material: THREE.Material, lib: 'lambert' | 'standard') {
   return shader;
 }
 
-test('the kit-material variants are a closed table: membrane and glow', () => {
-  expect(KIT_MATERIAL_IDS).toEqual(['membrane', 'glow']);
+test('the kit-material variants are a closed table: membrane, glow and led', () => {
+  expect(KIT_MATERIAL_IDS).toEqual(['membrane', 'glow', 'led']);
   expect(Object.keys(KIT_MATERIAL_VARIANTS)).toEqual(KIT_MATERIAL_IDS);
 });
 

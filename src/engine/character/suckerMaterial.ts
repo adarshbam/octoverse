@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import type { Palette, SuckerSettings, SuckerStyle } from '../config/types';
+import type { CupPulse, Palette, SuckerSettings, SuckerStyle } from '../config/types';
 import { glslColour } from '../world/colour';
+import { PULSE_ARMS, PULSE_FRAGMENT_DECLARATIONS, PULSE_FRAGMENT_TERM, PULSE_IDLE, PULSE_VERTEX_DECLARATIONS, PULSE_VERTEX_TERM } from './cupPulse';
 import type { SkinUniforms } from './skinMaterial';
 import { CUP_EMBED, CUP_FACE, type SuckerRow } from './suckerRow';
 
@@ -53,7 +54,7 @@ const bendCupSpace = /* glsl */ `
 /** `source` with `from` (which must be there, once) replaced by `to`. */
 function swap(source: string, from: string, to: string) {
   const at = source.indexOf(from);
-  if (at < 0 || source.indexOf(from, at + 1) >= 0) throw new Error(`frill cup shader: anchor not found once: ${from.trim().slice(0, 60)}`);
+  if (at < 0 || source.indexOf(from, at + 1) >= 0) throw new Error(`cup shader: anchor not found once: ${from.trim().slice(0, 60)}`);
   return source.slice(0, at) + to + source.slice(at + from.length);
 }
 
@@ -61,7 +62,7 @@ function swap(source: string, from: string, to: string) {
 function swapSpan(source: string, start: string, end: string, to: string) {
   const a = source.indexOf(start);
   const b = source.indexOf(end, a);
-  if (a < 0 || b < 0) throw new Error(`frill cup shader: span not found: ${start.trim().slice(0, 60)}`);
+  if (a < 0 || b < 0) throw new Error(`cup shader: span not found: ${start.trim().slice(0, 60)}`);
   return source.slice(0, a) + to + source.slice(b + end.length);
 }
 
@@ -94,8 +95,39 @@ const FRILL_COLOUR = /* glsl */ `        float w = uFrill.x;
  * createSuckerCup(detail, style), coloured from the style, glowing at its `glow`, and not
  * flattened where seen edge-on: their edges are meant to stand proud of the arm's outline. Without
  * one, the program is Nox's, unchanged to the character (the frill's text is swapped into a copy).
+ *
+ * With a `pulse` whose strength is above 0 (Flux), each arm's cups light in a travelling band when
+ * its trigger fires (cupPulse.ts): one term in each program, eight trigger times and three colours
+ * as uniforms. Without one, or at strength 0, the programs are exactly as they were.
  */
-export function createSuckerMaterial(palette: Palette, light: CupLighting, style?: SuckerStyle) {
+export function createSuckerMaterial(palette: Palette, light: CupLighting, style?: SuckerStyle, pulse?: CupPulse) {
+  const material = createCupMaterial(palette, light, style);
+  if (pulse && pulse.strength > 0) addPulse(material, pulse);
+  return material;
+}
+
+/**
+ * The cup pulse spliced into a cup program (Nox's discs or a frill): the vertex shader works out
+ * each cup's band level and hue from its arm's trigger, the fragment shader turns the cup's colour
+ * toward the band's after its glow and before the water's haze.
+ */
+function addPulse(material: THREE.ShaderMaterial, pulse: CupPulse) {
+  material.uniforms.uPulseTimes = { value: new Float32Array(PULSE_ARMS).fill(PULSE_IDLE) };
+  material.uniforms.uPulseClock = { value: 0 };
+  material.uniforms.uPulse = { value: new THREE.Vector4(pulse.speed, pulse.wavelength, pulse.strength, 0) };
+  material.uniforms.uPulseColours = { value: pulse.colours.map(c => new THREE.Color(c)) };
+  const flare = `      uniform float uFlare[${FLARE_ARMS}];\n`;
+  let v = swap(material.vertexShader, flare, flare + PULSE_VERTEX_DECLARATIONS);
+  v = swap(v, '        vFlare = flare;\n', `        vFlare = flare;\n${PULSE_VERTEX_TERM}`);
+  material.vertexShader = v;
+  const haze = '        // Far cups fade into the water like the skin they sit on.\n';
+  let f = swap(material.fragmentShader, '      varying float vFlare;\n', `      varying float vFlare;\n${PULSE_FRAGMENT_DECLARATIONS}`);
+  f = swap(f, haze, PULSE_FRAGMENT_TERM + haze);
+  material.fragmentShader = f;
+}
+
+/** Nox's disc program, or with a frill `style` the frill's (see createSuckerMaterial). */
+function createCupMaterial(palette: Palette, light: CupLighting, style?: SuckerStyle) {
   const material = createDiscMaterial(palette, light);
   if (!style) return material;
   material.uniforms.uFrillEdge = { value: new THREE.Color(style.edge) };

@@ -1,7 +1,7 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
 import { isColour, isWorldColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
-import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SuckerSettings, type SuckerStyle, type SurfaceLook } from './types';
+import { ARM_IDS, type AuraSettings, type CharacterConfig, type CupPulse, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SuckerSettings, type SuckerStyle, type SurfaceLook } from './types';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -128,17 +128,39 @@ const FRILL_DEFAULTS = { rimWidth: 0.22, scallop: 0.5, glow: 1 } as const;
  * the character's own cup colours (the engine holds no colour of its own here).
  */
 function clampSuckers(suckers: SuckerSettings, palette: Palette): SuckerSettings {
-  if (!suckers.style) return suckers;
-  const s: Partial<SuckerStyle> = suckers.style;
-  const style: SuckerStyle = {
-    rimWidth: clamp(s.rimWidth as number, 0.05, 0.5, FRILL_DEFAULTS.rimWidth),
-    scallop: unit(s.scallop as number, FRILL_DEFAULTS.scallop),
-    edge: colour(s.edge, palette.suckerEdge),
-    rim: colour(s.rim, palette.suckerHot),
-    hollow: colour(s.hollow, palette.suckerHollow),
-    glow: clamp(s.glow as number, 0, 3, FRILL_DEFAULTS.glow),
+  if (!suckers.style && !suckers.pulse) return suckers;
+  const out: SuckerSettings = { ...suckers };
+  if (suckers.style) {
+    const s: Partial<SuckerStyle> = suckers.style;
+    out.style = {
+      rimWidth: clamp(s.rimWidth as number, 0.05, 0.5, FRILL_DEFAULTS.rimWidth),
+      scallop: unit(s.scallop as number, FRILL_DEFAULTS.scallop),
+      edge: colour(s.edge, palette.suckerEdge),
+      rim: colour(s.rim, palette.suckerHot),
+      hollow: colour(s.hollow, palette.suckerHollow),
+      glow: clamp(s.glow as number, 0, 3, FRILL_DEFAULTS.glow),
+    };
+  }
+  if (suckers.pulse) out.pulse = clampPulse(suckers.pulse, palette);
+  return out;
+}
+
+/** A cup pulse's numbers when a config gives one that is not a number: spec 2.4's travel and band; no strength, so no pulse. */
+const PULSE_DEFAULTS = { speed: 1.33, wavelength: 0.17, strength: 0 } as const;
+
+/**
+ * The cup pulse, when there is one (absent stays absent: no pulse): its speed held to [0.2, 5] arc
+ * fractions a second, its band to [0.02, 0.5] of the arm, its strength to [0, 1]; a colour that is
+ * missing or does not parse reads the cups' own hot colour (the engine holds no colour of its own here).
+ */
+function clampPulse(p: Partial<CupPulse>, palette: Palette): CupPulse {
+  const colours = Array.isArray(p.colours) ? p.colours : [];
+  return {
+    speed: clamp(p.speed as number, 0.2, 5, PULSE_DEFAULTS.speed),
+    wavelength: clamp(p.wavelength as number, 0.02, 0.5, PULSE_DEFAULTS.wavelength),
+    strength: unit(p.strength as number, PULSE_DEFAULTS.strength),
+    colours: [colour(colours[0], palette.suckerHot), colour(colours[1], palette.suckerHot), colour(colours[2], palette.suckerHot)],
   };
-  return { ...suckers, style };
 }
 
 /** Expression overrides: only known ids, only keys the face has, only finite values, each held in the range the face can draw. */

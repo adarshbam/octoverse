@@ -1,4 +1,5 @@
 import { BubbleLive } from '../artifacts/bubbleLive';
+import { type PulseTriggers, createPulseTriggers } from '../character/cupPulse';
 import { LiveAnchors } from '../stage/liveAnchors';
 import type { WorldBundle } from '../types/bundle';
 
@@ -30,6 +31,12 @@ export interface InstanceState {
    * `reach` the arm whose tip is nearest it reaches too.
    */
   attend: Attend;
+  /**
+   * Each arm's cup pulse trigger (character/cupPulse.ts `firePulse`): the appear and select modules,
+   * sequences and the idle flourish fire it; the cups read it each frame. A new instance (a remount,
+   * another world) starts with every arm idle.
+   */
+  pulse: PulseTriggers;
 }
 
 /** The host's request to look at a point (`useInstanceApi().attend`): `set` replaces it, `set(null)` lets it go. */
@@ -51,5 +58,5 @@ function createAttend(): Attend {
 }
 
 export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
-  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend() };
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), pulse: createPulseTriggers() };
 }

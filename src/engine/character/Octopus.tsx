@@ -10,7 +10,7 @@ import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
 import { screenToStage } from '../stage/anchors';
 import { isRestful } from '../behavior/stageMachine';
-import { ARM_IDS, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
+import { ARM_IDS, type ArmId, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
 import { strokeAt } from '../motion/stroke';
@@ -41,6 +41,7 @@ import { HEAD_EFFECTS } from './headEffects';
 import { createSkinMaterial, createSkinUniforms, jellyCoreWorld, surfaceLooks } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
+import { writePulseUniforms } from './cupPulse';
 import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 import { type AccentLink, farHaze } from './worldAccent';
@@ -137,6 +138,8 @@ export interface OctopusProps {
   armDrive?: { pitch: number; straighten: number };
   /** With `freeze`: the moment of the suction hold shown, in ms from the choice (review stills); otherwise a still shows it held. */
   holdAt?: number;
+  /** With `freeze`: a still of one arm's cup pulse, fired at clock 0 and shown `seconds` later (`?freeze&pulse=t2@0.35`; development builds only). */
+  pulseAt?: { arm: ArmId; seconds: number };
   /**
    * Whether the head is swollen open (the overview, and a technology focus from it): each change
    * plays the head swell (sequences/headSwell.ts). Without it, the stage blend's headMorph decides.
@@ -153,7 +156,7 @@ const WAKE = 0.5;
 const CORE_GLOW = 0.22;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, hideArtifacts = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, hideArtifacts = false, yaw = 0, armDrive, holdAt, pulseAt, headOpen, swellSheet }: OctopusProps) {
   const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
@@ -241,7 +244,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     cupGeometry.setAttribute('aCup', createCupArmAttribute(arms.map(({ row, chain }) => ({ row, length: chain.segmentLength * chain.segments }))));
     const shadowGeometry = createCupShadow(cupDetail);
     shadowGeometry.setAttribute('aBend', suckerBend);
-    const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms, config.suckers.style), suckerTotal);
+    const suckers = new THREE.InstancedMesh(cupGeometry, createSuckerMaterial(config.palette, uniforms, config.suckers.style, config.suckers.pulse), suckerTotal);
     suckers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     suckers.frustumCulled = false;
     const cupShadows = new THREE.InstancedMesh(shadowGeometry, createCupShadowMaterial(config.palette, config.suckers, uniforms), suckerTotal);
@@ -770,6 +773,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       bubbleState.hold.dir[f.bubble].set(px[n] - px[n - 4], py[n] - py[n - 4], 0).normalize();
       flare[f.arm] = Math.max(flare[f.arm], f.flare);
     }
+    // The cup pulse (Flux): each arm's trigger, on the frame clock; a review still fires one arm at 0 and shows a moment of it.
+    const cupUniforms = (rig.suckers.material as THREE.ShaderMaterial).uniforms;
+    if (cupUniforms.uPulseTimes) writePulseUniforms(cupUniforms, instance.pulse, state.clock.elapsedTime, reducedMotion, pulseAt);
     rig.suckers.instanceMatrix.needsUpdate = true;
     rig.suckerBend.needsUpdate = true;
     for (const web of rig.webs) web.update();

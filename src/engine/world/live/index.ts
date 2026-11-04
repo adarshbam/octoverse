@@ -1,7 +1,8 @@
 // The live elements a world may add beyond the six shares (snow, motes, fish, rays, bubbles,
 // embers): a closed table, one entry per element (spec 9). Each entry is the element's shape; the
 // renderer is the element's module: the shared strand module (Kelp.tsx) for kelp and seagrass,
-// live/Jellyfish.tsx for the jellyfish. A world turns one on with `live.elements`.
+// Packets.tsx for the packets, live/Jellyfish.tsx for the jellyfish. A world turns one on with
+// `live.elements`.
 
 /**
  * The shape of a strand and where its element stands. A strand is a tapered blade of `segments`
@@ -13,6 +14,15 @@ export interface StrandShape {
   segments: number;
   clear: number;
   seed: number;
+}
+
+/**
+ * The shape of the packets element: at most `max` of them (one instanced mesh), each `width` stage
+ * units across. Where they run, how many, how fast and in what colours is the world's config.
+ */
+export interface PacketShape {
+  max: number;
+  width: number;
 }
 
 /**
@@ -39,16 +49,23 @@ export const STRAND_ELEMENTS = {
 
 export const LIVE_ELEMENTS = {
   ...STRAND_ELEMENTS,
+  /** Packets of light running along a path of the layout (packets.ts, Packets.tsx): Flux's data on its bridge. */
+  packets: { max: 12, width: 0.07 },
   /** Pulsing bells with trailing filaments, drifting slowly up through the mid water (Aether's). */
   jellyfish: { seed: 307, bellSegments: 16, filaments: 8, filamentSegments: 10, filamentLength: 2.4, filamentWidth: 0.05 },
-} as const satisfies { [id: string]: StrandShape | JellyShape };
+} as const satisfies { kelp: StrandShape; seagrass: StrandShape; packets: PacketShape; jellyfish: JellyShape };
 
 export type LiveElementId = keyof typeof LIVE_ELEMENTS;
 export const LIVE_ELEMENT_IDS = Object.keys(LIVE_ELEMENTS) as LiveElementId[];
+/** The elements that are strands (Kelp.tsx draws them), as against the packets and the jellyfish. */
 export type StrandElementId = keyof typeof STRAND_ELEMENTS;
 export const STRAND_ELEMENT_IDS = Object.keys(STRAND_ELEMENTS) as StrandElementId[];
 
 /** The most strands one element may carry: a typo in a count must not allocate millions of instances. */
 export const MAX_STRANDS = 5000;
+
+/** The most packets one world may run: the instanced mesh is sized for this many. */
+export const MAX_PACKETS = LIVE_ELEMENTS.packets.max;
+
 /** The most jellyfish a world may draw at any tier (the spec's swarm is 6 to 10 in view). */
 export const MAX_JELLYFISH = 64;
