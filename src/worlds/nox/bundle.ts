@@ -39,6 +39,8 @@ export const NOX_THEME: UiTheme = {
   buttonTo: '#ff4c62',
   focusRing: '#ffd0dc',
   titleIcon: 'flame',
+  poster: { src: 'nox/poster-intro.webp', alt: 'Nox, the octopus guide to Security Lab, in the dark water of his lab', width: 1536, height: 1024 },
+  pageTitle: 'Nox · Security Lab',
   nameplateLabel: '#d8cfe2',
   // The red and pink glows, lines and fills the stylesheets held as literals (fix wave A), each
   // exactly as it was: the channel tokens are given as rgb() so they read as the stylesheet's rgba() did.

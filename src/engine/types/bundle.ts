@@ -204,6 +204,10 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (value === undefined) throw new BundleError(`theme.${key}`, 'is missing (every colour token is needed: a missing one would show the stylesheet fallback, Nox\'s)');
     if (!isColour(value)) throw new BundleError(`theme.${key}`, `"${String(value)}" is not a colour`);
   }
+  const { poster, pageTitle } = bundle.theme;
+  if (!record(poster) || typeof poster.src !== 'string' || poster.src === '' || typeof poster.alt !== 'string' || poster.alt === '') throw new BundleError('theme.poster', 'needs a src and an alt (the still shown where there is no WebGL)');
+  if (!(finite(poster.width) && poster.width > 0) || !(finite(poster.height) && poster.height > 0)) throw new BundleError('theme.poster', 'needs a width and a height above 0 (in pixels)');
+  if (typeof pageTitle !== 'string' || pageTitle === '') throw new BundleError('theme.pageTitle', 'is missing (the document title once the world is up)');
   if (!Object.hasOwn(TITLE_ICONS, bundle.theme.titleIcon)) throw new BundleError('theme.titleIcon', `"${bundle.theme.titleIcon}" is not one of the engine's title icons (${Object.keys(TITLE_ICONS).join(', ')})`);
 
   const { placement, appear, select, choosableIn } = bundle.artifacts;

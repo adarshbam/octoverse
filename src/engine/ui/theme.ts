@@ -13,6 +13,19 @@ import type { TITLE_ICONS } from './titleIcons';
 /** The icons a title can carry: the keys of the engine's table (ui/titleIcons.tsx). */
 export type TitleIconId = keyof typeof TITLE_ICONS;
 
+/**
+ * The still that stands in for the 3D scene where the browser has no WebGL (ui/Poster.tsx): a
+ * capture of the world's intro. `src` is a file under the site's base path (`public/`).
+ */
+export interface PosterImage {
+  src: string;
+  /** What the image shows, for a reader who cannot see it. */
+  alt: string;
+  /** The image's size in pixels (the page reserves its box before it loads). */
+  width: number;
+  height: number;
+}
+
 export interface UiTheme {
   /** The accent: the detail's headings, active marks and outlines. */
   accent: string;
@@ -29,6 +42,10 @@ export interface UiTheme {
   focusRing: string;
   /** The intro title's icon (a key of TITLE_ICONS). */
   titleIcon: TitleIconId;
+  /** The no-WebGL poster (a still of the intro). */
+  poster: PosterImage;
+  /** The document's title once the world is up (the page holds a neutral one until then). */
+  pageTitle: string;
   /** The nameplate's second line (the character's epithet). */
   nameplateLabel: string;
   /** The panels' outer glow (the detail, the overview sheet, the tooltip). */
@@ -63,8 +80,8 @@ export interface UiTheme {
   selected: string;
 }
 
-/** The colour tokens of a theme (every field but the icon). */
-export type ThemeColour = Exclude<keyof UiTheme, 'titleIcon'>;
+/** The colour tokens of a theme (every field but the icon, the poster and the page title). */
+export type ThemeColour = Exclude<keyof UiTheme, 'titleIcon' | 'poster' | 'pageTitle'>;
 
 /** The colour tokens a stylesheet reads as a colour, and the CSS custom property each is written as. */
 export const THEME_VARS = {

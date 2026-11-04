@@ -13,11 +13,12 @@ export const WORLDS: Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE };
 
 /**
  * Development only: a second world for the world-switch spec (`?testworld=1`), Nox's bundle cloned
- * under another id (so it has its own entrance flag, `octoverse.nox-b.entranceSeen`). The literal
+ * under another id (so it has its own entrance flag, `octoverse.nox-b.entranceSeen`) and its own
+ * page title (so a spec can tell it from Nox's). The literal
  * DEV check lets the bundler drop it from the production build; a stable object, since the host
  * keys its instance on the bundle (`instanceKey`).
  */
-const TEST_WORLDS: Record<WorldId, WorldBundle> = import.meta.env.DEV ? { 'nox-b': { ...NOX_BUNDLE, id: 'nox-b' } } : {};
+const TEST_WORLDS: Record<WorldId, WorldBundle> = import.meta.env.DEV ? { 'nox-b': { ...NOX_BUNDLE, id: 'nox-b', theme: { ...NOX_BUNDLE.theme, pageTitle: 'OctoVerse test world' } } } : {};
 
 /**
  * The world an address asks for: `?world=<id>`. No `world` (or an empty one) is the default world;

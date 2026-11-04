@@ -24,7 +24,7 @@ test('themeVars writes every colour token as its --oct-* property (and the chann
   for (const [key, property] of Object.entries(THEME_VARS)) expect(vars[property]).toBe(NOX_THEME[key as keyof typeof THEME_VARS]);
   for (const [key, property] of Object.entries(THEME_CHANNEL_VARS)) expect(vars[property]).toBe(colourChannels(NOX_THEME[key as keyof typeof THEME_CHANNEL_VARS]));
   // Every colour of the theme is written one way or the other.
-  expect([...THEME_COLOURS].sort()).toEqual(Object.keys(NOX_THEME).filter(key => key !== 'titleIcon').sort());
+  expect([...THEME_COLOURS].sort()).toEqual(Object.keys(NOX_THEME).filter(key => !['titleIcon', 'poster', 'pageTitle'].includes(key)).sort());
   expect(vars['--oct-glow-rgb']).toBe('255, 40, 90');
   expect(vars['--oct-accent-rgb']).toBe('255, 59, 92');
   expect(vars['--oct-surface-edge-rgb']).toBe('255, 70, 110');

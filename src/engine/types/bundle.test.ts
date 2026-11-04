@@ -221,3 +221,17 @@ test('a far plate with no cut, or a layer with no url, is refused by validateBun
   expect(refusal(place(7)).field).toBe('place.farPlate');
   expect(() => validateBundle(place(undefined))).not.toThrow();
 });
+
+test("the poster and the page title are the world's: a bundle without them, or with a poster that cannot be drawn, is refused by name", () => {
+  const theme = (edit: object) => ({ ...NOX_BUNDLE, theme: { ...NOX_BUNDLE.theme, ...edit } }) as unknown as WorldBundle;
+  expect(refusal(theme({ poster: undefined })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, src: '' } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, alt: '' } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, width: 0 } })).field).toBe('theme.poster');
+  expect(refusal(theme({ poster: { ...NOX_BUNDLE.theme.poster, height: Number.NaN } })).field).toBe('theme.poster');
+  expect(refusal(theme({ pageTitle: undefined })).field).toBe('theme.pageTitle');
+  expect(refusal(theme({ pageTitle: '' })).field).toBe('theme.pageTitle');
+  // Nox's values, as the page held them before the bundle carried them.
+  expect(NOX_BUNDLE.theme.poster).toEqual({ src: 'nox/poster-intro.webp', alt: 'Nox, the octopus guide to Security Lab, in the dark water of his lab', width: 1536, height: 1024 });
+  expect(NOX_BUNDLE.theme.pageTitle).toBe('Nox · Security Lab');
+});

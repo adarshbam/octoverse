@@ -1,5 +1,5 @@
 /**
- * The boot veil: index.html's first screen (the entrance's water, "OCTOVERSE" and "Security Lab", a
+ * The boot veil: index.html's first screen (the entrance's water, "OCTOVERSE" and "Security Lab" for Nox, a neutral one for any other world, a
  * quiet loading cue), up from the first paint, before any script runs. It sits under the stage, never
  * takes a press or focus, and keeps the canvas clear until the world is drawn; hiding it fades the
  * canvas in over it (600 ms, in index.html's CSS) and then removes the node (once the stage has
