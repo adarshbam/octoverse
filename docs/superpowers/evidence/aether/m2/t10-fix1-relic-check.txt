@@ -1,0 +1,20 @@
+intro face glow (frozen intro, same window): Y 0.908 at (248, 510) #fff0ff (9550 px)
+ok   entrance t    1: portal brightest Y 0.676 at (950, 378) #b4dbff vs her INTRO face glow Y 0.908 (no face glow of 200 px in this frame; her silhouette is 6032 px): ratio 0.74
+ok   entrance t    2: portal brightest Y 0.745 at (921, 556) #c0e5ff vs her face glow in this frame (2000 px) Y 0.890: ratio 0.84
+ok   entrance t  3.2: portal brightest Y 0.668 at (837, 538) #b6d9ff vs her face glow in this frame (4008 px) Y 0.873: ratio 0.76
+ok   entrance t  4.5: portal brightest Y 0.689 at (943, 365) #b6ddff vs her face glow in this frame (5861 px) Y 0.896: ratio 0.77
+ok   entrance t  5.5: portal brightest Y 0.722 at (1029, 423) #cbdeff vs her face glow in this frame (5888 px) Y 0.896: ratio 0.81
+ok   entrance t  6.5: portal brightest Y 0.504 at (908, 460) #edaf87 vs her face glow in this frame (9125 px) Y 0.908: ratio 0.56
+ok   entrance t  7.5: portal brightest Y 0.864 at (900, 536) #cff6ff vs her face glow in this frame (9430 px) Y 0.908: ratio 0.95
+ok   entrance t  8.4: portal brightest Y 0.749 at (1008, 406) #c3e5ff vs her face glow in this frame (9540 px) Y 0.908: ratio 0.82
+pulse: 20 running stills over 9.54 s (widest gap 0.56 s); portal glows portal_glyph pulse 0.55 period 7.5 s, portal_lanterns pulse 0.15 period 4.3 s
+     plain per-pixel maximum Y 0.945 at (921, 540): the bubbles and specks rising past the portal (not compared)
+     held over each window: Y 0.706 at (844, 483) around 9.32 s, over 8.57 s of centres; raised by the most a pulse loses within 0.84 s of its peak (0.066): Y 0.755
+       portal_arch      held Y 0.706 at (844, 483) around 9.32 s
+       portal_glyph     held Y 0.548 at (974, 460) around 9.32 s
+       portal_lanterns  held Y 0.548 at (974, 460) around 9.32 s
+       portal_membrane  held Y 0.548 at (974, 460) around 9.32 s
+       portal_steps     held Y 0.613 at (851, 550) around 7.34 s
+ok   pulse peak vs the dimmest face glow found (entrance t 3.2) Y 0.873: ratio 0.86
+ok   pulse peak vs her intro face glow Y 0.908: ratio 0.83
+ok   worst ratio 0.95 (entrance t 7.5): the portal stays below her face glow

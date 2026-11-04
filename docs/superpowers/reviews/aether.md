@@ -617,3 +617,84 @@ What is not:
 - Against P2 the world is sparse: dark blank tower faces, few warm lights, and flat (unbloomed) windows and jellyfish.
 
 The owner's live look decides.
+
+### Task 10, fix round 1 (review of c8b50b8): the relic check fails loudly and covers the entrance span
+
+Scripts only (`src/worlds/aether/review/`). No config, layout or engine change, so the look numbers above stand.
+
+**1. Fails loudly.** Every empty mask or region now ends the run with exit 1 and a line starting `FAIL`. Before, an empty face mask let `argmax` pick pixel (0, 0) and compare against it.
+- `relic_entrance.py` fails on:
+  - a missing capture or mask;
+  - no portal node in kit.glb;
+  - an empty portal region;
+  - no face glow where one is needed: no pink-white patch of at least 200 px in her silhouette, in the single still or in the intro reference;
+  - config.ts's portal glows unreadable;
+  - pulse stills that do not match their times, leave a gap over 0.9 s, do not cover the longest portal pulse, or do not hold the portal's region;
+  - any ratio of 1 or more.
+- Checked by hand: an all-black mask, a box off the portal, a missing file, a folder with no intro, and stills 0.06 s short of the glyph period. Each gives its `FAIL` line and exit 1.
+- `portal_offframe.mjs` now also fails, with a `FAIL` line and exit 1, on:
+  - a camera probe with a non-finite value;
+  - a corner that projects to a non-finite pixel;
+  - a hull of fewer than three corners (its area of 0 would have passed);
+  - any error, caught and printed.
+  - A pass needs 0 pixels **and** every corner outside the frame. Re-run: 0 px at all four sizes, exit 0.
+
+**2. The entrance span.** Spec 7.7 says "during the entrance". The check now reads three sets of frames.
+
+Frozen entrance stills:
+- Taken at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s: the placeholder entrance's swim, hold, opening, spin and settle.
+- Each frame compares the portal's brightest pixel with her face glow in **that same frame**.
+- At t 1 she is 6032 px of silhouette far in the murk, with no pink-white patch of 200 px. That frame is compared with her **intro** face glow (Y 0.908, the same window), and the line says so.
+
+Running intro stills:
+- A frozen world holds every glow at its mid level: the pulse factor is 1 - pulse/2 while motion is held. So frozen stills never show the glyph's peak.
+- 20 clipped stills of the running intro cover 9.5 s of world time, more than one glyph period (7.5 s) and one lantern period (4.3 s).
+- The intro, not the entrance: the glows pulse on the world clock whatever the stage, and she stays clear of the portal there (her silhouette is left out anyway).
+- The glyph's violet lines in these stills run from (85, 76, 187) at the trough (about 1 s and 8.6 s) to (123, 109, 253) at the peak (about 5 s). The frozen intro shows (106, 94, 227), the mid level. So the pulse is captured.
+- A plain per-pixel maximum over the stills is not the portal's. Bubbles and specks rising past it are near white, Y 1.0, and sweep most of its pixels (first run: 1.000 at (1012, 410), a bubble crossing the glyph for 0.6 s).
+- So each pixel's reading is the maximum over time of its minimum over a window: the stills within 0.45 s either side, plus always the still before and after.
+  - Whatever stays lit across a window counts. Anything that crosses faster drops out; a slower bubble stays in, which only makes the reading stricter.
+  - The window can miss a sine pulse's peak by at most pulse/2 x (1 - cos(2 pi d / period)), with d = max(0.45, widest gap) + widest gap/2. This run: d = 0.84 s, so 6.6% (the glyph, pulse 0.55 over 7.5 s; the lanterns lose 5.0%).
+  - The reading is raised by that share before the comparison. For these bright pixels the tone curve compresses, so this is an upper bound.
+- The membrane's flash never fires in Aether: only an `emissive` prop drive raises it, and nothing in the world or the sequences targets it.
+
+Results (`.tmp` run, exit 0; output in `t10-fix1-relic-check.txt`):
+
+| frame | portal's brightest Y (pixel, colour) | her face glow Y | ratio |
+|---|---|---|---|
+| entrance t 1 | 0.676 (950, 378) #b4dbff | intro 0.908 (none found in frame) | 0.74 |
+| entrance t 2 | 0.745 (921, 556) #c0e5ff | 0.890 (2000 px) | 0.84 |
+| entrance t 3.2 | 0.668 (837, 538) #b6d9ff | 0.873 (4008 px) | 0.76 |
+| entrance t 4.5 | 0.689 (943, 365) #b6ddff | 0.896 | 0.77 |
+| entrance t 5.5 | 0.722 (1029, 423) #cbdeff | 0.896 | 0.81 |
+| entrance t 6.5 | 0.504 (908, 460) #edaf87 | 0.908 | 0.56 |
+| entrance t 7.5 | 0.864 (900, 536) #cff6ff | 0.908 | **0.95** |
+| entrance t 8.4 | 0.749 (1008, 406) #c3e5ff | 0.908 | 0.82 |
+| pulse peak, filtered | 0.706 (844, 483), raised to 0.755 | dimmest found 0.873 (t 3.2) | 0.86 |
+| pulse peak, filtered | 0.755 | intro 0.908 | 0.83 |
+
+- **Worst ratio 0.95, at t 7.5.** Pass, but the margin is thin. That pixel is not the portal: it is a white speck on the coral before the steps (zoomed by eye). The frozen stills keep every bubble and speck in front of the portal, so they read strictly.
+- The filtered pulse peak (0.706) is itself a slow bubble at the arch's left edge, lit in three stills (8.9 to 9.8 s). The portal's own sustained light is lower.
+- Per node, filtered: glyph, lanterns and membrane 0.548 (the membrane's cyan centre); steps 0.613.
+- Two earlier runs failed, honestly, before the filter was right:
+  - one gave 1.15, from the unfiltered bubbles;
+  - one gave 1.14: a speck in a window that held no other still, under load (gaps 0.5 s). The window now always takes its neighbours.
+
+Commands (dev server on 127.0.0.1:5196; exit 0 on a pass, 1 with a `FAIL` line otherwise):
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/relic_capture.mjs <dir>`: the eight frozen entrance stills and their masks, the frozen intro and its mask, and the running pulse stills with `pulse-times.json`.
+  - It fails if a capture throws or the page errors, or if the pulse stills leave a gap over 0.9 s or cover less than one glyph period.
+  - `--pulse-only` captures the running stills again when a loaded machine left them sparse.
+- `python src/worlds/aether/review/relic_entrance.py <dir>`: the comparison above. The single-still mode stays: `relic_entrance.py capture.png "x0,y0,x1,y1"`.
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/portal_offframe.mjs [out-dir]`: the intro half.
+- They need a dev server, so they stay scripts, not vitest.
+
+Stills, in `docs/superpowers/evidence/aether/m2/`:
+- `t10-fix1-relic-entrance-t1-to-t8.4.webp` (the eight frames, one third size);
+- `t10-fix1-relic-pulse-peak-5.3s.webp` (a running still at the glyph's peak);
+- `t10-fix1-relic-check.txt`.
+
+**What is left (Task 17).**
+- These frames are the placeholder entrance: her pose is not authored for it, and at t 1 her face glow is not found.
+- Task 17 authors the real entrance. It must run `relic_capture.mjs` and `relic_entrance.py` again on it, with `ENTRANCE_T` set to its beats.
+- If Task 17 drives the membrane's `emissive` flash (up to +25%), a frame at the flash's peak must be added.
+- The worst frame (0.95) is a speck, not the portal. Still, the portal's own steady light (about 0.55 to 0.75) sits within 15 to 25% of her face glow.

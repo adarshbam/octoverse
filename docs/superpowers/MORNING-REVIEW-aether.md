@@ -82,7 +82,7 @@ What changed:
 Stills, all in `docs/superpowers/evidence/aether/m2/` (no videos):
 - `t10-p2-vs-world-intro.webp` (P2 left, render right), `t10-p2-vs-world-intro-samples.webp` (with the 23 sample boxes), `t10-p2-vs-world-intro-desktop-tier.webp`;
 - `t10-render-intro-desktop-1536.webp`: the frozen intro as your page draws it;
-- `t10-render-entering-t3.2-her-and-portal.png`: her and the portal in one frame;
+- `t10-render-entering-t3.2-her-and-portal.png`: her and the portal in one frame; `t10-fix1-relic-entrance-t1-to-t8.4.webp`: the eight entrance frames the relic check reads;
 - `t10-world-capture-intro.png` (+ mask), `t10-world-capture-intro-desktop-tier.png`;
 - `t10-numbers.txt`: every check's output.
 
@@ -92,9 +92,10 @@ Numbers (rounds in `docs/superpowers/reviews/aether.md`, "Task 10"):
   - Open: jellyfish bell 13.2 (12.4 desktop; engine request below), plus the three Task 6 owner decisions (arm body upper 39.4, beads 89.0 / 44.4).
   - Her own samples are unchanged.
 - **All four global checks pass:** warm core 154; pink, not white R-G 40 / 37, G 215 / 218; periwinkle arms B 240 / 239; indigo water B 88, B-R 72. Mean inside her silhouette and IoU (0.8505) are unchanged.
-- **Relic, entrance (t 3.2):** in one frame, through the same camera:
-  - The brightest pixel in the portal's region is Y 0.668. It is a bubble in front of the steps; the glyph's own brightest is 0.545.
-  - Her face glow peaks at Y 0.873. Pass (ratio 0.76).
+- **Relic, entrance (over the whole placeholder entrance, fix round 1):** her and the portal in one frame, through the same camera, at t 1, 2, 3.2, 4.5, 5.5, 6.5, 7.5 and 8.4 s, plus the portal over one full glyph pulse:
+  - Portal over face glow, frame by frame: 0.74, 0.84, 0.76, 0.77, 0.81, 0.56, **0.95** (t 7.5: a white speck on the coral by the steps, Y 0.864), 0.82. At t 1 she is too far in the murk for a face glow; that frame is compared with her intro face glow (Y 0.908).
+  - The glyph pulse at its peak (frozen stills hold it at mid level): with bubbles filtered out, the portal's brightest is at most Y 0.755 (ratio 0.86 against her dimmest face glow, 0.873).
+  - Pass, worst ratio 0.95. Task 17 runs it again on the real entrance.
 - **Relic, intro:** 0 portal pixels in the frozen intro at 1536 x 1024, 1920 x 1080, 1024 x 768 and 390 x 844. The nearest portal point is 112 to 251 px outside the frame. The check projects the portal through the page's own camera.
 - **fps under load** (tier low, three back-to-back pairs): 63.7 / 33.4, 52.1 / 67.1, 61.3 / 54.1.
   - Five of six runs clear 40; the median of the six is 57.7.

@@ -10,7 +10,8 @@
 // holds every pixel the node can cover; the test clips it to the frame and counts the pixels left. Any pixel fails.
 // It also prints how far outside the frame the nearest portal point lands, in pixels. With an out-dir it saves the
 // desktop still (`intro-desktop-frozen.png`) as the evidence the camera was read from.
-// Exit 1 on any portal pixel in any viewport.
+// Exit 1, with a line starting FAIL, on any portal pixel or corner in any viewport, or when the check cannot be made
+// (no camera probe, an unusable camera, a portal box behind the camera or projecting to no area, too few portal nodes).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
@@ -99,6 +100,7 @@ try {
     await waitForReady(page, { label: `intro ${label} ` });
     const cam = await page.evaluate(() => window.__octoverse.camera);
     if (!cam) throw new Error('no camera probe (window.__octoverse.camera): a development server is needed');
+    if (![cam.fov, ...cam.position, ...cam.quaternion, cam.offsetY ?? 0].every(Number.isFinite)) throw new Error(`the camera probe is not usable: ${JSON.stringify(cam)}`);
     if (outDir && label === 'desktop') await page.screenshot({ path: join(outDir, 'intro-desktop-frozen.png') });
     await page.close();
     const camera = new THREE.PerspectiveCamera(cam.fov, width / height, 0.1, 60);
@@ -116,16 +118,25 @@ try {
         const ndc = v.clone().project(camera);
         return [((ndc.x + 1) / 2) * width, ((1 - ndc.y) / 2) * height];
       });
-      const area = clippedArea(hull(pts), width, height);
+      if (!pts.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y))) throw new Error(`${box.name} does not project to finite pixels`);
+      const shape = hull(pts);
+      // A box always projects to an area: a hull of fewer than three corners means the projection went wrong, and its area of 0 would pass.
+      if (shape.length < 3) throw new Error(`${box.name} projects to a degenerate hull (${shape.length} corners)`);
+      const area = clippedArea(shape, width, height);
       pixels += area;
       for (const [x, y] of pts) nearest = Math.min(nearest, Math.max(-x, x - width, -y, y - height));
       if (area > 0) console.log(`  ${box.name}: ${area.toFixed(0)} px inside the ${label} frame`);
     }
-    const ok = pixels === 0;
+    // No hull pixel in the frame, and no corner in it either (a corner inside with a zero-area hull would be a projection fault).
+    const ok = pixels === 0 && nearest > 0;
     fail ||= !ok;
     console.log(`${ok ? 'ok  ' : 'MISS'} ${label} ${width}x${height}: portal pixels in the frozen intro ${pixels.toFixed(0)}; nearest portal point ${nearest.toFixed(0)} px outside the frame (camera fov ${cam.fov.toFixed(2)}, lens shift ${(cam.offsetY ?? 0).toFixed(1)} px)`);
   }
+} catch (error) {
+  console.log(`FAIL ${error.message.split(/\r?\n/)[0]}`);
+  fail = true;
 } finally {
   await browser.close();
 }
+if (fail) console.log('FAIL the portal is (or may be) in the frozen intro: see the lines above');
 process.exit(fail ? 1 : 0);
