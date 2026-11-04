@@ -8,12 +8,14 @@ import type { StageLighting } from '../../engine/config/lighting';
 // values, Task 6 tunes them); Task 4 the face's layers, colours and expressions (traced from the 3x P2).
 
 // Arms fan out in depth from the body as Nox's do (rear arms behind the head, side arms in front),
-// a touch thicker at the root than a slimmer octopus, and they taper steadily to the tip.
-const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.175, z: [-0.3, -0.62] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.19, z: [0.05, -0.32] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.19, z: [0.0, 0.3] });
+// a touch thicker at the root than a slimmer octopus, and they taper steadily to the tip. Task 6 set the
+// thickness against the P2 mask: the middle and side arms are as thick as P2's (about 0.3 across at
+// mid-arm), the rear arms beside the head slimmer.
+const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.17, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.22, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.225, z: [0.0, 0.3] });
 // The two centre arms show their cups along the V between them, inside their tip curls.
-const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.19, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.21, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
 
 /**
  * Flux's own lighting: a cool key from the upper left, a violet-pink glow from below (his face and
@@ -29,10 +31,12 @@ const FLUX_LIGHTING: StageLighting = {
 export const FLUX: CharacterConfig = {
   id: 'flux',
   lighting: FLUX_LIGHTING,
-  // Dome, cheeks and the face's origin traced from P2: dome half width 0.74, top 0.26, soft cheek
-  // lobes at eye level (radius about 0.08), the face in the lower half with its eyes at y -0.54.
+  // Dome, cheeks and the face's origin traced from P2: soft cheek lobes at eye level (radius about
+  // 0.08), the face in the lower half with its eyes at y -0.54. Task 6 fitted the dome to the P2 mask's
+  // rows (less the mask's 1 to 2 px of rim glow): half width 0.76, top 0.29, a fuller upper dome
+  // (topPower 2.2), so the head is as round and wide above the eyes as P2's.
   head: {
-    centerX: 0, halfWidth: 0.74, waist: -0.5, top: 0.26, bottom: -1.2, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0, -0.44],
+    centerX: 0, halfWidth: 0.76, waist: -0.5, top: 0.29, bottom: -1.2, topPower: 2.2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0, -0.44],
     cheeks: { y: -0.58, distance: 0.66, angle: 72, radius: 0.08, blend: 0.08 },
   },
   glow: {
@@ -164,7 +168,7 @@ export const FLUX: CharacterConfig = {
     focused: { lidRest: -0.06, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.7, mouthOpen: 0.3, blush: 0.45 },
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
-  tipRadius: 0.045,
+  tipRadius: 0.05,
   taperPower: 2.0,
   armBend: 0.2,
   armFlatten: 0.86,
