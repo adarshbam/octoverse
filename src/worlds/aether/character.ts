@@ -107,15 +107,17 @@ export const AETHER: CharacterConfig = {
   face: {
     // Large round eyes at y -0.68 (rel. y -0.10 from the face origin), 0.345 either side of the face
     // (P2: left eye centre about (236, 320) px, right about (305, 318)). Violet irises, two catchlights
-    // (large upper left, small lower right), a dark lash line and two short lashes at each outer corner.
+    // (a large one upper left, a small one upper right: P2, P3 and P4 at 3x all put both high on the
+    // pupil), a dark lash line and two short lashes at each outer corner. The pupil is large and
+    // round, nearly filling the dark top of the iris (P2 at 3x).
     eye: {
-      rx: 0.15,
-      ry: 0.17,
+      rx: 0.168,
+      ry: 0.16,
       centers: [[-0.345, -0.1], [0.345, -0.1]],
       border: { outer: 0.023, upperOuter: 0.031, top: 0.032, upperInner: 0.022, inner: 0.008, lowerInner: 0.008, bottom: 0.0075, lowerOuter: 0.011 },
       iris: { rx: 0.84, ry: 0.97, inset: 0.18, rim: 0.1 },
-      pupil: { rx: 0.5, ry: 0.55, drop: 0.12, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
-      catchlights: [{ x: -0.4, y: 0.42, r: 0.2 }, { x: 0.34, y: -0.3, r: 0.1 }],
+      pupil: { rx: 0.62, ry: 0.58, drop: 0.06, inner: { dx: -0.15, dy: 0.05, rx: 0.7, ry: 0.85 } },
+      catchlights: [{ x: -0.36, y: 0.4, r: 0.2 }, { x: 0.36, y: 0.36, r: 0.1 }],
       glows: [
         { x: -0.62, y: -0.38, rx: 0.34, ry: 0.4, strength: 0.9 },
         { x: 0.66, y: -0.36, rx: 0.3, ry: 0.36, strength: 0.75 },
@@ -158,6 +160,15 @@ export const AETHER: CharacterConfig = {
     tongue: '#fd878f',
     blush: '#fab7ce',
     blushGlow: '#f090d0',
+  },
+  // Her faces, as overrides of the engine's base table (amendment A1, G1: no new ids). `gentle` is
+  // the intro's soft closed smile (P2), `happy` the overview's open smile with the tongue just
+  // showing (P3), and `curious` her wonder (P4, spec 7.3): brows up, eyes open, a wide "ooh"-smile
+  // with the tongue showing and a little more blush. Every other face is the engine's.
+  expressions: {
+    gentle: { mouthOpen: 0 },
+    happy: { mouthCurve: 0.75, mouthOpen: 0.35, blush: 0.4 },
+    curious: { browLift: 0.55, browTilt: 0.1, lidRest: 0, mouthCurve: 0.85, mouthOpen: 0.7, blush: 0.35 },
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', -1), lower('T5', 1), side('T6'), middle('T7'), rear('T8')],
   // Jelly ribbons: a soft, fairly even taper, a little thinner than Nox's, tips that roll loosely.
