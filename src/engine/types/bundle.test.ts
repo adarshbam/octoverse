@@ -4,7 +4,7 @@ import { ARM_IDS, STAGE_IDS } from '../config/types';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { clampCharacterConfig } from '../config/validate';
 import { dummyWorld } from '../world/fixtures/dummy.world';
-import { BundleError, WORLDS, type WorldBundle, faceAnchor, faceOrigin, validateBundle } from './bundle';
+import { BundleError, type WorldBundle, faceAnchor, faceOrigin, validateBundle } from './bundle';
 
 /** A copy of Nox's bundle whose `poses` can be edited without touching his. */
 function withPoses(edit: (poses: Record<string, { arms: Record<string, unknown> }>) => void): WorldBundle {
@@ -62,9 +62,8 @@ test('every stage needs a pose', () => {
 test('the id is checked: its form, and the creator prefix that no shipped world may use', () => {
   for (const id of ['', 'n', 'Nox', '1nox', 'nox_3d', `n${'o'.repeat(32)}`, 'nox world']) expect(refusal({ ...NOX_BUNDLE, id }).field, id).toBe('id');
   for (const id of ['nox', 'veyra', 'u-adarsh', 'a1', `n${'o'.repeat(31)}`]) expect(() => validateBundle({ ...NOX_BUNDLE, id }), id).not.toThrow();
-  // A creator id is fine until it names a shipped world.
-  expect(refusal({ ...NOX_BUNDLE, id: 'u-nox' }, [...WORLDS, 'u-nox']).message).toMatch(/reserved for creator bundles/);
-  expect(WORLDS.filter(id => id.startsWith('u-'))).toEqual([]);
+  // A creator id is fine until it names a shipped world (the caller that knows the shipped ids passes them; the registry test does).
+  expect(refusal({ ...NOX_BUNDLE, id: 'u-nox' }, ['nox', 'u-nox']).message).toMatch(/reserved for creator bundles/);
 });
 
 test('a number that is not finite is refused loudly, by field, where the clamp would quietly read a default', () => {

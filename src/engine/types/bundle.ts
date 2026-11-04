@@ -19,12 +19,11 @@ import { validateWorld } from '../world/validateWorld';
 
 /**
  * A world's id: lower case letters, digits and hyphens, starting with a letter, 2 to 32 long. The
- * `u-` prefix is reserved for creator bundles (amendment A2, P4): no shipped world uses it.
+ * `u-` prefix is reserved for creator bundles (amendment A2, P4): no shipped world uses it (the
+ * engine does not list the shipped worlds: the registry's test, src/worlds/index.test.ts, holds the rule
+ * against the registry's own ids).
  */
 export type WorldId = string;
-
-/** The worlds that ship with the engine (their bundles are in the repo). */
-export const WORLDS = ['nox'] as const satisfies readonly WorldId[];
 
 const WORLD_ID = /^[a-z][a-z0-9-]{1,31}$/;
 const CREATOR_PREFIX = 'u-';
@@ -173,9 +172,10 @@ function checkPoses(poses: unknown) {
  * frame, the artifact kinds and the sheets they play, the title icon, the world (validateWorld) and
  * the project (validateProject, against the bundle's technologies). Numbers that are not finite and
  * colours that do not parse are refused here, by name, before the character's clamp would quietly
- * read a default in their place. `worlds` is the list of shipped worlds (WORLDS).
+ * read a default in their place. `worlds` is the list of shipped worlds' ids, which only a caller that
+ * has the registry knows (default: none): a bundle with the creator prefix that claims one of them is refused.
  */
-export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] = WORLDS): WorldBundle {
+export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] = []): WorldBundle {
   const { id } = bundle;
   if (typeof id !== 'string' || !WORLD_ID.test(id)) throw new BundleError('id', `"${String(id)}" is not a world id (lower case letters, digits and hyphens, starting with a letter, 2 to 32 long)`);
   if (id.startsWith(CREATOR_PREFIX) && worlds.includes(id)) throw new BundleError('id', `"${id}" is a shipped world, but the "${CREATOR_PREFIX}" prefix is reserved for creator bundles`);
