@@ -27,7 +27,7 @@ test('a browser with no webgl2 context gets the same fallback', async ({ page })
       return (original as (...a: unknown[]) => unknown).call(this, type, ...rest);
     } as typeof original;
   });
-  await page.goto('/');
+  await page.goto('/?world=nox');
   await expect(page.locator('canvas')).toHaveCount(0);
   await expect(page.getByRole('img', { name: /Nox/ }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Explore/ })).toBeVisible();

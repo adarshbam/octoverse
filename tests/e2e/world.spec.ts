@@ -71,7 +71,7 @@ const ready = (page: Page, timeout: number) => page.waitForFunction(() => (windo
 test('stage stays usable when world assets fail', async ({ page }) => {
   test.setTimeout(120_000);
   await page.route('**/nox/world/**', route => route.abort());
-  await page.goto('/');
+  await page.goto('/?world=nox');
   await expect(page.locator('.spike canvas')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Skip intro' })).toBeVisible();
   // On a busy machine the entrance can end by itself first (and the button goes): the heading comes either way.

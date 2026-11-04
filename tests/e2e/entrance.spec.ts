@@ -64,7 +64,7 @@ async function entranceAt(page: Page, seconds: number, steps = 40) {
 test('first visit shows the entrance, a reload in the same session goes straight to intro', async ({ page }) => {
   test.setTimeout(REST_WALL_MS + ENTRANCE_STEPS * STEP_WALL_MS);
   await holdClock(page);
-  await page.goto('/');
+  await page.goto('/?world=nox');
   await opened(page);
   await sheetLoaded(page);
   await worldReady(page);
@@ -100,7 +100,7 @@ test('the boot veil shows the title from the first paint, holds the entrance, an
       if (veil?.classList.contains('is-fading') && seen.__fadeAt == null) seen.__fadeAt = (window as unknown as { __noxEntrance?: { t: number } }).__noxEntrance?.t ?? 0;
     }).observe(document, { subtree: true, attributes: true, childList: true });
   });
-  await page.goto('/', { waitUntil: 'commit' });
+  await page.goto('/?world=nox', { waitUntil: 'commit' });
   const veil = page.locator('#boot-veil');
   await expect(veil.getByText('Security Lab')).toBeVisible();
   await expect(veil.getByText('OCTOVERSE')).toBeVisible();
@@ -119,7 +119,7 @@ test('the boot veil shows the title from the first paint, holds the entrance, an
 
 test('reduced motion skips the entrance', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await page.goto('/?world=nox');
   await opened(page);
   await expect(skip(page)).toHaveCount(0);
   await expect(title(page)).toBeVisible();
@@ -128,7 +128,7 @@ test('reduced motion skips the entrance', async ({ page }) => {
 test('skip mid-spin lands in the intro', async ({ page }) => {
   test.setTimeout(REST_WALL_MS + 20 * STEP_WALL_MS);
   await holdClock(page);
-  await page.goto('/');
+  await page.goto('/?world=nox');
   await opened(page);
   await sheetLoaded(page);
   await worldReady(page);
@@ -148,7 +148,7 @@ test('Skip intro, a click anywhere or a key ends the entrance at once', async ({
     const page = await browser.newPage();
     // The page's clock stands still after the swim's first half second, so only the skip can end it.
     await holdClock(page);
-    await page.goto('/');
+    await page.goto('/?world=nox');
     await opened(page);
     await page.clock.runFor(500);
     await expect(skip(page), how).toBeVisible();

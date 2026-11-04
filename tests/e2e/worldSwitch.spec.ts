@@ -181,7 +181,7 @@ test("another world's boot veil and title carry none of Nox: no Security Lab, no
   await drawn(page);
 
   // Nox's page keeps its veil words and its title.
-  await page.goto('/', { waitUntil: 'commit' });
+  await page.goto('/?world=nox', { waitUntil: 'commit' });
   await expect(page.locator('#boot-veil').getByText('Security Lab')).toBeVisible();
   expect(await page.title()).toBe('Nox · Security Lab');
   expect(problems).toEqual([]);
