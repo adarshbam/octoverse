@@ -430,13 +430,13 @@
   "iou": 0.85,
   "meanInside": {
     "rgb": [
-      153,
-      132,
-      227
+      154,
+      133,
+      228
     ],
     "tolerance": 12,
     "satTolerance": 0.04,
-    "saturation": 0.459,
-    "brightness": 0.898
+    "saturation": 0.458,
+    "brightness": 0.9
   }
 }
