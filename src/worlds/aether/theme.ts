@@ -26,6 +26,8 @@ export const AETHER_THEME: UiTheme = {
   pageTitle: 'Aether · AI Playground',
   // The nameplate's second line, "The Curious Mind" (content/aether.ts `epithet`), is drawn in this colour.
   nameplateLabel: '#d8d0f8',
+  // The intro plate: deep indigo glass over the water, panel 5's panel colour (#081132 to #0e1333) at 0.82.
+  plate: 'rgba(10, 17, 50, 0.82)',
   glow: 'rgb(120, 100, 255)',
   glowInner: 'rgb(140, 120, 255)',
   accentGlow: 'rgb(150, 120, 255)',
