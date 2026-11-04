@@ -39,9 +39,9 @@
       { "piece": "coral_fan_b", "position": [-4.2, 0, 1.7], "rotY": 0.35, "scale": 0.9 },
       { "piece": "coral_fan_a", "position": [4.1, 0, 1.9], "rotY": -0.3, "scale": 0.9 },
       { "piece": "coral_fan_c", "position": [-6.8, 0, -1.0], "rotY": 0.6, "scale": 1.1 },
-      { "piece": "coral_amber_a", "position": [-2.9, 0, 2.5], "rotY": 0.8 },
-      { "piece": "coral_amber_b", "position": [5.0, 0, 2.7], "rotY": -0.4, "scale": 1.1 },
-      { "piece": "coral_amber_c", "position": [-7.6, 0, -3.0], "rotY": 1.7, "scale": 1.2 }
+      { "piece": "coral_amber_a", "position": [-2.9, -1.5831, 2.5], "rotY": 0.8 },
+      { "piece": "coral_amber_b", "position": [5.0, -2.4951, 2.7], "rotY": -0.4, "scale": 1.1 },
+      { "piece": "coral_amber_c", "position": [-7.6, -2.4082, -3.0], "rotY": 1.7, "scale": 1.2 }
     ]
   },
   "chains": [],
