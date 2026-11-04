@@ -331,6 +331,41 @@ Things to know for Task 11:
 - The engine's kelp and seagrass flank both sides (|x| 2.6 to 9, z 2 to -26; seagrass from 1.4), so they stand through the arch, steps, walls and blocks and over the left half of the path. The kit does not avoid them; tune the strand count or `clear` in the look task.
 - Foreground rocks sit at |x| 2 to 5 (inside the frame, which is only about +-3.8 wide at z = 0).
 
+## Task 10: the baked vault, far plate and membrane - PENDING OWNER REVIEW
+
+Look at it live: http://localhost:5191/?world=veyra&stage=intro and `&stage=overview` (add `&tier=high` for the stills' tier). The bundle's place is now `VAULT_WORLD` (`src/worlds/veyra/place/config.ts`): the vault kit, the baked near world, the far plate, the membrane and the glowing plants. The look itself is Task 11's; this task makes the world stand and checks it does not break the Milestone 1 gate.
+
+Stills (`docs/superpowers/reviews/assets/veyra/`, tier high, frozen):
+- `t10-intro.png`, `t10-overview.png`: the page's stage view (1012 x 1008).
+- `t10-intro-vs-p2.png`: P2 beside the render in P2's frame (488 x 495).
+
+What is in:
+- `blender/vault/bake_world.py` bakes `public/veyra/world/near.glb` headless (2.72 MB; Nox's security bake, adapted): the portal's cyan spill (three points in each arch's frame, raised by `relics.spill` 1.2, with shadows), the glowing plants' green light, the corals' faint orange, the cool fill and the surface light, with occlusion, into lightmaps on stone, rock, coral and seabed. Its record carries the vault's own light lists (`portal`, `plant`, `coral`); no glyph, lava or back lights.
+- `blender/vault/render_far.py` renders the far plate headless (about 3 min): three transparent KTX2 layers at z -42, -28 and -18 (`public/veyra/world/far/`, 178 KB), the fog baked per pixel. Pieces beyond z -14 and `far.json`'s extras: walls and blocks on both flanks, steps, rocks, glowing plants and a dark far arch with no membrane.
+- Engine (`f0d7687`): kit-material variants, a closed table of `membrane` (a flowing energy sheet: deep body, bright edge, slow drifting lines, its flash capped) and `glow` (an emissive piece brightest at its tips, pulsing slowly). A world assigns them to kit nodes by name with its own colours (`materials`); nothing in the shaders is Veyra's. `kit.attached` draws the membrane and padlock in each arch's frame.
+- The config: surface spot with caustics, deep blue-teal fog, kelp, seagrass, cyan bubbles, green motes, blue-violet fish (dropped at tier low), rays; moss floor; a faint cool skin accent; bloom threshold 0.8 so cyan does not clip to white.
+
+### Numbers
+
+- **Intro gate still passes** (`check_stage.py --world --stage intro --world-id veyra`, exit 0, frozen intro with the world in): all 13 samples within delta E 10; mid water 9.5 to 0.8 (the world's dark stone behind her), water outside the head 2.1 to 2.8; every other sample as Task 7 left it. Mean (71, 162, 142), saturation 0.662, brightness 0.649 (all inside).
+- **Shape (`veyra_shape.py`)**: the engine-mask row passes as before (span 3.71, IoU without the extra arms 0.857). The colour-segmentation row now misses: span 3.94 and IoU 0.850 (Task 7: 3.72 and 0.855), because the recipe also picks up the world's green plants and seagrass beside her arm tips. Her shape did not change (the mask row is identical); the recipe needs a world-free capture or a mask from the engine. Not changed here.
+- **Relic rule** (spec 7.7, `config.test.ts`): the face core `#f0eca0` is 0.810 in linear luminance; the membrane's brightest (its edge at a full flash) 0.759, the padlock 0.664, the plants 0.737.
+- **No red light**: every light's red is below its green and blue, except the two coral accents (`#e8a030`, intensity 0.3, capped at 0.4).
+- **Colours measured on `t10-overview.png`** (median, against P1's native measurements): stone wall (7, 47, 59) vs (7, 53, 59); upper water (14, 93, 126); membrane body (1, 27, 38) vs P1 (4, 108, 140); padlock (61, 105, 98) vs (146, 247, 235); plant (13, 73, 57) vs (40, 141, 119).
+- **Perf** (`perf.mjs "stage=intro&tier=low"`, interleaved, CPU before/after): Veyra 71.4 / 60.2 fps median (13.2% / 51.9%, 17.1% / 20.6%), Nox 41.3 / 67.6 (17.8% / 29.5%, 23.8% / 12.9%). Veyra over 40 fps on both runs.
+- **Nox unchanged**: vitest 758 passed, both tsc builds clean, lint 0 errors and 50 warnings, build ok, still gate PASS (every still 0.0000 but techFocus's known residual), e2e world, worldMotion and worldTiers 13 of 13.
+
+### Weaknesses (mine), for Task 11
+
+- **The membrane and padlock read too dark and grey at the stage's distance**: membrane body (1, 27, 38) against P1's (4, 108, 140), padlock (61, 105, 98) against (146, 247, 235). The fog (density 0.034 at about 20 units) and the tone mapping take most of it; the membrane's body is drawn at 32% of its colour. The relic rule leaves room (0.759 and 0.664 against 0.810), but not enough to reach P1's values by params alone: Task 11 should decide between a brighter body (an engine change to the membrane's floor) or less fog on the portal.
+- **The plants glow only at their bulbs** (13, 73, 57) against P1's (40, 141, 119).
+- **The far plate is a thin band**: each layer covers 3.5 to 5% of its card, and the farthest (z -42) is 95% fog, nearly invisible.
+- **Kit.tsx's rock and coral albedo are Nox's** (`#211a26`, `#7a0a18`); the bake uses the same, so they match, but they are not Veyra's.
+- **Kelp and seagrass stand through the kit** (Task 9's note), and a block on the left reads as floating from the stage view.
+- **The Milestone 1 shape gate needs a ruling (Task 11 action).** `veyra_shape.py`'s colour-segmentation row now misses (span 3.94, IoU without the extra arms 0.850) because it picks up the world's green plants. Task 11: run `veyra_shape.py` on a world-free capture, or switch the gate to the engine-mask row, and re-quote the gate's numbers on the row the owner approves.
+- **The bake spends atlas space on the glowing plants** (they are drawn with their kit material and never read their lightmap). Task 11: leave them out of the atlas.
+- **Bloom clipping is not measured yet.** Re-measure whether cyan clips to white once Task 11 brightens the portal.
+
 ## Task 12: notes carried in
 
 - The overview's opened dome (Task 3 review, minor 2): `jellyLook` runs after the HEAD shader's `capped` darkening and ignores `uMorph`, so in the overview the sunk mantle top still gets the full crown band and rim. Check it there and fix it if it shows.

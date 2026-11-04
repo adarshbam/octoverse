@@ -45,7 +45,8 @@ from mathutils.bvhtree import BVHTree
 ROOT = Path(__file__).resolve().parents[2]
 LAYOUT = ROOT / "src/worlds/veyra/place/layout.json"
 DEFAULT_OUT = ROOT / "public/veyra/world/kit.glb"
-RAW = Path(tempfile.gettempdir()) / "veyra-kit-vault-raw.glb"
+# This run's own temporary file (its process id): two builds at once never write the same one.
+RAW = Path(tempfile.gettempdir()) / f"veyra-kit-vault-raw-{os.getpid()}.glb"
 
 SCENE = "VeyraKit vault"
 PIECES = "VeyraKit vault pieces"  # exported
@@ -765,12 +766,6 @@ def contact_sheet(scene, coll, pieces, nodes, path):
     columns = 5
     cell = 5.2
     rows = math.ceil((len(pieces) + 1) / columns)
-
-    def copy(ob, x, y, label, parent=None):
-        c = bpy.data.objects.new(f"{PREFIX}sheet.{label}", ob.data)
-        coll.objects.link(c)
-        c.matrix_world = Matrix.Translation((x, 0, y)) @ ob.matrix_basis if parent is None else ob.matrix_world
-        return c
 
     for k, (name, ob) in enumerate(pieces.items()):
         col, row = k % columns, k // columns
