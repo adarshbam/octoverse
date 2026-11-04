@@ -38,7 +38,7 @@ import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createHeadSilhouetteMaterial } from './headMorph';
 import { HEAD_EFFECTS } from './headEffects';
-import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
+import { createSkinMaterial, createSkinUniforms, surfaceLooks } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
 import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
@@ -222,7 +222,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const centre = a === 'T4' && b === 'T5';
       return new ArmWeb(left.chain, right.chain, u => left.tube.radiusAt(u), u => right.tube.radiusAt(u), centre ? 0.14 : 0.2, centre ? 0 : undefined);
     });
-    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot);
+    // The mantle and the arms each take their own surface's look; the webs are arm surface.
+    const looks = surfaceLooks(config.skin);
+    const webMaterial = createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms);
     webMaterial.side = THREE.DoubleSide;
     // The cups and their contact shadows share one set of placements and bends.
     const suckerTotal = arms.reduce((n, a) => n + a.row.count, 0);
@@ -254,8 +256,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       suckers,
       cupShadows,
       suckerBend,
-      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }),
-      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot),
+      headMaterial: createSkinMaterial('HEAD', uniforms, config.palette.rimHot, { texture: face.texture, rect: FACE_RECT }, looks.mantle),
+      armMaterial: createSkinMaterial('ARM', uniforms, config.palette.rimHot, undefined, looks.arms),
       coreGlow: createGlowMaterial(config.glow.core, CORE_GLOW, 2.4),
       armHalo: createHaloMaterial(config.glow.halo, 'ARM'),
       headHalo: createHaloMaterial(config.glow.halo, 'HEAD', new THREE.Vector3(config.head.centerX - config.head.faceOrigin[0], config.head.waist - config.head.faceOrigin[1], 0), uniforms.uMorph),
@@ -764,6 +766,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const at = world.light.uNoxLightPos.value.copy(m.glow).add(GLOW_LIGHT_OFFSET);
       glowLight.parent?.worldToLocal(glowLight.position.copy(at));
     }
+    // The sparkles' twinkle runs on the character's clock (held at 0 when frozen); nothing reads it on a surface without them.
+    rig.uniforms.uSkinTime.value = t;
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 
     // The head opens into the glass dome: the dome stays whole and in place while its glass is

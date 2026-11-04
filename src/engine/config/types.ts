@@ -396,6 +396,47 @@ export interface SkinDetail {
   /** Fine wet streaks along the arms: how stretched they are, and how deep. */
   streakScale: number;
   streakStrength: number;
+  /**
+   * How the mantle and the arms are drawn, each on its own (amendment A1, spec 18.2: Aether's arms
+   * are translucent, Flux reuses the mantle's mode). Absent, both are `'skin'` with no sparkle: Nox.
+   */
+  surfaces?: { mantle: SurfaceLook; arms: SurfaceLook };
+}
+
+/** The material modes a skin surface can take: a closed table in the engine (skinMaterial.ts). */
+export const SKIN_MODES = ['skin', 'jelly'] as const;
+export type SkinMode = (typeof SKIN_MODES)[number];
+
+/**
+ * One skin surface's look: Nox's living `'skin'`, or `'jelly'` glass (Veyra), and fine twinkling
+ * specks over it, `sparkle` per square unit of the surface (0 is none).
+ */
+export interface SurfaceLook {
+  mode: SkinMode;
+  /** The jelly's colours and shape; read only in `'jelly'` mode (absent there: the character's own palette). */
+  jelly?: JellySettings;
+  sparkle: number;
+}
+
+/**
+ * The jelly glass (spec 7.2): a bright fresnel rim, a lighter crown cap, a darker thicker centre
+ * facing the viewer, and a warm core glowing inside. Every colour is config read into a uniform,
+ * never a shader constant (A1 F6, A6).
+ */
+export interface JellySettings {
+  /** The silhouette's fresnel edge colour, and its falloff: (1 - n·v)^rimPower (higher is thinner). */
+  rim: string;
+  rimPower: number;
+  /** The cap's colour, and where it starts: the surface normal's up component, 0 to 1 (on a round dome, the height as a fraction of its radius). */
+  crown: string;
+  crownHeight: number;
+  /** The thick middle's colour, and how far the surface facing the viewer takes it (0 to 1). */
+  depth: string;
+  depthStrength: number;
+  /** The warm core inside: its colour, its centre relative to the face glow's (`glow.center`), and its strength (0 to 2). */
+  core: string;
+  coreCenter: readonly [number, number, number];
+  coreWarmth: number;
 }
 
 /** Sucker cups along each arm's oral side. Lengths in world units, angles in degrees. */

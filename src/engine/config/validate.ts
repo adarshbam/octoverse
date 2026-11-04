@@ -1,7 +1,7 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
 import { isColour, isWorldColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
-import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type OrbGlass, type Palette } from './types';
+import { ARM_IDS, type AuraSettings, type CharacterConfig, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SurfaceLook } from './types';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -79,6 +79,38 @@ function clampLighting(l: StageLighting, d: StageLighting = INTRO_LIGHTING): Sta
     ambient: { sky: colour(l.ambient.sky, d.ambient.sky), ground: colour(l.ambient.ground, d.ambient.ground), intensity: clamp(l.ambient.intensity, 0, 2, d.ambient.intensity) },
     haze: { color: colour(l.haze.color, d.haze.color), near: clamp(l.haze.near, 0, 4, d.haze.near), far: clamp(l.haze.far, 0, 4, d.haze.far), strength: unit(l.haze.strength, d.haze.strength) },
   };
+}
+
+/** Sparkle specks per square unit of surface: none to a dense frost. */
+const SPARKLE_MAX = 400;
+
+/** A jelly's numbers when a config leaves one out or gives one that is not a number. */
+const JELLY_DEFAULTS = { rimPower: 3, crownHeight: 0.5, depthStrength: 0.5, coreWarmth: 1 } as const;
+
+/**
+ * One surface's look: a mode from the closed table (anything else reads `'skin'`), its sparkle held
+ * to [0, SPARKLE_MAX], and in `'jelly'` mode its settings clamped. A jelly colour that is missing or
+ * does not parse reads the character's own: the top rim, the head edge, the blotch and the glow core
+ * (the engine holds no colour of its own here).
+ */
+function clampSurface(look: Partial<SurfaceLook> | undefined, palette: Palette, core: string): SurfaceLook {
+  const mode: SkinMode = (SKIN_MODES as readonly unknown[]).includes(look?.mode) ? look!.mode! : 'skin';
+  const sparkle = clamp(look?.sparkle as number, 0, SPARKLE_MAX, 0);
+  if (mode !== 'jelly') return { mode, sparkle };
+  const j: Partial<JellySettings> = look?.jelly ?? {};
+  const centre = Array.isArray(j.coreCenter) ? j.coreCenter : [];
+  const jelly: JellySettings = {
+    rim: colour(j.rim, palette.rimTop),
+    rimPower: clamp(j.rimPower as number, 0.5, 8, JELLY_DEFAULTS.rimPower),
+    crown: colour(j.crown, palette.headEdge),
+    crownHeight: unit(j.crownHeight as number, JELLY_DEFAULTS.crownHeight),
+    depth: colour(j.depth, palette.blotch),
+    depthStrength: unit(j.depthStrength as number, JELLY_DEFAULTS.depthStrength),
+    core: colour(j.core, core),
+    coreCenter: [0, 1, 2].map(i => clamp(centre[i] as number, -2, 2, 0)) as unknown as JellySettings['coreCenter'],
+    coreWarmth: clamp(j.coreWarmth as number, 0, 2, JELLY_DEFAULTS.coreWarmth),
+  };
+  return { mode, jelly, sparkle };
 }
 
 /** Expression overrides: only known ids, only keys the face has, only finite values, each held in the range the face can draw. */
@@ -164,6 +196,15 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       gloss: clamp(k.gloss, 4, 400, ds.gloss),
       streakScale: clamp(k.streakScale, 0.1, 10, ds.streakScale),
       streakStrength: unit(k.streakStrength, ds.streakStrength),
+      // Absent stays absent: skin on both surfaces, no sparkle (Nox).
+      ...(k.surfaces
+        ? {
+            surfaces: {
+              mantle: clampSurface(k.surfaces.mantle, config.palette as Palette, colour(config.glow.core, LEGACY.core)),
+              arms: clampSurface(k.surfaces.arms, config.palette as Palette, colour(config.glow.core, LEGACY.core)),
+            },
+          }
+        : {}),
     },
     personality: {
       ...p,
