@@ -105,7 +105,7 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 
 ## Task 3: the host's look (2026-11-04)
 
-**Verdict: provisional, pending owner.** The look meets the global checks, IoU and the shape targets; 13 of 17 P2 samples are within delta E 10. Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
+**Verdict: provisional, pending owner.** The look meets the global checks, IoU and the shape targets; 12 of 17 P2 samples are within delta E 10 (corrected after review from 13; see round 2 below). Gate review entry in `docs/superpowers/MORNING-REVIEW-platform.md`.
 
 ### What landed
 
@@ -151,3 +151,9 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 4. Mean saturation 0.481 is near the floor (0.478): lighter arms or brighter cups push it out.
 5. A full `npx vitest run` under load times out 1 to 3 python-spawning tests in `src/worlds/reviewTooling.test.ts` (5 s limit); the file passes alone (3 of 3). Not touched by this task.
 
+### Round 2 (review fix, 2026-11-04)
+
+- `scripts/host_delta_e.py` read every sample from a window centred on the listed pixel; spec 2.1's targets were read from `x - floor(size/2)` to `x - floor(size/2) + size`. Fixed, so P2 reads delta E 0.0 on every sample (cup rim (248, 197, 159), arm underside (245, 175, 186)). On the round 1 still the fixed window gives 12 of 17, not the 13 of 17 first reported (arm upper 43.6, arm underside 11.2).
+- Look: violet-lavender arm tops (arm crown `#8a7cff` from height 0.4, armBody `#5c48e4`, arm depth `#3c44f0` at 0.48), amber-orange cup walls (edge `#ffa868`), lighter underside band (terminator `#ffbcb4`, belly `#ffd4c0`), a rounder head (top 0.35, topPower 1.7, bottomPower 2.45) and T1 moved 0.02 to 0.06 toward the head.
+- Result: 12 of 17 within delta E 10 (arm upper 43.6 to 18.8, arm underside 11.2 to 14.5, cup rim 5.0 to 9.3; the rest within 2), every global check passes, IoU 0.856, mean inside passes (saturation 0.484 against a 0.478 floor).
+- Still open: the head sides need one-sided mantle light (BLOCKED on E02b / owner); arm upper is P2's deep blue gap and fights the lighter arms; upper water 11.0 (brightening it further lifts mid water and the water by the head).

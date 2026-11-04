@@ -36,7 +36,7 @@ try {
       failed = true;
       console.log('[pageerror]', e.message);
     });
-    page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404') && !(kitless && /Could not load : |kit/.test(m.text()))) console.log('[console]', m.text()); });
+    page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404') && !(kitless && KIT_ERROR.test(m.text()))) console.log('[console]', m.text()); });
     await warmFonts(page, base);
     await page.goto(base + query(mask), { waitUntil: 'load' });
     if (mask) await page.waitForSelector('canvas', { timeout: READY_TIMEOUT_MS });

@@ -3,11 +3,13 @@ the silhouette's IoU with the P2 mask, the mean colour inside it, and the head, 
 Usage: python scripts/host_delta_e.py <still.png> [--overlay out.png] [--json]
 The still is a frozen intro from scripts/platform-capture.mjs: P2's panel (512 x 508 native px) at any whole
 scale (default capture: 1024 x 1016), with its silhouette at <still>-mask.png. Every sample is the mean of the
-square of the listed native size (targets.json `size`) centred on the listed native pixel, in the still at its
-scale; the same square is read on P2 itself (public/octoverse/ref/p2.png) as a sanity column.
+window targets.json's values were read with: native px x0 = x - floor(size / 2) to x0 + size (exclusive), and
+the same in y, scaled by the still's scale; the same window on P2 itself (public/octoverse/ref/p2.png) is a
+sanity column that reads delta E 0.0.
 Shape: from the mask, in stage units (origin native (256, 254), 100 px a unit, +y up). Eyes and mouth are
 located in the still: each eye as its opening (iris, pupil, sclera, lash line) in its half of the face, the
-mouth as its opening (dark plum inside and tongue). Exit 1 when any P2 sample misses delta E 10, a global check fails, or IoU < the target.
+mouth as its opening (dark plum inside and tongue). Exit 1 when any P2 sample misses delta E 10, a global
+check fails, or IoU is under the target.
 --overlay writes the two masks over each other: white both, red P2 only, cyan render only."""
 import json, pathlib, sys
 import numpy as np
@@ -35,9 +37,9 @@ def delta_e(a, b):
 
 
 def area(img, s, x, y, size):
-    """Mean of the size x size native-px square centred on native (x, y), in an image at scale s."""
-    h = size / 2
-    box = (round((x - h) * s), round((y - h) * s), round((x + h) * s), round((y + h) * s))
+    """Mean of targets.json's sample window, native px [x - size // 2, x - size // 2 + size) in x and y, in an image at scale s."""
+    x0, y0 = x - size // 2, y - size // 2
+    box = (round(x0 * s), round(y0 * s), round((x0 + size) * s), round((y0 + size) * s))
     return np.asarray(img.crop(box), dtype=float).reshape(-1, 3).mean(0)
 
 
@@ -75,7 +77,7 @@ def main():
     for t in TARGETS['samples']:
         if t['panel'] != 'p2': continue
         r = area(img, s, t['x'], t['y'], t['size'])
-        p = area(ref, 1, t['x'], t['y'], t['size'])
+        p = area(ref, 1, t['x'], t['y'], t['size']).round()  # targets.json holds rounded means
         d, dp = delta_e(r, t['rgb']), delta_e(p, t['rgb'])
         got[t['name']] = r
         ok = d <= TARGETS['deltaE']
@@ -124,7 +126,7 @@ def main():
         span = (cols[-1] - cols[0] + 1) / 100
         rows = np.nonzero(rm.any(1))[0]
         top = (ORIGIN[1] - rows[0]) / 100
-        # Head half-width: the widest mask run through x = 0 between the top and y -0.3 (above the arms' rise).
+        # Head half-width: the widest mask run through x = 0 from the top down to y -0.1 (above the arms' rise).
         hw = 0
         for py in range(rows[0], ORIGIN[1] + 30):
             row = rm[py]; x0 = x1 = ORIGIN[0]
@@ -132,7 +134,6 @@ def main():
             while x0 > 0 and row[x0 - 1]: x0 -= 1
             while x1 < NATIVE[0] - 1 and row[x1 + 1]: x1 += 1
             if py < ORIGIN[1] + 10: hw = max(hw, (x1 - x0 + 1) / 200)
-        cx = ((cols[0] + cols[-1]) / 2 - ORIGIN[0]) / 100
         print(f'arm span {span:.2f} (target {TARGETS["armSpan"]}), head top {top:.2f} (target {TARGETS["head"]["top"]}), head half-width above y -0.1: {hw:.2f} (target {TARGETS["head"]["halfWidth"]})')
         report['shape'].update({'iou': round(iou, 3), 'span': span, 'top': top, 'headHalfWidth': hw, 'meanInside': [round(float(v)) for v in mean], 'saturation': round(sat, 3)})
         if '--overlay' in a:
@@ -141,16 +142,15 @@ def main():
             Image.fromarray(o).save(a[a.index('--overlay') + 1])
 
     # Face: each eye is the largest blob of eye pixels (dark iris, pupil and lash line, or white sclera
-    # and catchlights) in its half of the face box, its centre the middle of the blob's box less the lash
-    # line (the box's top edge moved down by the dark rows above the first white or iris row is not worth
-    # the fuss: the lash line is about 2 native px, so the centre reads about 1 px high). The mouth is
-    # the opening (dark plum inside and coral tongue), its centre the middle of its box.
+    # and catchlights) in its half of the face box, its centre the middle of the blob's box (the lash line
+    # on top raises it by about 1 native px). The mouth is its opening (dark plum inside and coral tongue),
+    # its centre the middle of its box.
     arr = np.asarray(img, dtype=float)
     x0, y0, x1, y1 = 176, 285, 336, 385
     face = arr[round(y0 * s):round(y1 * s), round(x0 * s):round(x1 * s)]
     lum = face.mean(2)
-    sat = (face.max(2) - face.min(2)) / np.maximum(face.max(2), 1)
-    eyeish = (lum < 80) | ((lum > 225) & (sat < 0.15))
+    chroma = (face.max(2) - face.min(2)) / np.maximum(face.max(2), 1)
+    eyeish = (lum < 80) | ((lum > 225) & (chroma < 0.15))
 
     def largest_box_centre(m):
         lab_, n = label(m)
@@ -176,9 +176,9 @@ def main():
     report['shape'].update({'eyes': eyes, 'mouth': mouth})
 
     # Sparkle specks (spec 2.3: at least 30 on the front of the head, 50 across the arms, at P2 size):
-    # small lavender-white blobs (1 to 16 still px, blue >= red) at least 35 brighter than the 9 x 9 median
-    # round them, inside the
-    # render's silhouette; the head is the mask inside |x| <= 0.84, y above -1.0, the arms the rest.
+    # small lavender-white blobs (1 to 16 still px, blue >= red) at least 35 brighter than the 9 x 9
+    # median round them, inside the render's silhouette. The head is the part inside |x| <= 0.84 and
+    # above y -1.0, the arms the rest.
     if mpath.exists():
         from PIL import ImageFilter
         lum = np.asarray(img.convert('L'), dtype=float)

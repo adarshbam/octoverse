@@ -17,6 +17,8 @@ const rgb = (hex: string): [number, number, number] => {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
+/** A colour's lightness, roughly: the sum of its channels. */
+const lightness = (hex: string) => rgb(hex).reduce((sum, v) => sum + v, 0);
 
 const mantle = HOST.skin.surfaces?.mantle;
 const arms = HOST.skin.surfaces?.arms;
@@ -69,7 +71,23 @@ describe("spec 2.1's global checks on the config's own colours", () => {
     // Violet: blue over red over green, darker than the rim.
     expect(hb).toBeGreaterThan(hr);
     expect(hr).toBeGreaterThan(hg);
-    expect(hr + hg + hb).toBeLessThan(r + rgb(cups!.rim)[1] + b);
+    expect(lightness(cups!.hollow)).toBeLessThan(lightness(cups!.rim));
+  });
+});
+
+describe('the look, round 2 (P2 side by side)', () => {
+  test('the arm tops are a lighter lavender than the blue-violet arm body', () => {
+    const [r, g, b] = rgb(arms!.jelly!.crown);
+    expect(b).toBeGreaterThan(r);
+    expect(r).toBeGreaterThan(g);
+    expect(lightness(arms!.jelly!.crown)).toBeGreaterThan(lightness(arms!.jelly!.depth));
+  });
+
+  test('the cup wall is a saturated amber-orange, deeper than the peach rim', () => {
+    const [r, g, b] = rgb(cups!.edge);
+    expect(r - b).toBeGreaterThanOrEqual(120);
+    expect(g).toBeGreaterThan(b);
+    expect(rgb(cups!.rim)[2] - b).toBeGreaterThan(40);
   });
 });
 

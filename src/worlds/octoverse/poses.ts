@@ -45,10 +45,12 @@ const spread = (id: ArmId, points: readonly Point2[]): Point2[] => {
  * Task 3 re-traced these against the P2 mask with the arms at P2's thickness (root radius 0.22): the
  * shoulder arms sit a little lower, the rising pair a little closer to the head, so the solid flesh
  * beside the head and under the shoulder arms is arm, not water (silhouette IoU, spec 2.2); the centre
- * pair's tips are lifted clear of the pill's edge, where P2's mask stops.
+ * pair's tips are lifted clear of the pill's edge, where P2's mask stops. Round 2 moved T1's rise
+ * 0.02 to 0.06 closer still, closing the gap P2 fills with deep blue beside the head, so spec 2.1's
+ * arm sample (native 165, 305) lies on the arm, not on its rim light.
  */
 const P2_TRACE: Record<ArmId, Point2[]> = {
-  T1: [[-0.9, -1.0], [-1.0, -0.85], [-1.06, -0.71], [-1.08, -0.57], [-1.12, -0.42], [-1.21, -0.3], [-1.35, -0.22], [-1.48, -0.26], [-1.54, -0.34], [-1.53, -0.42], [-1.47, -0.45], [-1.42, -0.4], [-1.44, -0.37]],
+  T1: [[-0.9, -1.0], [-0.96, -0.85], [-1.0, -0.71], [-1.02, -0.57], [-1.07, -0.42], [-1.19, -0.3], [-1.35, -0.22], [-1.48, -0.26], [-1.54, -0.34], [-1.53, -0.42], [-1.47, -0.45], [-1.42, -0.4], [-1.44, -0.37]],
   T2: [[-0.85, -1.05], [-1.1, -1.04], [-1.3, -0.95], [-1.49, -0.83], [-1.69, -0.74], [-1.89, -0.72], [-2.09, -0.78], [-2.23, -0.88], [-2.28, -1.02], [-2.23, -1.15], [-2.13, -1.21], [-2.02, -1.2], [-1.99, -1.14], [-2.04, -1.11]],
   T3: [[-0.55, -1.38], [-0.79, -1.5], [-0.98, -1.52], [-1.18, -1.49], [-1.37, -1.46], [-1.56, -1.49], [-1.7, -1.57], [-1.74, -1.71], [-1.67, -1.84], [-1.56, -1.87], [-1.48, -1.82], [-1.51, -1.78]],
   T4: [[-0.12, -1.25], [-0.2, -1.43], [-0.29, -1.59], [-0.4, -1.74], [-0.53, -1.84], [-0.66, -1.86], [-0.75, -1.8], [-0.77, -1.7], [-0.7, -1.64], [-0.65, -1.67]],

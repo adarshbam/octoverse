@@ -83,16 +83,19 @@ export const HOST: CharacterConfig = {
   // A broad, slightly flattened jelly dome (spec 7.1), traced from the P2 mask's rim (row half-widths
   // 0.31 at y 0.29, 0.52 at 0.19, 0.69 at 0.04, 0.80 at -0.06, 0.84 at -0.11): widest at the waist,
   // a generous forehead, the face low; the neck runs full to the chin (P2 chin sample y -1.11).
+  // Task 3 round 2: a taller, rounder dome (top 0.35, topPower 1.7 gives half-widths 0.30, 0.51, 0.70
+  // and 0.78 at those rows, closer than round 1's 0.29, 0.54, 0.73 and 0.80) and softer lower sides
+  // (bottomPower 2.45), so the head no longer reads square at the shoulders and cheeks.
   // No cheek lobes (spec 7.1): the smallest cheeks the shape takes, sunk well inside the mantle,
   // so the outline never leaves the dome line (blend > 0 is the shape's one requirement).
   head: {
     centerX: 0,
     halfWidth: 0.84,
     waist: -0.22,
-    top: 0.33,
+    top: 0.35,
     bottom: -1.25,
-    topPower: 1.9,
-    bottomPower: 2.6,
+    topPower: 1.7,
+    bottomPower: 2.45,
     depth: 0.85,
     faceOrigin: [FACE_ORIGIN[0], FACE_ORIGIN[1]],
     cheeks: { y: -0.8, distance: 0.3, angle: 70, radius: 0.01, blend: 0.01 },
@@ -113,7 +116,7 @@ export const HOST: CharacterConfig = {
     // spread reaches down past the chin so the lower face and chin stay peach, never lavender.
     ramp: [
       [0, '#3848d8'], [0.15, '#5a64f0'], [0.27, '#8070f4'], [0.4, '#d078d0'], [0.55, '#ec8cc8'],
-      [0.7, '#fca4b4'], [0.85, '#fc9a98'], [1, '#ff9480'],
+      [0.7, '#fca6ac'], [0.85, '#fc9a98'], [1, '#ff9480'],
     ],
     cheekWarmth: 0.6,
     underside: 2,
@@ -121,13 +124,13 @@ export const HOST: CharacterConfig = {
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#b49cff', crown: '#5565fc', band: '#ffb0a0', strength: 0.7, bandStrength: 0.6 },
     // In the reef: a soft lavender aura, peach below; the water just outside the head stays deep
     // indigo (2, 22, 72; spec 7.2).
-    aura: { inner: '#040c34', low: '#ff9a80', belowStart: 0.75, radius: 3.2, strength: 0.3 },
+    aura: { inner: '#020a28', low: '#ff9a80', belowStart: 0.75, radius: 3.2, strength: 0.3 },
     grade: { color: '#021648', radius: 4, strength: 1 },
   },
   palette: {
     // The lower face below the glow's reach (the chin and the face's sides) takes this: peach, set a
     // little deeper than the chin sample (253, 181, 183) for the bloom's lift (Task 3).
-    cheek: '#fc9086',
+    cheek: '#fc8a7c',
     headEdge: '#7a5ce8',
     rimTop: '#5565fc',
     rimLow: '#c48cff',
@@ -136,12 +139,14 @@ export const HOST: CharacterConfig = {
     tintCool: '#5060ff',
     tintWarm: '#e080c8',
     wet: '#b0a8ff',
-    // Arm tops blue-violet (58, 55, 213), undersides a peach-pink glow (245, 175, 186; spec 2.1): the
-    // underside band runs from peach-pink to amber toward the cups, at the engine's full strength.
-    armBody: '#3a37d5',
-    terminator: '#ffb0a8',
+    // Arm undersides a peach-pink glow (245, 175, 186; spec 2.1): the underside band runs from
+    // peach-pink to amber toward the cups, at the engine's full strength. The lit arm is violet, lighter
+    // than spec 2.1's blue-violet arm sample (58, 55, 213), which P2 takes in the shaded root beside
+    // the head: there the head blocks the key light and the arm jelly's blue depth carries it.
+    armBody: '#5c48e4',
+    terminator: '#ffbcb4',
     armGlow: '#f5afba',
-    belly: '#ffc8a8',
+    belly: '#ffd4c0',
     // Peach-amber cup rims (248, 197, 159) round a darker violet hollow (spec 7.1).
     suckerEdge: '#e09070',
     suckerBody: '#f8c59f',
@@ -241,13 +246,14 @@ export const HOST: CharacterConfig = {
   armFlatten: 0.86,
   // Large round cups packed into a scalloped frill on each underside, shrinking toward the tip
   // (spec 7.1), in Veyra's frill style: glowing peach-amber rims (248, 197, 159; spec 2.1) on a
-  // warm peach wall, round a darker violet hollow. The warmest light on the character after the
+  // saturated amber-orange wall (round 2: P2's cups read amber, not cream), round a darker violet
+  // hollow. The warmest light on the character after the
   // face (spec 7.2): brighter than any world's cups. Turned only a little toward the viewer (tilt
   // 14) and packed (spacing 2.1), so they read as P2's frill along the edge with the underside glow
   // band above them (Task 3); a stronger glow blooms them to cream and lifts the water.
   suckers: {
     size: 0.3, sizePower: 0.7, spacing: 2.1, elongation: 1.08, tilt: 14, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.5,
-    style: { rimWidth: 0.45, scallop: 0.8, edge: '#f8c098', rim: '#f8c59f', hollow: '#6a3cb0', glow: 1.4 },
+    style: { rimWidth: 0.45, scallop: 0.8, edge: '#ffa868', rim: '#f8c59f', hollow: '#6a3cb0', glow: 1.4 },
   },
   // Required by the type; never drawn (no stage opens the head).
   dome: { center: [0, 0.2], halfWidth: 1.2, halfHeight: 0.6, depth: 0.6, power: 3, mantleTop: -0.3 },
@@ -270,7 +276,8 @@ export const HOST: CharacterConfig = {
     // Jelly glass on both surfaces (spec 7.2). The mantle: a cool blue crown light (85, 101, 252), a
     // violet depth in the upper dome (128, 78, 230), the peach core (254, 175, 181) glowing through
     // the lower face just below the eyes, and a bright lavender rim all round. The arms: the same
-    // glass, blue-violet on top (58, 55, 213), the peach-pink underside glow (245, 175, 186) from the
+    // glass, a lavender crown over their tops and a blue depth facing the viewer (round 2: P2's arms
+    // read violet-lavender on top, not cobalt), the peach-pink underside glow (245, 175, 186) from the
     // cups warming the roots (a strong arm core). Sparkle specks per square unit: at P2 size the
     // render shows about 110 on the front of the head and several hundred across the arms (spec 2.3
     // asks at least 30 and 50); denser reads as snow, not P2's fine sparkle. The rim is kept thin
@@ -283,7 +290,7 @@ export const HOST: CharacterConfig = {
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#c8b8ff', rimPower: 6, crown: '#5565fc', crownHeight: 0.5, depth: '#3a37d5', depthStrength: 0.4, core: '#f5afba', coreCenter: [0, 0, -0.3], coreWarmth: 1.2 },
+        jelly: { rim: '#c8b8ff', rimPower: 6, crown: '#8a7cff', crownHeight: 0.4, depth: '#3c44f0', depthStrength: 0.48, core: '#f5afba', coreCenter: [0, 0, -0.3], coreWarmth: 1.2 },
         sparkle: 35,
       },
     },
