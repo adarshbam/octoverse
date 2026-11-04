@@ -114,6 +114,24 @@ test("the four character tints are set explicitly: none reads Nox's fallback", (
   for (const key of ['below', 'above', 'side', 'base'] as const) expect(palette.orbGlass[key], key).not.toBe(fallback.orbGlass[key]);
 });
 
+test('her cups are the frill style: raised cream cups at the P2 sample with a darker teal-cream hollow (spec 7.1, 2.3)', () => {
+  const style = VEYRA.suckers.style!;
+  expect(style).toBeDefined();
+  expect([style.scallop, style.rimWidth, style.glow]).toEqual([0.6, 0.22, 1.3]);
+  // The edge within 15 points per channel of the P2 cup sample (224, 220, 156), set a little
+  // brighter since the stage's key light and bounce darken it; the rim's crest brighter still (45).
+  const rgb = (c: string) => Object.values(channels(c)).map(v => Math.round(v * 255));
+  const sample = [224, 220, 156];
+  for (const [key, within] of [['edge', 15], ['rim', 45]] as const) rgb(style[key]).forEach((v, i) => expect(Math.abs(v - sample[i]), `${key} channel ${i}`).toBeLessThanOrEqual(within));
+  expect(rgb(style.rim).reduce((a, b) => a + b)).toBeGreaterThan(rgb(style.edge).reduce((a, b) => a + b));
+  // The hollow: darker than the edge, and teal-cream (green over red and over blue), not grey.
+  const [r, g, b] = rgb(style.hollow);
+  expect(r + g + b).toBeLessThan(0.7 * rgb(style.edge).reduce((x, y) => x + y));
+  expect(g).toBeGreaterThan(r);
+  expect(g).toBeGreaterThan(b);
+  for (const key of ['edge', 'rim', 'hollow'] as const) expect(isRed(style[key]), key).toBe(false);
+});
+
 test('the place supplies its water, floor glow and live colours, and no seabed glow band', () => {
   const { water, palette, live, glow } = VEYRA_BUNDLE.place;
   expect(Object.keys(water.colours).sort()).toEqual(['deep', 'fish', 'glow', 'opening', 'rays', 'raysWide', 'zenith']);

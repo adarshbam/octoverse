@@ -165,9 +165,15 @@ export const VEYRA: CharacterConfig = {
   taperPower: 1.8,
   armBend: 0.2,
   armFlatten: 0.86,
-  // Cream-gold cups, larger against the arm than Nox's and packed into a scalloped frill (spec 7.1);
-  // Task 4 builds the cups to this and tunes it.
-  suckers: { size: 0.26, sizePower: 0.7, spacing: 2.2, elongation: 1.18, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6 },
+  // Cream-gold cups, larger against the arm than Nox's and packed into a scalloped frill (spec 7.1):
+  // raised cups whose rims stand proud of the arm's outline, cream from the P2 cup sample
+  // (224, 220, 156), a brighter glowing rim and a darker teal-cream hollow. Bigger than Nox's and
+  // packed nearly touching (spacing 2.05; the layout keeps a 5% gap), turned a little less toward
+  // the viewer (tilt 22) so the row reads as a frill along the edge, with a light contact shadow.
+  suckers: {
+    size: 0.3, sizePower: 0.7, spacing: 2.05, elongation: 1.18, tilt: 22, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
+    style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.3 },
+  },
   // The overview's wide translucent capsule (P3): a start from the same shape as Nox's, wider than the head.
   dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
   // The head swell's effect: none until the vault dial (spec 7.6).

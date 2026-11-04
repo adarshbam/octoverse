@@ -134,3 +134,24 @@ What is not there yet, honestly:
 - **Wet highlight:** spec 7.2's one soft broad specular from above left is not part of this task; the skin's own wet glints remain where the detail shows.
 - **Inner depth:** the "thick" middle is a darker colour, not real parallax: there is nothing seen through the jelly.
 - Twinkle and the shimmer wave are motion: not judged in stills (owner checks live).
+
+## Task 4: cup frill style (engine variant)
+
+Engine: `SuckerSettings.style?: SuckerStyle { rimWidth, scallop, edge, rim, hollow, glow }` (`config/types.ts`). With a style, `createSuckerCup(detail, style)` lathes a raised frill cup: a round hollow, a rim `rimWidth` wide whose crest stands `scallop` cup radii above the skin, and a wall that falls from the rim's lip to below the skin (no gap under the cup). The placements and bends are untouched: the frill sits on the same skin as Nox's discs. `createSuckerMaterial(palette, light, style)` swaps the frill's colour into a copy of Nox's program at fixed anchors (an anchor that is not found once throws): the colours and glow are uniforms from the config (`uFrillEdge`, `uFrillRim`, `uFrillHollow`, `uFrill`), the frill glows at `glow` in place of Nox's boost, and edge-on cups are no longer flattened toward their face (the frill is meant to break the arm's outline). Absent `style` is Nox's: sha256 of his cup geometry at all three tiers' detail (32, 24, 16), the shadow ring, every arm's layout, placements and bends, and both cup programs' text were taken at aaf1158 before the edit and are pinned in `suckerRow.test.ts` and `suckerMaterial.test.ts`. Two styles differing only in colours give the same geometry and the same program text (tested). The clamp holds rimWidth to [0.05, 0.5], scallop to [0, 1], glow to [0, 3]; a missing or unreadable colour reads the character's own `suckerEdge`, `suckerHot`, `suckerHollow`; `validateBundle` names an unreadable one (`character.suckers.style.hollow`). The tier detail (`suckerScale`) still sets the cup's segments.
+
+Measured on a straight round test arm: frill cups at scallop 0.6 reach 0.64 to 0.76 cup radii past the arm's radius (brief: at least 0.3); Nox's discs reach 0.16 to 0.27 (the measure is not vacuous).
+
+Veyra's values (`src/worlds/veyra/character.ts`): rimWidth 0.22, scallop 0.6, glow 1.3 (as the plan sets them); edge `#ece4a4` and rim `#fcf4c4` (a little brighter than the P2 cup sample (224, 220, 156), since the key light and bounce darken them), hollow `#5e8a6c` (darker teal-cream). Beyond the plan's list, also tuned while looking: size 0.26 to 0.3, spacing 2.2 to 2.05 (packed nearly touching, so the row reads as a band), tilt 26 to 22 (a little more edge-on, so the row reads along the edge), contact shadow 0.6 to 0.3 (P2's band has no dark under it).
+
+Stills: `docs/superpowers/reviews/assets/veyra/t4-intro.png` (stage intro, 506 x 504 at scale 2); `t4-cups-closeup-vs-p2.png` and `t4-cups-right-vs-p2.png` (3x, left P2, right the world capture at P2's registration, 488 x 495); `t4-yaw40.png` (turned 40 degrees: the frill from three-quarters).
+
+Numbers: cream pixels on the arms (R and G over 150, B 25 below both, the face excluded): render median (221, 224, 165) vs P2 (227, 225, 170), mean (219, 223, 165) vs (221, 223, 172); before this task (t3) (216, 215, 162). The `sucker cup rim` sample of check_stage lands in the water just under T2's frill (#2d3f40): the arms do not register with P2's yet (pose and span are Task 7's), so it says nothing about the cups' colour.
+
+What reads right: the cups are cream with a brighter rim and a darker teal-cream centre, in the family of P2's; on the lower arms and seen from three-quarters they stand proud of the outline as a scalloped edge, smaller toward the tips, and they glow without a dark band under them.
+
+What is not there yet, honestly:
+- **Band width:** P2's frill is a wide continuous cream band with small scallops on its outer edge; the render's is a row of touching cups, narrower, with the arm's teal between them on the upper arms (T2, T7 near the root read as a thin scalloped line). The cream underside glow between cups is the skin's (`glow.underside`, `belly`): Task 7.
+- **Root cups:** Nox's rule makes the first cups small next to the body (0.35 of full size); P2's cups are large right up to the root.
+- **Which edge:** on P2's right arms the frill runs along the arms' upper inner edges; the render's runs along the lower edges (the arms' sucker side and pose, Task 7).
+- **Hollows:** P2's dark notches are partly the water seen between scallops; the render's hollows are inside each cup and read lighter.
+- Cup colour within 6 points per channel of P2 on the medians, but P2's band is a touch warmer (more red and blue).
