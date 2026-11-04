@@ -7,8 +7,9 @@ import { EXPRESSIONS, EXPRESSION_IDS, resolveExpressions } from '../../engine/be
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { type WorldBundle, faceAnchor, validateBundle } from '../../engine/types/bundle';
+import { stageBoxFor } from '../../engine/ui/useStageBox';
 import { THEME_COLOURS } from '../../engine/ui/theme';
-import { VEYRA_BUNDLE } from './bundle';
+import { VEYRA_BUNDLE, VEYRA_STAGE_FRAMES, VEYRA_STAGE_PANELS } from './bundle';
 import { VEYRA } from './character';
 import { VEYRA_POSES } from './poses';
 
@@ -233,4 +234,67 @@ test('the poster the theme names exists in public/ as a webp of the size the the
   expect(data.subarray(0, 4).toString()).toBe('RIFF');
   expect(data.subarray(8, 12).toString()).toBe('WEBP');
   expect([poster.width, poster.height]).toEqual([1536, 1024]);
+});
+
+// Task 12: the overview (P3). The dome rides the head's frame, which the overview neither tilts nor
+// turns, so on the stage plane it is the pose's body plus scale times the dome's own rectangle.
+const OVERVIEW = VEYRA_POSES.overview;
+const { dome } = VEYRA;
+/** The dome's rectangle on the stage plane, [left, top, right, bottom], at the overview pose (settled open: scale 1, no lift). */
+const domeRect = (): [number, number, number, number] => {
+  const { x, y, scale } = OVERVIEW.body;
+  const [cx, cy] = dome.center;
+  return [x + scale * (cx - dome.halfWidth), y + scale * (cy + dome.halfHeight), x + scale * (cx + dome.halfWidth), y + scale * (cy - dome.halfHeight)];
+};
+
+test('the overview has exactly the eight arms, its head open, upright and unturned, with the happy face (P3)', () => {
+  expect(Object.keys(OVERVIEW.arms)).toEqual([...ARM_IDS]);
+  for (const id of ARM_IDS) expect(OVERVIEW.arms[id].length, id).toBeGreaterThan(8);
+  expect(OVERVIEW.headMorph).toBe(1);
+  expect(OVERVIEW.tilt ?? 0).toBe(0);
+  expect(OVERVIEW.body.yaw).toBe(0);
+  expect(OVERVIEW.expression).toBe('happy');
+});
+
+test('the dome rectangle projected at the overview frame contains the HTML panel box with 0.04 margin', () => {
+  const panel = VEYRA_STAGE_PANELS.overview;
+  const rect = domeRect();
+  // On the stage plane, in world units.
+  expect(panel[0] - rect[0]).toBeGreaterThanOrEqual(0.04);
+  expect(rect[1] - panel[1]).toBeGreaterThanOrEqual(0.04);
+  expect(rect[2] - panel[2]).toBeGreaterThanOrEqual(0.04);
+  expect(panel[3] - rect[3]).toBeGreaterThanOrEqual(0.04);
+  // And on the page, where the panel is placed (stageBoxFor, as OverviewPanel does), at P3's own
+  // framing (3x the native panel, a desktop layout) and at the owner's desktop size.
+  for (const size of [{ width: 1605, height: 1485 }, { width: 1536, height: 1024 }]) {
+    const frame = VEYRA_STAGE_FRAMES.overview;
+    const a = stageBoxFor(frame, panel, size);
+    const b = stageBoxFor(frame, rect, size);
+    const margin = stageBoxFor(frame, [0, 0, 0.04, -0.04], size).width;
+    expect(a.left - b.left, `${size.width} left`).toBeGreaterThanOrEqual(margin - 1e-9);
+    expect(a.top - b.top, `${size.width} top`).toBeGreaterThanOrEqual(margin - 1e-9);
+    expect(b.left + b.width - (a.left + a.width), `${size.width} right`).toBeGreaterThanOrEqual(margin - 1e-9);
+    expect(b.top + b.height - (a.top + a.height), `${size.width} bottom`).toBeGreaterThanOrEqual(margin - 1e-9);
+  }
+});
+
+test('the face anchor sits at the dome bottom (y within 0.1 of dome.center.y - dome.halfHeight), in the head and on the stage', () => {
+  // In the head's own units: the eye line (face origin less 0.1) against the dome's bottom.
+  expect(Math.abs(VEYRA.head.faceOrigin[1] - 0.1 - (dome.center[1] - dome.halfHeight))).toBeLessThanOrEqual(0.1);
+  // On the stage, through the overview pose's body and scale.
+  expect(Math.abs(faceAnchor(VEYRA_BUNDLE, 'overview')[1] - domeRect()[3])).toBeLessThanOrEqual(0.1);
+});
+
+test("the overview's place and size are P3's: the eyes' midpoint and the dome as measured on the native panel", () => {
+  // P3 (native, 100 px a unit from its centre): the eyes' midpoint at (-0.01, -0.325); the dome's rim
+  // fits a superellipse centred (0, 0.655), half-width 1.44, half-height 0.98 (world_samples.json p3).
+  const [x, y] = faceAnchor(VEYRA_BUNDLE, 'overview');
+  const eyeMid = (VEYRA.face.eye.centers[0][0] + VEYRA.face.eye.centers[1][0]) / 2;
+  expect(Math.abs(x + OVERVIEW.body.scale * eyeMid - -0.01)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs(y - -0.325)).toBeLessThanOrEqual(0.03);
+  const rect = domeRect();
+  expect(Math.abs((rect[0] + rect[2]) / 2 - 0)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs((rect[1] + rect[3]) / 2 - 0.655)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs((rect[2] - rect[0]) / 2 - 1.44)).toBeLessThanOrEqual(0.03);
+  expect(Math.abs((rect[1] - rect[3]) / 2 - 0.98)).toBeLessThanOrEqual(0.03);
 });

@@ -452,6 +452,69 @@ Tuned in 6 rounds (the stop rule's limit). Round 1: the fog share, colours, kelp
 - **The P1 boxes are pixel boxes** on the 1536 x 1024 frozen intro. A layout or camera change needs them redrawn.
 - **The vignette and the grade radius are Veyra's levers used to fit the world** (both in her config, both commented). Nox is unchanged.
 
-## Task 12: notes carried in
+## Task 12: overview pose and dome - PENDING OWNER REVIEW
 
-- The overview's opened dome (Task 3 review, minor 2): `jellyLook` runs after the HEAD shader's `capped` darkening and ignores `uMorph`, so in the overview the sunk mantle top still gets the full crown band and rim. Check it there and fix it if it shows.
+Open http://localhost:5191/?world=veyra&stage=overview (and `&freeze` for the frame the numbers use; the stills are 1605 x 1485, three times P3's native 535 x 495, which the overview stage frames exactly).
+
+Stills: `docs/superpowers/reviews/assets/veyra/t12-overview-vs-p3.png` (P3 at 3x beside the render), `t12-overview.png`, `t12-overlay-on-p3.png` (on P3: her silhouette from the render's mask in red, the traced arm centre lines in orange, the dome fitted to P3's rim in yellow and her configured dome in cyan (they coincide), the HTML panel box in white, the face anchor and P3's eye centres in magenta), `t12-seat-cap.png` (the dome's seat: P3, then the render without and with the engine fix below).
+
+### What I measured on P3 before tracing (native panel = colour truth; 100 px a unit from its centre)
+
+- **Dome:** the greenest pixel along 16 profiles across its rim (top at x -0.8 to 0.8, sides at y 0.4 to 1.2, the bottom corners at x -1.0 and 0.9, where its bottom line shows beside the head). A superellipse fits them with an RMS of 0.014 of the radius: centre (0, 0.655), half-width 1.44, half-height 0.98, power 2.2 (power 2.4: 0.018; Nox's 3.2: 0.039). Its bottom (-0.325) is P3's eye line: the dome's lower edge is hidden behind the face, and its visible bottom line at x +-1.0 (y -0.12) is where the round bottom rises.
+- **Face:** the eye outlines on the gridded 3x panel: centres (-0.49, -0.33) and (0.47, -0.32), 0.96 apart; the outer corners 1.35 apart; each eye about 0.41 wide and 0.38 tall. P2 has the same eye size with the eyes 0.75 apart: P3's face is wider-set, not larger.
+- **Panel:** the screenshot's left and top edges (-1.156, 1.13), the summary's right edge 1.148, the buttons' bottom 0.011.
+
+### What changed
+
+- `poses.ts`: the overview, traced from P3. **Trace method:** P3's 3x panel with a 0.1-unit grid drawn on it (world (x, y) to 3x px (802.5 + 300 x, 742.5 - 300 y)), read on 2x and 1.5x zooms of four regions (top left, lower left, low centre, right); each arm's visible centre line read point by point at the grid lines, root end first, ending in its tip's hook or coil; overlaid on P3 to check (`t12-overlay-on-p3.png`), then through the engine's own path (`toContent` under the pose's body, `withRoot`, `flattenForDepth`), as Nox's overview is. P3 paints about eleven arms (six left, five right) with twelve orbs; Veyra keeps eight: T1 and T8 rise beside the dome and hook over (T8 over the GitHub orb), T2 and T7 reach out at shoulder height under React and Cloudflare, T3 and T6 go out level and curl down at the tips (JS; AWS and Linux), T4 and T5 go down and out to Express and Docker. Not traced: the two thin centre arms (MongoDB, Redis) and the Node arm; their orbs move to the eight in Task 14. Body: x -0.34, y 0.225, **scale 1.1**, upright (tilt 0: the dome rides the head's tilt, and P3's dome is level), the happy face, the head open. The tech focus is now the overview with its head closed (Nox's rule) until Task 14 lifts the arm.
+- **Scale 1.1, a compromise.** No one scale matches P3's face: at 1.18 the eyes' outer corners land on P3's but the eyes are 18% too large; at 1.0 the eyes are P3's size but 0.75 apart (P3 0.96). At 1.1 the eyes are 0.83 apart and 10% larger than P3's, and the arms stay near P3's thickness. You see her grow 10% as the head opens.
+- `character.ts`: the dome from the fit, in the head's units through the overview's body: centre (0.309, 0.391), half-width 1.309, half-height 0.891, power 2.2 (depth 0.6 and mantleTop -0.32 kept: the sunk top lands at -0.127 on the stage, P3's seat at -0.12). Dome colours: tint `#033a40`, rim `#2affd6`, rim top `#40ffd8`, sheen `#5af0dc`.
+- `bundle.ts`: the overview panel box [-1.31, 1.17, 1.19, -0.03]: across, the engine's panel layout (`ui/overview.css`, Nox's) lands its preview's left edge, the copy's right edge and the buttons' bottom on P3's. Height 1.2, not P3's 1.36: the layout sizes its type by the box's height and its copy column is 40% of the width, so at 1.36 the summary wrapped to five lines and ran into the buttons (round 1); at 1.2 it takes four.
+- **Engine (two separate commits, the Nox gate after each, below):** (1) `b2944d4` the face anchor follows the stage pose's body scale (it added the head's face origin unscaled; Octopus draws body + scale x content; at scale 1 the sums are bit for bit the old ones); (2) `cebb468`, the note carried in from Task 3: **fixed, because it showed.** `jellyLook` ran after the HEAD `capped` darkening and ignores `uMorph`; in the opened dome the sunk mantle top took the full crown and rim, a bright cyan ledge under the dome (`t12-seat-cap.png`, middle). The head's jelly call is now followed by the same darkening, inside the JELLY branch only (Nox's program text and its sha256 pins unchanged; a test holds the order). Measured: the band above her face (x -0.3 to 0.3, y -0.10 to -0.16) from (40, 199, 212) to (20, 118, 125); P3 there is the dark-to-warm start of the face glow, (35, 70, 72) to (71, 106, 100).
+- Review tooling: `scripts/world-capture.mjs` reads an optional per-stage framing (`world_reference.json` `stages.overview`: the plain page at 1605 x 1485, no view box, so the HTML panel and the camera lean are in); Nox has no `stages` entry and its query is byte-identical. `scripts/check_stage.py --world --stage overview` (a new branch; Nox never reaches it) holds `world_samples.json` `p3`. `public/veyra/ref/p3.png` is the native P3 (a copy).
+
+### Numbers (`WORLD=veyra node scripts/world-capture.mjs overview .tmp/t12/r4.png "tier=high&kitwait=90000"`, then `python scripts/check_stage.py .tmp/t12/r4.png --world --stage overview --world-id veyra`: exit 1, five dome-glass misses)
+
+| Check | P3 | Render | Limit | |
+|---|---|---|---|---|
+| dome rim top at x -0.3 / 0 / 0.3 | 1.615 / 1.635 / 1.625 | 1.618 / 1.635 / 1.618 | 0.06 | ok |
+| dome rim left at y 1.0 / 0.8 | -1.395 / -1.445 | -1.372 / -1.428 | 0.06 | ok |
+| dome rim right at y 1.0 / 0.8 | 1.355 / 1.395 | 1.365 / 1.422 | 0.06 | ok |
+| left eye (dark-pixel centroid) | (-0.455, -0.293) | (-0.416, -0.319) | 0.06 | ok |
+| right eye | (0.427, -0.280) | (0.411, -0.319) | 0.06 | ok |
+| silhouette box (mask; P3 by hand, orbs out) | [-2.13, 1.07, 2.24, -1.68] | [-2.15, 1.14, 2.27, -1.72] | 0.1 | ok |
+| arm (T6) colour, delta E | #16c7be | #18b09f | 10 | ok 9.7 |
+| dome rim top (brightest quarter) | #46f6e4 | #38dacf | 10 | MISS 10.8 |
+| dome crown | #019e97 | #156472 | 10 | MISS 28.2 |
+| dome glass left / right | #028075 / #028178 | #084a52 / #074650 | 10 | MISS 26.7 / 28.6 |
+| dome glass below the panel | #023240 | #08494b | 10 | MISS 14.3 |
+| face glow / chin / blush (printed, not held) | #fcc998 / #d8b08e / #f8c49c | #99a06e / #88ca96 / #777e71 | | 31.0 / 41.6 / 42.0 |
+
+Composition from the config (bundle.test.ts): the dome's rectangle on the stage [-1.44, 1.635, 1.44, -0.325] holds the panel box with 0.13 left, 0.465 top, 0.25 right and 0.295 bottom to spare (the test asks 0.04, on the stage and through `stageBoxFor` at 1605 x 1485 and 1536 x 1024); the face anchor's y (-0.325) is the dome's bottom (0.000 apart; the test asks within 0.1, in the head's units and on the stage); the eyes' midpoint (-0.01, -0.325) against P3's (-0.01, -0.325).
+
+The delta E limit 10 was set before tuning (Task 7's limit for the character's flat samples). The three face samples were made "not held" **after the first capture**: the face's colours are the intro gate's (P2, Milestone 1), P3 paints the same face warmer and peach, and one face cannot match both. Your ruling.
+
+Tuning rounds (the stop rule's four): r1 the pose, dome and panel box (every composition check passed first time; the summary overran the buttons); r2 the box's height from 1.36 to 1.2 and the dome's colours from the start values toward P3; r3 and r4 the dome's colours. The dome glass cannot reach P3 by colour alone: the engine's dome shader (Nox's dark glass) has a fixed narrow fresnel (pow 4) over one tint at alpha 0.55, so a brighter tint lifts the dark middle with the walls, while P3's glass is dark in the middle and bright teal across a wide band at the walls. r4 is the least-bad balance (middle 14.3, walls 26.7 to 28.6). Reaching P3 needs a dome variant in the engine (a wider fresnel and spec 7.2's "faint inner gradient"): not done here; your call.
+
+### Gates kept
+
+- Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0 (13 of 13); `veyra_shape.py` PASS; `veyra_world.py` PASS (relic, no clip, no red).
+- Nox gate after each engine commit: vitest 107 files, 766 passed and 1 skipped; tsc both configs clean; lint 0 errors, 50 warnings (the baseline); build ok; the boundary test and the hue-debt pin unchanged (neither engine change holds a colour); still gate exit 0 (everything 0.0000 but techFocus's residual); Nox e2e 54 of 56: isolation (f) fails alone too (the known pre-existing failure, Task 2's notes), the phone tooltip tap failed under load and passes alone.
+
+### The five things to look at, with my verdict
+
+1. **Place:** the dome where P3's is, the face at its bottom (yes: every rim and eye check within 0.06; the face sits under the dome's lower edge as in P3).
+2. **Size:** she fills the frame as P3 does (yes for the silhouette box, within 0.07; the face is a compromise: eyes 10% larger and set 14% closer than P3's).
+3. **Pose:** the arms spread wide and high round the dome (mostly: T1 and T8 rise and hook as painted and the side arms reach the frame's edges; but eight arms leave the space under her chin empty where P3 hangs two thin arms, and the tips are Veyra's hooks, not every one of P3's curls).
+4. **The dome reads as jelly glass with a bright rim** (partly: the rim and shape are P3's; the glass is too dark at the walls and flat; see the misses).
+5. **The panel sits inside the dome** (yes, with room on every side; but it is the engine's Nox layout: no screenshot yet (the content has none until the detail view's task), "View Project" where P3 says "Live Demo", the buttons narrower than P3's).
+
+### Remaining weaknesses (mine)
+
+- The dome glass (above): five colour misses, a shader limit, not a value one.
+- The face: P2's colours under P3's dome (a greener glow; P3's is peach); the scale compromise.
+- The head under the dome reads as a rounded teal bowl with a bright rim down its sides (the sunk mantle and the cheek lobes); in P3 the arm roots cover the head's sides.
+- The panel's layout is Nox's (`ui/overview.css`): its copy column is 40% of the box and its type is sized by the box's height, so Veyra's box is 0.16 shorter than P3's panel to keep the summary off the buttons. A per-world layout would be an engine change.
+- `faceSpot` (the tooltip's keep-clear box round the face, ui/OrbButtons.tsx) still uses fixed offsets (1.05 across, 0.45 up, 0.55 down), not scaled with the pose: 10% small for Veyra's overview. Not changed (it is Nox's output too; the pendants task meets it).
+- Motion not judged (no videos): the blend from the intro (tilt 0.18, scale 1) into the overview (tilt 0, scale 1.1) and the dome's reveal should be checked live.
+- The background is the vault (Task 11), not P3's dark plant-lit water: no world change here.

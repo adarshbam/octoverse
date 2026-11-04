@@ -86,10 +86,11 @@ export const VEYRA: CharacterConfig = {
     suckerHot: '#fff4c4',
     suckerHollow: '#8cc8a0',
     suckerShadow: '#0a3a38',
-    domeTint: '#1a9eb4',
-    domeRim: '#5af0ff',
-    domeRimTop: '#a8fcff',
-    domeSheen: '#8af4ff',
+    // The overview's dome (P3): dark teal glass face-on, an aqua-green rim, whiter over the crown.
+    domeTint: '#033a40',
+    domeRim: '#2affd6',
+    domeRimTop: '#40ffd8',
+    domeSheen: '#5af0dc',
     orbFocus: '#3fe0c5',
     effect: { halo: 'rgba(63,224,197,0.5)', stroke: '#3fe0c5', core: '#d8fff4' },
     // The tints the shaders compile in, as linear light: a white-cyan rim line, the dome's reveal
@@ -192,8 +193,12 @@ export const VEYRA: CharacterConfig = {
     size: 0.34, sizePower: 0.7, spacing: 1.85, elongation: 1.18, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
     style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.5 },
   },
-  // The overview's wide translucent capsule (P3): a start from the same shape as Nox's, wider than the head.
-  dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The overview's wide translucent capsule, traced from P3 (Task 12): its rim, measured as the
+  // greenest pixel along profiles across it, fits a superellipse centred (0, 0.655), half-width 1.44,
+  // half-height 0.98, power 2.2 on the stage. Here in the head's own units, through the overview's
+  // body (x -0.34, y 0.225, scale 1.1: poses.ts): its bottom (y -0.5) is the eye line, so the face
+  // sits at the dome's bottom, and the mantle's top sinks to P3's dome seat (-0.32 here, -0.127 on the stage).
+  dome: { center: [0.309, 0.391], halfWidth: 1.309, halfHeight: 0.891, depth: 0.6, power: 2.2, mantleTop: -0.32 },
   // The head swell's effect: none until the vault dial (spec 7.6).
   headEffect: 'none',
   // Jelly glass on the mantle and the arms (spec 7.2), with fine bright sparkles over both and no
