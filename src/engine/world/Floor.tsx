@@ -6,8 +6,7 @@ import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLi
 import { SEABED_ORDER } from './drawOrder';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { floorGlowGlsl } from './floorGlow';
-import { DEFAULT_FLOOR } from './floors';
-import { mossShading } from './floors/moss';
+import { floorGlows, floorShading } from './floors/shading';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -137,9 +136,9 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     const motion = new THREE.Vector2(1, 0);
     const glow = world.glow.floor;
     const floorGlow = floorGlowGlsl(world.palette.floorGlow, glow);
-    // The lava floor is Nox's: the cracks' glow and lava. The moss floor shades patches of moss and glows nowhere.
-    const moss = (world.floor?.material ?? DEFAULT_FLOOR) === 'moss';
-    const cracks = moss ? null : makeCrackMap();
+    // The lava floor is Nox's: the cracks' glow and lava. The moss and sand floors shade their own colours and glow nowhere.
+    const glows = floorGlows(world.floor?.material);
+    const cracks = glows ? makeCrackMap() : null;
     const reliefMap = baked && lightMapOf(baked.reliefMaps.seabed);
     const material = new THREE.MeshStandardMaterial({
       color: world.palette.floor,
@@ -170,11 +169,11 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
           // Wet patches: smooth enough to mirror the glow round them.
           vec2 floorNoise = texture2D(uFloorNoise, vec2(vFloorWorld.x * ${(1 / WIDTH).toFixed(6)} + 0.5, (vFloorWorld.z - ${FAR_Z.toFixed(1)}) * ${(1 / (NEAR_Z - FAR_Z)).toFixed(6)})).rg;
           float puddle = smoothstep(0.62, 0.7, floorNoise.x);
-          roughnessFactor = mix(roughnessFactor, 0.12, puddle);${moss ? mossShading(String(world.palette.moss)) : ''}`,
+          roughnessFactor = mix(roughnessFactor, 0.12, puddle);${floorShading(world.floor?.material, world.palette)}`,
         )
         .replace(
           '#include <emissivemap_fragment>',
-          moss ? '#include <emissivemap_fragment>' : /* glsl */ `#include <emissivemap_fragment>
+          !glows ? '#include <emissivemap_fragment>' : /* glsl */ `#include <emissivemap_fragment>
           {
             vec2 wp = vFloorWorld.xz;
             vec4 cracks = texture2D(uCracks, wp / ${CRACK_TILE.toFixed(2)});
