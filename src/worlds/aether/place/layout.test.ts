@@ -6,7 +6,7 @@ import type { Placement } from '../../../engine/world/types';
 import { asWorldLayout, layoutProblems, validateWorld } from '../../../engine/world/validateWorld';
 import { AETHER_STAGE_FRAMES } from '../bundle';
 import { OBSERVATORY_STAGE } from './config';
-import { OBSERVATORY_KIT, OBSERVATORY_PATH, PATH_WIDTH, PORTAL_NODES, RUBBLE_PIECES } from './kit';
+import { OBSERVATORY_KIT, OBSERVATORY_PATH, OBSERVATORY_PROPS, PATH_WIDTH, PORTAL_NODES, RUBBLE_BOB_AMPLITUDE, RUBBLE_PIECES } from './kit';
 import layoutData from './layout.json';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..', '..');
@@ -212,18 +212,63 @@ test('the layout stands on the floor the stage backdrop uses (floorY -2.45)', ()
   expect(layout.floorY).toBe(-2.45);
 });
 
-test('the engine accepts this kit and layout: the stage world with them in, and the portal glyph on the emissive drive, validates', () => {
+test('the engine accepts this kit and layout: the stage world with them in, the portal glyph on the emissive drive and the rubble on bob, validates', () => {
   const world = {
     ...OBSERVATORY_STAGE,
     kit: { url: OBSERVATORY_KIT.url, pieces: OBSERVATORY_KIT.pieces, nodes: OBSERVATORY_KIT.nodes },
     layout,
-    props: [{ id: 'portalGlyph', node: 'portal_glyph', drive: 'emissive' as const }],
+    props: OBSERVATORY_PROPS,
   };
   expect(validateWorld(world)).toEqual([]);
   // Every prop names a node of the kit file itself, not only of the kit list.
   for (const prop of world.props) expect(kit.nodes.has(prop.node), prop.node).toBe(true);
   // Only the `corals` group sways, and a coral in another group would be stone.
   expect(placements.filter(({ group, p }) => group !== 'corals' && p.piece.startsWith('coral_'))).toEqual([]);
-  // TODO (Task 7): the rubble_float_* props on 'bob' (amplitude 0.04, period 7 to 11 s) are added after
-  // Task 7 gives the engine that drive; until then none is declared (validateWorld would reject the drive).
+  expect(world.props.find(prop => prop.node === 'portal_glyph')).toMatchObject({ drive: 'emissive' });
+});
+
+const bobProps = OBSERVATORY_PROPS.filter(prop => prop.drive === 'bob');
+
+test("every floating fragment bobs: one 'bob' prop per rubble piece, on a piece the kit file holds and the layout places once, in the rubble group", () => {
+  expect(bobProps.map(prop => prop.node).sort()).toEqual([...RUBBLE_PIECES].sort());
+  expect(new Set(OBSERVATORY_PROPS.map(prop => prop.id)).size).toBe(OBSERVATORY_PROPS.length);
+  for (const prop of bobProps) {
+    expect(kit.nodes.has(prop.node), `${prop.node} is a node of kit.glb`).toBe(true);
+    // The engine bobs placed layout pieces, found by piece name: this one is placed exactly once, in a plain stone group.
+    expect(placements.filter(({ p }) => p.piece === prop.node).map(({ group }) => group), prop.node).toEqual(['rubble']);
+  }
+});
+
+test('the bob is 0.04 stage units and takes 7 to 11 s, a different period for each fragment', () => {
+  for (const prop of bobProps) {
+    if (prop.drive !== 'bob') throw new Error('a bob prop');
+    expect(prop.bob.amplitude, prop.id).toBe(0.04);
+    expect(RUBBLE_BOB_AMPLITUDE).toBe(0.04);
+    expect(prop.bob.period, prop.id).toBeGreaterThanOrEqual(7);
+    expect(prop.bob.period, prop.id).toBeLessThanOrEqual(11);
+  }
+  const periods = bobProps.map(prop => (prop.drive === 'bob' ? prop.bob.period : 0));
+  expect(new Set(periods).size).toBe(periods.length);
+});
+
+test('bobbing up or down by its amplitude moves no rubble into the intro frame or the arm-span box', () => {
+  const armHalf = 3.84 / 2 + 0.3;
+  const aspects = [AETHER_STAGE_FRAMES.intro.width / AETHER_STAGE_FRAMES.intro.height, 1.5, 16 / 9];
+  for (const prop of bobProps) {
+    if (prop.drive !== 'bob') throw new Error('a bob prop');
+    const { amplitude } = prop.bob;
+    const p = layout.groups.rubble.find(placement => placement.piece === prop.node)!;
+    const box = kit.bounds(p.piece);
+    // Arm-span box: the clearance on the ground plane does not depend on height, so the bob cannot change it.
+    expect(Math.abs(p.position[0]) - reach(p) - armHalf, `${p.piece} clears the arm-span box`).toBeGreaterThanOrEqual(0);
+    // Intro frame (and 3:2 and 16:9 windows): a piece out of it at rest stays out at both ends of the bob, and a piece in it stays in.
+    for (const aspect of aspects) {
+      const seen = (dy: number) => placedPoints(box, { ...p, position: [p.position[0], p.position[1] + dy, p.position[2]], tilt: 0 }).filter(point => inView(point, aspect)).length;
+      const rest = seen(0);
+      for (const dy of [-amplitude, amplitude]) {
+        if (rest === 0) expect(seen(dy), `${p.piece} at bob ${dy} enters the view at aspect ${aspect.toFixed(2)}`).toBe(0);
+        else expect(seen(dy), `${p.piece} at bob ${dy} leaves the view at aspect ${aspect.toFixed(2)}`).toBeGreaterThan(0);
+      }
+    }
+  }
 });

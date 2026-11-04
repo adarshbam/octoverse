@@ -3,6 +3,8 @@
 // keeps clear. Task 9 names the kit from this list in the world config; layout.test.ts checks the
 // file against it.
 
+import type { WorldProp } from '../../../engine/world/types';
+
 export const OBSERVATORY_KIT = {
   url: '/aether/world/kit.glb',
   /**
@@ -48,13 +50,32 @@ export const OBSERVATORY_KIT = {
 /** Every portal node, the arch and the four that share its frame. */
 export const PORTAL_NODES = ['portal_arch', ...OBSERVATORY_KIT.nodes] as const;
 
-/**
- * TODO (Task 7): the floating rubble should bob. Task 7 adds the `'bob'` prop drive to the engine
- * (src/engine/world/props.ts). After it, add a `rubble_float_*` prop per fragment on `'bob'`
- * (amplitude 0.04, period 7 to 11 s) to the world's `props`. The drive does not exist yet, so
- * `validateWorld` would reject such props: none are declared now.
- */
 export const RUBBLE_PIECES = OBSERVATORY_KIT.pieces.filter(piece => piece.startsWith('rubble_float_'));
+
+/** How far each floating fragment bobs either way (stage units): too small to read as motion at a glance, enough to feel afloat. */
+export const RUBBLE_BOB_AMPLITUDE = 0.04;
+
+/** Each fragment's bob period (seconds), 7 to 11, varied so the rubble never moves in step (the engine adds a phase per prop id). */
+const RUBBLE_BOB_PERIODS: Record<string, number> = {
+  rubble_float_a: 8.2,
+  rubble_float_b: 10.4,
+  rubble_float_c: 7.4,
+  rubble_float_d: 9.3,
+  rubble_float_e: 10.9,
+};
+
+/**
+ * The world's props: the portal's glyph on the `'emissive'` drive, and every floating fragment on
+ * `'bob'`. A bob prop moves the placed piece of its `node` name (the engine bobs placed layout
+ * pieces only: not corals, not nodes attached to another frame), so each `rubble_float_*` is a
+ * piece placed once in layout.json's `rubble` group.
+ */
+export const OBSERVATORY_PROPS: WorldProp[] = [
+  { id: 'portalGlyph', node: 'portal_glyph', drive: 'emissive' },
+  ...RUBBLE_PIECES.map(
+    (node): WorldProp => ({ id: `${node}Bob`, node, drive: 'bob', bob: { amplitude: RUBBLE_BOB_AMPLITUDE, period: RUBBLE_BOB_PERIODS[node] ?? 9 } }),
+  ),
+];
 
 /** The width of the clear path Aether swims along (stage units). */
 export const PATH_WIDTH = 2.4;
