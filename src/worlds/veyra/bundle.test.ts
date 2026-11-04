@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { LOGO_SLUGS, logoIcon } from '../../engine/artifacts/logoTexture';
+import { EXPRESSIONS, EXPRESSION_IDS, resolveExpressions } from '../../engine/behavior/expressions';
 import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { type WorldBundle, faceAnchor, validateBundle } from '../../engine/types/bundle';
@@ -150,6 +151,18 @@ test("her face (spec 7.3): two outer lashes, the iris toward the nose, green iri
   expect(r).toBeGreaterThanOrEqual(230);
   expect(g).toBeLessThan(r);
   expect(g).toBeGreaterThan(b);
+});
+
+test("her focused face is an interested look, not Nox's narrowed grin; every other face is the base one", () => {
+  const faces = resolveExpressions(VEYRA);
+  // Brows up, eyes a little wider (a lower resting lid), the smile small.
+  expect(faces.focused.browLift).toBeGreaterThan(EXPRESSIONS.focused.browLift);
+  expect(faces.focused.browTilt).toBeGreaterThan(EXPRESSIONS.focused.browTilt);
+  expect(faces.focused.lidRest).toBeLessThan(EXPRESSIONS.focused.lidRest);
+  expect(faces.focused.mouthOpen).toBeLessThan(EXPRESSIONS.focused.mouthOpen);
+  for (const id of EXPRESSION_IDS) if (id !== 'focused') expect(faces[id], id).toEqual(EXPRESSIONS[id]);
+  // Her own values are already in the range the face can draw.
+  expect(clampCharacterConfig(VEYRA).expressions).toEqual(VEYRA.expressions);
 });
 
 test('the place supplies its water, floor glow and live colours, and no seabed glow band', () => {

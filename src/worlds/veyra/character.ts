@@ -166,6 +166,11 @@ export const VEYRA: CharacterConfig = {
     blush: '#ffc092',
     blushGlow: '#ffa886',
   },
+  // Her tech-focus face is an interested look (spec 7.3): brows up, eyes a little wider and a small
+  // smile, in place of Nox's narrowed, open "focused grin". Every other face is the engine's.
+  expressions: {
+    focused: { browTilt: 0.1, browLift: 0.55, lidRest: -0.05, mouthCurve: 0.5, mouthOpen: 0.12, blush: 0.25 },
+  },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
   // Slimmer than Nox's at the root and tapering longer, so the spirals stay tidy (spec 7.1).
   tipRadius: 0.036,

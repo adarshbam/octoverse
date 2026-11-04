@@ -114,6 +114,12 @@ test('resolveExpressions of Nox is the base table, key for key', () => {
   expect(resolveExpressions(NOX).gentle).not.toBe(EXPRESSIONS.gentle);
 });
 
+test("Nox's seven faces draw exactly as the base table's, through the resolved table", () => {
+  const faces = resolveExpressions(NOX);
+  expect(Object.keys(faces)).toHaveLength(7);
+  for (const id of EXPRESSION_IDS) expect(drawn({ ...faces[id], ...look }), id).toEqual(drawn({ ...EXPRESSIONS[id], ...look }));
+});
+
 test('an override changes only its own key of its own expression', () => {
   const table = resolveExpressions({ ...NOX, expressions: { curious: { browLift: 0.5 } } });
   expect(table.curious).toEqual({ ...EXPRESSIONS.curious, browLift: 0.5 });
