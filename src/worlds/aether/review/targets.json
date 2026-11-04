@@ -1,0 +1,442 @@
+{
+  "samples": [
+    {
+      "name": "Crown sheen",
+      "panel": 2,
+      "x": 269,
+      "y": 245,
+      "size": 5,
+      "rgb": [
+        145,
+        168,
+        247
+      ]
+    },
+    {
+      "name": "Upper dome",
+      "panel": 2,
+      "x": 269,
+      "y": 263,
+      "size": 5,
+      "rgb": [
+        91,
+        78,
+        243
+      ]
+    },
+    {
+      "name": "Forehead",
+      "panel": 2,
+      "x": 269,
+      "y": 280,
+      "size": 5,
+      "rgb": [
+        155,
+        108,
+        247
+      ]
+    },
+    {
+      "name": "Between the eyes",
+      "panel": 2,
+      "x": 269,
+      "y": 308,
+      "size": 5,
+      "rgb": [
+        250,
+        184,
+        242
+      ]
+    },
+    {
+      "name": "Face glow below eyes",
+      "panel": 2,
+      "x": 272,
+      "y": 328,
+      "size": 5,
+      "rgb": [
+        253,
+        212,
+        232
+      ]
+    },
+    {
+      "name": "Face glow below mouth",
+      "panel": 2,
+      "x": 272,
+      "y": 352,
+      "size": 5,
+      "rgb": [
+        254,
+        217,
+        240
+      ]
+    },
+    {
+      "name": "Chin",
+      "panel": 2,
+      "x": 272,
+      "y": 365,
+      "size": 5,
+      "rgb": [
+        193,
+        139,
+        250
+      ]
+    },
+    {
+      "name": "Head side left",
+      "panel": 2,
+      "x": 214,
+      "y": 292,
+      "size": 5,
+      "rgb": [
+        139,
+        104,
+        234
+      ]
+    },
+    {
+      "name": "Head side right",
+      "panel": 2,
+      "x": 314,
+      "y": 270,
+      "size": 5,
+      "rgb": [
+        128,
+        117,
+        247
+      ]
+    },
+    {
+      "name": "Blush",
+      "panel": 2,
+      "x": 221,
+      "y": 344,
+      "size": 5,
+      "rgb": [
+        250,
+        183,
+        206
+      ]
+    },
+    {
+      "name": "Arm top rim",
+      "panel": 2,
+      "x": 117,
+      "y": 327,
+      "size": 5,
+      "rgb": [
+        227,
+        211,
+        251
+      ]
+    },
+    {
+      "name": "Arm body upper",
+      "panel": 2,
+      "x": 154,
+      "y": 347,
+      "size": 5,
+      "rgb": [
+        94,
+        138,
+        228
+      ]
+    },
+    {
+      "name": "Arm body lower",
+      "panel": 2,
+      "x": 160,
+      "y": 387,
+      "size": 5,
+      "rgb": [
+        69,
+        81,
+        229
+      ]
+    },
+    {
+      "name": "Arm underside glow",
+      "panel": 2,
+      "x": 145,
+      "y": 357,
+      "size": 5,
+      "rgb": [
+        238,
+        198,
+        250
+      ]
+    },
+    {
+      "name": "Cup",
+      "panel": 2,
+      "x": 142,
+      "y": 364,
+      "size": 5,
+      "rgb": [
+        222,
+        208,
+        245
+      ]
+    },
+    {
+      "name": "Inside tip spiral",
+      "panel": 2,
+      "x": 95,
+      "y": 357,
+      "size": 5,
+      "rgb": [
+        90,
+        63,
+        144
+      ]
+    },
+    {
+      "name": "Gold seed bead",
+      "panel": 2,
+      "x": 363,
+      "y": 265,
+      "size": 5,
+      "rgb": [
+        217,
+        153,
+        130
+      ]
+    },
+    {
+      "name": "Glass seed bead",
+      "panel": 2,
+      "x": 153,
+      "y": 255,
+      "size": 5,
+      "rgb": [
+        147,
+        105,
+        153
+      ]
+    },
+    {
+      "name": "Water outside head",
+      "panel": 2,
+      "x": 179,
+      "y": 250,
+      "size": 5,
+      "rgb": [
+        16,
+        26,
+        99
+      ]
+    },
+    {
+      "name": "Mid water",
+      "panel": 2,
+      "x": 129,
+      "y": 230,
+      "size": 5,
+      "rgb": [
+        5,
+        19,
+        75
+      ]
+    },
+    {
+      "name": "Upper water",
+      "panel": 2,
+      "x": 469,
+      "y": 20,
+      "size": 5,
+      "rgb": [
+        2,
+        36,
+        100
+      ]
+    },
+    {
+      "name": "Jellyfish bell",
+      "panel": 2,
+      "x": 81,
+      "y": 155,
+      "size": 5,
+      "rgb": [
+        163,
+        123,
+        225
+      ]
+    },
+    {
+      "name": "Ruin window light",
+      "panel": 2,
+      "x": 46,
+      "y": 225,
+      "size": 5,
+      "rgb": [
+        198,
+        138,
+        134
+      ]
+    },
+    {
+      "name": "Open-mouth tongue",
+      "panel": 4,
+      "x": 287,
+      "y": 239,
+      "size": 5,
+      "rgb": [
+        253,
+        135,
+        143
+      ]
+    },
+    {
+      "name": "Open-mouth inside",
+      "panel": 4,
+      "x": 295,
+      "y": 231,
+      "size": 5,
+      "rgb": [
+        119,
+        29,
+        73
+      ]
+    },
+    {
+      "name": "Focused orb rim",
+      "panel": 4,
+      "x": 385,
+      "y": 110,
+      "size": 5,
+      "rgb": [
+        228,
+        217,
+        248
+      ]
+    },
+    {
+      "name": "Dome interior upper",
+      "panel": 3,
+      "x": 243,
+      "y": 125,
+      "size": 5,
+      "rgb": [
+        59,
+        94,
+        226
+      ]
+    },
+    {
+      "name": "Dome rim",
+      "panel": 3,
+      "x": 133,
+      "y": 190,
+      "size": 5,
+      "rgb": [
+        73,
+        106,
+        209
+      ]
+    },
+    {
+      "name": "Dome top sheen",
+      "panel": 3,
+      "x": 263,
+      "y": 108,
+      "size": 5,
+      "rgb": [
+        164,
+        202,
+        253
+      ]
+    },
+    {
+      "name": "Portal membrane",
+      "panel": 1,
+      "x": 435,
+      "y": 235,
+      "size": 5,
+      "rgb": [
+        15,
+        56,
+        167
+      ]
+    },
+    {
+      "name": "P1 mid water",
+      "panel": 1,
+      "x": 250,
+      "y": 120,
+      "size": 5,
+      "rgb": [
+        2,
+        26,
+        74
+      ]
+    }
+  ],
+  "deltaE": 10,
+  "checks": {
+    "warmCore": 120,
+    "pinkNotWhite": {
+      "minRminusG": 25,
+      "maxG": 235
+    },
+    "periwinkle": {
+      "minB": 200,
+      "minBminusR": 90
+    },
+    "indigoWater": {
+      "minB": 60,
+      "minBminusR": 55
+    }
+  },
+  "head": {
+    "centreX": [
+      0.03,
+      0.11
+    ],
+    "halfWidth": [
+      0.69,
+      0.77
+    ],
+    "top": [
+      0.14,
+      0.22
+    ]
+  },
+  "eyesY": [
+    -0.72,
+    -0.64
+  ],
+  "armSpan": [
+    3.69,
+    3.99
+  ],
+  "ring": {
+    "centreY": [
+      -0.33,
+      -0.23
+    ],
+    "halfWidth": [
+      1.15,
+      1.35
+    ]
+  },
+  "dome": {
+    "halfWidth": [
+      1.32,
+      1.44
+    ]
+  },
+  "iou": 0.85,
+  "meanInside": {
+    "rgb": [
+      153,
+      132,
+      227
+    ],
+    "tolerance": 12,
+    "satTolerance": 0.04,
+    "saturation": 0.459,
+    "brightness": 0.898
+  }
+}
