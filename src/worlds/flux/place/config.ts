@@ -116,18 +116,22 @@ const LIVE_COLOURS: WorldConfig['live']['colours'] = {
  * - the LED faces (R22: their own `<piece>_led` nodes), blinking each on its own beat at 0.4 to 2.5
  *   blinks a second, lit 60% of the time; their brightest (intensity times the cyan, the brightest
  *   LED colour) stays below his cup glow (config.test);
- * - the portal disc: a white-blue membrane, slow light lines flowing round it (the disc's slow
- *   breathing), its brightest below his face core even at a full flash (the relic rule);
+ * - the portal disc: a soft white-blue membrane, slow light lines flowing round it (the disc's slow
+ *   breathing), its brightest below his face core even at a full flash (the relic rule). Task 10
+ *   tamed the lines: the disc's fan triangles bend each line into short straight pieces, which at
+ *   the old contrast (edge about 17 times the body) read as cracks. The edge colour is now about a
+ *   third of the body colour, so a line peaks near 1.4 times the body: a faint shimmer on lit glass;
  * - each ring arc's inlay: a membrane of its own, faint at rest, which a sequence's emissive drive
  *   raises up to five times as the arcs light one by one (Task 15);
- * - the bridge arches: a violet-pink glow, brightest at the crown (the kit's vertex colour).
+ * - the bridge arches: a violet-pink glow, brightest at the crown (the kit's vertex colour, to the
+ *   power 5, so the legs and feet fall dark and the glow sits in the hoop over the deck).
  */
 const LED = { intensity: 0.75, rate: [0.4, 2.5] as const, duty: 0.6 };
 const MATERIALS: WorldConfig['materials'] = [
   ...ledMaterials(LED),
-  { node: 'portal_disc', material: 'membrane', params: { color: '#1e4a7a', edge: '#6aa8e0', flowSpeed: 0.05, flowScale: 1, flash: 0.4 } },
+  { node: 'portal_disc', material: 'membrane', params: { color: '#70a8e8', edge: '#3a6898', flowSpeed: 0.05, flowScale: 1, flash: 0.4 } },
   ...inlayMaterials({ color: '#0e2238', edge: '#2a5a8a', flowSpeed: 0, flowScale: 1, flash: 4 }),
-  { node: 'bridge_arch', material: 'glow', params: { color: '#c070f0', strength: 1, tips: 1.5, pulse: 0.2, period: 6 } },
+  { node: 'bridge_arch', material: 'glow', params: { color: '#c070f0', strength: 1, tips: 5, pulse: 0.2, period: 6 } },
 ];
 
 export const PIPELINE_WORLD: WorldConfig = {
@@ -146,8 +150,8 @@ export const PIPELINE_WORLD: WorldConfig = {
   post: POST,
   // No lava, no crevice or floor glow, no embers; the opening at the top and the shafts as Task 6 fitted them.
   glow: { lava: 0, back: 0, crevice: 0, floor: 0, embers: 0, top: 1.5, rays: 1.2 },
-  // The coral's glow dimmed (small clumps); the portal's spill on the stone 1.2 times its light data (bake_world.py's SPILL).
-  relics: { glyph: 1, coral: 0.6, spill: 1.2 },
+  // The coral's glow dimmed (small clumps; at 0.6 the fans read as flat pink cut-outs); the portal's spill on the stone 1.2 times its light data (bake_world.py's SPILL).
+  relics: { glyph: 1, coral: 0.4, spill: 1.2 },
   palette,
   floor: { material: 'sand' },
   lights: {
@@ -160,7 +164,9 @@ export const PIPELINE_WORLD: WorldConfig = {
   // Blue-violet bubbles, fish far off (the tiers drop them at low), rays; no embers. No motes: the
   // glyph cards (spec 7.7) need motes that take a sprite set as data, which the engine's motes do
   // not, so they are dropped (spec 12.6). Packets of cyan and lavender light run along the bridge
-  // toward the portal (10 at full quality, never below 4).
+  // toward the portal (10 at full quality, never below 4). In the intro one or two show at a time,
+  // left of the left tower and between it and his left arms; the fog mutes them, so their colours
+  // are the light ends of cyan and lavender and they are a little long, to read as streaks of light.
   live: {
     snow: 1,
     motes: 0,
@@ -170,7 +176,7 @@ export const PIPELINE_WORLD: WorldConfig = {
     embers: 0,
     colours: LIVE_COLOURS,
     elements: {
-      packets: { path: 'bridge', count: { high: 10, medium: 8, low: 6 }, speed: 1.6, length: 0.32, colours: ['#38d8f0', '#b49cf0'] },
+      packets: { path: 'bridge', count: { high: 10, medium: 8, low: 6 }, speed: 1.6, length: 0.55, colours: ['#5ef0ff', '#c4b0ff'] },
     },
   },
 };
