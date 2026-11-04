@@ -182,10 +182,11 @@ export const FLUX: CharacterConfig = {
   // P2's cup glow (243, 175, 239); the hollow is a deeper violet-pink. Task 6 made them P2's size
   // (size 0.27, sizePower 0.8: they shrink toward the tip) and set them near the arm's lower edge
   // (tilt 12), so they read as P2's glowing scallops along the underside, not coins on the arm's face;
-  // glow 2 keeps them lit in the dark water.
+  // a lighter rim and glow 2.5 make them glow pink-white like P2's (at glow 3 the bloom hazed the
+  // water and the body's saturation fell under the target band).
   suckers: {
     size: 0.27, sizePower: 0.8, spacing: 2.3, elongation: 1.15, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
-    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f3afef', rim: '#f3afef', hollow: '#b860d8', glow: 2 },
+    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f6bcf2', rim: '#f6bcf2', hollow: '#b860d8', glow: 2.5 },
     // The cup pulse (spec 2.4, 7.5): root to tip in 0.75 s (speed 1.33), lighting 3 to 5 cups at once
     // (wavelength 0.17); the leading cups electric cyan, the middle lavender, the tail the cup pink.
     // Strength is a starting value: Task 6 tunes it against the 2.4 brightness cap.
@@ -211,7 +212,9 @@ export const FLUX: CharacterConfig = {
     // the P2 samples, tuned in Task 6: the mantle goes electric blue (48, 68, 239) at the crown to
     // violet (156, 87, 239) in the thick middle, with a blue rim (61, 116, 233) and a warm pink-white
     // core (254, 171, 207) at the mouth. The arms are bluer: a pale periwinkle rim and top
-    // (110, 126, 247), a deep blue body (55, 74, 241) and only a violet hint of core.
+    // (110, 126, 247), a deep blue body (55, 74, 241) and only a violet hint of core. Task 6 gave the
+    // arms a pale periwinkle cap along their top (crown #7f8cf8 from N.y 0.5): lower caps paled the body
+    // and pulled its saturation below P2's band.
     // Task 6: the crown cap starts lower (crownHeight 0.35) and the depth is half strength, so only the
     // middle of the head facing the camera is violet and its sides stay blue (P2). The core sits at the
     // mouth (0.12 below the face glow's centre, y -0.82), warmth 1: the core's ramp colour is taken with
@@ -225,7 +228,7 @@ export const FLUX: CharacterConfig = {
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#7f8cf8', crownHeight: 0.5, depth: '#374af1', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
+        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#7f8cf8', crownHeight: 0.5, depth: '#3c56f4', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
         sparkle: 50,
       },
     },
