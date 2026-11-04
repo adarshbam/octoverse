@@ -145,7 +145,6 @@ test('the gate stands right and back: P1 puts its membrane at about x +0.95 to +
   expect(p.position[2]).toBeLessThan(-2);
   expect(p.position[1]).toBeCloseTo(layout.floorY, 1);
   const [x0, x1, y0, y1] = frameBox(nodeList.info.gate_membrane.bounds, p);
-  expect(x0).toBeCloseTo(0.95, 0);
   expect(Math.abs(x0 - 0.95)).toBeLessThan(0.12);
   expect(Math.abs(x1 - 2.05)).toBeLessThan(0.12);
   expect(Math.abs(y0 - -1.35)).toBeLessThan(0.1);
@@ -162,7 +161,8 @@ test('the gate stands right and back: P1 puts its membrane at about x +0.95 to +
   expect(windows[1]).toBeLessThanOrEqual(arch[1]);
 });
 
-test('in the intro the gate is a dark shape to the right of the host, never at its face: the membrane is right of centre and behind the face plane', () => {
+// TODO(Task 5/6): the 7.7 intro rule (gate soft or out of frame, brightest pixel below the face glow) is asserted by a rendered check in Task 5.
+test('in the intro frame the gate stands right of the host: its membrane is clear of the face and its masonry reaches the right edge', () => {
   const p = gate[0].p;
   const [ax] = faceAnchor(HOST_BUNDLE, 'intro');
   const [x0] = frameBox(nodeList.info.gate_membrane.bounds, p);
@@ -222,7 +222,8 @@ const world = (props: WorldConfig['props']): WorldConfig => ({
 test('the engine accepts this kit and layout, with the glyph on the emissive drive', () => {
   expect(PROP_DRIVE_IDS).toContain('emissive');
   expect(validateWorld(world([{ id: 'gateGlyph', node: 'gate_glyph', drive: 'emissive' }]))).toEqual([]);
-  // Every card is a kit node a prop may name (the drive itself is named below).
+  // Declaring every card as an 'emissive' prop is only a way to validate that each card is a kit node a prop may
+  // name. It must not be copied into the real config: the cards take 'bob' (the skipped test below), not 'emissive'.
   for (const name of cards) expect(validateWorld(world([{ id: name, node: name, drive: 'emissive' }])), name).toEqual([]);
 });
 

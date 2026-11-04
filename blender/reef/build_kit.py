@@ -63,10 +63,6 @@ PIECES = "OctoReefKit pieces"  # exported
 PREFIX = "reef."
 LOD1 = "_lod1"
 
-# gltf-transform needs KTX-Software's `ktx` on the PATH when asked for KTX2 textures (the kit has
-# none, the page makes its own maps); the default install folder is added, or set KTX_SOFTWARE_BIN.
-TEXTURE_COMPRESS = "ktx2"
-KTX_BIN = os.environ.get("KTX_SOFTWARE_BIN", r"C:\Program Files\KTX-Software\bin")
 # gltf-transform optimize defaults that would break what the page reads: flatten and join would merge
 # the pieces into a few anonymous meshes (the page finds pieces and props by node name); palette would
 # rewrite the UVs; prune-attributes would drop the membrane's second UV set; simplify would change the
@@ -706,14 +702,11 @@ def export(coll):
 
 
 def gltf_transform(*args):
-    """Runs the repo's own gltf-transform (npx --no-install: never a download), with KTX-Software on the PATH for its KTX2 commands."""
+    """Runs the repo's own gltf-transform (npx --no-install: never a download)."""
     cmd = ["npx", "--no-install", "gltf-transform", *map(str, args)]
     print("gltf-transform:", " ".join(cmd))
-    env = dict(os.environ)
-    if os.path.isdir(KTX_BIN):
-        env["PATH"] = KTX_BIN + os.pathsep + env.get("PATH", "")
     try:
-        subprocess.run(cmd, cwd=ROOT, env=env, check=True, shell=os.name == "nt", capture_output=True, text=True)
+        subprocess.run(cmd, cwd=ROOT, check=True, shell=os.name == "nt", capture_output=True, text=True)
     except (OSError, subprocess.CalledProcessError) as error:
         detail = getattr(error, "stderr", "") or error
         raise RuntimeError(f"gltf-transform failed; run the command above from {ROOT}.\n{detail}") from error
@@ -722,7 +715,7 @@ def gltf_transform(*args):
 def compress(raw, out):
     """Meshopt geometry (what the engine's kit loader decodes), keeping the structure the page reads."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    gltf_transform("optimize", raw, out, "--compress", "meshopt", "--texture-compress", TEXTURE_COMPRESS, *KEEP_STRUCTURE)
+    gltf_transform("optimize", raw, out, "--compress", "meshopt", *KEEP_STRUCTURE)
 
 
 def check_output(path, wanted):
@@ -811,9 +804,12 @@ def build():
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
         built = build_pieces(coll)
         check_layout(built)
-        export(coll)
-        raw = RAW.stat().st_size
-        compress(RAW, out)
+        try:
+            export(coll)
+            raw = RAW.stat().st_size
+            compress(RAW, out)
+        finally:
+            RAW.unlink(missing_ok=True)
         check_output(out, PLACED + GATE_NODES)
         for name, (piece, far) in built.items():
             lod = f", lod1 {triangles(far)} ({triangles(far) / triangles(piece):.0%})" if far else ""
@@ -822,7 +818,6 @@ def build():
         write_node_list(out, built)
         print("pieces:", ", ".join(PLACED), "| nodes:", ", ".join(GATE_NODES))
         print(f"exported {out}: {raw} bytes raw, {out.stat().st_size} bytes compressed")
-    RAW.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
