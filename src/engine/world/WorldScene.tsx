@@ -8,7 +8,8 @@ import { FarCards } from './FarCards';
 import { setWorldColour } from './colour';
 import { Floor } from './Floor';
 import { Strands } from './Kelp';
-import { LIVE_ELEMENT_IDS } from './live';
+import { STRAND_ELEMENT_IDS } from './live';
+import { Jellyfish } from './live/Jellyfish';
 import { Kit } from './Kit';
 import { KitBoundary } from './WorldBoundary';
 import { useWorldKit } from './kitLoader';
@@ -31,7 +32,7 @@ import { MotionContext, WorldTimeProvider, type WorldTimeFlags, ambientTime } fr
  * own, drawn up to `level` (worldLevel.ts), so a file that fails or hangs leaves the water, the light
  * and Nox standing. `onFail` hears of a failure, `onKitSettled` of the kit's arrival (with its level).
  * `time` says whether the world's clock runs or holds one moment. `tier` is what the quality tier draws (worldTiers.ts): fewer bubbles, embers and light shafts, a smaller
- * shadow map cast by Nox alone, no fish or motes on the lower ones. `accents` links Nox's skin: the world lights him only through
+ * shadow map cast by Nox alone, no fish or motes on the lower ones, and a world's jellyfish by their count at its quality. `accents` links Nox's skin: the world lights him only through
  * these capped accents, and its particles take his face glow's light through it. `solo`, for
  * measurement captures only, leaves out the bubbles. `onPlateSettled` is called once the far plate's layers have loaded or failed (with whether all loaded). `reducedMotion` holds the world's own motion
  * (floor lava pulse, coral sway, ambient bubbles) still, as `time.freeze` does. The scene around it needs shadows on and a far
@@ -73,7 +74,8 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
       {tier.fish && <FarFish colour={water.colours.fish} amount={live.fish} />}
       {tier.motes && <Motes colours={live.colours.motes} amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
       {!solo && <Bubbles colours={live.colours.bubbles} density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
-      {LIVE_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}
+      {STRAND_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}
+      {live.elements?.jellyfish && <Jellyfish config={live.elements.jellyfish} tier={tier} />}
       <Embers colours={live.colours.embers} density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>

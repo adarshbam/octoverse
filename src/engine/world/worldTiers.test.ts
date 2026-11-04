@@ -4,7 +4,8 @@ import { PHONE_WORLD_TIER, WORLD_TIERS, reliefShown, stoneCastsShadow, worldTier
 
 test('world tiers scale down monotonically', () => {
   const { high, medium, low } = WORLD_TIERS;
-  for (const key of Object.keys(high) as (keyof typeof high)[]) {
+  // `quality` names the tier (it is not a lever): every other field only ever drops.
+  for (const key of (Object.keys(high) as (keyof typeof high)[]).filter(k => k !== 'quality')) {
     const [a, b, c] = [high[key], medium[key], low[key]];
     if (typeof a === 'boolean') {
       // A feature may be dropped on a lower tier, never gained.
@@ -17,10 +18,13 @@ test('world tiers scale down monotonically', () => {
 
 test('every tier is pinned', () => {
   expect(WORLD_TIERS).toEqual({
-    high: { particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
-    medium: { particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
-    low: { particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
+    high: { quality: 'high', particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
+    medium: { quality: 'medium', particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
+    low: { quality: 'low', particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
   });
+  // Each tier names itself: a live element counted by tier (jellyfish) reads its count by this name.
+  for (const name of ['high', 'medium', 'low'] as const) expect(WORLD_TIERS[name].quality).toBe(name);
+  expect(PHONE_WORLD_TIER.quality).toBe('low');
 });
 
 test('the stone casts shadows and shows its relief at high only', () => {

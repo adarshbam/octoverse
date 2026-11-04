@@ -4,7 +4,8 @@
 import type { ContactShadowSettings } from './contactShadowEffect';
 import type { FloorMaterialId } from './floors';
 import type { KitMaterialAssignment } from './kitMaterials';
-import type { LiveElementId } from './live';
+import type { QualityTier } from '../stage/quality';
+import type { StrandElementId } from './live';
 import type { PropDrive } from './props';
 
 /** x, y, z in stage units. The camera looks down -z, so z < 0 is beyond Nox. */
@@ -194,7 +195,32 @@ export interface StrandConfig {
   sway: number;
   color: string;
 }
-export type LiveElements = Partial<Record<LiveElementId, StrandConfig>>;
+
+/** A box in stage units, from its lowest corner `min` to its highest `max`. */
+export interface Box3 {
+  min: Vec3;
+  max: Vec3;
+}
+
+/**
+ * A swarm of jellyfish (live/Jellyfish.tsx): `count` of them at each quality tier (never more at a
+ * lower one), each a bell `size[0]` to `size[1]` stage units in radius, in the colour `bell`, with
+ * filaments in `filament` (each `#rrggbb`). Each pulses once every `pulse[0]` to `pulse[1]` seconds,
+ * out of step with the rest, and the swarm drifts up at `drift` stage units a second, through
+ * `region` and round again from its floor.
+ */
+export interface JellyfishConfig {
+  count: Record<QualityTier, number>;
+  size: readonly [number, number];
+  bell: string;
+  filament: string;
+  pulse: readonly [number, number];
+  drift: number;
+  region: Box3;
+}
+
+/** The live elements a world turns on (live/index.ts): strands by their config, the jellyfish by theirs. */
+export type LiveElements = Partial<Record<StrandElementId, StrandConfig>> & { jellyfish?: JellyfishConfig };
 
 /** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
 export interface LiveColours {

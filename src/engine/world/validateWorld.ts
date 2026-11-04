@@ -1,6 +1,6 @@
 import { isWorldColour } from './colour';
 import { DEFAULT_FLOOR, FLOOR_MATERIALS } from './floors';
-import { LIVE_ELEMENT_IDS, MAX_STRANDS } from './live';
+import { LIVE_ELEMENT_IDS, MAX_JELLYFISH, MAX_STRANDS, STRAND_ELEMENT_IDS } from './live';
 import { kitMaterialProblems } from './kitMaterials';
 import { PROP_DRIVE_IDS } from './props';
 import type { FloorGlow, Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
@@ -80,6 +80,33 @@ export function asWorldLayout(data: unknown): WorldLayout {
   const problems = layoutProblems(data);
   if (problems.length > 0) throw new Error(`invalid world layout:\n${problems.join('\n')}`);
   return data as WorldLayout;
+}
+
+/** The quality tiers a per-tier count names, lowest first: a count never rises as the tier falls. */
+const TIERS_LOW_FIRST = ['low', 'medium', 'high'] as const;
+
+/** What is wrong with a jellyfish element (`JellyfishConfig`), in words, each naming its field under `at`. */
+function jellyfishProblems(jelly: unknown, at: string): string[] {
+  if (!record(jelly)) return [`${at} needs count, size, bell, filament, pulse, drift and region`];
+  const problems: string[] = [];
+  const count = record(jelly.count) ? jelly.count : {};
+  if (!record(jelly.count)) problems.push(`${at}.count needs a whole number for each tier (high, medium, low)`);
+  for (const tier of TIERS_LOW_FIRST) {
+    const n = count[tier];
+    if (!finite(n) || !Number.isInteger(n) || n < 0) problems.push(`${at}.count.${tier} must be a whole number, 0 or more`);
+    else if (n > MAX_JELLYFISH) problems.push(`${at}.count.${tier} must be at most ${MAX_JELLYFISH}`);
+  }
+  const [low, medium, high] = TIERS_LOW_FIRST.map(tier => count[tier]);
+  if (finite(low) && finite(high) && low > high) problems.push(`${at}.count.low (${low}) must be at most count.high (${high}): a lower tier never draws more`);
+  if (finite(medium) && ((finite(low) && medium < low) || (finite(high) && medium > high))) problems.push(`${at}.count.medium (${medium}) must be between count.low and count.high`);
+  const range = (v: unknown) => Array.isArray(v) && v.length === 2 && v.every(finite) && v[0] > 0 && v[0] <= v[1];
+  if (!range(jelly.size)) problems.push(`${at}.size must be [smallest, largest] bell radius, above 0, smallest first`);
+  if (!range(jelly.pulse)) problems.push(`${at}.pulse must be [shortest, longest] seconds a beat, above 0, shortest first`);
+  for (const name of ['bell', 'filament'] as const) if (!colour(jelly[name])) problems.push(`${at}.${name} is not a #rrggbb colour`);
+  if (!finite(jelly.drift) || jelly.drift < 0) problems.push(`${at}.drift must be 0 or more`);
+  const region = jelly.region;
+  if (!record(region) || !vec3(region.min) || !vec3(region.max) || !region.min.every((v, i) => v < (region.max as Vec3)[i])) problems.push(`${at}.region needs min and max corners, min below max on every axis`);
+  return problems;
 }
 
 /** What is wrong with a world, in words; an empty list means it is valid. */
@@ -208,6 +235,7 @@ export function validateWorld(world: WorldConfig): string[] {
   for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {
     const at = `live.elements.${id}`;
     if (!(LIVE_ELEMENT_IDS as string[]).includes(id)) problems.push(`${at} is not a live element (${LIVE_ELEMENT_IDS.join(', ')})`);
+    else if (!(STRAND_ELEMENT_IDS as string[]).includes(id)) problems.push(...jellyfishProblems(strand, at));
     else if (!record(strand)) problems.push(`${at} needs count, height, sway and color`);
     else {
       if (!finite(strand.count) || !Number.isInteger(strand.count) || strand.count < 0) problems.push(`${at}.count must be a whole number, 0 or more`);
