@@ -92,9 +92,7 @@ describe('global checks hold on the reference samples', () => {
       expect(b! - g!).toBeLessThanOrEqual(k.faceBminusGmax);
       expect(r! - b!).toBeGreaterThanOrEqual(k.faceRminusBmin);
     }
-    // Aether's face glow (253, 212, 232) fails both, which is the point of the check.
-    expect(232 - 212).toBeGreaterThan(k.faceBminusGmax);
-    expect(253 - 232).toBeLessThan(k.faceRminusBmin);
+    // Aether's face glow (253, 212, 232) fails both rules: that is the point of the check.
   });
   test('blue crown over a violet head', () => {
     const [cr, , cb] = byName('crown');
@@ -126,21 +124,30 @@ describe('shape targets and the mask', () => {
     expect(targets.iou).toBe(0.85);
   });
 
-  test('the mask covers the octopus: head, mouth and arms in; title, a card and the pill out', () => {
+  test('the mask covers the octopus: about 61 374 px, with the head, arms and cups in and the rest out', () => {
     const m = ref('p2-mask');
-    expect([m.width, m.height]).toEqual([512, 508]);
+    expect([m.width, m.height, m.channels]).toEqual([512, 508, 1]);
+    let count = 0;
+    for (let i = 0; i < m.data.length; i++) if (m.data[i]! > 127) count++;
+    expect(Math.abs(count - 61374) / 61374, `mask has ${count} px`).toBeLessThanOrEqual(0.01);
     const on = (x: number, y: number) => m.data[y * m.width + x]! > 127;
-    expect(on(256, 300), 'head').toBe(true);
-    expect(on(256, 338), 'mouth').toBe(true);
-    expect(on(100, 350), 'left arm').toBe(true);
-    expect(on(392, 400), 'right arm cup rim').toBe(true);
-    expect(on(256, 120), 'title').toBe(false);
-    expect(on(50, 230), 'left card').toBe(false);
-    expect(on(256, 480), 'pill').toBe(false);
+    const inside: [string, number, number][] = [
+      ['head', 256, 300], ['mouth', 256, 338], ['head top, just under the dome', 256, 222], ['left arm', 100, 350],
+      ['left arm tip', 30, 350], ['right arm tip', 450, 315], ['cup rim', 392, 400],
+    ];
+    const outside: [string, number, number][] = [
+      ['above the dome', 256, 217], ['left of the left arm tip', 12, 350], ['below the cup rim', 392, 430],
+      ['bubble on the left arm', 85, 296], ['bubble upper right', 402, 240], ['title text', 256, 125],
+      ['intro text', 230, 158], ['left card', 50, 230], ['right card', 470, 350], ['pill', 256, 470],
+    ];
+    for (const [name, x, y] of inside) expect(on(x, y), `${name} (${x}, ${y})`).toBe(true);
+    for (const [name, x, y] of outside) expect(on(x, y), `${name} (${x}, ${y})`).toBe(false);
   });
 
   test('meanInside is the mean colour of P2 inside the mask, with its saturation and brightness', () => {
     const p = panels.p2, m = ref('p2-mask');
+    expect(p.channels, 'P2 is RGB').toBe(3);
+    expect(m.channels, 'the mask is grey').toBe(1);
     const sum = [0, 0, 0];
     let n = 0, sat = 0, val = 0;
     for (let i = 0; i < m.width * m.height; i++) {

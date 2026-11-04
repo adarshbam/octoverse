@@ -64,7 +64,7 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 
 ### Mask
 
-`public/octoverse/ref/p2-mask.png` (512 x 508, 61 374 px inside). `scripts/silhouette.py` only prints head half-widths per row from `Nox.jpeg`; it writes no mask and is not usable on the host's panel, so the mask was made by its method (bright rim threshold, luminance > 85) as a connected component grown from the head, with a script kept outside the repo:
+`public/octoverse/ref/p2-mask.png` (512 x 508, 61 374 px inside). `scripts/silhouette.py` only prints head half-widths per row from `Nox.jpeg`; it writes no mask and is not usable on the host's panel, so the mask was made by its method (bright rim threshold, luminance > 85) as a connected component grown from the head, by `scripts/make_p2_mask.py` (needs cv2, not a repo dependency; `--check` confirms the committed mask is what it makes):
 - luminance > 85, rows above y 205 (title and text above the dome) and below y 455 (pill) cleared, 3x3 opening, 4-connected component containing the head (256, 300), holes filled;
 - one bubble touching the left arm removed (x 68..95, y 275..312);
 - the cards, the other bubbles, the title, the text and the pill fall out because they are separate components or outside the row band. Checked by eye on a green overlay.
@@ -75,3 +75,8 @@ Platform gaps found (scheduled as a later E02b; not patched here):
 - Sample window: a `size` x `size` square from `x - floor(size/2)`, `y - floor(size/2)`. The spec's integer targets equal that window's mean to within 0.5 on all 22 samples (the other centring convention misses by up to 21), so the spec values are kept verbatim.
 - `stage_samples.json` panel `"2"` points are `[world x, world y, panel px, panel py]` with origin (256, 254) and 100 px per world unit, read by `check_stage.py` through its `hq` path (`public/octoverse/ref/p2.png`, frame [5.12, 5.08]). `colorTolerance` is 24 (max channel delta, as Nox's: the script has no delta E in that path; the spec's delta E 10 is in `targets.json`).
 - `world_samples.json`: mean/saturation/brightness window from `meanInside` and the 17 P2 points as regions. `check_stage.py --world` cannot read it for the host yet (its panel 2 high-quality image is hard-coded to Nox's `public/spike/nox-panel2-hq.jpg`); that needs a script change in a later task.
+
+### Notes for the later render-check task
+
+- `world_samples.json` brightness range (meanInside +- 0.05) is the implementer's choice: the spec fixes only the RGB tolerance (12 per channel) and the saturation window (0.04).
+- `check_stage.py` reads every sample through a fixed 6 x 6 px patch (`r = 3`), while the spec's sample sizes run from 3 to 12 px (`size` in `targets.json`). The render-check task should compare per-sample sizes (as `targets.test.ts` does) rather than rely on that patch.
