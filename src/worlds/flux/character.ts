@@ -46,12 +46,15 @@ export const FLUX: CharacterConfig = {
     light: { color: '#d070ff', intensity: 5, distance: 6, decay: 2 },
     spreadX: 0.6,
     reachUp: 0.5,
-    reachDown: 0.3,
+    // Reaching down to the chin (Task 6: 0.3 left the chin violet-blue), so the glow washes it pink-violet.
+    reachDown: 0.4,
     // The mantle by glow strength: electric blue crown (48, 68, 239), the violet middle (156, 87, 239),
-    // the chin's violet-pink (214, 125, 243), the pink-white face glow (254, 171, 207).
-    ramp: [[0, '#3044ef'], [0.2, '#3a50ef'], [0.4, '#9c57ef'], [0.65, '#d67df3'], [0.85, '#f59ae0'], [1, '#feabcf']],
+    // the chin's violet-pink (214, 125, 243), the pink-white face glow (254, 171, 207). The two top stops
+    // are pinker and less blue than the face sample (Task 6): bloom and the jelly core add blue-white
+    // over them, and the face renders at about (255, 166, 201).
+    ramp: [[0, '#3044ef'], [0.2, '#3a50ef'], [0.4, '#9c57ef'], [0.65, '#d67df3'], [0.85, '#f896b4'], [1, '#ff98a8']],
     cheekWarmth: 0.7,
-    underside: 1.0,
+    underside: 1.5,
     // A soft blue glow round the silhouette, turning violet below the arms.
     halo: { headWidth: 0.05, armWidth: 0.035, color: '#4a8cff', crown: '#5a78ff', band: '#a050e8', strength: 0.75, bandStrength: 0.8 },
     // In the water: deep blue near him (the aura target, 0, 24, 80), violet below; the water within
@@ -152,14 +155,16 @@ export const FLUX: CharacterConfig = {
     outline: '#f0e4ff',
     // Deep navy-blue brows (P2's darkest brow pixels: 8, 10, 147).
     brow: '#060880',
-    // A dark plum rim and inside (P2: 62, 22, 74), set darker than the sample because the face glow
-    // lifts it in the render (about 108, 71, 94 at this value); a pink tongue (239, 90, 119).
+    // A dark plum rim and inside (P2: 62, 22, 74), set darker than the sample; a pink tongue (239, 90,
+    // 119). The jelly core used to lift them (about 108, 71, 94); since Task 6 placed the core at the
+    // face glow the darkest mouth pixels render about 48, 27, 43 and the pupils about 21, 18, 26.
     mouth: '#120216',
     mouthInside: '#140418',
     tongue: '#f45a7a',
-    // Pink blush, stronger than Veyra's peach (P2: 250, 155, 205).
-    blush: '#ff8cc4',
-    blushGlow: '#ff6ab4',
+    // Pink blush, stronger than Veyra's peach (P2: 250, 155, 205); Task 6 lightened it (at #ff8cc4 it
+    // rendered 247, 137, 201, too deep).
+    blush: '#ffa6d4',
+    blushGlow: '#ff86c4',
   },
   // The intro and overview faces are the big open smile (P2), with a stronger blush; the tech-focus
   // face is the eager one (spec 7.3): eyes wider, brows up, mouth a little open.
@@ -173,12 +178,14 @@ export const FLUX: CharacterConfig = {
   armBend: 0.2,
   armFlatten: 0.86,
   // Separate glowing pink ovals (spec 7.2), not a frill: each cup sits flat on the arm with a clear gap
-  // to the next (spacing 2.6) and its rim stands barely proud (scallop 0.1). The cup edge and rim are
-  // P2's cup glow (243, 175, 239); the hollow is a deeper violet-pink. The cups shrink faster than the
-  // arm toward the tip (sizePower 0.9), and glow 1.2 keeps them lit in the dark water.
+  // to the next (spacing 2.3) and its rim stands barely proud (scallop 0.1). The cup edge and rim are
+  // P2's cup glow (243, 175, 239); the hollow is a deeper violet-pink. Task 6 made them P2's size
+  // (size 0.27, sizePower 0.8: they shrink toward the tip) and set them near the arm's lower edge
+  // (tilt 12), so they read as P2's glowing scallops along the underside, not coins on the arm's face;
+  // glow 2 keeps them lit in the dark water.
   suckers: {
-    size: 0.22, sizePower: 0.9, spacing: 2.6, elongation: 1.15, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
-    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f3afef', rim: '#f3afef', hollow: '#a850c8', glow: 1.2 },
+    size: 0.27, sizePower: 0.8, spacing: 2.3, elongation: 1.15, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
+    style: { rimWidth: 0.18, scallop: 0.1, edge: '#f3afef', rim: '#f3afef', hollow: '#b860d8', glow: 2 },
     // The cup pulse (spec 2.4, 7.5): root to tip in 0.75 s (speed 1.33), lighting 3 to 5 cups at once
     // (wavelength 0.17); the leading cups electric cyan, the middle lavender, the tail the cup pink.
     // Strength is a starting value: Task 6 tunes it against the 2.4 brightness cap.
@@ -201,19 +208,24 @@ export const FLUX: CharacterConfig = {
     streakScale: 1,
     streakStrength: 0.3,
     // Jelly glass on the mantle and the arms (spec 7.2) with fine sparkles over both, denser than Veyra's (70 and 50 against her 50 and 35; spec 7.2). Start values from
-    // the P2 samples (Task 6 tunes them): the mantle goes electric blue (48, 68, 239) at the crown to
+    // the P2 samples, tuned in Task 6: the mantle goes electric blue (48, 68, 239) at the crown to
     // violet (156, 87, 239) in the thick middle, with a blue rim (61, 116, 233) and a warm pink-white
-    // core (254, 171, 207) sitting just below the mouth. The arms are bluer: a pale periwinkle rim
+    // core (254, 171, 207) at the mouth. The arms are bluer: a pale periwinkle rim and top
     // (110, 126, 247), a deep blue body (55, 74, 241) and only a violet hint of core.
+    // Task 6: the crown cap starts lower (crownHeight 0.35) and the depth is half strength, so only the
+    // middle of the head facing the camera is violet and its sides stay blue (P2). The core sits at the
+    // mouth (0.12 below the face glow's centre, y -0.82), warmth 1: the core's ramp colour is taken with
+    // max() over the skin's, so a core weaker than the face glow (as it was centred lower, at the chin)
+    // pulls the ramp's violet blue into the face and lifts the pupils and the mouth.
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#3d74e9', rimPower: 4, crown: '#3044ef', crownHeight: 0.5, depth: '#9c57ef', depthStrength: 1, core: '#feabcf', coreCenter: [0, -0.2, -0.35], coreWarmth: 1.4 },
+        jelly: { rim: '#3d74e9', rimPower: 2.5, crown: '#3044ef', crownHeight: 0.35, depth: '#9c57ef', depthStrength: 0.5, core: '#feabcf', coreCenter: [0, -0.12, -0.35], coreWarmth: 1 },
         sparkle: 70,
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#4658f3', crownHeight: 0.5, depth: '#374af1', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
+        jelly: { rim: '#6d7df6', rimPower: 4, crown: '#7f8cf8', crownHeight: 0.5, depth: '#374af1', depthStrength: 0.5, core: '#c070f0', coreCenter: [0, -0.2, -0.35], coreWarmth: 0.3 },
         sparkle: 50,
       },
     },
