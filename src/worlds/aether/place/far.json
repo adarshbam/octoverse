@@ -25,7 +25,7 @@
     { "piece": "rubble_float_e", "position": [3.6, 5.6, -29.0], "rotY": 0.9, "tilt": -0.25, "scale": 2.0 },
     { "piece": "rubble_float_a", "position": [11.0, 2.0, -27.0], "rotY": 1.4, "tilt": 0.2, "scale": 1.8 },
 
-    { "piece": "tower_a", "position": [12.0, -2.45, -38.0], "rotY": -0.5, "scale": 1.7 },
+    { "piece": "tower_a", "position": [14.0, -2.45, -38.0], "rotY": -0.5, "scale": 1.7 },
     { "piece": "tower_c", "position": [-14.0, -2.45, -40.0], "rotY": 0.8, "scale": 1.8 },
     { "piece": "tower_d", "position": [-3.0, -2.45, -44.0], "rotY": 0.1, "scale": 1.8 },
     { "piece": "tower_b", "position": [5.0, -2.45, -48.0], "rotY": -0.3, "scale": 1.9 },

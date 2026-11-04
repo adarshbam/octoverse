@@ -6,14 +6,14 @@
       { "piece": "portal_steps", "position": [12.6, -2.45, -9.5], "rotY": -0.7, "scale": 1.1 }
     ],
     "towers": [
-      { "piece": "tower_a", "position": [-5.2, -2.45, -14.5], "rotY": 0.35, "scale": 1.05 },
-      { "piece": "tower_d", "position": [5.0, -2.45, -14.0], "rotY": -0.5, "scale": 1.15 },
+      { "piece": "tower_a", "position": [-5.05, -3.84, -14.5], "rotY": 0.35, "scale": 1.05 },
+      { "piece": "tower_d", "position": [5.0, -4.85, -14.0], "rotY": -0.5, "scale": 1.15 },
       { "piece": "tower_c", "position": [-11.5, -2.45, -4.0], "rotY": 0.55, "scale": 1.1 },
       { "piece": "tower_b", "position": [13.5, -2.45, -19.0], "rotY": -0.3, "scale": 1.2 }
     ],
     "walls": [
       { "piece": "wall_a", "position": [-10.2, -2.45, -1.2], "rotY": 0.9, "scale": 1.2 },
-      { "piece": "wall_b", "position": [-1.8, -2.45, -19.5], "rotY": 0.1, "scale": 1.5 },
+      { "piece": "wall_b", "position": [-1.8, -2.45, -19.5], "rotY": 3.24, "scale": 1.5 },
       { "piece": "wall_c", "position": [9.0, -2.45, -17.0], "rotY": -0.6, "scale": 1.4 },
       { "piece": "wall_c", "position": [-13.5, -2.45, -14.0], "rotY": 0.7, "scale": 1.3 }
     ],

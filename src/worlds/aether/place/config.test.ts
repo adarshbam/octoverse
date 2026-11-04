@@ -5,6 +5,8 @@ import { expect, test } from 'vitest';
 import { asBakeRecord, type BakedPointLight } from '../../../engine/world/bakedLight';
 import { farCardSize } from '../../../engine/world/farPlate';
 import { kitMaterialBrightest } from '../../../engine/world/kitMaterials';
+import { LIVE_ELEMENTS } from '../../../engine/world/live';
+import { scatterJellies } from '../../../engine/world/live/jelly';
 import { membraneFlow } from '../../../engine/world/membraneMaterial';
 import type { Vec3 } from '../../../engine/world/types';
 import { validateWorld } from '../../../engine/world/validateWorld';
@@ -150,6 +152,30 @@ test('the live elements: jellyfish 10, 7 and 4 by tier, the manta fish, star mot
   expect(floor?.material).toBe('sand');
   expect(typeof palette.sand).toBe('string');
   expect(typeof palette.rock).toBe('string');
+});
+
+test("the jellyfish land where P2 paints its two (Task 10), among the four every tier draws, and none over her", () => {
+  const jelly = OBSERVATORY_WORLD.live.elements!.jellyfish!;
+  const swarm = scatterJellies(jelly, LIVE_ELEMENTS.jellyfish);
+  // P2's registration (world_reference.json): the stage camera at z 12 seen on the z = 0 plane, 100 px a unit, origin (257, 252).
+  const px = ([x, y, z]: readonly number[]) => [257 + (100 * x * 12) / (12 - z), 252 - (100 * y * 12) / (12 - z)];
+  const radius = (j: (typeof swarm)[number]) => (100 * j.size * 12) / (12 - j.position[2]);
+  const drawnByAll = swarm.slice(0, Math.min(jelly.count.high, jelly.count.medium, jelly.count.low));
+  // P2's left jellyfish: the bell sample (81, 155) sits in the upper half of the bell (its rim at y 165, its dome 0.75 radius tall).
+  const left = drawnByAll.map(j => ({ j, at: px(j.position) })).find(({ at }) => Math.hypot(at[0] - 81, at[1] - 165) < 3);
+  expect(left, 'a jellyfish whose bell rim is at P2 (81, 165)').toBeDefined();
+  expect(radius(left!.j)).toBeGreaterThan(15);
+  expect(165 - 0.75 * radius(left!.j)).toBeLessThan(155 - 3);
+  // P2's right jellyfish, about (427, 151).
+  expect(drawnByAll.some(j => Math.hypot(px(j.position)[0] - 427, px(j.position)[1] - 151) < 6)).toBe(true);
+  for (const j of swarm.slice(0, jelly.count.high)) {
+    // Behind her (she stands at z 0) and in front of the far plate; never inside her arm-span box (3.84 wide, P2 y 230 to 470).
+    expect(j.position[2]).toBeLessThan(-3);
+    expect(j.position[2]).toBeGreaterThan(farData.cutZ);
+    const [x, y] = px(j.position);
+    const r = radius(j);
+    expect(x + r < 257 + 7 - 192 || x - r > 257 + 7 + 192 || y + 2.4 * r < 230, `jellyfish at P2 (${x.toFixed(0)}, ${y.toFixed(0)}) over her`).toBe(true);
+  }
 });
 
 test("near.glb is baked from layout.json and the world's lights", () => {

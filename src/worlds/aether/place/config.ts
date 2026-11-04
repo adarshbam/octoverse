@@ -204,17 +204,38 @@ export const AMBER_CORALS = ['coral_amber_a', 'coral_amber_b', 'coral_amber_c'] 
  */
 export const MEMBRANE_COLOR = '#2876ff';
 
+/**
+ * Task 10: the near left tower's window (tower_a, the one P2's "ruin window light" sample (46, 225)
+ * lands on since layout.json sank the tower 1.39) glows a softer salmon-peach than the amber: P2
+ * paints that light (177, 121, 121) as a 7 x 7 mean (spec 2.1's pixel: 198, 138, 134), and the amber
+ * read (216, 136, 76) there, delta E 36.1; this reads (179, 119, 117), delta E 2.2. Warm, and not red
+ * by spec 7.7's rule (hue 10 degrees at an HSV saturation of 0.40, under 0.5; config.test). The far
+ * windows keep the amber (the bake's and render_far.py's WINDOW_GLOW), as do the other near pieces.
+ */
+export const NEAR_WINDOW_GLOW: Partial<Record<(typeof WINDOWED_PIECES)[number], { color: string; strength: number }>> = {
+  tower_a: { color: '#ffaa98', strength: 0.85 },
+};
+
 export const WORLD_MATERIALS: NonNullable<WorldConfig['materials']> = [
   { node: 'portal_membrane', material: 'membrane', params: { color: MEMBRANE_COLOR, edge: '#30c8f8', flowSpeed: 0.05, flowScale: 1.2, flash: 0.25 } },
   { node: 'portal_glyph', material: 'glow', params: { color: '#7a6aff', strength: 1.6, tips: 0, pulse: 0.55, period: 7.5 } },
   { node: 'portal_lanterns', material: 'glow', params: { color: '#ffb050', strength: 1.3, tips: 0, pulse: 0.15, period: 4.3 } },
-  ...WINDOWED_PIECES.map((piece, i) => ({ node: `${piece}_windows`, material: 'glow' as const, params: { ...WINDOW_GLOW, tips: 0, pulse: 0.08, period: 5.3 + 0.7 * i } })),
+  ...WINDOWED_PIECES.map((piece, i) => ({ node: `${piece}_windows`, material: 'glow' as const, params: { ...WINDOW_GLOW, ...NEAR_WINDOW_GLOW[piece], tips: 0, pulse: 0.08, period: 5.3 + 0.7 * i } })),
   ...AMBER_CORALS.map((node, i) => ({ node, material: 'glow' as const, params: { color: WORLD_PALETTE.amber, strength: 1.1, tips: 1.3, pulse: 0.2, period: 7.9 + 1.1 * i } })),
 ];
 
 /**
  * The jellyfish (spec 7.7): pink-violet bells with cyan filaments, pulsing every 2.4 to 3.8 s and
  * drifting slowly up through the mid water behind her and round the towers; 10, 7 or 4 by tier.
+ *
+ * Task 10: the region is set so the scatter (seed 307) puts the first jellyfish where P2 paints its
+ * left one (bell rim at P2 px (81, 165), z -7.4, 18 px across in radius) and the fourth where P2 paints
+ * the right one (about (427, 151)); both are among the four every tier draws. The others spread wide,
+ * so 6 of the high tier's 10 are in the desktop intro frame, none over her or the title. The bell
+ * reads (154, 113, 191) against P2's (156, 123, 225), delta E 13.2: the engine draws the bell flat
+ * (MeshBasicMaterial at opacity 0.75, fogged, tone-mapped, under the 0.95 bloom threshold), so its
+ * blue cannot climb further (brighter or bluer bells, nearer or larger ones: 14.2 to 28.0).
+ * MORNING-REVIEW-aether.md has the engine request.
  */
 export const JELLYFISH: JellyfishConfig = {
   count: { high: 10, medium: 7, low: 4 },
@@ -223,7 +244,7 @@ export const JELLYFISH: JellyfishConfig = {
   filament: '#5ce8ff',
   pulse: [2.4, 3.8],
   drift: 0.05,
-  region: { min: [-9, -0.6, -15], max: [9, 5.2, -3.5] },
+  region: { min: [-12.92, -1.14, -12], max: [9.83, 4.66, -3.5] },
 };
 
 /** The live elements' own colours in the world: glassy pale-blue bubbles, blue-white star motes and twinkling specks (the snow), no embers. */
@@ -241,6 +262,13 @@ const WORLD_LIVE_COLOURS: WorldConfig['live']['colours'] = {
  * emissive drive (a glow sets its own level). MORNING-REVIEW-aether.md has the engine request.
  */
 const WORLD_PROPS = OBSERVATORY_PROPS.filter(prop => prop.id !== 'portalGlyph');
+
+/**
+ * The world's water: the stage's colours with softer shafts (Task 10). At the desktop tier every
+ * shaft is drawn, and with the stage's '#5a8cff' one lit P2's upper water sample (469, 20) to (37, 67,
+ * 140) against P2's (2, 36, 100), delta E 14.3 (the phone tier draws 0.4 of them and read 6.0).
+ */
+export const WORLD_WATER_COLOURS: WorldConfig['water']['colours'] = { ...WATER_COLOURS, rays: '#3c64d0', raysWide: '#7898d8' };
 
 export const OBSERVATORY_WORLD: WorldConfig = {
   ...OBSERVATORY_STAGE,
@@ -261,7 +289,10 @@ export const OBSERVATORY_WORLD: WorldConfig = {
     fill: { color: '#8090ff', intensity: 1.1, position: [-1.5, 10, 2] },
     points: [...portalLights, ...coralLights, ...amberLights],
   },
-  water: { ...OBSERVATORY_STAGE.water, fogDensity: farData.fog.density },
+  water: { ...OBSERVATORY_STAGE.water, fogDensity: farData.fog.density, colours: WORLD_WATER_COLOURS },
+  // Task 10: the surface's opening 1.2 to 1.0 times the test scene's (the stage keeps 1.2): P2's lit upper
+  // water (2, 36, 100) is a deep blue, and the opening at 1.2 read (20, 48, 117) at the phone tier.
+  glow: { ...OBSERVATORY_STAGE.glow, top: 1.0 },
   live: {
     snow: 1,
     motes: 1,
