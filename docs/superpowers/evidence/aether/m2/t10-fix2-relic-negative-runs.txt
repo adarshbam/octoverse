@@ -1,0 +1,16 @@
+FAIL unexpected entrance frames in <dir>: ['entering-t9.png'] (stale from another run?)
+  -> stale extra frame entering-t9.png: exit 1
+FAIL missing entrance frames in <dir>: ['entering-t5.5.png']
+  -> missing entering-t5.5.png: exit 1
+FAIL her silhouette in entering-t4.5.png is 0 px (under 200): the mask is empty or wrong
+  -> all-black her-mask at t 4.5: exit 1
+FAIL no face glow found in entering-t5.5.png (her silhouette 900 px): only FAR_T ('1',) may lack one
+  -> 900 px silhouette, no face glow, at t 5.5: exit 1
+FAIL <dir>\entering-t2.png was written before this run started (frames.json): a stale frame
+  -> entering-t2.png older than the run: exit 1
+FAIL no frames.json in <dir>: run relic_capture.mjs (without --running-only) first
+  -> no frames.json: exit 1
+FAIL the face stills ended 45.0 s after the page started: she may have begun to rest (40 s)
+  -> face stills ending at 45 s: exit 1
+FAIL 68 face stills against 69 recorded times
+  -> a face still missing: exit 1

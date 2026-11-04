@@ -698,3 +698,103 @@ Stills, in `docs/superpowers/evidence/aether/m2/`:
 - Task 17 authors the real entrance. It must run `relic_capture.mjs` and `relic_entrance.py` again on it, with `ENTRANCE_T` set to its beats.
 - If Task 17 drives the membrane's `emissive` flash (up to +25%), a frame at the flash's peak must be added.
 - The worst frame (0.95) is a speck, not the portal. Still, the portal's own steady light (about 0.55 to 0.75) sits within 15 to 25% of her face glow.
+
+### Task 10, fix round 2 (re-review of c43d700): frames asserted, face-glow basis and trough, owners named
+
+Scripts only (`src/worlds/aether/review/relic_capture.mjs`, `relic_entrance.py`). No config, layout or engine change. `--pulse-only` from fix round 1 is now `--running-only`: it captures the pulse and face stills again. Evidence run: `.tmp/t10/relic4`, output in `t10-fix2-relic-check.txt`.
+
+**The verdict rule changed.** The check now counts only the portal's own light:
+- each frame's own brightest, against her face glow at its trough;
+- the pulse peak, against her dimmest face glow at its trough.
+
+The brightest pixel in the portal's area is still printed for every frame, with its owner. When that pixel is a bubble, speck or her light (see (d)), the line starts `area` and does not decide the verdict. If it is the portal's own, it counts. The last line names the worst counted ratio and, separately, how far the bubbles and specks reach.
+
+**(a) Frames asserted.**
+- `relic_capture.mjs` deletes every old `entering-t*.png`, `intro*.png`, `pulse-NNN.png`, `face-NNN.png` and `frames.json` before capturing. It then writes `frames.json`: the moments and the run's start time.
+- `relic_entrance.py` fails unless:
+  - the eight frames of `ENTRANCE_T` and their masks are there, with no other `entering-t*` file;
+  - each was written after the start time;
+  - her silhouette holds at least 200 px in every frame and in the intro.
+- Only t 1 (`FAR_T`) may lack a face glow.
+- Negative runs (`t10-fix2-relic-negative-runs.txt`), all exit 1 with a `FAIL` line:
+  - a stale extra `entering-t9.png`;
+  - a missing `entering-t5.5.png`;
+  - an all-black mask at t 4.5;
+  - a 900 px silhouette with no face glow at t 5.5;
+  - `entering-t2.png` dated before the run;
+  - no `frames.json`;
+  - face stills ending at 45 s;
+  - a missing face still.
+- The evidence run went into a folder seeded with a stale `entering-t9.png`, an old `entering-t2.png` and a `pulse-099.png`. The capture removed all three, and the check passed on the new frames.
+
+**(b) Her face glow pulses.**
+- Octopus.tsx (engine, read only) sets `uGlowStrength = (1 + 0.06 b + 0.025 live sin(0.37 t + 1.3)) (1 - 0.15 rest)`:
+  - b is her breath (Aether's breathPeriod 5.0 s);
+  - live is 0 when frozen;
+  - rest comes only in the intro after 40 s idle (stageMachine.ts `isRestful`), never in the entrance.
+- Frozen stills show strength 1.0. The entrance swings it from 0.915 to 1.085.
+- Measured from 69 running-intro stills of her face over 17.36 s. That is longer than the 17 s drift; the page age was 23.4 s, so before any rest.
+  - Her face glow's brightest pixel holds at Y 0.908 (#fff0ff) in every still. It is clipped: R and B are at 255 over 2000 to 2900 px of the patch.
+  - The patch's 90% level is not clipped. It runs from Y 0.801 to 0.845, against 0.838 frozen. It dips with her breath, her sway and the patch's size, so its dip is the larger.
+  - The stills may miss the joint trough by 0.013 of the strength: a breath trough within 2.5 s of the drift's trough, plus half a 0.48 s gap. So the drop is scaled by 0.085 / 0.072.
+  - Trough factor **r = 0.949** (0.944 in the earlier run).
+- The entrance frames' face-glow maxima are not all clipped (t 3.2's is a single pixel), so r is applied to every face glow the portal's own light is compared with.
+
+**(c) t 1.**
+- She is 6032 px of silhouette with no pink-white patch; her brightest pixel is Y 0.511.
+- The frame is compared with the dimmest face glow measured (0.873, t 3.2), not the intro's 0.908, and marked **UNVERIFIED** in the output.
+- In that window:
+  - the portal's own brightest (0.475, a lantern) is just below her brightest pixel (0.511);
+  - the bubbles in front of the portal (0.676, ratio 1.32 to her brightest pixel) outshine her.
+- Whether the stage camera frames the portal at t 1 of the real entrance is not checked here (Task 17).
+
+**(d) Owners named.** Each frame's brightest pixel in the area is printed with:
+- the kit nodes whose hull holds it;
+- the portal's own frozen light there.
+
+The portal's own light is the per-pixel median over the nine frozen stills (her silhouette, grown 8 px for her bloom, left out of each). A frozen world holds every glow at mid level and the membrane still, so the portal draws the same pixel in all of them, while bubbles and specks move with each still's world time. More than 0.05 above that median is transient.
+
+| t | brightest in area, Y | at | in hulls of | portal's own Y there | ratio to her face glow (same frame) | portal's own brightest vs her trough |
+|---|---|---|---|---|---|---|
+| 1 | 0.676 | (950, 378) | membrane/lanterns/arch | 0.046 | 0.774 (vs 0.873, UNVERIFIED) | 0.573 (UNVERIFIED) |
+| 2 | 0.745 | (921, 556) | steps | 0.005 | 0.836 | 0.562 |
+| 3.2 | 0.668 | (837, 538) | steps | 0.012 | 0.765 | 0.573 |
+| 4.5 | 0.689 | (943, 365) | membrane/lanterns/arch | 0.114 | 0.768 | 0.559 |
+| 5.5 | 0.722 | (1029, 423) | glyph/membrane/lanterns/arch | 0.050 | 0.805 | 0.559 |
+| 6.5 | 0.504 | (908, 460) | lanterns/arch | 0.412 (her light on the lantern) | 0.555 | 0.551 |
+| 7.5 | 0.864 | (900, 536) | steps/arch | 0.037 | 0.952 | 0.551 |
+| 8.4 | 0.749 | (1008, 406) | glyph/membrane/lanterns/arch | 0.147 | 0.824 | 0.551 |
+
+- All eight frame maxima are transient. The t 7.5 one (0.952) is a speck in front of the steps, where the portal draws 0.037. So fix round 1's "a speck, not the portal" now has evidence in the output.
+- The portal's own brightest in every frame is Y 0.475 at (909, 461), a lantern on the arch.
+
+**(e) Unfiltered beside filtered**, from the running intro (42 stills over 9.5 s, widest gap 0.28 s):
+- **Unfiltered** per-pixel maximum: Y 1.000 at (1012, 410), in glyph/membrane/lanterns/arch, where the portal's own frozen light is 0.169: a bubble.
+- **Filtered, anything in the area:** Y 0.800 at (852, 421). Only the arch's hull holds it, and the portal's own light there is 0.008. It is a slow bubble on the stone, held through the window.
+  - Raised and against her trough, it reads 0.999. It is not counted, but it is printed.
+  - The arch and steps have no kit material (config.ts names only the membrane, glyph and lanterns), so stone never brightens itself. A held stone pixel more than 0.05 above its frozen light is a slow bubble or speck.
+  - Every pixel in a glowing node's hull counts at its held value, whatever lit it.
+- **Filtered, the portal's own:** Y 0.652 at (956, 352), membrane/lanterns/arch. Raised 3.3% for the 0.59 s reach: **Y 0.674**.
+  - Per node: glyph 0.646, lanterns 0.652, membrane 0.652, steps 0.156.
+- **Pulse peak against her trough:** 0.674 / (0.873 x 0.949 = 0.829) = **0.813**. In the earlier run (34 stills, gaps to 0.55 s), 0.720 / 0.825 = **0.873**.
+- **Limit:** the filter hides anything on the portal lit for less than about 0.9 s. Nothing on the portal does that today:
+  - the membrane has no prop;
+  - the glyph's `emissive` prop is filtered out of the world (`WORLD_PROPS = OBSERVATORY_PROPS.filter(prop => prop.id !== 'portalGlyph')`, config.ts), so no flash is ever driven.
+  - If Task 17 drives one, the flash needs a frozen frame at its peak; the filtered number would not show it.
+
+**(f)** `portal_pulses()` reads each portal glow's `pulse` and `period` in either order, and fails on a portal glow missing either. Checked against a scratch config.
+
+**Result (exit 0):**
+- Worst counted ratio **0.813** (0.873 in the earlier run): the portal's pulse peak against her face glow's trough.
+- The portal's own frozen light against her trough: 0.55 to 0.57.
+- t 1 is UNVERIFIED.
+- The bubbles and specks in front of the portal reach 0.999 (a slow bubble on the arch) and 0.952 (t 7.5 speck). They are not the portal, but they are the brightest things near it.
+
+Commands (dev server on 127.0.0.1:5196; exit 0 on a pass, exit 1 with a `FAIL` line otherwise):
+- `NOX_URL=http://127.0.0.1:5196 node src/worlds/aether/review/relic_capture.mjs <dir> [--running-only]`
+- `python src/worlds/aether/review/relic_entrance.py <dir>`
+
+**Still left (Task 17).**
+- Re-run on the real entrance, with `ENTRANCE_T` and `FAR_T` set to its beats.
+- Check whether the stage camera frames the portal at the early, far moments (t 1 here is unverified, and there the bubbles outshine her).
+- Add a frame at a membrane or glyph flash's peak if a sequence drives one.
