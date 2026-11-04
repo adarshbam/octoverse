@@ -4,7 +4,7 @@ import { PHONE_WORLD_TIER, WORLD_TIERS, reliefShown, stoneCastsShadow, worldTier
 
 test('world tiers scale down monotonically', () => {
   const { high, medium, low } = WORLD_TIERS;
-  for (const key of Object.keys(high) as (keyof typeof high)[]) {
+  for (const key of Object.keys(high).filter(k => k !== 'id') as Exclude<keyof typeof high, 'id'>[]) {
     const [a, b, c] = [high[key], medium[key], low[key]];
     if (typeof a === 'boolean') {
       // A feature may be dropped on a lower tier, never gained.
@@ -17,9 +17,9 @@ test('world tiers scale down monotonically', () => {
 
 test('every tier is pinned', () => {
   expect(WORLD_TIERS).toEqual({
-    high: { particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
-    medium: { particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
-    low: { particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
+    high: { id: 'high', particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
+    medium: { id: 'medium', particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
+    low: { id: 'low', particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
   });
 });
 

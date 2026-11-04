@@ -8,12 +8,13 @@ import { FarCards } from './FarCards';
 import { setWorldColour } from './colour';
 import { Floor } from './Floor';
 import { Strands } from './Kelp';
-import { LIVE_ELEMENT_IDS } from './live';
+import { STRAND_ELEMENT_IDS } from './live';
 import { Kit } from './Kit';
 import { KitBoundary } from './WorldBoundary';
 import { useWorldKit } from './kitLoader';
 import { Motes } from './Motes';
 import { WORLD_BUBBLES } from './bubbleField';
+import { Packets } from './Packets';
 import { Bubbles, Embers } from './Particles';
 import { SurfaceLight, WaterEnvironment, useSurfaceLight } from './SurfaceLight';
 import type { WorldConfig } from './types';
@@ -73,7 +74,8 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
       {tier.fish && <FarFish colour={water.colours.fish} amount={live.fish} />}
       {tier.motes && <Motes colours={live.colours.motes} amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
       {!solo && <Bubbles colours={live.colours.bubbles} density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
-      {LIVE_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}
+      {STRAND_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}
+      {live.elements?.packets && world.layout.paths?.[live.elements.packets.path] && <Packets config={live.elements.packets} path={world.layout.paths[live.elements.packets.path]} tier={tier.id} />}
       <Embers colours={live.colours.embers} density={live.embers * tier.particles} glow={accents?.light} reach={accents?.reach} scale={world.glow.embers} />
     </WorldTimeProvider>
     </MotionContext.Provider>

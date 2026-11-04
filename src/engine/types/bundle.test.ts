@@ -260,3 +260,14 @@ test('a layout whose groups are not an object, or whose old top-level lists are 
     expect(refusal(bundle as unknown as WorldBundle).field, JSON.stringify(groups)).toBe('place.layout.groups');
   }
 });
+
+test('a bundle whose world runs packets on a path validates: the path name is not read as a colour, the colours are', () => {
+  const place = {
+    ...NOX_BUNDLE.place,
+    layout: { ...NOX_BUNDLE.place.layout, paths: { bridge: [[-4, 0, -4], [4, 0, -6]] as const } },
+    live: { ...NOX_BUNDLE.place.live, elements: { packets: { path: 'bridge', count: { high: 8, medium: 4, low: 2 }, speed: 1, length: 0.4, colours: ['#4aa6d0', '#a0d8ff'] as const } } },
+  };
+  expect(validateBundle({ ...NOX_BUNDLE, place }).place.live.elements?.packets?.path).toBe('bridge');
+  const typo = { ...place, live: { ...place.live, elements: { packets: { ...place.live.elements.packets, colours: ['#4aa6d0', 'bluish'] as const } } } };
+  expect(refusal({ ...NOX_BUNDLE, place: typo }).field).toBe('place.live.elements.packets.colours[1]');
+});

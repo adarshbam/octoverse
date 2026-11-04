@@ -2,6 +2,8 @@ import type { QualityTier } from '../stage/quality';
 
 /** What the world draws at a quality tier. `high` is the full world; lower tiers thin it out. */
 export interface WorldTier {
+  /** The quality tier this is the world's draw for (the phone's is the lowest): what a world's per-tier counts are read by. */
+  id: QualityTier;
   /** Share of the ambient bubbles and embers drawn. */
   particles: number;
   /** Share of the light shafts drawn. */
@@ -17,9 +19,9 @@ export interface WorldTier {
 }
 
 export const WORLD_TIERS: Record<QualityTier, WorldTier> = {
-  high: { particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
-  medium: { particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
-  low: { particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
+  high: { id: 'high', particles: 1, rays: 1, shadowMap: 2048, plateScale: 1, fish: true, motes: true },
+  medium: { id: 'medium', particles: 0.6, rays: 0.6, shadowMap: 1024, plateScale: 0.75, fish: true, motes: false },
+  low: { id: 'low', particles: 0.35, rays: 0.4, shadowMap: 1024, plateScale: 0.5, fish: false, motes: false },
 };
 
 /**

@@ -437,7 +437,7 @@ test('a world with a moss floor and a kelp live element validates, and each is c
   expect(kelp({ height: -1 })).toContain('live.elements.kelp.height');
   expect(kelp({ sway: Number.NaN })).toContain('live.elements.kelp.sway');
   expect(kelp({ color: 'green' })).toContain('live.elements.kelp.color');
-  expect(bad({ live: { ...moss.live, elements: { jellyfish: moss.live.elements!.kelp! } as never } })).toContain('live.elements.jellyfish is not a live element (kelp, seagrass)');
+  expect(bad({ live: { ...moss.live, elements: { jellyfish: moss.live.elements!.kelp! } as never } })).toContain('live.elements.jellyfish is not a live element (kelp, seagrass, packets)');
 });
 
 test('a prop naming a missing kit node fails validation with the node name in the message', () => {

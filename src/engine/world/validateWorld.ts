@@ -1,6 +1,6 @@
 import { isWorldColour } from './colour';
 import { DEFAULT_FLOOR, FLOOR_MATERIALS } from './floors';
-import { LIVE_ELEMENT_IDS, MAX_STRANDS } from './live';
+import { LIVE_ELEMENT_IDS, MAX_PACKETS, MAX_STRANDS } from './live';
 import { kitMaterialProblems } from './kitMaterials';
 import { PROP_DRIVE_IDS } from './props';
 import type { FloorGlow, Placement, Vec3, WaterColours, WorldConfig, WorldLayout } from './types';
@@ -37,7 +37,7 @@ const PLACEMENT_FIELDS: Record<string, (v: unknown) => boolean> = {
 export function layoutProblems(data: unknown): string[] {
   if (!record(data)) return ['the layout is not an object'];
   const problems: string[] = [];
-  const known = ['floorY', 'groups', 'chains', 'coralLights'];
+  const known = ['floorY', 'groups', 'chains', 'coralLights', 'paths'];
   for (const key of Object.keys(data)) if (!known.includes(key)) problems.push(`the layout has an unknown key "${key}"`);
   if (!finite(data.floorY)) problems.push('floorY is not a number');
 
@@ -72,6 +72,22 @@ export function layoutProblems(data: unknown): string[] {
     else for (const key of Object.keys(item)) if (!['from', 'to', 'sag'].includes(key)) problems.push(`${at} has an unknown key "${key}"`);
   });
   list('coralLights', (item, at) => vec3(item) || problems.push(`${at} is not an x, y, z position`));
+  if (data.paths !== undefined) problems.push(...pathProblems(data.paths, 'paths'));
+  return problems;
+}
+
+/** What is wrong with a layout's paths (`paths` is optional: an object of named lists of at least two x, y, z points). */
+function pathProblems(paths: unknown, at: string): string[] {
+  if (!record(paths)) return [`${at} is not an object (a list of points for each path name)`];
+  const problems: string[] = [];
+  for (const [name, points] of Object.entries(paths)) {
+    if (name === '') problems.push(`${at} has a path with no name`);
+    if (!Array.isArray(points)) problems.push(`${at}.${name} is not a list`);
+    else {
+      if (points.length < 2) problems.push(`${at}.${name} needs at least 2 points`);
+      points.forEach((point, i) => vec3(point) || problems.push(`${at}.${name}[${i}] is not an x, y, z position`));
+    }
+  }
   return problems;
 }
 
@@ -80,6 +96,28 @@ export function asWorldLayout(data: unknown): WorldLayout {
   const problems = layoutProblems(data);
   if (problems.length > 0) throw new Error(`invalid world layout:\n${problems.join('\n')}`);
   return data as WorldLayout;
+}
+
+/** What is wrong with a `packets` live element: its path (which must be in `layout.paths`), counts by tier, speed, length and colours. */
+function packetsProblems(packets: unknown, at: string, paths: WorldLayout['paths']): string[] {
+  if (!record(packets)) return [`${at} needs path, count, speed, length and colours`];
+  const problems: string[] = [];
+  if (typeof packets.path !== 'string' || packets.path === '') problems.push(`${at}.path is not a path name`);
+  else if (!record(paths) || !Object.hasOwn(paths, packets.path)) problems.push(`${at}.path names "${packets.path}", which is not in layout.paths (${Object.keys(paths ?? {}).join(', ') || 'it has none'})`);
+  const count = packets.count;
+  if (!record(count)) problems.push(`${at}.count needs high, medium and low (how many run at each quality tier)`);
+  else {
+    const tiers = ['high', 'medium', 'low'] as const;
+    for (const tier of tiers) if (!finite(count[tier]) || !Number.isInteger(count[tier]) || count[tier] < 0 || count[tier] > MAX_PACKETS) problems.push(`${at}.count.${tier} must be a whole number from 0 to ${MAX_PACKETS}`);
+    // A lower tier never draws more than the one above it.
+    for (const [lower, higher] of [['medium', 'high'], ['low', 'medium']] as const) {
+      if (finite(count[lower]) && finite(count[higher]) && count[lower] > count[higher]) problems.push(`${at}.count.${lower} must not be more than ${higher}`);
+    }
+  }
+  if (!finite(packets.speed) || packets.speed < 0) problems.push(`${at}.speed must be 0 or more`);
+  if (!finite(packets.length) || packets.length <= 0) problems.push(`${at}.length must be above 0`);
+  if (!Array.isArray(packets.colours) || packets.colours.length !== 2 || !packets.colours.every(colour)) problems.push(`${at}.colours needs two #rrggbb colours`);
+  return problems;
 }
 
 /** What is wrong with a world, in words; an empty list means it is valid. */
@@ -102,6 +140,7 @@ export function validateWorld(world: WorldConfig): string[] {
     if (!vec3(c.from) || !vec3(c.to) || !finite(c.sag) || c.sag < 0) problems.push(`chains[${i}] needs from, to and a sag of 0 or more`);
   });
   layout.coralLights.forEach((v, i) => vec3(v) || problems.push(`coralLights[${i}] is not a position`));
+  if (layout.paths !== undefined) problems.push(...pathProblems(layout.paths, 'layout.paths'));
 
   lights.points.forEach((light, i) => {
     const name = `light ${i} (${light.kind})`;
@@ -208,6 +247,7 @@ export function validateWorld(world: WorldConfig): string[] {
   for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {
     const at = `live.elements.${id}`;
     if (!(LIVE_ELEMENT_IDS as string[]).includes(id)) problems.push(`${at} is not a live element (${LIVE_ELEMENT_IDS.join(', ')})`);
+    else if (id === 'packets') problems.push(...packetsProblems(strand, at, layout.paths));
     else if (!record(strand)) problems.push(`${at} needs count, height, sway and color`);
     else {
       if (!finite(strand.count) || !Number.isInteger(strand.count) || strand.count < 0) problems.push(`${at}.count must be a whole number, 0 or more`);
