@@ -33,14 +33,20 @@ const POST: WorldConfig['post'] = {
   vignette: { offset: 0.3, darkness: 0.9 },
 };
 
-/** The water's own colours: near-black navy below, the lit upper water as the zenith, cyan-leaning shafts. */
+/**
+ * The water's own colours: near-black navy below, the lit upper water as the zenith, blue shafts.
+ * At P2's camera the upper water sample (1, 74, 136) is lit mostly by the shafts, not the zenith, so
+ * Task 6 made the shafts a purer blue (at #2f86e0 / #4fb0f0 the corner read grey-blue, 19, 65, 108:
+ * delta E 12); it now renders about 9, 57, 108 (delta E 9). Brighter shafts (glow.rays 1.5) moved them
+ * off the sample and lit the mid water instead, so their strength stays 1.2.
+ */
 const WATER_COLOURS: WorldConfig['water']['colours'] = {
   deep: '#00081c',
   zenith: UPPER_WATER,
   glow: '#2a86d8',
   opening: '#4fc4ff',
-  rays: '#2f86e0',
-  raysWide: '#4fb0f0',
+  rays: '#0a6ee0',
+  raysWide: '#1a8af0',
   fish: '#02102a',
 };
 
