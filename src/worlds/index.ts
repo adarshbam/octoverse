@@ -1,6 +1,7 @@
 import type { WorldBundle, WorldId } from '../engine/types/bundle';
 import { NOX_BUNDLE } from './nox/bundle';
 import { HOST_BUNDLE } from './octoverse/bundle';
+import { VEYRA_BUNDLE } from './veyra/bundle';
 
 // The worlds that ship, by id, and how a page address picks one (`?world=<id>`, spec 8.3). The
 // engine never imports this file: the page (src/app/main.tsx) reads the address once, resolves a
@@ -9,8 +10,8 @@ import { HOST_BUNDLE } from './octoverse/bundle';
 /** The world a page shows when the address names none, or one that is not here. */
 export const DEFAULT_WORLD = 'nox';
 
-/** The bundles of the worlds that ship with the engine, by id: Nox's, and the platform's host (`octoverse`). */
-export const WORLDS: Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE, octoverse: HOST_BUNDLE };
+/** The bundles of the worlds that ship with the engine, by id. The engine's own list of shipped ids (`WORLDS` in engine/types/bundle.ts) must name exactly these. */
+export const WORLDS: Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE, veyra: VEYRA_BUNDLE, octoverse: HOST_BUNDLE };
 
 /**
  * Development only: a second world for the world-switch spec (`?testworld=1`), Nox's bundle cloned

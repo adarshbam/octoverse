@@ -5,6 +5,7 @@ import { BundleError, validateBundle } from '../engine/types/bundle';
 import { DEFAULT_WORLD, WORLDS, resolveWorld } from './index';
 import { NOX_BUNDLE } from './nox/bundle';
 import { HOST_BUNDLE } from './octoverse/bundle';
+import { VEYRA_BUNDLE } from './veyra/bundle';
 
 /** The ids of the worlds that ship: the registry's own keys. */
 const SHIPPED_IDS = Object.keys(WORLDS);
@@ -22,6 +23,12 @@ test('?world=nox is Nox', () => {
   expect(bundle).toBe(NOX_BUNDLE);
   expect(warning).toBeUndefined();
   expect(resolveWorld('?stage=intro&world=nox&freeze').bundle).toBe(NOX_BUNDLE);
+});
+
+test('?world=veyra is Veyra, with no warning', () => {
+  const { bundle, warning } = resolveWorld('?world=veyra');
+  expect(bundle).toBe(VEYRA_BUNDLE);
+  expect(warning).toBeUndefined();
 });
 
 test('an unknown world falls back to Nox with a warning that names it', () => {
@@ -44,7 +51,7 @@ test('?world=octoverse is the host (platform spec 8.3)', () => {
 });
 
 test('the registry holds exactly the shipped worlds, each valid and under its own id', () => {
-  expect(Object.keys(WORLDS)).toEqual(['nox', 'octoverse']);
+  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra', 'octoverse']);
   for (const [id, bundle] of Object.entries(WORLDS)) {
     expect(bundle.id).toBe(id);
     expect(() => validateBundle(bundle, SHIPPED_IDS), id).not.toThrow();
@@ -98,4 +105,10 @@ test('the test world (development only) is a clone of Nox under its own id and p
   expect(resolveWorld('?testworld=1&world=nox-b').bundle).toBe(bundle);
   // It is not a shipped world.
   expect(Object.keys(WORLDS)).not.toContain('nox-b');
+});
+
+// Veyra's face beside Nox's (spec 7.3): her brows are thin dark arcs, thinner than his. Here, since
+// a world's own tests may not import another world.
+test("Veyra's brows are thinner than Nox's", () => {
+  expect(VEYRA_BUNDLE.character.face.brow.thickness).toBeLessThan(NOX_BUNDLE.character.face.brow.thickness);
 });

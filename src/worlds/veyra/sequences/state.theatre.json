@@ -1,0 +1,713 @@
+{
+  "sheetsById": {
+    "entrance": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {},
+            "trackIdByPropPath": {}
+          }
+        }
+      }
+    },
+    "bubbleBlow": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 0.9,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "bubbleBlow-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "puff"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-0003",
+                    "position": 0.25,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0004",
+                    "position": 0.33,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "bubbleBlow-0005": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "mouthRound"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-0006",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-0007",
+                    "position": 0.1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0008",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "bubbleBlow-0009",
+                    "position": 0.5,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "bubbleBlow-000a": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "scale"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000b",
+                    "position": 0.25,
+                    "connectedRight": true,
+                    "handles": [
+                      0.3333333333333333,
+                      0.3333333333333333,
+                      0.33,
+                      1
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000c",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.33,
+                      1
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "bubbleBlow-000d",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "bubbleBlow-000e": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "emerged"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000f",
+                    "position": 0.25,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000g",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.25,
+                      0.1
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000h",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "bubbleBlow-000i": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bubbleBlow",
+                  "main",
+                  "wobble"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bubbleBlow-000j",
+                    "position": 0.33,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bubbleBlow-000k",
+                    "position": 0.42,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.16
+                  },
+                  {
+                    "id": "bubbleBlow-000l",
+                    "position": 0.52,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.12
+                  },
+                  {
+                    "id": "bubbleBlow-000m",
+                    "position": 0.62,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.08
+                  },
+                  {
+                    "id": "bubbleBlow-000n",
+                    "position": 0.72,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.05
+                  },
+                  {
+                    "id": "bubbleBlow-000o",
+                    "position": 0.81,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.025
+                  },
+                  {
+                    "id": "bubbleBlow-000p",
+                    "position": 0.9,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"puff\"]": "bubbleBlow-0001",
+              "[\"mouthRound\"]": "bubbleBlow-0005",
+              "[\"scale\"]": "bubbleBlow-000a",
+              "[\"emerged\"]": "bubbleBlow-000e",
+              "[\"wobble\"]": "bubbleBlow-000i"
+            }
+          }
+        }
+      }
+    },
+    "headSwell": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.5,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "headSwell-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "squeeze"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-0003",
+                    "position": 0.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "headSwell-0004",
+                    "position": 0.4,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "headSwell-0005": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "morph"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-0006",
+                    "position": 0.18,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-0007",
+                    "position": 0.85,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1.07
+                  },
+                  {
+                    "id": "headSwell-0008",
+                    "position": 1.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "headSwell-0009": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "push"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-000a",
+                    "position": 0.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-000b",
+                    "position": 0.9,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.14
+                  },
+                  {
+                    "id": "headSwell-000c",
+                    "position": 1.35,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.1
+                  }
+                ]
+              },
+              "headSwell-000d": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "headSwell",
+                  "main",
+                  "effect"
+                ],
+                "keyframes": [
+                  {
+                    "id": "headSwell-000e",
+                    "position": 0.65,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "headSwell-000f",
+                    "position": 1.5,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"squeeze\"]": "headSwell-0001",
+              "[\"morph\"]": "headSwell-0005",
+              "[\"push\"]": "headSwell-0009",
+              "[\"effect\"]": "headSwell-000d"
+            }
+          }
+        }
+      }
+    },
+    "arrival": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.4,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "arrival-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "roll"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-0003",
+                    "position": 0.18,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-0004",
+                    "position": 0.44,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.75
+                  },
+                  {
+                    "id": "arrival-0005",
+                    "position": 0.7,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "arrival-0006",
+                    "position": 0.96,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.2
+                  },
+                  {
+                    "id": "arrival-0007",
+                    "position": 1.2,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "arrival-0008": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "armWave"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0009",
+                    "position": 0.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-000a",
+                    "position": 0.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-000b",
+                    "position": 0.56,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.6
+                  },
+                  {
+                    "id": "arrival-000c",
+                    "position": 0.82,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.35
+                  },
+                  {
+                    "id": "arrival-000d",
+                    "position": 1.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.12
+                  },
+                  {
+                    "id": "arrival-000e",
+                    "position": 1.4,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"roll\"]": "arrival-0001",
+              "[\"armWave\"]": "arrival-0008"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitionVersion": "0.4.0",
+  "revisionHistory": []
+}

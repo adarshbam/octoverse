@@ -1,5 +1,5 @@
 import { APPEARS, PLACEMENTS, SELECTS } from '../artifacts/strategies';
-import { ARM_IDS, type ArtifactConfig, type CharacterConfig, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
+import { ARM_IDS, type ArtifactConfig, type CharacterConfig, SKIN_MODES, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
 import { clampCharacterConfig } from '../config/validate';
 import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
@@ -69,7 +69,7 @@ const record = (value: unknown): value is Record<string, unknown> => typeof valu
  * here, so a colour three would draw black never passes unnoticed. The fields WORLD_COLOUR names
  * have the world's grammar (world/colour.ts `isWorldColour`).
  */
-const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece)$|\.pieces\[\d+\]$/;
+const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|mode)$|\.pieces\[\d+\]$/;
 
 /**
  * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g
@@ -205,7 +205,18 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   // Every number, everywhere but the swim (its poses are built on first read) and the sequences' state (a loader).
   const { swim: _swim, sequences, ...rest } = bundle;
   const { state: _state, ...sequenceData } = sequences;
+  // A skin surface's mode, by name, before its colours: the engine draws only the modes it has.
+  const surfaces = bundle.character.skin?.surfaces as Record<string, { mode?: unknown } | undefined> | undefined;
+  for (const surface of ['mantle', 'arms']) {
+    const mode = surfaces?.[surface]?.mode;
+    if (surfaces && !(SKIN_MODES as readonly unknown[]).includes(mode)) throw new BundleError(`character.skin.surfaces.${surface}.mode`, `"${String(mode)}" is not a skin mode the engine has (${SKIN_MODES.join(', ')})`);
+  }
   checkLeaves(rest.character, 'character', true);
+  // The face glow's spread and reach divide in the skin and jelly shaders: each must be above zero.
+  for (const key of ['spreadX', 'reachUp', 'reachDown'] as const) {
+    const value: unknown = bundle.character.glow?.[key];
+    if (!(finite(value) && value > 0)) throw new BundleError(`character.glow.${key}`, `${String(value)} is not above 0 (the face glow divides by it)`);
+  }
   checkLeaves(rest.place, 'place', true);
   checkLeaves(rest.poses, 'poses', false);
   checkLeaves(rest.artifacts, 'artifacts', false);

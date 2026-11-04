@@ -1,0 +1,173 @@
+{
+  "samples": [
+    {
+      "name": "Head crown",
+      "x": 256,
+      "y": 215,
+      "size": 8,
+      "rgb": [
+        5,
+        171,
+        188
+      ]
+    },
+    {
+      "name": "Head middle",
+      "x": 256,
+      "y": 250,
+      "size": 10,
+      "rgb": [
+        1,
+        96,
+        103
+      ]
+    },
+    {
+      "name": "Head side",
+      "x": 179,
+      "y": 260,
+      "size": 6,
+      "rgb": [
+        7,
+        124,
+        154
+      ]
+    },
+    {
+      "name": "Face glow",
+      "x": 266,
+      "y": 333,
+      "size": 8,
+      "rgb": [
+        192,
+        211,
+        147
+      ]
+    },
+    {
+      "name": "Chin",
+      "x": 266,
+      "y": 348,
+      "size": 6,
+      "rgb": [
+        49,
+        156,
+        126
+      ]
+    },
+    {
+      "name": "Blush",
+      "x": 215,
+      "y": 328,
+      "size": 6,
+      "rgb": [
+        250,
+        188,
+        136
+      ]
+    },
+    {
+      "name": "Mouth line highlight",
+      "x": 269,
+      "y": 318,
+      "size": 3,
+      "rgb": [
+        211,
+        202,
+        146
+      ]
+    },
+    {
+      "name": "Arm top surface",
+      "x": 102,
+      "y": 308,
+      "size": 3,
+      "rgb": [
+        25,
+        185,
+        162
+      ]
+    },
+    {
+      "name": "Arm body",
+      "x": 136,
+      "y": 323,
+      "size": 3,
+      "rgb": [
+        11,
+        180,
+        170
+      ]
+    },
+    {
+      "name": "Sucker cup rim",
+      "x": 135,
+      "y": 348,
+      "size": 3,
+      "rgb": [
+        240,
+        234,
+        172
+      ]
+    },
+    {
+      "name": "Water outside head",
+      "x": 161,
+      "y": 235,
+      "size": 6,
+      "rgb": [
+        1,
+        43,
+        55
+      ]
+    },
+    {
+      "name": "Mid water",
+      "x": 51,
+      "y": 225,
+      "size": 16,
+      "rgb": [
+        4,
+        23,
+        33
+      ]
+    },
+    {
+      "name": "Upper water",
+      "x": 359,
+      "y": 100,
+      "size": 30,
+      "rgb": [
+        3,
+        73,
+        106
+      ]
+    }
+  ],
+  "deltaE": 10,
+  "warmContrast": 60,
+  "head": {
+    "halfWidth": [
+      0.88,
+      0.96
+    ],
+    "top": [
+      0.44,
+      0.52
+    ]
+  },
+  "armSpan": [
+    3.75,
+    4.05
+  ],
+  "iou": 0.85,
+  "meanInside": {
+    "rgb": [
+      69,
+      161,
+      144
+    ],
+    "tolerance": 12,
+    "satTolerance": 0.04
+  }
+}

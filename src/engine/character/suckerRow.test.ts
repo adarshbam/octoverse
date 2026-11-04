@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
-import { ARM_IDS, type ArmId } from '../config/types';
+import { ARM_IDS, type ArmId, type SuckerSettings, type SuckerStyle } from '../config/types';
 import { NOX_POSES } from '../../worlds/nox/poses';
 import { ArmChain, restFromCurve } from './armChain';
 import { ArmTube, suckerTilt } from './armTube';
@@ -39,6 +40,153 @@ function skinGap(chain: ArmChain, tube: ArmTube, k: number, p: THREE.Vector3) {
   }
   return best;
 }
+
+// Nox's cups before the frill style existed (taken at aaf1158, before the edit): the cup geometry at
+// each tier's detail and the shadow ring, and every arm's layout, placements and bends in the intro.
+const NOX_CUP_SHA256: Record<number, string> = {
+  32: '30f49654abf149873ba7350ccb4e054ee6a09cd61ae9bb52c08e16fb5db6a979',
+  24: '407d8df439c8464ae8c3743ff101c912fc406b4c8fa9faafaaf2c43d7e7a7538',
+  16: '6e5c921fa76453e2cc6d1a2dd377ffc7853a6f9f5b0dfa17bb3a5ea843d6040f',
+};
+const NOX_SHADOW_SHA256 = 'bfb09ac131e3675a6c0a7d615ceb958743c5bad075a212a891ff904230d63d6a';
+const NOX_ROWS_SHA256 = 'd24dcb83288aef2e95e0f6c1aa9ca9af57653516c23dca29b68813f4f5005235';
+const sha = (parts: ArrayLike<number>[]) => createHash('sha256').update(Buffer.concat(parts.map(a => new Uint8Array(Float32Array.from(a).buffer)))).digest('hex');
+const geometryHash = (g: THREE.BufferGeometry) => sha([g.attributes.position.array, g.attributes.normal.array, g.attributes.uv.array, g.index ? g.index.array : []]);
+
+/** Every Nox arm's cups, laid out and written in the intro at a moment of live motion, as one hash. */
+function rowsHash(settings: SuckerSettings) {
+  const parts: ArrayLike<number>[] = [];
+  for (const id of ARM_IDS) {
+    const i = NOX.arms.findIndex(a => a.id === id);
+    const chain = new ArmChain(restFromCurve(NOX_POSES.intro.arms[id]), NOX.arms[i], i);
+    chain.solve({ time: 0.7, sway: NOX.personality.sway, curl: NOX.personality.curl, droop: 0, bend: NOX.armBend });
+    const tube = new ArmTube(chain, NOX.arms[i], profile);
+    const row = new SuckerRow(chain, tube, settings, i);
+    const mesh = new THREE.InstancedMesh(new THREE.BufferGeometry(), undefined, row.count);
+    const bend = new THREE.InstancedBufferAttribute(new Float32Array(row.count * 2), 2);
+    row.write(mesh, 0, bend);
+    parts.push(row.suckers.flatMap(c => [c.arc, c.size, c.row, c.angle]), mesh.instanceMatrix.array, bend.array);
+  }
+  return sha(parts);
+}
+
+const FRILL: SuckerStyle = { rimWidth: 0.22, scallop: 0.6, edge: '#e0dc9c', rim: '#f6f0ba', hollow: '#6a9478', glow: 1.3 };
+
+test("with no style, Nox's cups are exactly what they were: geometry at every tier, shadow ring, layout and placements", () => {
+  for (const detail of [32, 24, 16]) {
+    expect(geometryHash(createSuckerCup(detail)), `detail ${detail}`).toBe(NOX_CUP_SHA256[detail]);
+    expect(geometryHash(createSuckerCup(detail, undefined)), `detail ${detail}`).toBe(NOX_CUP_SHA256[detail]);
+  }
+  expect(sha([createCupShadow().attributes.position.array])).toBe(NOX_SHADOW_SHA256);
+  expect(rowsHash(NOX.suckers)).toBe(NOX_ROWS_SHA256);
+  // A style changes the cup's shape, never where the cups go (they still hug the same skin).
+  expect(rowsHash({ ...NOX.suckers, style: FRILL })).toBe(NOX_ROWS_SHA256);
+}, 30_000);
+
+/** A straight arm along -x, round in section, so its radius is unambiguous; cups laid out and written. */
+function straightArm(settings: SuckerSettings) {
+  const index = NOX.arms.findIndex(spec => spec.id === 'T3');
+  const curve: [number, number][] = [[0, 0], [-0.6, 0], [-1.2, 0], [-1.8, 0]];
+  const chain = new ArmChain(restFromCurve(curve), NOX.arms[index], index);
+  chain.solve({ time: 0, sway: 0, curl: 0, droop: 0 });
+  const tube = new ArmTube(chain, NOX.arms[index], { ...profile, twist: 0, flatten: 1 });
+  const row = new SuckerRow(chain, tube, settings, index);
+  const mesh = new THREE.InstancedMesh(new THREE.BufferGeometry(), undefined, row.count);
+  const bend = new THREE.InstancedBufferAttribute(new Float32Array(row.count * 2), 2);
+  row.write(mesh, 0, bend);
+  return { chain, tube, row, mesh, bend };
+}
+
+/** A cup vertex bent to the skin as the cup shaders bend it (suckerMaterial's bentPosition). */
+const bent = (p: THREE.Vector3, bend: THREE.InstancedBufferAttribute, i: number) => p.setZ(p.z - cupBend(bend.getX(i), p.y) - cupBend(bend.getY(i), p.x));
+
+/**
+ * How far cup i reaches past the arm's radius: the most any of its vertices (placed and bent) lies
+ * off the arm's centre line, less the arm's radius at the cup.
+ */
+function proud(arm: ReturnType<typeof straightArm>, cup: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, i: number) {
+  const { chain, tube, row, mesh, bend } = arm;
+  const n = chain.segments;
+  const k = Math.min(n - 1, Math.floor(row.suckers[i].arc / chain.segmentLength));
+  const centre = new THREE.Vector3(chain.px[k], chain.py[k], chain.pz[k]);
+  const tangent = new THREE.Vector3(chain.px[k + 1], chain.py[k + 1], chain.pz[k + 1]).sub(centre).normalize();
+  const m = new THREE.Matrix4();
+  mesh.getMatrixAt(i, m);
+  const p = new THREE.Vector3();
+  let outermost = 0;
+  for (let v = 0; v < cup.count; v++) {
+    bent(p.fromBufferAttribute(cup, v), bend, i).applyMatrix4(m).sub(centre);
+    outermost = Math.max(outermost, p.addScaledVector(tangent, -p.dot(tangent)).length());
+  }
+  return outermost - tube.radiusAt(row.suckers[i].arc / (chain.segmentLength * n));
+}
+
+test('frill cups stand proud of the arm: with scallop 0.6 every cup reaches 0.3 cup radii past the arm radius, and cups shrink toward the tip', () => {
+  const arm = straightArm({ ...NOX.suckers, style: FRILL });
+  const { chain, row } = arm;
+  const cup = createSuckerCup(32, FRILL).attributes.position;
+  const length = chain.segmentLength * chain.segments;
+  expect(row.count).toBeGreaterThan(10);
+  row.suckers.forEach((s, i) => expect(proud(arm, cup, i), `cup ${i} at u ${(s.arc / length).toFixed(2)}`).toBeGreaterThanOrEqual(0.3 * s.size));
+  for (const r of [0, 1] as const) {
+    const sizes = row.suckers.filter(s => s.row === r).map(s => s.size);
+    const peak = sizes.indexOf(Math.max(...sizes));
+    for (let i = peak + 1; i < sizes.length; i++) expect(sizes[i], `row ${r} cup ${i}`).toBeLessThanOrEqual(sizes[i - 1]);
+    expect(sizes[sizes.length - 1], `row ${r}`).toBeLessThan(sizes[peak]);
+  }
+  // Nox's sunk discs do not (the measure is not vacuous): their rims rise only a little out of the skin
+  // (0.16 to 0.27 cup radii past a round arm; frill cups at 0.6 reach 0.64 to 0.76).
+  const nox = straightArm(NOX.suckers);
+  const disc = createSuckerCup(32).attributes.position;
+  nox.row.suckers.forEach((s, i) => expect(proud(nox, disc, i), `Nox cup ${i}`).toBeLessThan(0.3 * s.size));
+});
+
+test("a frill cup: a raised rim of the style's width round a round hollow, on a wall that rises out of the skin", () => {
+  const p = createSuckerCup(32, FRILL).attributes.position;
+  let crestZ = -Infinity;
+  let crestR = 0;
+  let centreZ = Infinity;
+  let lowest = Infinity;
+  for (let i = 0; i < p.count; i++) {
+    const r = Math.hypot(p.getX(i), p.getY(i));
+    const z = p.getZ(i);
+    expect(r).toBeLessThanOrEqual(1.0001);
+    if (z > crestZ) { crestZ = z; crestR = r; }
+    if (r < 0.05) centreZ = Math.min(centreZ, z);
+    lowest = Math.min(lowest, z);
+  }
+  // The crest stands `scallop` cup radii above the skin (CUP_EMBED in cup space), on the rim.
+  expect(crestZ - CUP_EMBED).toBeCloseTo(FRILL.scallop, 6);
+  expect(crestR).toBeGreaterThan(1 - FRILL.rimWidth);
+  expect(crestR).toBeLessThan(1);
+  // The hollow dips well below the rim but stays above the skin.
+  expect(crestZ - centreZ).toBeGreaterThan(0.1);
+  expect(centreZ).toBeGreaterThan(CUP_EMBED);
+  // The wall runs down below the skin, so no gap shows under a cup.
+  expect(lowest).toBeLessThan(CUP_EMBED - 0.1);
+  // A wider rim moves the crest inward; a lower scallop lowers it.
+  const wide = createSuckerCup(32, { ...FRILL, rimWidth: 0.4, scallop: 0.3 }).attributes.position;
+  let wideCrest = { z: -Infinity, r: 0 };
+  for (let i = 0; i < wide.count; i++) if (wide.getZ(i) > wideCrest.z) wideCrest = { z: wide.getZ(i), r: Math.hypot(wide.getX(i), wide.getY(i)) };
+  expect(wideCrest.z - CUP_EMBED).toBeCloseTo(0.3, 6);
+  expect(wideCrest.r).toBeLessThan(crestR);
+});
+
+test('two styles differing only in colours give identical geometry; the tier detail still applies', () => {
+  const other: SuckerStyle = { ...FRILL, edge: '#ffe0ee', rim: '#fff4fa', hollow: '#c890b0', glow: 1.3 };
+  for (const detail of [32, 24, 16]) {
+    expect(geometryHash(createSuckerCup(detail, other)), `detail ${detail}`).toBe(geometryHash(createSuckerCup(detail, FRILL)));
+  }
+  expect(rowsHash({ ...NOX.suckers, style: other })).toBe(rowsHash({ ...NOX.suckers, style: FRILL }));
+  // Glow is light, not shape.
+  const glowing: SuckerStyle = { ...FRILL, glow: 2.5 };
+  expect(geometryHash(createSuckerCup(32, glowing))).toBe(geometryHash(createSuckerCup(32, FRILL)));
+  // Tier low (suckerScale 0.5) draws half the segments round the same profile.
+  const high = createSuckerCup(32, FRILL).attributes.position.count;
+  const low = createSuckerCup(16, FRILL).attributes.position.count;
+  expect(high / 33).toBe(low / 17);
+  expect(low).toBeLessThan(high);
+});
 
 test('suckers start small next to the body', () => {
   for (const id of ARM_IDS) {
