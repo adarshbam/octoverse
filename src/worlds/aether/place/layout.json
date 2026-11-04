@@ -2,7 +2,8 @@
   "floorY": -2.45,
   "groups": {
     "portal": [
-      { "piece": "portal_arch", "position": [12.6, -2.45, -9.5], "rotY": -0.7, "scale": 1.1 }
+      { "piece": "portal_arch", "position": [12.6, -2.45, -9.5], "rotY": -0.7, "scale": 1.1 },
+      { "piece": "portal_steps", "position": [12.6, -2.45, -9.5], "rotY": -0.7, "scale": 1.1 }
     ],
     "towers": [
       { "piece": "tower_a", "position": [-5.2, -2.45, -14.5], "rotY": 0.35, "scale": 1.05 },

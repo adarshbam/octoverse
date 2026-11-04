@@ -8,12 +8,14 @@ import type { WorldProp } from '../../../engine/world/types';
 export const OBSERVATORY_KIT = {
   url: '/aether/world/kit.glb',
   /**
-   * Placeable pieces: the portal's arch, four ruin towers, three wall pieces, five floating rubble
-   * fragments, five seabed rocks, three magenta coral fans and three small amber corals. The
-   * portal's other parts share the arch's frame (`nodes`).
+   * Placeable pieces (each with its `_lod1` in the file): the portal's arch and its steps (laid out
+   * with the arch's placement, so the bake lights them as stone), four ruin towers, three wall
+   * pieces, five floating rubble fragments, five seabed rocks, three magenta coral fans and three
+   * small amber corals. The portal's other parts share the arch's frame (`nodes`).
    */
   pieces: [
     'portal_arch',
+    'portal_steps',
     'tower_a',
     'tower_b',
     'tower_c',
@@ -40,15 +42,39 @@ export const OBSERVATORY_KIT = {
   ],
   /**
    * Named nodes that are not placed pieces. The portal's parts share the arch's frame (its origin
-   * and orientation), so a world places them with the arch's placement: `portal_steps` leads up to
-   * it on the front, `portal_membrane` is the oval in the opening, `portal_glyph` the brain on it
-   * (the `'emissive'` prop drive) and `portal_lanterns` the amber beads along the rim.
+   * and orientation), so a world places them with the arch's placement: `portal_membrane` is the
+   * oval in the opening, `portal_glyph` the brain on it and `portal_lanterns` the amber beads along
+   * the rim. Each tower and the walls with windows have their lit windows as a node of their own in
+   * the piece's frame, `<piece>_windows` (the page dresses a placed stone piece with one stone
+   * material, so the windows could not glow inside it).
    */
-  nodes: ['portal_steps', 'portal_membrane', 'portal_glyph', 'portal_lanterns'],
+  nodes: [
+    'portal_membrane',
+    'portal_glyph',
+    'portal_lanterns',
+    'tower_a_windows',
+    'tower_b_windows',
+    'tower_c_windows',
+    'tower_d_windows',
+    'wall_b_windows',
+    'wall_c_windows',
+  ],
 } as const;
 
-/** Every portal node, the arch and the four that share its frame. */
-export const PORTAL_NODES = ['portal_arch', ...OBSERVATORY_KIT.nodes] as const;
+/** The portal's parts in the arch's frame (drawn with every placement of the arch). */
+export const PORTAL_PARTS = ['portal_membrane', 'portal_glyph', 'portal_lanterns'] as const;
+
+/** Every portal node: the arch, its steps (laid out with the arch's placement) and the parts that share its frame. */
+export const PORTAL_NODES = ['portal_arch', 'portal_steps', ...PORTAL_PARTS] as const;
+
+/** The pieces with lit windows, each drawn with its `<piece>_windows` node. */
+export const WINDOWED_PIECES = ['tower_a', 'tower_b', 'tower_c', 'tower_d', 'wall_b', 'wall_c'] as const;
+
+/** What the world's `kit.attached` says: the portal's parts in the arch's frame, each window node in its piece's. */
+export const OBSERVATORY_ATTACHED = [
+  ...PORTAL_PARTS.map(node => ({ node, piece: 'portal_arch' })),
+  ...WINDOWED_PIECES.map(piece => ({ node: `${piece}_windows`, piece })),
+] as const;
 
 export const RUBBLE_PIECES = OBSERVATORY_KIT.pieces.filter(piece => piece.startsWith('rubble_float_'));
 

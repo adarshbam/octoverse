@@ -26,15 +26,27 @@ extra `radius` (about the origin, which is the placement point), for the layout 
 The `portal_*` pieces share ONE frame (the arch centre is at z = PORTAL_Z, the membrane and glyph
 sit in the arch's plane), so the page places all five with the same transform and they assemble.
 
-Exported node names (prefix stripped): portal_arch, portal_steps, portal_membrane, portal_glyph,
-portal_lanterns; tower_a..tower_d; wall_a..wall_c; rubble_float_a..rubble_float_e; rock_a..rock_e;
-coral_fan_a..coral_fan_c; coral_amber_a..coral_amber_c.
+Exported node names (prefix stripped): the placed pieces portal_arch, portal_steps; tower_a..tower_d;
+wall_a..wall_c; rubble_float_a..rubble_float_e; rock_a..rock_e; coral_fan_a..coral_fan_c;
+coral_amber_a..coral_amber_c, each with its `<piece>_lod1` (the page draws it past 16 units: Kit.tsx
+pairs every placed piece with one). The nodes that are not placed pieces: portal_membrane,
+portal_glyph, portal_lanterns (in the arch's frame) and the lit windows of the towers and walls,
+`<piece>_windows` (in their piece's frame), which the page draws with a kit material of their own
+(the page dresses a placed stone piece with one stone material, so a window inside it could not glow).
+
+Stone and rock carry a baked occlusion as the `Col` colour attribute (the page's stone and rock
+materials multiply their colour by it: without one they would draw black). The membrane's second UV
+set is the flow map the page's membrane material reads (u round the edge, v from the edge in).
+
+Task 9: the exported file is compressed as Veyra's (gltf-transform optimize: meshopt geometry,
+keeping the node structure the page reads; KTX-Software on the PATH, though the kit has no textures).
 """
 import json
 import math
 import os
 import random
 import struct
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -49,7 +61,34 @@ except NameError:  # exec() without __file__
     ROOT = Path.cwd()
 LAYOUT = ROOT / "src/worlds/aether/place/layout.json"
 OUT = ROOT / "public/aether/world/kit.glb"
-RAW = Path(tempfile.gettempdir()) / "aether-kit-raw.glb"
+# This run's own temporary file (its process id): two builds at once never write the same one.
+RAW = Path(tempfile.gettempdir()) / f"aether-kit-raw-{os.getpid()}.glb"
+LOD1 = "_lod1"
+WINDOWS = "_windows"
+
+# As Veyra's kit (blender/vault/build_kit.py): gltf-transform wants KTX-Software's `ktx` on the PATH
+# for `--texture-compress ktx2`, and optimize's defaults that would break what the page reads are off
+# (flatten and join merge pieces, palette rewrites UVs, prune-attributes drops the membrane's flow
+# UVs, simplify changes the authored LODs, instance shares meshes between nodes).
+TEXTURE_COMPRESS = "ktx2"
+KTX_BIN = os.environ.get("KTX_SOFTWARE_BIN", r"C:\Program Files\KTX-Software\bin")
+KEEP_STRUCTURE = [
+    "--flatten", "false", "--join", "false", "--instance", "false", "--palette", "false",
+    "--simplify", "false", "--prune-attributes", "false",
+]
+
+# What the page may place (each has a lod1, and a radius), and the nodes that are not placed pieces.
+PLACED = (
+    ["portal_arch", "portal_steps", "tower_a", "tower_b", "tower_c", "tower_d", "wall_a", "wall_b", "wall_c"]
+    + [f"rubble_float_{c}" for c in "abcde"] + [f"rock_{c}" for c in "abcde"]
+    + [f"coral_fan_{c}" for c in "abc"] + [f"coral_amber_{c}" for c in "abc"]
+)
+WINDOWED = ["tower_a", "tower_b", "tower_c", "tower_d", "wall_b", "wall_c"]
+NODES = ["portal_membrane", "portal_glyph", "portal_lanterns"] + [name + WINDOWS for name in WINDOWED]
+
+# The level being built: 0 full detail, 1 the lod1 (stone blocks without their bevels). The builders
+# read it through `block` and the tower's slabs; `build_pieces` sets it round each lod1 build.
+LEVEL = {"lod": 0}
 
 SCENE = "AetherKit"
 PIECES = "AetherKit pieces"  # exported
@@ -58,7 +97,8 @@ WORLD = "AetherKit world"  # the layout, for looking at it in Blender; not expor
 # Blender names must be unique in the file; the prefix is stripped from the exported names.
 PREFIX = "aether."
 
-# Triangle budget for the whole kit (the brief asks for well under ~60k).
+# Triangle budget for the kit at full detail (the brief asks for well under ~60k); the lod1s are
+# reported beside it (each about a quarter to two thirds of its piece).
 MAX_TRIANGLES = 60000
 
 
@@ -139,6 +179,71 @@ def radius_xy(ob):
     return max(math.hypot(v.co.x, v.co.y) for v in ob.data.vertices)
 
 
+def bake_ao(ob, rays=16, reach=0.9, strength=1.0, seed=7, floor=0.3):
+    """Occlusion per vertex, stored as the `Col` colour attribute (as Veyra's kit): seams between
+    blocks and hollows darken; the page's stone and rock colours are multiplied by it."""
+    me = ob.data
+    rng = random.Random(seed)
+    tree = BVHTree.FromPolygons([v.co.copy() for v in me.vertices], [tuple(p.vertices) for p in me.polygons], all_triangles=False)
+    dirs = []
+    for _ in range(rays):  # cosine-weighted directions over the +Z hemisphere
+        u, w = rng.random(), rng.random()
+        r, th = math.sqrt(u), 2 * math.pi * w
+        dirs.append(Vector((r * math.cos(th), r * math.sin(th), math.sqrt(max(0.0, 1 - u)))))
+    attr = me.color_attributes.get("Col") or me.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
+    up = Vector((0, 0, 1))
+    for i, v in enumerate(me.vertices):
+        n = v.normal
+        rot = up.rotation_difference(n).to_matrix()
+        origin = v.co + n * 0.004
+        hit = 0.0
+        for d in dirs:
+            loc, _, _, dist = tree.ray_cast(origin, rot @ d, reach)
+            if loc is not None:
+                hit += 1.0 - dist / reach
+        ao = max(floor, 1.0 - strength * hit / rays)
+        attr.data[i].color = (ao, ao, ao, 1.0)
+    me.color_attributes.active_color = attr
+    me.color_attributes.default_color_name = attr.name
+
+
+def split_windows(ob, coll, mats):
+    """Moves the faces of material slot 1 (the lit windows) out of a tower or wall into a node of
+    their own, `<piece>_windows`, in the same frame; the piece keeps only its stone. Returns the node."""
+    name = ob.name[len(PREFIX):]
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index != 1], context="FACES")
+    for f in bm.faces:
+        f.material_index = 0
+    windows = to_object(name + WINDOWS, bm, coll, [mats["window"]], smooth=False)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index == 1], context="FACES")
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.materials.pop(index=1)
+    return windows
+
+
+def decimated(ob, ratio):
+    """`ob`'s mesh collapsed to about `ratio` of its triangles (Blender's Decimate), in place; the
+    `Col` attribute is interpolated with it."""
+    mod = ob.modifiers.new("Decimate", "DECIMATE")
+    mod.decimate_type = "COLLAPSE"
+    mod.ratio = ratio
+    mod.use_collapse_triangulate = True
+    deps = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(deps))
+    ob.modifiers.clear()
+    old = ob.data
+    name = old.name
+    ob.data = me
+    bpy.data.meshes.remove(old)
+    me.name = name
+    return ob
+
+
 def box_uvs(bm):
     """Box projection (1 UV = 1 unit): each face takes UVs from the plane its normal faces most."""
     uv = bm.loops.layers.uv.verify()
@@ -157,7 +262,7 @@ def block(bm, size, centre, turn=(0.0, 0.0, 0.0), bevel=0.03):
     bmesh.ops.scale(bm, vec=Vector(size), verts=verts)
     rot = Matrix.Rotation(turn[2], 4, "Z") @ Matrix.Rotation(turn[1], 4, "Y") @ Matrix.Rotation(turn[0], 4, "X")
     bmesh.ops.transform(bm, matrix=Matrix.Translation(centre) @ rot, verts=verts)
-    if bevel:
+    if bevel and LEVEL["lod"] == 0:  # the lod1 keeps the block, not its softened edges
         edges = list({e for v in verts for e in v.link_edges})
         bmesh.ops.bevel(bm, geom=edges, offset=bevel, segments=1, affect="EDGES", clamp_overlap=True)
     return verts
@@ -211,7 +316,7 @@ def ellipse_point(rx, rz, a, y=0.0):
     return Vector((rx * math.cos(a), y, PORTAL_Z + rz * math.sin(a)))
 
 
-def build_portal_arch(coll, mats):
+def build_portal_arch(coll, mats, name="portal_arch"):
     """A ruined oval stone ring: wedge-shaped stones (voussoirs) round the oval, a few missing on
     the upper left where it has broken, plus a broken plinth under it."""
     rng = random.Random(41)
@@ -247,10 +352,10 @@ def build_portal_arch(coll, mats):
     block(bm, (1.1, 0.8, 0.5), (1.75, 0.15, STEP_TOP + 0.25), (0.0, 0.0, -0.15), 0.04)
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
     box_uvs(bm)
-    return to_object("portal_arch", bm, coll, [mats["stone"]], smooth=False)
+    return to_object(name, bm, coll, [mats["stone"]], smooth=False)
 
 
-def build_portal_steps(coll, mats):
+def build_portal_steps(coll, mats, name="portal_steps"):
     """Four broad steps leading up to the plinth, on the -Y (front) side; the upper ones cracked."""
     rng = random.Random(42)
     bm = bmesh.new()
@@ -268,7 +373,7 @@ def build_portal_steps(coll, mats):
                   (0.0, 0.0, rng.uniform(-0.025, 0.025)), 0.025)
             x += w
     box_uvs(bm)
-    return to_object("portal_steps", bm, coll, [mats["stone"]], smooth=False)
+    return to_object(name, bm, coll, [mats["stone"]], smooth=False)
 
 
 def build_portal_membrane(coll, mats):
@@ -291,13 +396,30 @@ def build_portal_membrane(coll, mats):
     for r in range(1, rings):
         for s in range(segs):
             faces.append(bm.faces.new((ringv[r - 1][s], ringv[r - 1][(s + 1) % segs], ringv[r][(s + 1) % segs], ringv[r][s])))
+    # The second UV set is the flow map the page's membrane material reads (membraneMaterial.ts):
+    # u round the doorway's edge (0 to 1 over a turn), v 0 at the edge and 1 at the middle. A face
+    # across the seam takes u = 1 on its far side, so no face runs back across the turn; the centre
+    # takes its face's own middle angle.
+    flow = bm.loops.layers.uv.new("FlowUV")
     for f in faces:
         f.normal_update()
         if f.normal.y > 0:
             f.normal_flip()
+        angles = [math.atan2((loop.vert.co.z - PORTAL_Z) / rz, loop.vert.co.x / rx) % (2 * math.pi) / (2 * math.pi)
+                  for loop in f.loops if loop.vert is not centre]
+        wraps = max(angles) - min(angles) > 0.5
         for loop in f.loops:
             c = loop.vert.co
             loop[uv].uv = (0.5 + 0.5 * c.x / rx, 0.5 + 0.5 * (c.z - PORTAL_Z) / rz)
+            if loop.vert is centre:
+                a = [x + 1 if wraps and x < 0.5 else x for x in angles]
+                loop[flow].uv = (sum(a) / len(a), 1.0)
+                continue
+            u = math.atan2((c.z - PORTAL_Z) / rz, c.x / rx) % (2 * math.pi) / (2 * math.pi)
+            if wraps and u < 0.5:
+                u += 1.0
+            t = math.hypot(c.x / rx, (c.z - PORTAL_Z) / rz)
+            loop[flow].uv = (u, 1.0 - t)
     return to_object("portal_membrane", bm, coll, [mats["membrane"]], smooth=True)
 
 
@@ -430,8 +552,9 @@ def build_tower(name, coll, mats, seed, height, apothem, win_rows, broken_dir=0.
         for v in verts:
             if v.co.z > 0:
                 v.co.z += slope * v.co.x / (w / 2) * min(0.9, h * 0.22) + rng.uniform(-0.05, 0.05)
-        edges = list({e for v in verts for e in v.link_edges})
-        bmesh.ops.bevel(slab, geom=edges, offset=0.03, segments=1, affect="EDGES", clamp_overlap=True)
+        if LEVEL["lod"] == 0:
+            edges = list({e for v in verts for e in v.link_edges})
+            bmesh.ops.bevel(slab, geom=edges, offset=0.03, segments=1, affect="EDGES", clamp_overlap=True)
         # Windows, in rows up the wall, only where the wall stands tall enough. Front face y = -t/2.
         usable = h - 0.6 if slope >= 0 else h - 0.6 - abs(slope) * 0.2 * h
         for z in win_rows:
@@ -609,18 +732,41 @@ LETTERS = "abcdefghij"
 
 
 def build_pieces(coll):
-    """Every kit piece into `coll`: {exported name: object}."""
+    """Every kit piece and its lod1 into `coll`: {exported name: (full, lod1)}; the nodes that are
+    not placed pieces (the membrane, glyph, lanterns and the windows) come with `None` for a lod1.
+
+    The lod1 of stone is the same build without the blocks' bevels (same seeds, so the same stones);
+    of a rock, one icosphere level less; of coral, the full coral decimated to a quarter; rubble is
+    already a few dozen triangles, so its lod1 is a copy. Stone and rock carry a baked occlusion
+    (`Col`) at both levels."""
     mats = materials()
     built = {}
 
-    def add(ob):
-        built[ob.name[len(PREFIX):]] = ob
+    def both(name, fn, stone=True, lod1=None):
+        """`fn(name, level)` builds the piece at a level; `lod1(full)` makes its lod1 from the full piece instead."""
+        LEVEL["lod"] = 0
+        full = fn(name, 0)
+        if lod1 is not None:
+            far = lod1(full)
+        else:
+            LEVEL["lod"] = 1
+            try:
+                far = fn(name + LOD1, 1)
+            finally:
+                LEVEL["lod"] = 0
+        built[name] = (full, far)
 
-    add(build_portal_arch(coll, mats))
-    add(build_portal_steps(coll, mats))
-    add(build_portal_membrane(coll, mats))
-    add(build_portal_glyph(coll, mats))
-    add(build_portal_lanterns(coll, mats))
+    def copy_of(full, ratio=None):
+        ob = bpy.data.objects.new(full.name + LOD1, full.data.copy())
+        ob.data.name = full.data.name + LOD1
+        coll.objects.link(ob)
+        return decimated(ob, ratio) if ratio else ob
+
+    both("portal_arch", lambda n, d: build_portal_arch(coll, mats, n))
+    both("portal_steps", lambda n, d: build_portal_steps(coll, mats, n))
+    built["portal_membrane"] = (build_portal_membrane(coll, mats), None)
+    built["portal_glyph"] = (build_portal_glyph(coll, mats), None)
+    built["portal_lanterns"] = (build_portal_lanterns(coll, mats), None)
 
     # name: (seed, height, apothem, window rows, break direction)
     towers = {
@@ -630,34 +776,60 @@ def build_pieces(coll):
         "tower_d": (12, 8.2, 0.8, (1.8, 3.6, 5.4, 7.0), math.radians(20)),
     }
     for name, (seed, h, ap, rows, brk) in towers.items():
-        add(build_tower(name, coll, mats, seed, h, ap, rows, brk))
+        both(name, lambda n, d, seed=seed, h=h, ap=ap, rows=rows, brk=brk: build_tower(n, coll, mats, seed, h, ap, rows, brk))
 
-    add(build_wall("wall_a", coll, mats, 21, 4.4, 2.8))
-    add(build_wall("wall_b", coll, mats, 22, 3.4, 3.4, windows=((-0.3, 1.0),)))
-    add(build_wall("wall_c", coll, mats, 23, 2.6, 2.2, windows=((0.4, 0.7),)))
+    walls = {"wall_a": (21, 4.4, 2.8, ()), "wall_b": (22, 3.4, 3.4, ((-0.3, 1.0),)), "wall_c": (23, 2.6, 2.2, ((0.4, 0.7),))}
+    for name, (seed, length, height, windows) in walls.items():
+        both(name, lambda n, d, seed=seed, length=length, height=height, windows=windows: build_wall(n, coll, mats, seed, length, height, windows=windows))
+
+    # The lit windows: out of the full piece into a node of their own; the lod1's windows go (the page draws one set of windows in the piece's frame at every distance).
+    for name in WINDOWED:
+        full, far = built[name]
+        built[name + WINDOWS] = (split_windows(full, coll, mats), None)
+        extra = split_windows(far, coll, mats)
+        extra_mesh = extra.data
+        bpy.data.objects.remove(extra)
+        bpy.data.meshes.remove(extra_mesh)
+    for name in ("wall_a",):  # no windows: the second slot is empty
+        for ob in built[name]:
+            ob.data.materials.pop(index=1)
 
     rubble = ((31, (1.1, 0.8, 0.7)), (32, (0.8, 0.8, 0.6)), (33, (1.4, 0.9, 0.9)), (34, (0.6, 0.5, 0.5)), (35, (1.0, 0.7, 1.0)))
     for i, (seed, size) in enumerate(rubble):
-        add(build_rubble(f"rubble_float_{LETTERS[i]}", coll, mats, seed, size))
+        both(f"rubble_float_{LETTERS[i]}", lambda n, d, seed=seed, size=size: build_rubble(n, coll, mats, seed, size), lod1=copy_of)
 
     rocks = ((11, (1.0, 0.9, 0.75), 3), (12, (0.8, 1.0, 0.9), 3), (13, (1.2, 0.85, 0.6), 3), (14, (0.7, 0.75, 1.0), 2), (15, (1.0, 1.0, 1.0), 3))
     for i, (seed, scale, detail) in enumerate(rocks):
-        add(build_rock(f"rock_{LETTERS[i]}", coll, mats, seed, scale, detail))
+        both(f"rock_{LETTERS[i]}", lambda n, d, seed=seed, scale=scale, detail=detail: build_rock(n, coll, mats, seed, scale, max(1, detail - d)))
 
     for i, (seed, size) in enumerate(((51, 1.5), (52, 1.9), (53, 1.3))):
-        add(build_coral(f"coral_fan_{LETTERS[i]}", coll, mats, "coral_fan", seed, size, fan=True))
+        both(f"coral_fan_{LETTERS[i]}", lambda n, d, seed=seed, size=size: build_coral(n, coll, mats, "coral_fan", seed, size, fan=True), lod1=lambda full: copy_of(full, 0.25))
     for i, (seed, size) in enumerate(((61, 1.1), (62, 1.4), (63, 0.9))):
-        add(build_coral(f"coral_amber_{LETTERS[i]}", coll, mats, "coral_amber", seed, size, fan=False))
-    for name, ob in built.items():
-        if name == "portal_arch" or not name.startswith("portal_"):
-            ob["radius"] = round(radius_xy(ob), 4)
+        both(f"coral_amber_{LETTERS[i]}", lambda n, d, seed=seed, size=size: build_coral(n, coll, mats, "coral_amber", seed, size, fan=False), lod1=lambda full: copy_of(full, 0.25))
+
+    # Occlusion on stone and rock, both levels (coral has its own tip-bright Col from the build).
+    for name in PLACED:
+        if name.startswith("coral_"):
+            continue
+        for ob in built[name]:
+            bake_ao(ob, reach=0.6 if name.startswith("rubble_") else 0.9)
+    for name in PLACED:
+        built[name][0]["radius"] = round(radius_xy(built[name][0]), 4)
     return built
 
 
 # --- Placement ---------------------------------------------------------------------------------
 
-# The portal's other nodes share the arch's frame: they are placed wherever the arch is.
-PORTAL_PARTS = ("portal_steps", "portal_membrane", "portal_glyph", "portal_lanterns")
+# The portal's other nodes share the arch's frame: they are placed wherever the arch is (the steps
+# are a placed piece of their own since Task 9, laid out with the arch's placement, so the bake lights them).
+PORTAL_PARTS = ("portal_membrane", "portal_glyph", "portal_lanterns")
+
+
+def attached_to(piece):
+    """The nodes the page draws in a placed piece's frame (config.ts `kit.attached`)."""
+    if piece == "portal_arch":
+        return list(PORTAL_PARTS)
+    return [piece + WINDOWS] if piece in WINDOWED else []
 
 
 def read_layout():
@@ -696,7 +868,7 @@ def place_instances(built, world_coll, layout):
     solids = []
 
     def place(name, matrix, label):
-        ob = bpy.data.objects.new(f"{PREFIX}world.{label}", built[name].data)
+        ob = bpy.data.objects.new(f"{PREFIX}world.{label}", built[name][0].data)
         ob.matrix_world = matrix
         world_coll.objects.link(ob)
         return ob
@@ -707,9 +879,8 @@ def place_instances(built, world_coll, layout):
         for i, p in enumerate(items):
             m = stage_matrix(p)
             ob = place(p["piece"], m, f"{group}{i}")
-            if group == "portal":
-                for part in PORTAL_PARTS:
-                    place(part, m, f"{group}{i}.{part}")
+            for part in attached_to(p["piece"]):
+                place(part, m, f"{group}{i}.{part}")
             if group != "rubble":
                 mw = ob.matrix_world
                 solids.append(BVHTree.FromPolygons([mw @ v.co for v in ob.data.vertices], [tuple(q.vertices) for q in ob.data.polygons]))
@@ -733,13 +904,14 @@ def lay_out_preview(built, coll):
         (21.0, -12.0, 3.0, ("coral_",)),
     ]
     for y, x, gap, prefixes in rows:
-        for name, src in built.items():
-            if name.startswith(prefixes):
-                ob = bpy.data.objects.new(f"{PREFIX}preview.{name}", src.data)
-                ob.location = (x, y, 2.0 if name.startswith("rubble_") else 0.0)
-                coll.objects.link(ob)
+        for name, (src, _) in built.items():
+            if name.startswith(prefixes) and not name.endswith(WINDOWS):
+                for part in [name] + attached_to(name):
+                    ob = bpy.data.objects.new(f"{PREFIX}preview.{part}", built[part][0].data)
+                    ob.location = (x, y, 2.0 if name.startswith("rubble_") else 0.0)
+                    coll.objects.link(ob)
                 x += gap
-    for name, src in built.items():
+    for name, (src, _) in built.items():
         if name.startswith("portal_"):
             ob = bpy.data.objects.new(f"{PREFIX}preview.{name}", src.data)
             ob.location = (-15.0, 0.0, 0.0)
@@ -815,11 +987,11 @@ def tidy_glb(path):
     edit_glb_json(path, edit)
 
 
-def export(coll):
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    RAW.parent.mkdir(parents=True, exist_ok=True)
+def export(coll, raw=RAW):
+    """The pieces collection as a raw glb (names tidied), before compression."""
+    raw.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(
-        filepath=str(RAW),
+        filepath=str(raw),
         collection=coll.name,
         export_format="GLB",
         export_apply=True,
@@ -829,8 +1001,49 @@ def export(coll):
         export_materials="EXPORT",
         export_normals=True,
     )
-    tidy_glb(RAW)
-    OUT.write_bytes(RAW.read_bytes())
+    tidy_glb(raw)
+
+
+def gltf_transform(*args):
+    """Runs the repo's own gltf-transform (npx --no-install: never a download), with KTX-Software
+    on the PATH for its KTX2 commands (as blender/vault/build_kit.py)."""
+    cmd = ["npx", "--no-install", "gltf-transform", *map(str, args)]
+    print("gltf-transform:", " ".join(cmd))
+    env = dict(os.environ)
+    if os.path.isdir(KTX_BIN):
+        env["PATH"] = KTX_BIN + os.pathsep + env.get("PATH", "")
+    try:
+        subprocess.run(cmd, cwd=ROOT, env=env, check=True, shell=os.name == "nt", capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, "stderr", "") or error
+        raise RuntimeError(f"gltf-transform failed; run the command above from {ROOT}.\n{detail}") from error
+
+
+def compress(raw, out):
+    """Meshopt geometry (what the engine's kit loader decodes) and KTX2 textures, keeping the structure the page reads."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    gltf_transform("optimize", raw, out, "--compress", "meshopt", "--texture-compress", TEXTURE_COMPRESS, *KEEP_STRUCTURE)
+
+
+def check_output(path):
+    """The glb names every piece and node, each placed piece its lod1 and radius, stone and rock
+    carry `Col`, and the membrane has its two UV sets."""
+    data = path.read_bytes()
+    size = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(data[20:20 + size])
+    names = {n.get("name"): n for n in doc["nodes"]}
+    missing = [n for n in PLACED + NODES if n not in names]
+    assert not missing, f"the kit lacks {missing}"
+    for piece in PLACED:
+        assert piece + LOD1 in names, f"{piece} has no lod1"
+        assert "radius" in names[piece].get("extras", {}), f"{piece} carries no radius"
+        if not piece.startswith("coral_"):
+            for name in (piece, piece + LOD1):
+                for prim in doc["meshes"][names[name]["mesh"]]["primitives"]:
+                    assert "COLOR_0" in prim["attributes"], f"{name} has no Col"
+    prim = doc["meshes"][names["portal_membrane"]["mesh"]]["primitives"][0]["attributes"]
+    assert "TEXCOORD_0" in prim and "TEXCOORD_1" in prim, f"the membrane has {sorted(prim)}"
+    print(f"checked {path}: {len(names)} nodes, membrane UV sets {[k for k in prim if k.startswith('TEXCOORD')]}")
 
 
 def build():
@@ -841,16 +1054,26 @@ def build():
         layout = read_layout()
         check_layout(layout, built)
         place_instances(built, world_coll, layout)
-        total = 0
-        for name, ob in built.items():
+        total = far_total = 0
+        for name, (ob, far) in built.items():
             tris = triangles(ob)
             total += tris
-            print(f"{name}: {tris} triangles")
-        print(f"kit total: {total} triangles, {len(built)} nodes")
+            lod = ""
+            if far is not None:
+                far_total += triangles(far)
+                lod = f", lod1 {triangles(far)} ({triangles(far) / tris:.0%})"
+            print(f"{name}: {tris} triangles{lod}")
+        print(f"kit total: {total} triangles at full detail, {far_total} in the lod1s, {len(built)} pieces and nodes")
         if total > MAX_TRIANGLES:
-            raise RuntimeError(f"kit has {total} triangles, over the {MAX_TRIANGLES} budget")
+            raise RuntimeError(f"kit has {total} triangles at full detail, over the {MAX_TRIANGLES} budget")
         export(pieces_coll)
-        print(f"exported {OUT}: {OUT.stat().st_size} bytes")
+        raw = RAW.stat().st_size
+        try:
+            compress(RAW, OUT)
+        finally:
+            RAW.unlink(missing_ok=True)
+        check_output(OUT)
+        print(f"exported {OUT}: {raw} bytes raw, {OUT.stat().st_size} bytes compressed")
         shot = os.environ.get("AETHER_PREVIEW")
         if shot:
             world_coll.hide_render = True

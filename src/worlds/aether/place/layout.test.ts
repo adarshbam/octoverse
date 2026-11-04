@@ -18,22 +18,42 @@ interface GlbNode {
   name?: string;
   mesh?: number;
   extras?: { radius?: number };
+  translation?: number[];
+  scale?: number[];
+  rotation?: number[];
 }
 
-/** The kit file's JSON chunk: its nodes (name to node) and the bounds of each mesh node's positions, in the node's own frame (glTF Y-up). */
+/** The largest value of each normalized integer component type (glTF's componentType), to undo the normalisation. */
+const NORMALIZED_MAX: Record<number, number> = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 };
+
+/**
+ * The kit file's JSON chunk: its nodes (name to node) and the bounds of each mesh node's positions,
+ * in the piece's own frame (glTF Y-up). The file is compressed (meshopt, KHR_mesh_quantization):
+ * positions are stored as normalized integers in a [-1, 1] box and the node's translation and scale
+ * put them back, so the bounds are read through both.
+ */
 const kit = (() => {
   const data = readFileSync(join(ROOT, 'public', OBSERVATORY_KIT.url));
   expect(data.subarray(0, 4).toString()).toBe('glTF');
   const doc = JSON.parse(data.subarray(20, 20 + data.readUInt32LE(12)).toString('utf8')) as {
     nodes: GlbNode[];
     meshes: { primitives: { attributes: { POSITION: number } }[] }[];
-    accessors: { min: number[]; max: number[] }[];
+    accessors: { min: number[]; max: number[]; componentType: number; normalized?: boolean }[];
   };
   const nodes = new Map(doc.nodes.map(node => [node.name ?? '', node] as const));
   const bounds = (name: string): Box => {
     const node = nodes.get(name);
     expect(node?.mesh, `${name} is a mesh node`).toBeDefined();
-    const boxes = doc.meshes[node!.mesh!].primitives.map(prim => doc.accessors[prim.attributes.POSITION]);
+    // A node turned by a rotation would need its box turned too: the kit's nodes are never turned.
+    expect(node!.rotation ?? [0, 0, 0, 1], `${name} is not turned`).toEqual([0, 0, 0, 1]);
+    const t = node!.translation ?? [0, 0, 0];
+    const s = node!.scale ?? [1, 1, 1];
+    const boxes = doc.meshes[node!.mesh!].primitives.map(prim => {
+      const a = doc.accessors[prim.attributes.POSITION];
+      const unit = a.normalized ? NORMALIZED_MAX[a.componentType] : 1;
+      // A scale is positive, so the lower corner stays the lower corner.
+      return { min: a.min.map((v, k) => t[k] + (s[k] * v) / unit), max: a.max.map((v, k) => t[k] + (s[k] * v) / unit) };
+    });
     return { min: [0, 1, 2].map(k => Math.min(...boxes.map(a => a.min[k]))), max: [0, 1, 2].map(k => Math.max(...boxes.map(a => a.max[k]))) };
   };
   return { nodes, bounds };
@@ -125,7 +145,10 @@ test('the kit file holds every piece and node the kit list names, each placed pi
 
 test('the groups read as the observatory: a portal, towers both sides, walls, floating rubble in the mid water, rocks and coral in front', () => {
   expect(Object.keys(layout.groups).sort()).toEqual(['corals', 'portal', 'rocks', 'rubble', 'towers', 'walls']);
-  expect(layout.groups.portal).toHaveLength(1);
+  // The portal: its arch and its steps, laid out with one placement (they share the arch's frame).
+  expect(layout.groups.portal.map(p => p.piece)).toEqual(['portal_arch', 'portal_steps']);
+  const [arch, steps] = layout.groups.portal;
+  expect({ ...steps, piece: arch.piece }).toEqual(arch);
   const towers = layout.groups.towers;
   expect(towers.filter(p => p.position[0] < 0).length).toBeGreaterThanOrEqual(2);
   expect(towers.filter(p => p.position[0] > 0).length).toBeGreaterThanOrEqual(2);
