@@ -1,4 +1,5 @@
 import type { WorldBundle, WorldId } from '../engine/types/bundle';
+import { AETHER_BUNDLE } from './aether/bundle';
 import { NOX_BUNDLE } from './nox/bundle';
 import { HOST_BUNDLE } from './octoverse/bundle';
 import { VEYRA_BUNDLE } from './veyra/bundle';
@@ -11,7 +12,7 @@ import { VEYRA_BUNDLE } from './veyra/bundle';
 export const DEFAULT_WORLD = 'nox';
 
 /** The bundles of the worlds that ship with the engine, by id. The engine's own list of shipped ids (`WORLDS` in engine/types/bundle.ts) must name exactly these. */
-export const WORLDS: Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE, veyra: VEYRA_BUNDLE, octoverse: HOST_BUNDLE };
+export const WORLDS: Record<WorldId, WorldBundle> = { nox: NOX_BUNDLE, veyra: VEYRA_BUNDLE, aether: AETHER_BUNDLE, octoverse: HOST_BUNDLE };
 
 /**
  * Development only: a second world for the world-switch spec (`?testworld=1`), Nox's bundle cloned

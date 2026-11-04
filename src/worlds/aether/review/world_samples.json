@@ -1,0 +1,113 @@
+{
+  "target": {
+    "mean": [
+      153,
+      132,
+      227
+    ],
+    "meanTolerance": 12,
+    "saturation": [
+      0.419,
+      0.499
+    ],
+    "brightness": [
+      0.858,
+      0.938
+    ],
+    "deltaE": 10
+  },
+  "regions": {
+    "Crown sheen": [
+      0.12,
+      0.07
+    ],
+    "Upper dome": [
+      0.12,
+      -0.11
+    ],
+    "Forehead": [
+      0.12,
+      -0.28
+    ],
+    "Between the eyes": [
+      0.12,
+      -0.56
+    ],
+    "Face glow below eyes": [
+      0.15,
+      -0.76
+    ],
+    "Face glow below mouth": [
+      0.15,
+      -1.0
+    ],
+    "Chin": [
+      0.15,
+      -1.13
+    ],
+    "Head side left": [
+      -0.43,
+      -0.4
+    ],
+    "Head side right": [
+      0.57,
+      -0.18
+    ],
+    "Blush": [
+      -0.36,
+      -0.92
+    ],
+    "Arm top rim": [
+      -1.4,
+      -0.75
+    ],
+    "Arm body upper": [
+      -1.03,
+      -0.95
+    ],
+    "Arm body lower": [
+      -0.97,
+      -1.35
+    ],
+    "Arm underside glow": [
+      -1.12,
+      -1.05
+    ],
+    "Cup": [
+      -1.15,
+      -1.12
+    ],
+    "Inside tip spiral": [
+      -1.62,
+      -1.05
+    ],
+    "Gold seed bead": [
+      1.06,
+      -0.13
+    ],
+    "Glass seed bead": [
+      -1.04,
+      -0.03
+    ],
+    "Water outside head": [
+      -0.78,
+      0.02
+    ],
+    "Mid water": [
+      -1.28,
+      0.22
+    ],
+    "Upper water": [
+      2.12,
+      2.32
+    ],
+    "Jellyfish bell": [
+      -1.76,
+      0.97
+    ],
+    "Ruin window light": [
+      -2.11,
+      0.27
+    ]
+  }
+}

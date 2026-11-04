@@ -25,6 +25,14 @@ test('?world=nox is Nox', () => {
   expect(resolveWorld('?stage=intro&world=nox&freeze').bundle).toBe(NOX_BUNDLE);
 });
 
+// Beside the Nox cases because a world's own tests may not import the registry (boundary.test.ts: a world imports nothing from another world, and the registry imports them all).
+test('?world=aether is Aether, with no warning', () => {
+  const { bundle, warning } = resolveWorld('?world=aether');
+  expect(bundle.id).toBe('aether');
+  expect(bundle).toBe(WORLDS.aether);
+  expect(warning).toBeUndefined();
+});
+
 test('?world=veyra is Veyra, with no warning', () => {
   const { bundle, warning } = resolveWorld('?world=veyra');
   expect(bundle).toBe(VEYRA_BUNDLE);
@@ -51,7 +59,7 @@ test('?world=octoverse is the host (platform spec 8.3)', () => {
 });
 
 test('the registry holds exactly the shipped worlds, each valid and under its own id', () => {
-  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra', 'octoverse']);
+  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra', 'aether', 'octoverse']);
   for (const [id, bundle] of Object.entries(WORLDS)) {
     expect(bundle.id).toBe(id);
     expect(() => validateBundle(bundle, SHIPPED_IDS), id).not.toThrow();
