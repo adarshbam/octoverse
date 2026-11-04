@@ -1,0 +1,89 @@
+{
+  "target": {
+    "mean": [
+      164,
+      116,
+      204
+    ],
+    "meanTolerance": 12,
+    "saturation": [
+      0.478,
+      0.558
+    ],
+    "brightness": [
+      0.816,
+      0.916
+    ],
+    "deltaE": 10
+  },
+  "regions": {
+    "crown": [
+      0.0,
+      0.16
+    ],
+    "upper head": [
+      0.0,
+      -0.04
+    ],
+    "forehead": [
+      0.0,
+      -0.26
+    ],
+    "between the eyes": [
+      0.0,
+      -0.51
+    ],
+    "face glow beside mouth": [
+      0.44,
+      -0.81
+    ],
+    "chin": [
+      0.0,
+      -1.11
+    ],
+    "head side left": [
+      -0.68,
+      -0.26
+    ],
+    "head side right": [
+      0.69,
+      -0.21
+    ],
+    "blush": [
+      -0.46,
+      -0.78
+    ],
+    "mouth inside": [
+      0.0,
+      -0.84
+    ],
+    "tongue": [
+      0.0,
+      -0.91
+    ],
+    "arm upper": [
+      -0.91,
+      -0.51
+    ],
+    "arm underside": [
+      -0.81,
+      -1.56
+    ],
+    "cup rim": [
+      1.36,
+      -1.46
+    ],
+    "water outside head": [
+      -0.91,
+      0.19
+    ],
+    "mid water": [
+      -1.36,
+      0.14
+    ],
+    "upper water": [
+      1.94,
+      2.24
+    ]
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "samples": [
+    {
+      "name": "crown",
+      "panel": "p2",
+      "x": 256,
+      "y": 238,
+      "size": 6,
+      "rgb": [
+        85,
+        101,
+        252
+      ]
+    },
+    {
+      "name": "upper head",
+      "panel": "p2",
+      "x": 256,
+      "y": 258,
+      "size": 6,
+      "rgb": [
+        128,
+        78,
+        230
+      ]
+    },
+    {
+      "name": "forehead",
+      "panel": "p2",
+      "x": 256,
+      "y": 280,
+      "size": 6,
+      "rgb": [
+        224,
+        129,
+        208
+      ]
+    },
+    {
+      "name": "between the eyes",
+      "panel": "p2",
+      "x": 256,
+      "y": 305,
+      "size": 5,
+      "rgb": [
+        254,
+        175,
+        181
+      ]
+    },
+    {
+      "name": "face glow beside mouth",
+      "panel": "p2",
+      "x": 300,
+      "y": 335,
+      "size": 5,
+      "rgb": [
+        253,
+        182,
+        183
+      ]
+    },
+    {
+      "name": "chin",
+      "panel": "p2",
+      "x": 256,
+      "y": 365,
+      "size": 6,
+      "rgb": [
+        253,
+        181,
+        183
+      ]
+    },
+    {
+      "name": "head side left",
+      "panel": "p2",
+      "x": 188,
+      "y": 280,
+      "size": 4,
+      "rgb": [
+        95,
+        80,
+        237
+      ]
+    },
+    {
+      "name": "head side right",
+      "panel": "p2",
+      "x": 325,
+      "y": 275,
+      "size": 4,
+      "rgb": [
+        134,
+        131,
+        253
+      ]
+    },
+    {
+      "name": "blush",
+      "panel": "p2",
+      "x": 210,
+      "y": 332,
+      "size": 4,
+      "rgb": [
+        241,
+        172,
+        195
+      ]
+    },
+    {
+      "name": "mouth inside",
+      "panel": "p2",
+      "x": 256,
+      "y": 338,
+      "size": 3,
+      "rgb": [
+        129,
+        28,
+        52
+      ]
+    },
+    {
+      "name": "tongue",
+      "panel": "p2",
+      "x": 256,
+      "y": 345,
+      "size": 3,
+      "rgb": [
+        250,
+        123,
+        109
+      ]
+    },
+    {
+      "name": "arm upper",
+      "panel": "p2",
+      "x": 165,
+      "y": 305,
+      "size": 3,
+      "rgb": [
+        58,
+        55,
+        213
+      ]
+    },
+    {
+      "name": "arm underside",
+      "panel": "p2",
+      "x": 175,
+      "y": 410,
+      "size": 3,
+      "rgb": [
+        245,
+        175,
+        186
+      ]
+    },
+    {
+      "name": "cup rim",
+      "panel": "p2",
+      "x": 392,
+      "y": 400,
+      "size": 3,
+      "rgb": [
+        248,
+        197,
+        159
+      ]
+    },
+    {
+      "name": "water outside head",
+      "panel": "p2",
+      "x": 165,
+      "y": 235,
+      "size": 6,
+      "rgb": [
+        2,
+        22,
+        72
+      ]
+    },
+    {
+      "name": "mid water",
+      "panel": "p2",
+      "x": 120,
+      "y": 240,
+      "size": 8,
+      "rgb": [
+        20,
+        30,
+        95
+      ]
+    },
+    {
+      "name": "upper water",
+      "panel": "p2",
+      "x": 450,
+      "y": 30,
+      "size": 12,
+      "rgb": [
+        16,
+        129,
+        219
+      ]
+    },
+    {
+      "name": "P3 upper head",
+      "panel": "p3",
+      "x": 262,
+      "y": 300,
+      "size": 5,
+      "rgb": [
+        141,
+        78,
+        212
+      ]
+    },
+    {
+      "name": "P3 face glow",
+      "panel": "p3",
+      "x": 262,
+      "y": 395,
+      "size": 5,
+      "rgb": [
+        255,
+        170,
+        179
+      ]
+    },
+    {
+      "name": "P1 portal membrane",
+      "panel": "p1",
+      "x": 372,
+      "y": 330,
+      "size": 4,
+      "rgb": [
+        117,
+        56,
+        252
+      ]
+    },
+    {
+      "name": "P1 floor path glow",
+      "panel": "p1",
+      "x": 270,
+      "y": 445,
+      "size": 6,
+      "rgb": [
+        169,
+        120,
+        150
+      ]
+    },
+    {
+      "name": "P1 mid water",
+      "panel": "p1",
+      "x": 230,
+      "y": 120,
+      "size": 8,
+      "rgb": [
+        1,
+        18,
+        54
+      ]
+    }
+  ],
+  "deltaE": 10,
+  "checks": {
+    "faceBminusGmax": 15,
+    "faceRminusBmin": 60,
+    "crownBminusRmin": 140,
+    "upperHeadRminusGmin": 30,
+    "coreOverHeadRmin": 100,
+    "cupRminusBmin": 60,
+    "midWaterBmin": 60,
+    "midWaterBminusRmin": 55
+  },
+  "head": {
+    "halfWidth": [
+      0.8,
+      0.88
+    ],
+    "top": [
+      0.29,
+      0.37
+    ],
+    "centreX": [
+      -0.04,
+      0.04
+    ]
+  },
+  "eyes": {
+    "y": [
+      -0.6,
+      -0.52
+    ],
+    "x": [
+      0.36,
+      0.42
+    ]
+  },
+  "mouthY": [
+    -0.9,
+    -0.82
+  ],
+  "armSpan": [
+    4.5,
+    4.9
+  ],
+  "iou": 0.85,
+  "meanInside": {
+    "rgb": [
+      164,
+      116,
+      204
+    ],
+    "tolerance": 12,
+    "satTolerance": 0.04,
+    "saturation": 0.518,
+    "brightness": 0.866
+  }
+}
