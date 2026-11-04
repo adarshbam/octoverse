@@ -4,6 +4,7 @@
 import type { ContactShadowSettings } from './contactShadowEffect';
 import type { FloorMaterialId } from './floors';
 import type { KitMaterialAssignment } from './kitMaterials';
+import type { Point2 } from '../config/types';
 import type { QualityTier } from '../stage/quality';
 import type { StrandElementId } from './live';
 import type { PropDrive } from './props';
@@ -156,8 +157,10 @@ export interface WorldConfig {
   /**
    * The share (0 to 1) of each live element that is drawn: 1 is the full amount. `colours` are the
    * live elements' own colours (in a world each also takes the character's face glow).
+   * `fishSilhouette` is the far fish's outline (fish.ts): at most 24 (x, y) points in the unit box
+   * (-1 to 1, nose toward +x), a simple polygon; absent is the body and tail Nox's and Veyra's have.
    */
-  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours; elements?: LiveElements };
+  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours; elements?: LiveElements; fishSilhouette?: readonly Point2[] };
 }
 
 /** The relics' multipliers, by name; `glyph`, `coral` and `spill` are the ones the engine reads. */

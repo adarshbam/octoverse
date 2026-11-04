@@ -71,7 +71,7 @@ export function WorldScene({ world: configured, level, onFail, onKitSettled, tim
       {world.farPlate && <FarCards plate={world.farPlate} scale={tier.plateScale} onSettled={onPlateSettled} />}
       <GodRays colours={water.colours} amount={live.rays * tier.rays} spread={world.glow.rays} />
       <MarineSnow colour={live.colours.snow} amount={live.snow} glow={accents?.light} reach={accents?.reach} />
-      {tier.fish && <FarFish colour={water.colours.fish} amount={live.fish} />}
+      {tier.fish && <FarFish colour={water.colours.fish} amount={live.fish} silhouette={live.fishSilhouette} />}
       {tier.motes && <Motes colours={live.colours.motes} amount={live.motes} glow={accents?.light} reach={accents?.reach} />}
       {!solo && <Bubbles colours={live.colours.bubbles} density={live.bubbles * tier.particles} glow={accents?.light} reach={accents?.reach} field={WORLD_BUBBLES} time={bubbleTime} />}
       {STRAND_ELEMENT_IDS.map(id => live.elements?.[id] && <Strands key={id} id={id} config={live.elements[id]} floorY={world.layout.floorY} amount={tier.particles} />)}

@@ -1,5 +1,6 @@
 import { isWorldColour } from './colour';
 import { DEFAULT_FLOOR, FLOOR_MATERIALS } from './floors';
+import { silhouetteProblems } from './fish';
 import { LIVE_ELEMENT_IDS, MAX_JELLYFISH, MAX_STRANDS, STRAND_ELEMENT_IDS } from './live';
 import { kitMaterialProblems } from './kitMaterials';
 import { PROP_DRIVE_IDS } from './props';
@@ -231,7 +232,8 @@ export function validateWorld(world: WorldConfig): string[] {
     const material = (world.materials ?? []).find(m => m?.node === prop.node)?.material;
     if (prop.drive === 'emissive' && material === 'glow') problems.push(`props[${i}] (${prop.id}) drives the emissive of "${prop.node}", which has a glow material: a glow sets its own level`);
   });
-  const { colours: liveColours, elements, ...shares } = live;
+  const { colours: liveColours, elements, fishSilhouette, ...shares } = live;
+  if (fishSilhouette !== undefined) problems.push(...silhouetteProblems(fishSilhouette, 'live.fishSilhouette'));
   for (const [id, strand] of Object.entries((elements ?? {}) as Record<string, unknown>)) {
     const at = `live.elements.${id}`;
     if (!(LIVE_ELEMENT_IDS as string[]).includes(id)) problems.push(`${at} is not a live element (${LIVE_ELEMENT_IDS.join(', ')})`);
