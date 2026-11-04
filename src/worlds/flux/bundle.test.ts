@@ -5,8 +5,6 @@ import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { FLUX_BUNDLE } from './bundle';
 import { FLUX } from './character';
-import { NOX } from '../nox/character';
-import { VEYRA } from '../veyra/character';
 import { FLUX_POSES } from './poses';
 import { FLUX_STROKE_SECONDS } from './sequences/defaults';
 import targets from './review/targets.json';
@@ -112,9 +110,11 @@ test('the mantle and the arms are jelly, with sparkles (spec 7.2)', () => {
 });
 
 test("the sparkles are denser than Veyra's on both surfaces (spec 7.2; 'twinkling faster' has no config field)", () => {
-  const veyra = VEYRA.skin.surfaces!;
-  expect(surfaces.mantle.sparkle).toBeGreaterThan(veyra.mantle.sparkle);
-  expect(surfaces.arms.sparkle).toBeGreaterThan(veyra.arms.sparkle);
+  // A world's tests may not import a sibling world (src/engine/boundary.test.ts), so Veyra's values are pinned.
+  const veyraMantleSparkle = 50; // Veyra mantle sparkle, src/worlds/veyra/character.ts
+  const veyraArmsSparkle = 35; // Veyra arms sparkle, src/worlds/veyra/character.ts
+  expect(surfaces.mantle.sparkle).toBeGreaterThan(veyraMantleSparkle);
+  expect(surfaces.arms.sparkle).toBeGreaterThan(veyraArmsSparkle);
 });
 
 test('the core sits just below the mouth, glowing warm', () => {
@@ -172,7 +172,8 @@ test('no stray red: only the core, blush, mouth and cups have red above both gre
 test("his face: two short outer lashes, brows thicker than Nox's, a navy-to-violet iris, a strong pink blush", () => {
   const { eye, brow } = FLUX.face;
   expect(eye.lashes.length).toBe(2);
-  expect(brow.thickness).toBeGreaterThan(NOX.face.brow.thickness);
+  const noxBrowThickness = 0.028; // Nox brow thickness, src/worlds/nox/character.ts
+  expect(brow.thickness).toBeGreaterThan(noxBrowThickness);
   const iris = FLUX.facePalette.iris;
   // Navy-black at the top: blue leads red, and every channel stays dark.
   const [tr, tg, tb] = hexToRgb(iris[0]);
@@ -187,7 +188,8 @@ test("his face: two short outer lashes, brows thicker than Nox's, a navy-to-viol
 
 test("his eager face (the focused override) opens the mouth and the eyes wider than Nox's focused face", () => {
   const flux = resolveExpressions(FLUX).focused;
-  const nox = resolveExpressions(NOX).focused;
+  // Nox's resolved `focused` expression (src/worlds/nox/character.ts through resolveExpressions), pinned: no sibling-world import.
+  const nox = { lidRest: 0.12, browLift: 0 };
   expect(flux.mouthOpen).toBeGreaterThan(0);
   // Lid open is one less the resting lid.
   expect(1 - flux.lidRest).toBeGreaterThan(1 - nox.lidRest);
