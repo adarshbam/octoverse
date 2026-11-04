@@ -332,3 +332,21 @@ test('a swing and a reveal in range, a tether of length 0 and a slot table with 
   expect(() => validateBundle(withPendants(p => { p.tether.length = 0; }))).not.toThrow();
   expect(() => validateBundle(withPendants(p => { p.slots.intro = []; }))).not.toThrow();
 });
+
+test("an orb style (rim beads and cap) is optional; given, its count, colours and cap size are checked by name", () => {
+  const style = { rimBeads: 16, rimColour: '#e4d9f8', cap: { colour: '#d99982', size: 0.05 } };
+  const withStyle = (orbStyle: unknown): WorldBundle => ({ ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, orbStyle } as WorldBundle['artifacts'] });
+  expect(validateBundle(withStyle(style)).artifacts.orbStyle).toEqual(style);
+  expect(validateBundle(withStyle({ ...style, rimBeads: 0, cap: null })).artifacts.orbStyle?.cap).toBeNull();
+  expect(NOX_BUNDLE.artifacts.orbStyle).toBeUndefined();
+  for (const [bad, field] of [
+    [{ ...style, rimBeads: -1 }, 'artifacts.orbStyle.rimBeads'],
+    [{ ...style, rimBeads: 2.5 }, 'artifacts.orbStyle.rimBeads'],
+    [{ ...style, rimBeads: 65 }, 'artifacts.orbStyle.rimBeads'],
+    [{ ...style, rimColour: 'not-a-colour' }, 'artifacts.orbStyle.rimColour'],
+    [{ ...style, cap: { colour: '#zzzzzz', size: 0.05 } }, 'artifacts.orbStyle.cap.colour'],
+    [{ ...style, cap: { colour: '#d99982', size: 0 } }, 'artifacts.orbStyle.cap.size'],
+    [{ ...style, cap: undefined }, 'artifacts.orbStyle.cap'],
+    ['gold', 'artifacts.orbStyle'],
+  ] as const) expect(refusal(withStyle(bad)).field).toBe(field);
+});

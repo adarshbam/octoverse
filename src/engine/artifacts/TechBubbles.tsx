@@ -12,6 +12,7 @@ import type { ArmReader } from './pendant';
 import { TETHER_POINTS, capRadius } from './tether';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
+import { createOrbStyle } from './orbStyle';
 
 export interface PlacedBubble {
   techId: string;
@@ -201,7 +202,10 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun() }), [bubbles.length, appear]);
   // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
   const threads = useThreads(placementConfig.kind === 'pendant' ? placementConfig.tether : null, bubbles.length);
-  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3() }), []);
+  // A world's orb style (artifacts/orbStyle.ts): rim beads and a cap round each orb, in one batch each; none for a world without one.
+  const orbStyle = useMemo(() => createOrbStyle(artifacts.orbStyle, bubbles.length), [artifacts.orbStyle, bubbles.length]);
+  useEffect(() => () => orbStyle?.dispose(), [orbStyle]);
+  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3(), cap: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
@@ -254,6 +258,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
         node.visible = false;
         bubbleLive.spots[i].visible = false;
         threads?.hide(i);
+        orbStyle?.hide(i);
         return;
       }
       driver.point(s.stage, i, s.swell, target);
@@ -280,9 +285,13 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       const pull = s.hold.pull[i] ?? 0;
       if (pull > 0) select.position(scratch.from.copy(node.position), held.copy(s.hold.tip[i]).addScaledVector(s.hold.dir[i], radius * select.offTip), pull, holdCentre, node.position);
       // Its thread, from the arm to the cap on the orb: not while it flies from the mouth to its place, nor once an arm has taken it off its thread.
+      let threaded = false;
       if (threads && driver.pendants) {
         if ((b && b.emerged < 1) || pull > 0.001) threads.hide(i);
-        else threads.write(i, driver.pendants[i].points);
+        else {
+          threads.write(i, driver.pendants[i].points);
+          threaded = driver.pendants[i].points.length >= TETHER_POINTS;
+        }
       }
       // The focused bubble glows; the others dim subtly while one is. Each halo breathes a little at its own pace.
       const dim = 1 - 0.25 * Math.max(0, strongest - f);
@@ -292,6 +301,14 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       item.halo.uniforms.uFocus.value = f;
       item.glass.uniforms.uFocus.value = f;
       item.logo.opacity = shown * dim;
+      // The orb style's rim beads round it, and its cap where its thread ends (on top of it, with no thread).
+      if (orbStyle) {
+        if (!node.visible) orbStyle.hide(i);
+        else {
+          const capAt = threaded ? scratch.cap.fromArray(driver.pendants![i].points[TETHER_POINTS - 1]) : null;
+          orbStyle.write(i, node.position, radius, shown * dim, capAt, radius / size, f);
+        }
+      }
       // Where it is in the world and on the page, for the buttons, the tooltip and Nox's eyes.
       const world = bubbleLive.worlds[i].copy(node.position).applyMatrix4(root.matrixWorld);
       bubbleLive.sides[i] = sideOfFace(node.position.x, faceOrigin);
@@ -307,6 +324,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     s.puff = puff;
     s.mouthRound = mouthRound;
     threads?.finish(shown);
+    orbStyle?.finish(shown);
     bubbleLive.notify();
   });
 
@@ -319,6 +337,8 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
           <mesh geometry={parts.plane} material={item.logo} scale={2.1} position={[0, 0, 0.02]} renderOrder={3} />
         </group>
       ))}
+      {orbStyle?.beads && <primitive object={orbStyle.beads} />}
+      {orbStyle?.caps && <primitive object={orbStyle.caps} />}
       {threads && (
         <>
           <primitive object={threads.segments} />

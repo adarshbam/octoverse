@@ -606,6 +606,18 @@ export type PendantPlacement = Extract<PlacementConfig, { kind: 'pendant' }>;
 export type SatellitePlacement = Extract<PlacementConfig, { kind: 'satellite' }>;
 
 /**
+ * What a world adds round the shared orb glass (artifacts/orbStyle.ts): a rim of `rimBeads` small
+ * glowing beads in `rimColour`, evenly round the orb's outline, and a small cap of `cap.colour`
+ * (radius `cap.size`, world units, at the orb's stage size) where its thread meets it, or none.
+ * Absent (or no beads and no cap), the orb is today's glass alone. Colours are config, never engine literals.
+ */
+export interface OrbStyle {
+  rimBeads: number;
+  rimColour: string;
+  cap: { colour: string; size: number } | null;
+}
+
+/**
  * How a world's artifacts (its technologies' orbs) are placed, appear and are chosen: three
  * independent strategies, each a kind from a closed table in the engine (artifacts/strategies.ts),
  * and the stages in which one can be chosen. `appear` and `select` are objects so a later kind can
@@ -617,6 +629,8 @@ export interface ArtifactConfig {
   select: { kind: SelectId };
   /** The stages in which an artifact can be chosen; the reducer ignores a choice in any other, and the buttons and the tray are not drawn there. */
   choosableIn: readonly ChoosingStage[];
+  /** Rim beads and a cap round each orb's glass; absent, the orbs are the glass alone (Nox's and Veyra's). */
+  orbStyle?: OrbStyle;
 }
 
 export interface CharacterConfig {
