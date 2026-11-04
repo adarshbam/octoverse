@@ -6,8 +6,37 @@
 // lacks either is refused. The page instance of any world writes `window.__octoverse` (host/debugHooks.ts), so
 // nothing here names one. DEV SERVER ONLY: `__octoverse.world` and `.sequences` are written by development
 // builds (`import.meta.env.DEV`), so against a production build these captures cannot run.
+// Fonts: Poppins comes from Google Fonts and the page waits for nothing; a face that arrives after the tech tooltip
+// is laid out moves its glyphs by a device pixel (the techFocus drift, E02 diagnosis). `warmFonts` loads the three
+// weights before each still, and `waitForReady` refuses a still whose page lacks them, so an unreachable Google Fonts
+// FAILS the capture instead of saving a fallback-font still. The committed baseline was captured with Poppins loaded.
 export const READY_TIMEOUT_MS = 120_000;
 export const SETTLE_MS = 700;
+export const FONT_TIMEOUT_MS = 30_000;
+const POPPINS_WEIGHTS = ['400', '500', '600'];
+
+/** In-page: the number of Poppins faces (weights 400, 500, 600) whose status is `loaded`. `document.fonts.check`
+ *  is not used: it answers true for a family nothing defines (stylesheet never arrived). */
+const loadedPoppinsWeights = (weights) => [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Poppins' && f.status === 'loaded' && weights.includes(String(f.weight))).map(f => String(f.weight));
+
+/**
+ * Loads the three Poppins weights once on the app's own origin (the HTTP cache is keyed by the top-level site, so
+ * the still's page, loaded next in the same page, has them from the cache at once), then forgets what the warm-up
+ * page stored. Throws if the faces do not all arrive within FONT_TIMEOUT_MS (Google Fonts unreachable).
+ */
+export async function warmFonts(page, base) {
+  await page.goto(base + '/?nowebgl', { waitUntil: 'load' });
+  try {
+    // The stylesheet is `media="print" onload=...`: the faces exist only once it has loaded, so wait for them to be defined.
+    await page.waitForFunction(w => [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Poppins' && w.includes(String(f.weight))).length >= w.length, POPPINS_WEIGHTS, { timeout: FONT_TIMEOUT_MS, polling: 100 });
+    await page.evaluate(async (w) => { await Promise.all(w.map(x => document.fonts.load(`${x} 16px Poppins`))); }, POPPINS_WEIGHTS);
+    const loaded = await page.evaluate(loadedPoppinsWeights, POPPINS_WEIGHTS);
+    if (loaded.length < POPPINS_WEIGHTS.length) throw new Error(`only weights [${loaded.join(', ')}] loaded`);
+  } catch (error) {
+    throw new Error(`capture refused: Poppins did not load in ${FONT_TIMEOUT_MS / 1000} s (Google Fonts unreachable?): ${error.message.split('\n')[0]}`);
+  }
+  await page.evaluate(() => { sessionStorage.clear(); });
+}
 
 /**
  * Waits for the page to be ready, then settles. `mask` pages draw no world and set no ready flag;
@@ -25,6 +54,21 @@ export async function waitForReady(page, { mask = false, label = '' } = {}) {
     fail(mask ? 'canvas' : 'window.__octoverse.ready', error);
   }
   if (!mask) {
+    // A still without Poppins (blocked or failed) is not the page: refuse it. A browser loads a face only when text
+    // uses it, so a face the page never used stays 'unloaded' (400 on most stills): that is fine; 'error' or a missing
+    // face is not, and at least one must be loaded.
+    let faces;
+    try {
+      faces = await page.evaluate(async () => {
+        await document.fonts.ready;
+        return [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Poppins').map(f => `${f.weight}:${f.status}`);
+      });
+    } catch (error) {
+      fail('document.fonts', error);
+    }
+    if (faces.length < POPPINS_WEIGHTS.length || faces.some(f => f.endsWith(':error') || f.endsWith(':loading')) || !faces.some(f => f.endsWith(':loaded'))) {
+      throw new Error(`capture ${label}refused: Poppins did not load (faces: [${faces.join(', ')}]; Google Fonts unreachable?)`);
+    }
     // The ready flag is also set when the kit or the far plate was given up; a still taken then is not the world.
     let world;
     try {

@@ -3,8 +3,9 @@
 // <out>-mask.png (white silhouette on black) from the same URL with &mask. The view box frames
 // exactly the HQ panel 2 image (world (x, y) -> px (783.6 + 204.5 x, 495.4 - 204.5 y)), so a render
 // pixel is an HQ pixel.
+// Each page is first sent through warmFonts (Poppins into the app origin's cache; a still without Poppins is refused).
 import { chromium } from '@playwright/test';
-import { waitForReady } from './capture-ready.mjs';
+import { warmFonts, waitForReady } from './capture-ready.mjs';
 const [stage, out, extra = ''] = process.argv.slice(2);
 if (!stage || !out) throw new Error('usage: world-capture.mjs <stage> <out.png> [extra]');
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
@@ -17,6 +18,8 @@ try {
     const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: 1 });
     page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
     page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
+    // Poppins first, from the app's origin cache (see capture-ready.mjs): a late font shifts the tooltip glyphs.
+    await warmFonts(page, base);
     await page.goto(base + query(mask), { waitUntil: 'load' });
     // Waits for the ready flag (`__octoverse.ready`) (the world's kit and far plate drawn, 40 frames), then a short settle.
     await waitForReady(page, { mask, label: `${stage} ` });
