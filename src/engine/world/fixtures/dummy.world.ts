@@ -24,9 +24,11 @@ export function dummyWorld(world: WorldConfig): WorldConfig {
   // No pillar is lit (so no glyph lights); each coral light keeps a lava light.
   const layout = {
     ...base,
-    pillars: base.pillars.filter((_, i) => i % 2 === 0).map(mirror).map(({ light: _light, ...p }) => p),
-    rocks: base.rocks.map(mirror),
-    corals: base.corals.map(mirror),
+    groups: {
+      pillars: (base.groups.pillars ?? []).filter((_, i) => i % 2 === 0).map(mirror).map(({ light: _light, ...p }) => p),
+      rocks: (base.groups.rocks ?? []).map(mirror),
+      corals: (base.groups.corals ?? []).map(mirror),
+    },
     chains: base.chains.map(c => ({ ...c, from: [-c.from[0], c.from[1], c.from[2]] as const, to: [-c.to[0], c.to[1], c.to[2]] as const })),
     coralLights: base.coralLights.map(([x, y, z]) => [-x, y, z] as const),
   };

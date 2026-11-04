@@ -13,53 +13,56 @@ import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
  * haze that blends her far parts into the water.
  */
 export const VEYRA_LIGHTING: StageLighting = {
-  key: { direction: [-0.3, 0.95, 0.1], color: '#e6fff8', intensity: 1.0, wrap: 0.2 },
+  key: { direction: [-0.3, 0.95, 0.1], color: '#e6fff8', intensity: 0.85, wrap: 0.2 },
   underglow: { color: '#f2eaa0', intensity: 0.4, wrap: 0.6 },
   ambient: { sky: '#1a9ab8', ground: '#0e5a58', intensity: 0.25 },
   haze: { color: '#06303c', near: 0.15, far: 0.9, strength: 0.4 },
 };
 
-// Arms leave the body slightly slimmer than Nox's (spec 7.1). They fan out in depth as his do: the
-// top arms behind the head, the middle ones level, the lower ones in front, the centre pair
-// forward, so the stage camera still sees the trace.
-const rear = (id: 'T1' | 'T8'): ArmSpec => ({ id, depth: 'rear', rootRadius: 0.15, z: [-0.3, -0.62] });
-const middle = (id: 'T2' | 'T7'): ArmSpec => ({ id, depth: 'middle', rootRadius: 0.165, z: [0.05, -0.32] });
-const side = (id: 'T3' | 'T6'): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.0, 0.3] });
+// They fan out in depth as Nox's do: the top arms behind the head, the middle ones level, the lower
+// ones in front, the centre pair forward, so the stage camera still sees the trace. Each arm's root
+// thickness is P2's own (Task 7, measured across each arm against the P2 mask): P2's head turns a
+// little to the viewer's right, so its left arms (T1, T2) read thick, cone-like from the body, and
+// its right arms (T6, T7) slimmer. Spec 7.1 asks for roots slightly slimmer than Nox's (0.165 to
+// 0.18): the painting wins where they differ (T1, T2, T5 are thicker).
+const rear = (id: 'T1' | 'T8', rootRadius: number): ArmSpec => ({ id, depth: 'rear', rootRadius, z: [-0.3, -0.62] });
+const middle = (id: 'T2' | 'T7', rootRadius: number): ArmSpec => ({ id, depth: 'middle', rootRadius, z: [0.05, -0.32] });
+const side = (id: 'T3' | 'T6', rootRadius: number): ArmSpec => ({ id, depth: 'front', rootRadius, z: [0.0, 0.3] });
 // The two arms that hang down the centre (P2): their cups show along the outer edge of their curls.
-const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1): ArmSpec => ({ id, depth: 'front', rootRadius: 0.165, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
+const lower = (id: 'T4' | 'T5', suckerSide: 1 | -1, rootRadius: number): ArmSpec => ({ id, depth: 'front', rootRadius, z: [0.22, 0.5], suckerSide, suckerStart: 0.23 });
 
 export const VEYRA: CharacterConfig = {
   id: 'veyra',
   lighting: VEYRA_LIGHTING,
-  // A tall round dome, wider and higher than Nox's (spec 2.2: half-width 0.92, top 0.48), over small
+  // A tall round dome, wider and higher than Nox's (half-width 0.88, top 0.5: Task 7's fit to P2, within spec 2.2's 0.88 to 0.96 and 0.44 to 0.52), over small
   // cheek lobes that carry the blush. The dome's axis (centerX) is also the neck the head tilts
   // about: the intro leans the head about 10 degrees (poses.ts), which carries the crown from the
   // axis to P2's x 0.06. The eyes land at y -0.50 (faceOrigin y -0.40 plus the eyes' -0.10).
   head: {
-    centerX: 0.25, halfWidth: 0.92, waist: -0.42, top: 0.48, bottom: -1.15, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.3, -0.4],
+    centerX: 0.19, halfWidth: 0.88, waist: -0.42, top: 0.5, bottom: -1.15, topPower: 2, bottomPower: 1.8, depth: 0.82, faceOrigin: [0.3, -0.4],
     cheeks: { y: -0.8, distance: 0.55, angle: 72, radius: 0.1, blend: 0.08 },
   },
   glow: {
-    center: [0.3, -0.88, 0.6],
+    center: [0.27, -0.66, 0.6],
     // The warm core under the face: cream-yellow at its heart, green-cream at its edge, fading into
     // teal by the eyes' top line (spec 7.2). Its light in a world is the same cream-green.
     core: '#f0eca0',
     light: { color: '#d8ee98', intensity: 4, distance: 5, decay: 2 },
-    spreadX: 0.58,
-    reachUp: 0.45,
-    reachDown: 0.2,
+    spreadX: 0.52,
+    reachUp: 0.4,
+    reachDown: 0.3,
     ramp: [
-      [0, '#0a7e90'], [0.12, '#18a498'], [0.3, '#34bd8c'], [0.5, '#7ad47c'], [0.7, '#bce088'], [0.88, '#e6ea96'], [1, '#f4f0a4'],
+      [0, '#0678a4'], [0.15, '#0a8478'], [0.22, '#1f987f'], [0.31, '#3eaf8a'], [0.42, '#65c290'], [0.55, '#8ccf93'], [0.68, '#b1db95'], [0.8, '#d1e197'], [0.9, '#ebe293'], [1, '#f8e497'],
     ],
     cheekWarmth: 0.7,
     // No red oral band (spec 7.1): the undersides take a soft cream glow from the cups.
-    underside: 0.8,
+    underside: 1.1,
     // A cyan-teal outline round the head and arm tops, mint over the crown, a green-teal glow below the arms.
-    halo: { headWidth: 0.05, armWidth: 0.035, color: '#2fdcd8', crown: '#6af2ff', band: '#3adcaa', strength: 0.75, bandStrength: 0.6 },
+    halo: { headWidth: 0.03, armWidth: 0.022, color: '#2fdcd8', crown: '#6af2ff', band: '#3adcaa', strength: 0.75, bandStrength: 0.6 },
     // In a world (spec 7.2): teal near her and deep blue-green below, and the water within about
     // 3 units darker and bluer than the brighter, greener water round the plants.
     aura: { inner: '#06475a', low: '#083a40', belowStart: 0.75, radius: 3.6, strength: 0.4 },
-    grade: { color: '#05202c', radius: 4, strength: 0.8 },
+    grade: { color: '#020e16', radius: 4, strength: 0.9 },
   },
   // Start values from the measured P2 samples: head crown (5, 171, 188), head side (7, 124, 154),
   // arm top (25, 185, 162), arm body (11, 180, 170), chin (49, 156, 126), cup rim (240, 234, 172).
@@ -73,7 +76,7 @@ export const VEYRA: CharacterConfig = {
     tintCool: '#12bccc',
     tintWarm: '#42d29e',
     wet: '#7cf0ff',
-    armBody: '#14b8a8',
+    armBody: '#18c4b8',
     terminator: '#3ccfa4',
     armGlow: '#c2f0a2',
     belly: '#d8f0a4',
@@ -158,7 +161,8 @@ export const VEYRA: CharacterConfig = {
     outline: '#f6e8c4',
     // Dark teal, as P2's brows (0, 39, 47).
     brow: '#022a2e',
-    // A dark teal-brown smile; an open one is warm pink inside.
+    // A dark teal-brown smile; an open one is dark maroon inside with a pink tongue, as P3 paints it
+    // (the spec text says warm pink inside; the painting wins, ruling R-V8).
     mouth: '#221a12',
     mouthInside: '#7a3a40',
     tongue: '#f08a8e',
@@ -171,20 +175,21 @@ export const VEYRA: CharacterConfig = {
   expressions: {
     focused: { browTilt: 0.1, browLift: 0.55, lidRest: -0.05, mouthCurve: 0.5, mouthOpen: 0.12, blush: 0.25 },
   },
-  arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],
-  // Slimmer than Nox's at the root and tapering longer, so the spirals stay tidy (spec 7.1).
+  arms: [rear('T1', 0.22), middle('T2', 0.24), side('T3', 0.165), lower('T4', 1, 0.175), lower('T5', -1, 0.19), side('T6', 0.15), middle('T7', 0.165), rear('T8', 0.165)],
+  // The root radii are per arm (above: thick upper arms, as P2 paints them); the taper comes late
+  // (taperPower 0.9) so the arms stay thick almost to the curl, as P2's do, and end in a fine tip.
   tipRadius: 0.036,
-  taperPower: 1.8,
+  taperPower: 0.9,
   armBend: 0.2,
   armFlatten: 0.86,
   // Cream-gold cups, larger against the arm than Nox's and packed into a scalloped frill (spec 7.1):
   // raised cups whose rims stand proud of the arm's outline, cream from the P2 cup sample
   // (224, 220, 156), a brighter glowing rim and a darker teal-cream hollow. Bigger than Nox's and
-  // packed nearly touching (spacing 2.05; the layout keeps a 5% gap), turned a little less toward
-  // the viewer (tilt 22) so the row reads as a frill along the edge, with a light contact shadow.
+  // packed nearly touching (spacing 1.85; the layout keeps a 5% gap), turned less toward the
+  // viewer (tilt 12) so the row reads as a frill along the edge, with a light contact shadow.
   suckers: {
-    size: 0.3, sizePower: 0.7, spacing: 2.05, elongation: 1.18, tilt: 22, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
-    style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.3 },
+    size: 0.34, sizePower: 0.7, spacing: 1.85, elongation: 1.18, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
+    style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.5 },
   },
   // The overview's wide translucent capsule (P3): a start from the same shape as Nox's, wider than the head.
   dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
@@ -212,12 +217,12 @@ export const VEYRA: CharacterConfig = {
     surfaces: {
       mantle: {
         mode: 'jelly',
-        jelly: { rim: '#3ee6f0', rimPower: 4, crown: '#04b4c8', crownHeight: 0.5, depth: '#015f67', depthStrength: 1, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.35 },
+        jelly: { rim: '#28e2f2', rimPower: 4, crown: '#04b4c8', crownHeight: 0.5, depth: '#015f67', depthStrength: 1, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.35 },
         sparkle: 50,
       },
       arms: {
         mode: 'jelly',
-        jelly: { rim: '#46e8ec', rimPower: 4, crown: '#30dcc8', crownHeight: 0.5, depth: '#0a9a8c', depthStrength: 0.35, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.3 },
+        jelly: { rim: '#46e8ec', rimPower: 4, crown: '#3ae0d4', crownHeight: 0.5, depth: '#0a9c98', depthStrength: 0.35, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.3 },
         sparkle: 35,
       },
     },

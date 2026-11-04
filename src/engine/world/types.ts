@@ -2,6 +2,10 @@
 // and how much of each live element it carries. A new world is a new config, not new rendering.
 
 import type { ContactShadowSettings } from './contactShadowEffect';
+import type { FloorMaterialId } from './floors';
+import type { KitMaterialAssignment } from './kitMaterials';
+import type { LiveElementId } from './live';
+import type { PropDrive } from './props';
 
 /** x, y, z in stage units. The camera looks down -z, so z < 0 is beyond Nox. */
 export type Vec3 = readonly [number, number, number];
@@ -39,10 +43,12 @@ export interface WorldLight {
 export interface WorldLayout {
   /** Height of the seabed's mean level. */
   floorY: number;
-  pillars: Placement[];
-  rocks: Placement[];
-  /** Coral; `y` is found by dropping each piece onto whatever is below it. */
-  corals: Placement[];
+  /**
+   * Where the kit's pieces stand, in groups a world names. The groups called `pillars` (stone with
+   * glyph panels), `rocks` and `corals` (`y` is found by dropping each piece onto whatever is below
+   * it, and it sways) are dressed as such; any other group is plain stone. Nox's are these three.
+   */
+  groups: Record<string, Placement[]>;
   /** Chains hanging between two points, sagging by `sag` at the middle. */
   chains: { from: Vec3; to: Vec3; sag: number }[];
   /** Where the lava's red light pools, low round the coral. */
@@ -51,8 +57,26 @@ export interface WorldLayout {
 
 export interface WorldConfig {
   id: string;
-  /** The glTF file, and the pieces in it the layout may name. */
-  kit: { url: string; pieces: readonly string[] };
+  /**
+   * The glTF file, the pieces in it the layout may name, and `nodes`: other named nodes of the file
+   * that are not placed pieces (a padlock's ring) which `props` may drive.
+   */
+  kit: {
+    url: string;
+    pieces: readonly string[];
+    nodes?: readonly string[];
+    /**
+     * Nodes of `nodes` that share a piece's frame (a doorway's membrane and lock, built in their
+     * arch's frame): each is drawn with every placement of `piece`, in that placement.
+     */
+    attached?: readonly { node: string; piece: string }[];
+  };
+  /**
+   * Kit nodes drawn with a kit-material variant (kitMaterials.ts) in place of their group's
+   * dressing: `node` names a piece (its lod1 too) or one of `kit.nodes`, `material` the variant and
+   * `params` its colours and motion. Nox assigns none.
+   */
+  materials?: readonly KitMaterialAssignment[];
   /**
    * The baked near world (blender/security/bake_world.py): the kit's pieces with a lightmap UV set,
    * their lightmaps and a record of the bake. When it is there the page loads it in place of the
@@ -91,12 +115,20 @@ export interface WorldConfig {
     vignette: { offset: number; darkness: number };
   };
   /**
-   * How the relics (glyph panels and glowing coral) glow: `glyph` multiplies a panel's white before
-   * its own brightness, `coral` the coral's red, and `spill` the glyph light that the bake lays on
-   * the stone round them. The WorldLight data for Nox's accents does not rise with them.
+   * How the relics glow, a multiplier each, by names the world chooses. The engine reads three:
+   * `glyph` multiplies a panel's white before its own brightness, `coral` the coral's red, and
+   * `spill` the glyph light that the bake lays on the stone round them. The WorldLight data for
+   * Nox's accents does not rise with them.
    */
-  relics: { glyph: number; coral: number; spill: number };
-  palette: { stone: string; glyph: string; coral: string; lava: string; waterFar: string; floor: string; floorGlow: FloorGlow };
+  relics: WorldRelics;
+  palette: WorldPalette;
+  /** The seabed's shader variant (floors/index.ts); absent is `'lava-cracks'`, Nox's. */
+  floor?: { material: FloorMaterialId };
+  /**
+   * Animatable parts of the kit: `node` is a named node of the kit file (a piece, or one of
+   * `kit.nodes`), `drive` how a sequence moves it (props.ts). Nox declares none.
+   */
+  props?: WorldProp[];
   lights: {
     /** From the surface, high above and beyond the stage: shadows, and caustics in its cookie. */
     surface: { color: string; intensity: number; position: Vec3; target: Vec3 };
@@ -124,8 +156,45 @@ export interface WorldConfig {
    * The share (0 to 1) of each live element that is drawn: 1 is the full amount. `colours` are the
    * live elements' own colours (in a world each also takes the character's face glow).
    */
-  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours };
+  live: { snow: number; motes: number; fish: number; rays: number; bubbles: number; embers: number; colours: LiveColours; elements?: LiveElements };
 }
+
+/** The relics' multipliers, by name; `glyph`, `coral` and `spill` are the ones the engine reads. */
+export type WorldRelics = Record<string, number> & { glyph: number; coral: number; spill: number };
+
+/**
+ * The world's colours, `#rrggbb`, by name. The engine reads `stone`, `coral`, `floor` and
+ * `waterFar` and the seabed's `floorGlow`; the rest are the colours a world names for its lights'
+ * kinds and its relics, and the ones its floor variant declares (`FLOOR_MATERIALS`).
+ */
+export interface WorldPalette {
+  stone: string;
+  coral: string;
+  waterFar: string;
+  floor: string;
+  floorGlow: FloorGlow;
+  [name: string]: string | FloorGlow;
+}
+
+/** An animatable part of the kit, named for a sequence to target. */
+export interface WorldProp {
+  id: string;
+  /** A named node of the kit file. */
+  node: string;
+  drive: PropDrive;
+}
+
+/**
+ * Instanced strands that sway from the root (live/Kelp.tsx): `count` of them, `height` tall in stage
+ * units at most, leaning at most `sway` stage units at the tip, in `color` (`#rrggbb`).
+ */
+export interface StrandConfig {
+  count: number;
+  height: number;
+  sway: number;
+  color: string;
+}
+export type LiveElements = Partial<Record<LiveElementId, StrandConfig>>;
 
 /** The live elements' own colours (particleMaterials.ts), each `#rrggbb`. */
 export interface LiveColours {

@@ -118,7 +118,7 @@ test("the four character tints are set explicitly: none reads Nox's fallback", (
 test('her cups are the frill style: raised cream cups at the P2 sample with a darker teal-cream hollow (spec 7.1, 2.3)', () => {
   const style = VEYRA.suckers.style!;
   expect(style).toBeDefined();
-  expect([style.scallop, style.rimWidth, style.glow]).toEqual([0.6, 0.22, 1.3]);
+  expect([style.scallop, style.rimWidth, style.glow]).toEqual([0.6, 0.22, 1.5]);
   // The edge within 15 points per channel of the P2 cup sample (224, 220, 156), set a little
   // brighter since the stage's key light and bounce darken it; the rim's crest brighter still (45).
   const rgb = (c: string) => Object.values(channels(c)).map(v => Math.round(v * 255));
@@ -173,7 +173,8 @@ test('the place supplies its water, floor glow and live colours, and no seabed g
   expect(Object.keys(live.colours).sort()).toEqual(['bubbles', 'embers', 'motes', 'snow']);
   expect(glow).toMatchObject({ lava: 0, back: 0, floor: 0, crevice: 0, embers: 0 });
   expect(live.embers).toBe(0);
-  expect(VEYRA_BUNDLE.place.lights.points).toEqual([]);
+  // Her lights: the portal's spill, the plants' green and the corals' faint orange (place/config.test checks them).
+  expect(new Set(VEYRA_BUNDLE.place.lights.points.map(p => p.kind))).toEqual(new Set(['portal', 'plant', 'coral_orange']));
 });
 
 test('the theme gives every colour token, a poster, a title and a padlock', () => {
@@ -192,32 +193,26 @@ test('no red anywhere in her world: the character, the place and the UI hold no 
   const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|alt|src|pageTitle|titleIcon)$|\.pieces\[\d+\]$/;
   for (const [path, value] of [...strings(VEYRA, 'character'), ...strings(VEYRA_BUNDLE.place, 'place'), ...strings(VEYRA_BUNDLE.theme, 'theme')]) {
     if (NOT_COLOUR.test(path)) continue;
-    // The peach blush and the warm pink inside an open smile are the face's own warm accents (spec 7.3).
+    // The peach blush and an open smile's dark maroon inside and pink tongue (as P3 paints them) are the
+    // face's own warm accents (spec 7.3; ruling R-V8).
     if (/facePalette\.(?:blush|blushGlow|mouthInside|tongue)$/.test(path)) continue;
     if (isRed(value)) red.push(`${path}: ${value}`);
   }
   expect(red).toEqual([]);
 });
 
-test('the stage backdrop is a kit with one empty scene, the layout names no piece, and the camera is calmer than Nox\'s', () => {
+test('the place is the vault: its kit, baked near world and far plate, and a camera calmer than Nox\'s', () => {
   const { place } = VEYRA_BUNDLE;
-  expect(place.kit.pieces).toEqual([]);
-  expect(place.near).toBeUndefined();
-  expect(place.farPlate).toBeUndefined();
-  const { floorY, ...groups } = place.layout;
-  expect(floorY).toBeLessThan(0);
-  expect(Object.values(groups).flat()).toEqual([]);
+  expect(place.id).toBe('vault');
+  expect(place.kit.url).toBe('/veyra/world/kit.glb');
+  expect(place.near?.url).toBe('/veyra/world/near.glb');
+  expect(place.farPlate?.layers).toHaveLength(3);
+  expect(place.floor?.material).toBe('moss');
   // Spec 7.7 and the plan: a lean of 0.04, and 0.8 and 0.75 of Nox's drift (his amount and pace are both 1).
   expect(place.camera).toEqual({ tilt: 0.04, hover: { amount: 0.8, pace: 0.75 } });
-  // The glb the kit names exists, is a glTF 2 binary and holds one scene with no nodes, meshes or materials.
-  expect(place.kit.url).toBe('/veyra/world/stage.glb');
-  const data = readFileSync(join(ROOT, 'public', place.kit.url));
-  expect(data.subarray(0, 4).toString()).toBe('glTF');
-  expect(data.readUInt32LE(4)).toBe(2);
-  const doc = JSON.parse(data.subarray(20, 20 + data.readUInt32LE(12)).toString('utf8')) as Record<string, unknown>;
-  expect(doc.scenes).toHaveLength(1);
-  expect((doc.scenes as { nodes?: unknown[] }[])[0].nodes ?? []).toEqual([]);
-  for (const group of ['nodes', 'meshes', 'materials', 'textures', 'animations']) expect(doc[group] ?? [], group).toEqual([]);
+  for (const url of [place.kit.url, place.near!.url, ...place.farPlate!.layers.map(l => l.url)]) {
+    expect(readFileSync(join(ROOT, 'public', url)).length, url).toBeGreaterThan(0);
+  }
 });
 
 test('her artifacts have no places yet: no shells, nothing chosen in any stage (the pendants task adds them)', () => {

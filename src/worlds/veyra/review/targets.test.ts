@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, test } from 'vitest';
+import stageSamples from './stage_samples.json';
 import targets from './targets.json';
+import worldSamples from './world_samples.json';
 
 // Veyra's colour targets are measured on the native P2 panel (public/veyra/ref/p2.png, 488 x 495). The repo has no
 // PNG helper (Nox's review tests never decode one), so this reads the file itself: 8-bit, non-interlaced, grey or RGB.
@@ -121,5 +123,41 @@ describe('Veyra P2 reference targets', () => {
       iou: 0.85,
       meanInside: { tolerance: 12, satTolerance: 0.04 },
     });
+  });
+});
+
+/**
+ * The panel pixel of a world point: px = origin x + pxPerUnit wx, py = origin y - pxPerUnit wy (y up in the
+ * world, down in the panel). Lists every sample whose targets.json point is not where the two world files put it.
+ */
+function coordinateMismatches(samples: readonly { name: string; x: number; y: number }[], world: Record<string, readonly number[]>, origin: readonly number[], pxPerUnit: number): string[] {
+  const wrong: string[] = [];
+  for (const { name, x, y } of samples) {
+    const point = world[name.toLowerCase()];
+    if (!point) { wrong.push(`${name}: no world point`); continue; }
+    const [px, py] = [origin[0] + pxPerUnit * point[0], origin[1] - pxPerUnit * point[1]];
+    if (Math.abs(px - x) > 1e-9 || Math.abs(py - y) > 1e-9) wrong.push(`${name}: (${x}, ${y}) vs (${px}, ${py})`);
+  }
+  if (Object.keys(world).length !== samples.length) wrong.push(`${Object.keys(world).length} world points for ${samples.length} samples`);
+  return wrong;
+}
+
+describe('Veyra sample coordinates agree across the three review files', () => {
+  const hq = stageSamples['2'].hq;
+
+  test('the stage and world files share P2\'s frame: origin (244, 247.5), 100 px a world unit', () => {
+    expect([hq.origin, hq.pxPerUnit, hq.frame]).toEqual([[244, 247.5], 100, [4.88, 4.95]]);
+  });
+
+  test('every targets.json (x, y) is the stage and the world file\'s world point in panel pixels', () => {
+    expect(coordinateMismatches(targets.samples, stageSamples['2'].points, hq.origin, hq.pxPerUnit)).toEqual([]);
+    expect(coordinateMismatches(targets.samples, worldSamples.regions, hq.origin, hq.pxPerUnit)).toEqual([]);
+  });
+
+  test('negative control: one sample moved by one pixel is caught', () => {
+    const moved = targets.samples.map((s) => (s.name === 'Chin' ? { ...s, x: s.x + 1 } : s));
+    expect(coordinateMismatches(moved, worldSamples.regions, hq.origin, hq.pxPerUnit)).toEqual(['Chin: (267, 348) vs (266, 348)']);
+    const { chin: _chin, ...short } = stageSamples['2'].points;
+    expect(coordinateMismatches(targets.samples, short, hq.origin, hq.pxPerUnit)).toContain('Chin: no world point');
   });
 });

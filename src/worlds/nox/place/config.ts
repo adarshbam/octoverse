@@ -49,7 +49,7 @@ function glyphLightPosition(pillar: Placement): Vec3 {
 }
 
 // Glyph light: short on the stone, so the red stays round the panels; Nox's skin carries it further.
-const glyphLights: WorldLight[] = layout.pillars
+const glyphLights: WorldLight[] = (layout.groups.pillars ?? [])
   .filter(p => p.light)
   .map(p => ({ kind: 'glyph', position: glyphLightPosition(p), color: palette.glyph, intensity: 1.7, distance: 2.1, skinRange: 4.4 }));
 // Lava light: pools low round the coral at each lower corner, and at the near pillars' feet.

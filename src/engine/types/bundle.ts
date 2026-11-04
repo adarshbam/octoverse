@@ -69,7 +69,7 @@ const record = (value: unknown): value is Record<string, unknown> => typeof valu
  * here, so a colour three would draw black never passes unnoticed. The fields WORLD_COLOUR names
  * have the world's grammar (world/colour.ts `isWorldColour`).
  */
-const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|mode)$|\.pieces\[\d+\]$/;
+const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|mode|node|drive|material)$|\.(?:pieces|nodes)\[\d+\]$/;
 
 /**
  * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g
@@ -100,7 +100,9 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
     if (!Array.isArray(value)) throw new BundleError(field, 'is missing (a list is needed here)');
   };
   list('place.kit.pieces', place.kit.pieces);
-  for (const group of ['pillars', 'rocks', 'corals', 'chains', 'coralLights'] as const) list(`place.layout.${group}`, place.layout[group]);
+  for (const part of ['chains', 'coralLights'] as const) list(`place.layout.${part}`, place.layout[part]);
+  need('place.layout.groups', place.layout.groups);
+  for (const [group, placements] of Object.entries(place.layout.groups)) list(`place.layout.groups.${group}`, placements);
   need('place.camera.hover', place.camera.hover);
   need('place.water.colours', place.water.colours);
   need('place.water.environment', place.water.environment);
@@ -111,7 +113,7 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   need('place.lights.fill', place.lights.fill);
   list('place.lights.points', place.lights.points);
   place.lights.points.forEach((light, i) => need(`place.lights.points[${i}]`, light));
-  for (const group of ['pillars', 'rocks', 'corals'] as const) place.layout[group].forEach((item, i) => need(`place.layout.${group}[${i}]`, item));
+  for (const [group, placements] of Object.entries(place.layout.groups)) placements.forEach((item, i) => need(`place.layout.groups.${group}[${i}]`, item));
   place.layout.chains.forEach((item, i) => need(`place.layout.chains[${i}]`, item));
   if (place.farPlate !== undefined) {
     need('place.farPlate', place.farPlate);

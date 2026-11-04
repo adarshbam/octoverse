@@ -6,6 +6,8 @@ import { type BakedLight, lightMapOf, reliefOf, withBakedLight } from './bakedLi
 import { SEABED_ORDER } from './drawOrder';
 import { SEABED, floorHeight, seabedLightUv } from './seabed';
 import { floorGlowGlsl } from './floorGlow';
+import { DEFAULT_FLOOR } from './floors';
+import { mossShading } from './floors/moss';
 import { makeCrackMap, makeStoneMaps } from './textures';
 import type { WorldConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -135,7 +137,9 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     const motion = new THREE.Vector2(1, 0);
     const glow = world.glow.floor;
     const floorGlow = floorGlowGlsl(world.palette.floorGlow, glow);
-    const cracks = makeCrackMap();
+    // The lava floor is Nox's: the cracks' glow and lava. The moss floor shades patches of moss and glows nowhere.
+    const moss = (world.floor?.material ?? DEFAULT_FLOOR) === 'moss';
+    const cracks = moss ? null : makeCrackMap();
     const reliefMap = baked && lightMapOf(baked.reliefMaps.seabed);
     const material = new THREE.MeshStandardMaterial({
       color: world.palette.floor,
@@ -152,7 +156,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
     material.onBeforeCompile = shader => {
       shader.uniforms.uTime = time;
       shader.uniforms.uMotionV = { value: motion };
-      shader.uniforms.uCracks = { value: cracks };
+      if (cracks) shader.uniforms.uCracks = { value: cracks };
       shader.uniforms.uFloorNoise = { value: noise.texture };
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vFloorWorld;')
@@ -166,11 +170,11 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
           // Wet patches: smooth enough to mirror the glow round them.
           vec2 floorNoise = texture2D(uFloorNoise, vec2(vFloorWorld.x * ${(1 / WIDTH).toFixed(6)} + 0.5, (vFloorWorld.z - ${FAR_Z.toFixed(1)}) * ${(1 / (NEAR_Z - FAR_Z)).toFixed(6)})).rg;
           float puddle = smoothstep(0.62, 0.7, floorNoise.x);
-          roughnessFactor = mix(roughnessFactor, 0.12, puddle);`,
+          roughnessFactor = mix(roughnessFactor, 0.12, puddle);${moss ? mossShading(String(world.palette.moss)) : ''}`,
         )
         .replace(
           '#include <emissivemap_fragment>',
-          /* glsl */ `#include <emissivemap_fragment>
+          moss ? '#include <emissivemap_fragment>' : /* glsl */ `#include <emissivemap_fragment>
           {
             vec2 wp = vFloorWorld.xz;
             vec4 cracks = texture2D(uCracks, wp / ${CRACK_TILE.toFixed(2)});
@@ -189,7 +193,7 @@ export function Floor({ world, baked = null }: { world: WorldConfig; baked?: Bak
           }`,
         );
     };
-    const owned = [geometry, material, maps.normal, maps.tone, cracks, ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
+    const owned = [geometry, material, maps.normal, maps.tone, ...(cracks ? [cracks] : []), ...(material.lightMap ? [material.lightMap] : []), ...(reliefMap ? [reliefMap] : [])];
     return { geometry, material, time, motion, disposables: owned };
   }, [world, baked, noise, reliefGate]);
   useDisposables(disposables);

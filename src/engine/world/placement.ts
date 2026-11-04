@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { KIT_LOD_DISTANCE, LOD_HYSTERESIS } from './kitLod';
 import { floorHeight } from './seabed';
-import type { Placement } from './types';
+import type { Placement, WorldLayout } from './types';
 
 // Where the kit's pieces stand. Kit.tsx places them with these functions; the bake
 // (blender/security/bake_world.py) places them again in Blender and records each matrix and each
@@ -13,6 +13,30 @@ export function applyPlacement(object: THREE.Object3D, p: Placement) {
   object.rotation.set(0, p.rotY ?? 0, p.tilt ?? 0);
   if (typeof p.scale === 'object') object.scale.set(...p.scale);
   else object.scale.setScalar(p.scale ?? 1);
+}
+
+/** The groups Kit.tsx dresses by name; any other group of a layout is plain stone. */
+export const DRESSED_GROUPS = ['pillars', 'rocks', 'corals'] as const;
+
+/** One placed piece as the loader reads the layout: its group and index in it, the piece, and where it stands. */
+export interface LayoutPiece {
+  group: string;
+  index: number;
+  piece: string;
+  /** The placement's matrix, column-major (three's `Matrix4.elements`). */
+  matrix: number[];
+}
+
+/** Every piece of a layout, group by group in the order the layout lists them, with its transform. Groups are read generically: any name. */
+export function layoutPieces(layout: WorldLayout): LayoutPiece[] {
+  const object = new THREE.Object3D();
+  return Object.entries(layout.groups).flatMap(([group, placements]) =>
+    placements.map((p, index) => {
+      applyPlacement(object, p);
+      object.updateMatrix();
+      return { group, index, piece: p.piece, matrix: object.matrix.elements.slice() };
+    }),
+  );
 }
 
 /** A piece at full detail near the camera and its `_lod1` beyond `KIT_LOD_DISTANCE`. */

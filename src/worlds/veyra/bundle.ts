@@ -8,7 +8,7 @@ import { VEYRA_SWIM } from './swim';
 import { VEYRA_SEQUENCES } from './sequences/index';
 import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/framing';
 import type { WorldBundle } from '../../engine/types/bundle';
-import { VAULT_STAGE } from './place/config';
+import { VAULT_WORLD } from './place/config';
 import { VEYRA_THEME } from './theme';
 
 // Veyra's world as one bundle (spec 6.2): the one file that gathers her character, poses, swim,
@@ -48,7 +48,7 @@ export const VEYRA_BUNDLE: WorldBundle = {
   swim: VEYRA_SWIM,
   artifacts: VEYRA_ARTIFACTS,
   sequences: VEYRA_SEQUENCES,
-  place: VAULT_STAGE,
+  place: VAULT_WORLD,
   stage: { frames: VEYRA_STAGE_FRAMES, panels: VEYRA_STAGE_PANELS, introTitle: VEYRA_INTRO_TITLE },
   content: { project: veyraProject, technologies: veyraTechnologies },
   theme: VEYRA_THEME,

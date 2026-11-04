@@ -7,8 +7,9 @@ import { useInstance } from '../host/instanceContext';
 import { type BakeRecord, type BakedLight, type Relief, lightMapOf, reliefOf, stoneLights, withBakedLight } from './bakedLight';
 import { glslColour } from './colour';
 import { type WorldKit, bakedGeometry } from './kitLoader';
+import { type KitMaterialInstance, kitMaterialFor, makeKitMaterial } from './kitMaterials';
 import { fbm2, seeded } from './noise';
-import { applyPlacement, coralRest, withLod } from './placement';
+import { DRESSED_GROUPS, applyPlacement, coralRest, withLod } from './placement';
 import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
@@ -228,7 +229,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // lightmap atlas: a copy of its material per placement and level, sharing shader and textures.
     // With a hook, it also reads that level's relief map.
     const litMaterials: (THREE.Material | THREE.Texture)[] = reliefMaps ? Object.values(reliefMaps) : [];
-    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: keyof BakeRecord['instances'], index: number, level: number, hook?: Hook) => {
+    const lit = <M extends THREE.MeshStandardMaterial>(base: M, light: BakedLight | null, group: string, index: number, level: number, hook?: Hook) => {
       if (!light) return base;
       const material = base.clone() as M;
       material.onBeforeCompile = hook ? hook(relief(level === 0 ? 'lod0' : 'lod1')) : base.onBeforeCompile;
@@ -259,8 +260,25 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // layout (the bake records their squares by index) but are not built here.
     const near = (p: Placement) => !(world.farPlate && isFarPlacement(p, world.farPlate.cutZ));
 
-    const pillars = layout.pillars.flatMap((p, index) => {
-      if (!near(p)) return [];
+    // Nodes the world draws with a kit-material variant (`world.materials`): one material per
+    // assignment, made the first time a node needs it (none for a world that assigns none, so its
+    // materials are made as they always were). A placed piece with one is drawn with it, whatever
+    // its group, and leaves its group's dressing.
+    const kitMaterials = new Map<string, KitMaterialInstance>();
+    const assigned = (name: string) => kitMaterialFor(world.materials, name) !== undefined;
+    const kitMaterial = (name: string) => {
+      const assignment = kitMaterialFor(world.materials, name);
+      if (!assignment) return null;
+      let made = kitMaterials.get(assignment.node);
+      if (!made) {
+        made = makeKitMaterial(assignment);
+        kitMaterials.set(assignment.node, made);
+      }
+      return made.material;
+    };
+
+    const pillars = (layout.groups.pillars ?? []).flatMap((p, index) => {
+      if (!near(p) || assigned(p.piece)) return [];
       return [placedLod(p, (level, levelIndex) => {
         const material = lit(stone, baked, 'pillars', index, levelIndex, stoneHook);
         level.traverse(child => {
@@ -277,8 +295,8 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       })];
     });
 
-    const rocks = layout.rocks.flatMap((p, index) => {
-      if (!near(p)) return [];
+    const rocks = (layout.groups.rocks ?? []).flatMap((p, index) => {
+      if (!near(p) || assigned(p.piece)) return [];
       return [placedLod(p, (level, levelIndex) => {
         const mesh = level as THREE.Mesh;
         mesh.material = lit(rock, baked, 'rocks', index, levelIndex, rockHook);
@@ -299,12 +317,68 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       return new THREE.Mesh(geometry, material);
     };
     const rockSurfaces = rocks.map(lod => lod.levels[0].object);
-    const corals = layout.corals.flatMap((p, index) => {
-      if (!near(p)) return [];
+    const corals = (layout.groups.corals ?? []).flatMap((p, index) => {
+      if (!near(p) || assigned(p.piece)) return [];
       const object = withLod(coralLevel(p.piece, lit(coral, baked, 'corals', index, 0)), coralLevel(`${p.piece}_lod1`, lit(coral, baked, 'corals', index, 1)));
       const [x, , z] = p.position;
       applyPlacement(object, { ...p, position: [x, coralRest(x, z, layout.floorY, rockSurfaces).y, z] });
       return [object];
+    });
+
+    // Any other group of the layout is plain stone: the stone material, lit from its own bake rects.
+    const stoneGroups = Object.entries(layout.groups)
+      .filter(([name]) => !(DRESSED_GROUPS as readonly string[]).includes(name))
+      .flatMap(([name, list]) =>
+        list.flatMap((p, index) => {
+          if (!near(p) || assigned(p.piece)) return [];
+          return [placedLod(p, (level, levelIndex) => {
+            const material = lit(stone, baked, name, index, levelIndex, stoneHook);
+            level.traverse(child => {
+              if (!(child instanceof THREE.Mesh)) return;
+              child.material = material;
+              child.castShadow = p.position[2] > -12;
+              child.receiveShadow = true;
+            });
+          })];
+        }),
+      );
+
+    // Placed pieces with a kit material: drawn with it at both levels, unbaked (their light is their own).
+    const placements = Object.values(layout.groups).flat();
+    const glowing = placements.flatMap(p => {
+      if (!near(p) || !assigned(p.piece)) return [];
+      return [placedLod(p, level => {
+        const material = kitMaterial(p.piece)!;
+        level.traverse(child => {
+          if (!(child instanceof THREE.Mesh)) return;
+          child.material = material;
+          child.castShadow = p.position[2] > -12;
+          child.receiveShadow = true;
+        });
+      })];
+    });
+
+    // Nodes that share a piece's frame (`kit.attached`: a doorway's membrane and lock) stand in
+    // each placement of that piece, as the kit file places them in it. One with a kit material is
+    // drawn with it; one without keeps the material the file gives it.
+    const attached = placements.flatMap(p => {
+      const parts = (world.kit.attached ?? []).filter(a => a.piece === p.piece);
+      if (!near(p) || parts.length === 0) return [];
+      const frame = new THREE.Group();
+      for (const { node } of parts) {
+        const copy = piece(node).clone(true);
+        const material = kitMaterial(node);
+        copy.traverse(child => {
+          if (!(child instanceof THREE.Mesh)) return;
+          if (material) child.material = material;
+          child.castShadow = false;
+          child.receiveShadow = material === null;
+        });
+        frame.add(copy);
+      }
+      applyPlacement(frame, p);
+      frame.updateMatrixWorld(true);
+      return [frame];
     });
 
     // The kit's chain is 30 links at 0.175 each; repeats continue the links' alternation. Each
@@ -353,17 +427,19 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
       ...coralGeometry.values(),
       ...chainGeometry,
       ...litMaterials,
+      ...[...kitMaterials.values()].map(k => k.material),
       pebbles.geometry,
       pebbles,
     ];
 
-    return { pillars, rocks, corals, chains, pebbles, lights, disposables };
+    return { pillars, rocks, corals, stoneGroups, glowing, attached, kitMaterials: [...kitMaterials.values()], chains, pebbles, lights, disposables };
   }, [kit, world, reliefGate]);
   useDisposables(built.disposables);
 
   useFrame(state => {
     coralTime.current.value = now(state);
     coralMotion.current.value = motionAmount;
+    for (const k of built.kitMaterials) k.update(now(state), motionAmount);
   });
 
   useLayoutEffect(() => {
@@ -374,7 +450,7 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     <group ref={group}>
       {built.pillars.map((o, i) => <primitive key={`p${i}`} object={o} />)}
       {built.rocks.map((o, i) => <primitive key={`r${i}`} object={o} />)}
-      {built.corals.map((o, i) => <primitive key={`c${i}`} object={o} />)}
+      {[...built.corals, ...built.stoneGroups, ...built.glowing, ...built.attached].map((o, i) => <primitive key={`c${i}`} object={o} />)}
       {built.chains.map((o, i) => <primitive key={`ch${i}`} object={o} />)}
       {built.lights.map((o, i) => <primitive key={`l${i}`} object={o} />)}
       <primitive object={built.pebbles} />
