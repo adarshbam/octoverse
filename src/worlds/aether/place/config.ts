@@ -4,12 +4,12 @@ import { asWorldLayout } from '../../../engine/world/validateWorld';
 // The drowned observatory's stage backdrop (spec 7.7): for now only the water. The kit is an
 // empty glb and the layout has no pieces, so the stage shows Aether in indigo water, with the
 // engine's own live elements (star motes, bubbles, rays). The ruin towers, the brain portal, the
-// coral, the jellyfish and the path arrive with Task 8 onward (`place/layout.json` then). There is
+// coral, the jellyfish and the path arrive with Task 8 onward: `place/layout.json` and `kit.glb` (Task 8) are checked by `layout.test.ts`, and Task 9 switches this stage to them. There is
 // no lava and no red light anywhere in her world: the seabed's glow is black (none), no point
 // lights, no embers.
 
 /** An empty layout (no pieces), checked against the schema like a full one, so a later edit fails by name. */
-const layout = asWorldLayout({ floorY: -2.45, pillars: [], rocks: [], corals: [], chains: [], coralLights: [] });
+const layout = asWorldLayout({ floorY: -2.45, groups: {}, chains: [], coralLights: [] });
 
 /**
  * The seabed's own light: none. Black is no glow (types.ts `FloorGlow`); the world's own look
@@ -23,7 +23,8 @@ const palette = {
   // The brain glyph's neon violet-blue, the coral's magenta and an amber lantern, for the pieces to come.
   glyph: '#6a5aff',
   coral: '#c02ad0',
-  lava: '#ffb040',
+  // The warm amber of the lanterns and lit windows, a relic the world names (`relics.amber`).
+  amber: '#ffb040',
   // The water at the horizon: P2's mid water (5, 19, 75).
   waterFar: '#05134b',
   floor: '#0a0f33',
@@ -84,7 +85,7 @@ export const OBSERVATORY_STAGE: WorldConfig = {
   post: POST,
   // No lava, back lights or crevice glow; the rays and the surface's opening are Nox's strength.
   glow: { lava: 0, back: 0, crevice: 0, floor: 0, embers: 0, top: 1.2, rays: 1.2 },
-  relics: { glyph: 1, coral: 1, spill: 1 },
+  relics: { glyph: 1, coral: 1, spill: 1, amber: 1 },
   palette,
   lights: {
     // Cool blue-white rays from the upper right (spec 7.7), and a cool fill from overhead.
