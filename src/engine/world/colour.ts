@@ -36,3 +36,22 @@ export function setWorldColour(target: THREE.Color, text: string): THREE.Color {
   if (linear) return target.setRGB(Number(linear[1]), Number(linear[2]), Number(linear[3]), THREE.LinearSRGBColorSpace);
   return target.set(text);
 }
+
+/** A number as a GLSL float literal: `1` is `1.0`, `0.85` stays `0.85` (never an exponent). */
+export function glslFloat(n: number): string {
+  if (Number.isInteger(n)) return n.toFixed(1);
+  const text = String(n);
+  return text.includes('e') ? n.toFixed(12).replace(/0+$/, '') : text;
+}
+
+/**
+ * The colour `text` names (it must pass `isWorldColour`) as a GLSL `vec3(r, g, b)` of linear
+ * components, for a shader that compiles its colour in rather than reading a uniform. A
+ * `color(srgb-linear r g b)` value is written component for component, so `color(srgb-linear 1
+ * 0.09 0.05)` is `vec3(1.0, 0.09, 0.05)`, the very text a shader held before its colour was data;
+ * a hex colour is turned into its linear components as three does.
+ */
+export function glslColour(text: string): string {
+  const c = setWorldColour(new THREE.Color(), text);
+  return `vec3(${glslFloat(c.r)}, ${glslFloat(c.g)}, ${glslFloat(c.b)})`;
+}

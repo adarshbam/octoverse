@@ -4,9 +4,8 @@ import { CAMERA_Z } from '../config/stage';
 import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
 import { NOX } from '../../worlds/nox/character';
 import { NOX_POSES } from '../../worlds/nox/poses';
-import { NOX_STAGE_FRAMES as STAGE_FRAMES } from '../../worlds/nox/bundle';
+import { NOX_STAGE_FRAMES as STAGE_FRAMES, NOX_STAGE_PANELS } from '../../worlds/nox/bundle';
 import { fovFor } from '../stage/framing';
-import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
@@ -72,7 +71,7 @@ const BOXES: Record<Stage, Record<string, Box>> = {
     description: [-1.37, 0.75, 1.37, 0.44],
     nameplate: [-0.69, -1.89, 0.69, -2.34],
   },
-  overview: { face: FACE('overview'), panel: DOME_PANEL_BOX },
+  overview: { face: FACE('overview'), panel: NOX_STAGE_PANELS.overview },
 };
 
 test('bubbles never cover the face, the title or the nameplate', () => {

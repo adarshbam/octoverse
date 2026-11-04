@@ -18,6 +18,16 @@ const palette = {
   lava: '#ff3418',
   waterFar: '#071535',
   floor: '#1d1218',
+  /**
+   * The seabed's lava light as linear amounts (colour.ts): the cracks' glow, the lava under the
+   * rubble, the puddles' red sheen, and the glow in the rocks' pores.
+   */
+  floorGlow: {
+    cracks: 'color(srgb-linear 1 0.09 0.05)',
+    lava: 'color(srgb-linear 1 0.12 0.04)',
+    sheen: 'color(srgb-linear 1 0.1 0.05)',
+    pores: 'color(srgb-linear 1 0.16 0.05)',
+  },
 };
 
 /**
@@ -77,6 +87,31 @@ const POST: WorldConfig['post'] = {
   vignette: { offset: 0.3, darkness: 0.9 },
 };
 
+/**
+ * The water's own colours: deep navy below, a blue zenith, the surface's blue glow leaning cyan at
+ * the opening, blue shafts leaning cyan as their fan widens, and dark fish against the glow.
+ */
+const WATER_COLOURS: WorldConfig['water']['colours'] = {
+  deep: '#03050f',
+  zenith: '#0c2468',
+  glow: '#3f8cff',
+  opening: '#3fd0ff',
+  rays: '#4f86ff',
+  raysWide: '#4fc0ff',
+  fish: '#0c1838',
+};
+
+/** What wet stone, iron, skin and the orbs mirror: bright blue from the surface, deep navy round the horizon, near black below, and the seabed's red glow in patches. */
+const WATER_ENVIRONMENT: WorldConfig['water']['environment'] = { top: '#2a5cff', horizon: '#0a1840', low: '#0b0712', seabedGlow: '#ff2030' };
+
+/** The live elements' own colours: pink-rimmed violet bubbles, crimson embers and red motes with hot orange ones, pale blue snow. */
+const LIVE_COLOURS: WorldConfig['live']['colours'] = {
+  bubbles: { rim: '#ff6a9a', tint: '#7a4aa8' },
+  embers: { color: '#ff2c3c', hot: '#ff8a5a' },
+  motes: { color: '#ff2238', hot: '#ff9a6a' },
+  snow: '#a8c0ff',
+};
+
 export const SECURITY_WORLD: WorldConfig = {
   id: 'security',
   kit: {
@@ -99,6 +134,6 @@ export const SECURITY_WORLD: WorldConfig = {
     fill: { color: '#6f8fff', intensity: 1.1, position: [-1.5, 10, 2] },
     points: [...glyphLights, ...lavaLights],
   },
-  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06, causticStrength: CAUSTIC_STRENGTH },
-  live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1 },
+  water: { fogDensity: 0.034, surfaceDir: [0.03, 0.45, -0.89], environmentIntensity: 0.06, causticStrength: CAUSTIC_STRENGTH, colours: WATER_COLOURS, environment: WATER_ENVIRONMENT },
+  live: { snow: 1, motes: 1, fish: 1, rays: 1, bubbles: 1, embers: 1, colours: LIVE_COLOURS },
 };

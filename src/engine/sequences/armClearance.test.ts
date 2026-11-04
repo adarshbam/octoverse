@@ -10,7 +10,7 @@ import { BODY_X, NOX_POSES } from '../../worlds/nox/poses';
 import { SWIM_POSES } from '../../worlds/nox/swim';
 import type { Placement } from '../world/types';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
-import { ENTRANCE_SECONDS, entranceDrive, entranceFrame, entranceRests } from './entrance';
+import { entranceDrive, entranceFrame, entranceRests } from './entrance';
 import { ENTRANCE_HOLD } from '../../worlds/nox/sequences/defaults';
 import { NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
 import { loadNoxSequences } from '../../worlds/nox/sequences/index';
@@ -60,7 +60,7 @@ test('the real arms stay clear of every pillar as they open and all through the 
   const chains = specs.map((spec, i) => new ArmChain(shapes.rest[ARM_IDS[i]], spec, i));
   const { swim, sway, curl } = NOX.personality;
   const from = 4.5 + ENTRANCE_HOLD;
-  const to = ENTRANCE_SECONDS;
+  const to = seq.length('entrance');
   let least = Infinity;
   let where = '';
   for (let i = 0; i <= Math.round((to - from) / 0.01); i++) {

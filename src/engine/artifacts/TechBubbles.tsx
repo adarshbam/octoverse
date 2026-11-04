@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
-import type { ArtifactConfig, ChoosingStage, Point2 } from '../config/types';
+import type { ArtifactConfig, ChoosingStage, OrbGlass, Point2 } from '../config/types';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
@@ -69,10 +69,12 @@ function hideSpots(live: BubbleLive) {
  * buttons follow them: each frame the bubbles' places on the page are written to `bubbleLive`.
  * Lives in body space, so the bubbles go with Nox.
  */
-export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, faceOrigin }: {
+export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifacts, faceOrigin }: {
   bubbles: readonly PlacedBubble[];
   state: () => BubbleState;
   focusColour: string;
+  /** What the orbs' glass picks up round its edge (the character's `palette.orbGlass`). */
+  glass: OrbGlass;
   /** Where the appearance begins (the appear's origin: Nox's mouth), in body space. */
   mouth: Vec3;
   /** The world's placement, appearance and selection of its artifacts, and where the artifacts can be chosen. */
@@ -97,12 +99,12 @@ export function TechBubbles({ bubbles, state, focusColour, mouth, artifacts, fac
       plane,
       items: bubbles.map(bubble => ({
         bubble,
-        glass: createOrbMaterial(logoColour(bubble.iconKey), focusColour),
+        glass: createOrbMaterial(logoColour(bubble.iconKey), focusColour, glass),
         halo: createOrbHaloMaterial(logoColour(bubble.iconKey), focusColour),
         logo: createOrbLogoMaterial(logoTexture(bubble.iconKey)),
       })),
     };
-  }, [bubbles, focusColour]);
+  }, [bubbles, focusColour, glass]);
 
   useEffect(() => () => {
     parts.sphere.dispose();
