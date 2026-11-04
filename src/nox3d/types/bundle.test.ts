@@ -148,3 +148,41 @@ test("the face anchor is per character: another head or another pose moves it", 
   const { body } = NOX_BUNDLE.poses.intro;
   expect(faceAnchor(moved, 'intro')).toEqual([body.x + 0.5, body.y + 0.25 - 0.1, head.depth * head.halfWidth]);
 });
+
+/** A deep copy of plain data (functions, like the sequences' state loader, are shared). */
+const copyOf = <T,>(value: T): T => (Array.isArray(value) ? (value.map(copyOf) as T) : value && typeof value === 'object' ? (Object.fromEntries(Object.entries(value).map(([k, v]) => [k, copyOf(v)])) as T) : value);
+
+/** A copy of Nox's bundle with the part at `path` removed (a bundle made by hand, or a creator's, may lack it). */
+function without(path: string): WorldBundle {
+  const copy = copyOf(NOX_BUNDLE) as unknown as Record<string, unknown>;
+  const keys = path.split('.');
+  let at = copy;
+  for (const key of keys.slice(0, -1)) at = at[key] as Record<string, unknown>;
+  delete at[keys[keys.length - 1]];
+  return copy as unknown as WorldBundle;
+}
+
+test('a part the bundle needs but lacks is a BundleError naming its field, not a TypeError', () => {
+  for (const field of [
+    'character', 'character.head', 'place', 'poses', 'swim', 'artifacts', 'artifacts.placement', 'artifacts.appear', 'artifacts.select', 'artifacts.choosableIn',
+    'sequences', 'sequences.defaults', 'theme', 'stage', 'stage.frames', 'content', 'content.project', 'content.technologies', 'poses.intro.body', 'poses.detail.body',
+  ]) {
+    expect(refusal(without(field)).field, field).toBe(field);
+  }
+  // A stage's frame missing is named by that stage.
+  expect(refusal(without('stage.frames.overview')).field).toBe('stage.frames.overview');
+  // A part of the wrong form is refused the same way.
+  expect(refusal({ ...NOX_BUNDLE, theme: 'dark' } as unknown as WorldBundle).field).toBe('theme');
+  expect(refusal({ ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, choosableIn: 'overview' } } as unknown as WorldBundle).field).toBe('artifacts.choosableIn');
+});
+
+test('an arm list that is not exactly T1..T8 in order is named character.arms; any other fault in the clamp is named for the character, not the arms', () => {
+  const swapped = { ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, arms: [NOX_BUNDLE.character.arms[1], NOX_BUNDLE.character.arms[0], ...NOX_BUNDLE.character.arms.slice(2)] } };
+  expect(refusal(swapped).field).toBe('character.arms');
+  // A character the clamp cannot read (its skin is gone): the error is about the character, and says what threw.
+  const skinless = copyOf(NOX_BUNDLE) as unknown as { character: Record<string, unknown> };
+  delete skinless.character.skin;
+  const error = refusal(skinless as unknown as WorldBundle);
+  expect(error.field).toBe('character');
+  expect(error.message).toMatch(/WorldBundle character:/);
+});

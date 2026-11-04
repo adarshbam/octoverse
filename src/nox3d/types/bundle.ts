@@ -83,12 +83,44 @@ function checkLeaves(value: unknown, path: string, colours: boolean) {
   }
 }
 
+/**
+ * Every part of the bundle the checks below (and the host) read is there, and of the form it is read
+ * in, or a BundleError names the field: a missing part must not surface later as a TypeError.
+ */
+function checkPresent(bundle: WorldBundle) {
+  const need = (field: string, value: unknown, what = 'an object') => {
+    if (!record(value)) throw new BundleError(field, `is missing (the bundle needs ${what} here)`);
+  };
+  need('character', bundle.character);
+  need('character.head', (bundle.character as Partial<CharacterConfig>)?.head);
+  const arms = bundle.character.arms as readonly { id?: unknown }[] | undefined;
+  if (!Array.isArray(arms)) throw new BundleError('character.arms', 'is missing (a character has exactly eight arms)');
+  if (arms.length !== ARM_IDS.length || arms.some((arm, i) => arm?.id !== ARM_IDS[i])) throw new BundleError('character.arms', `needs exactly the eight arms ${ARM_IDS.join(', ')}, in order`);
+  need('place', bundle.place);
+  need('poses', bundle.poses);
+  need('swim', bundle.swim);
+  need('artifacts', bundle.artifacts);
+  need('artifacts.placement', bundle.artifacts.placement);
+  need('artifacts.appear', bundle.artifacts.appear);
+  need('artifacts.select', bundle.artifacts.select);
+  if (!Array.isArray(bundle.artifacts.choosableIn)) throw new BundleError('artifacts.choosableIn', 'is missing (the stages a technology can be chosen in, as a list)');
+  need('sequences', bundle.sequences);
+  need('sequences.defaults', bundle.sequences.defaults);
+  need('theme', bundle.theme);
+  need('stage', bundle.stage);
+  need('stage.frames', bundle.stage.frames);
+  need('content', bundle.content);
+  need('content.project', bundle.content.project);
+  if (!Array.isArray(bundle.content.technologies)) throw new BundleError('content.technologies', 'is missing (the technologies, as a list)');
+}
+
 /** Each stage has a pose, and each pose has exactly the eight arms, T1..T8. */
 function checkPoses(poses: unknown) {
   if (!record(poses)) throw new BundleError('poses', 'is not an object');
   for (const stage of STAGE_IDS) {
     const pose = poses[stage];
     if (!record(pose) || !record(pose.arms)) throw new BundleError(`poses.${stage}`, 'is missing (every stage needs a pose with its arms)');
+    if (!record(pose.body)) throw new BundleError(`poses.${stage}.body`, 'is missing (every pose places the body: x, y, z and scale)');
     const keys: string[] = Object.keys(pose.arms);
     const missing = ARM_IDS.filter(id => !keys.includes(id));
     if (missing.length > 0) throw new BundleError(`poses.${stage}.arms`, `is missing ${missing.join(', ')} (a pose has exactly the arms ${ARM_IDS.join(', ')})`);
@@ -110,9 +142,10 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   if (typeof id !== 'string' || !WORLD_ID.test(id)) throw new BundleError('id', `"${String(id)}" is not a world id (lower case letters, digits and hyphens, starting with a letter, 2 to 32 long)`);
   if (id.startsWith(CREATOR_PREFIX) && worlds.includes(id)) throw new BundleError('id', `"${id}" is a shipped world, but the "${CREATOR_PREFIX}" prefix is reserved for creator bundles`);
 
+  checkPresent(bundle);
   checkPoses(bundle.poses);
   for (const stage of STAGE_IDS) {
-    const frame = bundle.stage?.frames?.[stage];
+    const frame = bundle.stage.frames[stage];
     if (!frame || !(finite(frame.width) && frame.width > 0) || !(finite(frame.height) && frame.height > 0)) throw new BundleError(`stage.frames.${stage}`, 'needs a width and a height above 0');
   }
   if (!finite(bundle.swim.stretch) || !finite(bundle.swim.bodyX)) throw new BundleError('swim', 'needs a finite stretch and bodyX');
@@ -151,7 +184,8 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   try {
     character = clampCharacterConfig(bundle.character);
   } catch (error) {
-    throw new BundleError('character.arms', error instanceof Error ? error.message : String(error));
+    // The arms were checked above, so what the clamp throws now is about the character as a whole.
+    throw new BundleError('character', error instanceof Error ? error.message : String(error));
   }
   return { ...bundle, character };
 }
