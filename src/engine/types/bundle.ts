@@ -64,12 +64,12 @@ const record = (value: unknown): value is Record<string, unknown> => typeof valu
 
 /**
  * The string fields of the character and the place that are not colours: ids, the arms' depth
- * layer, the head effect, file urls, kinds, and the kit's piece names. Every other string in them
+ * layer, the head effect, file urls, kinds, the kit's piece names, and the path a packets element runs on. Every other string in them
  * is a colour and must parse (`isColour`): a field added later is checked as one until it is named
  * here, so a colour three would draw black never passes unnoticed. The fields WORLD_COLOUR names
  * have the world's grammar (world/colour.ts `isWorldColour`).
  */
-const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|mode|node|drive|material)$|\.(?:pieces|nodes)\[\d+\]$/;
+const NOT_COLOUR = /(?:^|\.)(?:id|depth|headEffect|url|kind|piece|mode|node|drive|material)$|\.(?:pieces|nodes)\[\d+\]$|\.elements\.packets\.path$/;
 
 /**
  * The colour fields that may hold an amount of light 8-bit hex cannot say, `color(srgb-linear r g

@@ -542,6 +542,7 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
       yaw={options.yaw}
       armDrive={reviewSwim?.drive}
       holdAt={options.freeze ? options.hold : undefined}
+      pulseAt={options.freeze ? options.pulse : undefined}
       entranceSheet={sheets.entrance}
       entranceHold={page ? bootVeilHeld : undefined}
       entranceSeconds={options.t ?? 2}

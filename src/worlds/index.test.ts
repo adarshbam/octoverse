@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BundleError, validateBundle } from '../engine/types/bundle';
 import { DEFAULT_WORLD, WORLDS, resolveWorld } from './index';
+import { FLUX_BUNDLE } from './flux/bundle';
 import { NOX_BUNDLE } from './nox/bundle';
 import { HOST_BUNDLE } from './octoverse/bundle';
 import { VEYRA_BUNDLE } from './veyra/bundle';
@@ -39,6 +40,13 @@ test('?world=veyra is Veyra, with no warning', () => {
   expect(warning).toBeUndefined();
 });
 
+test('?world=flux is Flux, with no warning', () => {
+  const { bundle, warning } = resolveWorld('?world=flux');
+  expect(bundle).toBe(FLUX_BUNDLE);
+  expect(bundle.id).toBe('flux');
+  expect(warning).toBeUndefined();
+});
+
 test('an unknown world falls back to Nox with a warning that names it', () => {
   const { bundle, warning } = resolveWorld('?world=nope');
   expect(bundle).toBe(NOX_BUNDLE);
@@ -59,7 +67,7 @@ test('?world=octoverse is the host (platform spec 8.3)', () => {
 });
 
 test('the registry holds exactly the shipped worlds, each valid and under its own id', () => {
-  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra', 'aether', 'octoverse']);
+  expect(Object.keys(WORLDS)).toEqual(['nox', 'veyra', 'aether', 'flux', 'octoverse']);
   for (const [id, bundle] of Object.entries(WORLDS)) {
     expect(bundle.id).toBe(id);
     expect(() => validateBundle(bundle, SHIPPED_IDS), id).not.toThrow();

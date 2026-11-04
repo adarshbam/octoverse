@@ -1,0 +1,76 @@
+{
+  "2": {
+    "hq": {
+      "image": "public/flux/ref/p2.png",
+      "frame": [
+        5.11,
+        5.1
+      ],
+      "origin": [
+        255.5,
+        255
+      ],
+      "pxPerUnit": 100
+    },
+    "colorTolerance": 24,
+    "deltaE": 10,
+    "points": {
+      "crown": [
+        -0.145,
+        0.12
+      ],
+      "headMiddle": [
+        -0.125,
+        -0.2
+      ],
+      "headSide": [
+        -0.645,
+        -0.17
+      ],
+      "headRim": [
+        -0.745,
+        -0.27
+      ],
+      "faceGlow": [
+        -0.125,
+        -0.61
+      ],
+      "chin": [
+        -0.095,
+        -1.0
+      ],
+      "blush": [
+        -0.525,
+        -0.8
+      ],
+      "mouthInside": [
+        0.005,
+        -0.84
+      ],
+      "armBody": [
+        -1.045,
+        -0.85
+      ],
+      "armTopHighlight": [
+        -1.395,
+        -0.7
+      ],
+      "cupGlow": [
+        -1.745,
+        -0.71
+      ],
+      "auraWater": [
+        -0.875,
+        0.05
+      ],
+      "midWater": [
+        -1.525,
+        0.55
+      ],
+      "upperWater": [
+        1.375,
+        1.65
+      ]
+    }
+  }
+}

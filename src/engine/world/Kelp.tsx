@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { KELP_SWAY_GLSL, useMotionAmount } from './liveMotion';
-import { LIVE_ELEMENTS, type LiveElementId } from './live';
+import { LIVE_ELEMENTS, type StrandElementId } from './live';
 import { scatterStrands, strandGeometry } from './live/strands';
 import type { StrandConfig } from './types';
 import { useDisposables } from './useDisposables';
@@ -26,7 +26,7 @@ function showShare(mesh: THREE.InstancedMesh, amount: number) {
  * current from its root (vertex shader; still when the world's motion is held). They take the
  * config's colour, darker toward the root. `amount` is the share drawn (the quality tier's).
  */
-export function Strands({ id, config, floorY, amount = 1 }: { id: LiveElementId; config: StrandConfig; floorY: number; amount?: number }) {
+export function Strands({ id, config, floorY, amount = 1 }: { id: StrandElementId; config: StrandConfig; floorY: number; amount?: number }) {
   const now = useWorldTime();
   const motionAmount = useMotionAmount();
   const { mesh, uniforms, disposables } = useMemo(() => {

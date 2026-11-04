@@ -431,13 +431,13 @@ test('a world with a moss floor and a kelp live element validates, and each is c
   const { moss: _moss, ...noMoss } = moss.palette;
   expect(bad({ palette: noMoss as WorldConfig['palette'] })).toContain('palette.moss is missing (the moss floor reads it)');
   expect(bad({ floor: { material: 'lava-cracks' } })).toContain('palette.moss is named by no light, relic or floor');
-  expect(bad({ floor: { material: 'sand' as 'moss' } })).toContain('floor.material "sand" is not one of lava-cracks, moss');
+  expect(bad({ floor: { material: 'ice' as 'moss' } })).toContain('floor.material "ice" is not one of lava-cracks, moss, sand');
   const kelp = (change: object) => bad({ live: { ...moss.live, elements: { kelp: { ...moss.live.elements!.kelp!, ...change } } } });
   expect(kelp({ count: 2.5 })).toContain('live.elements.kelp.count');
   expect(kelp({ height: -1 })).toContain('live.elements.kelp.height');
   expect(kelp({ sway: Number.NaN })).toContain('live.elements.kelp.sway');
   expect(kelp({ color: 'green' })).toContain('live.elements.kelp.color');
-  expect(bad({ live: { ...moss.live, elements: { jellyfish: moss.live.elements!.kelp! } as never } })).toContain('live.elements.jellyfish is not a live element (kelp, seagrass)');
+  expect(bad({ live: { ...moss.live, elements: { jellyfish: moss.live.elements!.kelp! } as never } })).toContain('live.elements.jellyfish is not a live element (kelp, seagrass, packets)');
 });
 
 test('a prop naming a missing kit node fails validation with the node name in the message', () => {
