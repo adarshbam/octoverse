@@ -181,3 +181,7 @@ Please give the real names.
 - Catchlights: spec 2.3 says "large upper, small lower". Aether's panels P2, P3 and P4 at 3x paint both upper right, so the face follows the panels. Say if you want the spec reading (one-line change).
 - `happy` (overview face) was tuned to P3 to `mouthCurve 0.75, mouthOpen 0.35, blush 0.4` (engine base is 0.8 / 0.6). Unrequested; veto if you prefer the base.
 - The open "wonder" mouth reads as a V/U with a small tongue, not P4's D-shaped mouth. This is an engine limit (the open mouth keeps the closed smile's curved top, the tongue is a fixed shape). Fixing it needs an engine change; say if you care.
+
+## Engine follow-up from the Flux merge (for the engine owner)
+
+Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same quality tier. The Aether branch keeps both (always equal, with a test holding them equal). Fold them into one name, `id` (platform's branch already carries it): a two-line change.
