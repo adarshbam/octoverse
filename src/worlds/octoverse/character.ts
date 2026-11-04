@@ -1,11 +1,28 @@
+import type { ExpressionId } from '../../engine/behavior/expressions';
 import type { StageLighting } from '../../engine/config/lighting';
 import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
 
 // The host, OctoVerse's own octopus (platform spec 7.1 to 7.5), measured against P2
-// (public/octoverse/ref/p2.png: origin (256, 254), 100 px a unit, +y up). Task 2 sets its shape,
-// face layout and personality; its look (the jelly mantle, the cups, the face's own drawing) is
-// Task 3's, so the skin is still the shared skin and the colours below are starting values taken
-// from spec 2.1's samples, not yet checked in a render.
+// (public/octoverse/ref/p2.png: origin (256, 254), 100 px a unit, +y up). Task 2 set its shape,
+// face layout and personality; Task 3 its look: jelly glass on the mantle and the arms with sparkle
+// specks, peach-amber frill cups round a violet hollow, and the face's four presets (spec 7.2, 7.3),
+// tuned on frozen intro stills against spec 2.1's samples (scripts/host_delta_e.py).
+
+/**
+ * The host's four face presets (spec 7.3) as the engine's existing expression ids they override
+ * (amendment A1 G1: no new ids). `welcome` is the intro face and the rest face: the engine's
+ * settling face (`gentle`) is overridden to the same open smile, so the face never closes to a
+ * small smile between the entrance and the intro.
+ */
+export const HOST_FACES = {
+  welcome: 'happy',
+  presenting: 'attentive',
+  delighted: 'focused',
+  restful: 'restful',
+} as const satisfies Record<string, ExpressionId>;
+
+/** The wide open smile (P2): dark plum inside, coral tongue, brows a little raised, warm blush. */
+const WELCOME = { lidRest: 0, lidBottom: 0.05, browLift: 0.15, browTilt: 0, mouthCurve: 0.9, mouthOpen: 0.75, blush: 0.5 } as const;
 
 /**
  * The host's light: the shared key from above-left, a peach underglow (its warm core, spec 7.2)
@@ -193,25 +210,41 @@ export const HOST: CharacterConfig = {
     blush: '#f1acc3',
     blushGlow: '#f090b0',
   },
+  expressions: {
+    gentle: WELCOME,
+    [HOST_FACES.welcome]: WELCOME,
+    // How It Works: the open smile, brows up, eyes a little wider (the look toward the card is attend's).
+    [HOST_FACES.presenting]: { lidRest: -0.08, lidBottom: 0, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.85, mouthOpen: 0.6, blush: 0.45 },
+    // The arrival beat: eyes squeezed into happy arcs for a moment, the mouth wide.
+    [HOST_FACES.delighted]: { lidRest: 0.42, lidBottom: 0.8, browLift: 0.35, browTilt: 0.15, mouthCurve: 1, mouthOpen: 0.85, blush: 0.75 },
+    // The idle layer's soft closed smile, never a rest face.
+    [HOST_FACES.restful]: { lidRest: 0.35, lidBottom: 0.05, browLift: 0, browTilt: 0, mouthCurve: 0.45, mouthOpen: 0, blush: 0.35 },
+  },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4'), lower('T5'), side('T6'), middle('T7'), rear('T8')],
   // Rolled spiral tips (spec 7.1): thin at the very end.
   tipRadius: 0.035,
   taperPower: 2.2,
   armBend: 0.15,
   armFlatten: 0.86,
-  // Large round cups, shrinking toward the tip (spec 7.1); Task 3 sets their look.
-  suckers: { size: 0.25, sizePower: 0.7, spacing: 2.3, elongation: 1.08, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.7 },
+  // Large round cups packed into a scalloped frill on each underside, shrinking toward the tip
+  // (spec 7.1), in Veyra's frill style: glowing peach-amber rims (248, 197, 159; spec 2.1) on a
+  // warm peach wall, round a darker violet hollow. The warmest light on the character after the
+  // face (spec 7.2): brighter than any world's cups.
+  suckers: {
+    size: 0.25, sizePower: 0.7, spacing: 2.3, elongation: 1.08, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.5,
+    style: { rimWidth: 0.24, scallop: 0.6, edge: '#f0a888', rim: '#f8c59f', hollow: '#6a3cb0', glow: 1.4 },
+  },
   // Required by the type; never drawn (no stage opens the head).
   dome: { center: [0, 0.2], halfWidth: 1.2, halfHeight: 0.6, depth: 0.6, power: 3, mantleTop: -0.3 },
   // No head effect, no dome (spec 7.2): the host never opens its head.
   headEffect: null,
-  // Smooth, glassy skin (the jelly is Task 3's): few blotches, a gentle tint drift, light through
-  // the flesh, a soft wet highlight.
+  // Glassy jelly over a smooth skin: no blotches, a gentle tint drift, light through the flesh, one
+  // soft wet highlight from above-left (spec 7.2).
   skin: {
     speckDensity: 0.35,
     speckSize: [0.1, 0.3],
     speckScale: 14,
-    blotchDensity: 0.05,
+    blotchDensity: 0,
     blotchScale: 3,
     tint: 0.3,
     translucency: 0.8,
@@ -219,6 +252,24 @@ export const HOST: CharacterConfig = {
     gloss: 120,
     streakScale: 1,
     streakStrength: 0.15,
+    // Jelly glass on both surfaces (spec 7.2). The mantle: a cool blue crown light (85, 101, 252), a
+    // violet depth in the upper dome (128, 78, 230), the peach core (254, 175, 181) glowing through
+    // the lower face just below the eyes, and a bright lavender rim all round. The arms: the same
+    // glass, blue-violet on top (58, 55, 213), the peach-pink underside glow (245, 175, 186) from the
+    // cups warming the roots. Sparkle specks per square unit: at least 30 on the front of the head
+    // and 50 across the arms at P2 size (spec 2.3).
+    surfaces: {
+      mantle: {
+        mode: 'jelly',
+        jelly: { rim: '#d8c8ff', rimPower: 3, crown: '#5565fc', crownHeight: 0.55, depth: '#804ee6', depthStrength: 0.8, core: '#feafb5', coreCenter: [0, 0.1, -0.3], coreWarmth: 0.9 },
+        sparkle: 60,
+      },
+      arms: {
+        mode: 'jelly',
+        jelly: { rim: '#c8b8ff', rimPower: 4, crown: '#5565fc', crownHeight: 0.5, depth: '#3a37d5', depthStrength: 0.6, core: '#f5afba', coreCenter: [0, 0, -0.3], coreWarmth: 0.5 },
+        sparkle: 50,
+      },
+    },
   },
   // Spec 7.5, the Host (start) column: attentive and friendly, buoyant, calm, graceful. Task 11
   // tunes it live. The idle flourish (a wave every 14 to 22 s) and idle tilt (0.03 rad over 9 s)

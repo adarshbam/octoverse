@@ -1,4 +1,4 @@
-import { HOST } from './character';
+import { HOST, HOST_FACES } from './character';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
 import { flattenForDepth, withRoot as withRootAt } from '../../engine/poses/authoring';
 import type { StagePose } from '../../engine/poses/types';
@@ -58,8 +58,8 @@ export const INTRO_TRACED: Record<ArmId, Point2[]> = Object.fromEntries(ARM_IDS.
 
 const INTRO_ARMS = Object.fromEntries(ARM_IDS.map(id => [id, flattenForDepth(INTRO_TRACED[id], spec(id))])) as Record<ArmId, Point2[]>;
 
-/** P2: front view, the body at the stage's centre (the head sits low in the frame, as painted), the wide open smile. */
-const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: 'happy', headMorph: 0, orbs: 0 };
+/** P2: front view, the body at the stage's centre (the head sits low in the frame, as painted), the welcome's wide open smile. */
+const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: HOST_FACES.welcome, headMorph: 0, orbs: 0 };
 
 /**
  * Until Task 6 every other stage shows the intro. The overview (How It Works) keeps `headMorph: 0`
