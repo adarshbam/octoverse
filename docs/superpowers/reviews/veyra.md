@@ -113,3 +113,24 @@ What the render shows against `p2.png`: an eight-armed teal octopus in roughly t
 - AWS has no mark in `simple-icons`; its orb will show no logo (Task 14 decides).
 - Link addresses are placeholders (`example.com`); the screenshot media joins with the detail view. The poster is a capture of this backdrop, to be retaken with the finished look.
 - `check_stage.py` samples: the P3 and P5 panel boxes in `stage.panels` are read off the native panels at 100 px a unit from each panel's centre; Milestone 3 registers them on her face.
+
+## Task 3: jelly skin mode and sparkles (engine variant)
+
+Engine: `SkinDetail.surfaces?: { mantle, arms }` of `SurfaceLook { mode: 'skin' | 'jelly', jelly?, sparkle }` (`config/types.ts`, beside `SkinDetail`; `SKIN_MODES` is the closed table). The jelly code and the sparkle code are spliced into the skin fragment shader only for a surface that has them, each behind its own define (`JELLY`, `SPARKLE`); a plain skin surface compiles the very program it did before (sha256 of Nox's fragment and vertex text pinned in `skinMaterial.test.ts`, taken before the edit). Every jelly colour and the core's centre are per-material uniforms from the config; the sparkles take `palette.wet`; the shimmer `uSparkleWave` (0 to 1, for Task 18) and the twinkle clock `uSkinTime` are shared by every surface. One pass, no render target. The clamp keeps `sparkle` in [0, 400], an unknown mode reads `'skin'`, and a missing or unreadable jelly colour reads the character's own (`rimTop`, `headEdge`, `blotch`, `glow.core`); `validateBundle` names an unknown mode and an unreadable jelly colour.
+
+Veyra's start values (`src/worlds/veyra/character.ts`, Task 7 tunes): mantle rim `#3ee6f0` (power 4), crown `#04b4c8` above normal-up 0.5, depth `#015f67` at strength 1, core `#f0eca0` at 0.35, 50 sparkles per square unit; arms rim `#46e8ec` (power 4), crown `#30dcc8`, depth `#0a9a8c` at 0.35, core 0.3, 35 sparkles. The skin detail under it is turned down (no blotches, tint 0.25, fewer droplets).
+
+Stills (stage-capture `intro`, frozen, 506 x 504 at scale 2): `docs/superpowers/reviews/assets/veyra/t3-intro.png`; the head at 3x beside P2's: `docs/superpowers/reviews/assets/veyra/t3-head-closeup-vs-p2.png` (left P2, right the render, registered by eye on the head); the back (`yaw=180`): `docs/superpowers/reviews/assets/veyra/t3-back.png`: round and glassy, the rim and the sparkles continue round it (spec 2.3), and the warm core shows faintly through the dome from behind.
+
+Numbers (render down the head's middle, 7 x 7 px at scale 2, against the P2 column at x 256): crown (36, 195, 213) vs P2 (3, 199, 206); middle (23, 107, 114) and (28, 110, 114) vs (1, 90, 112) and (0, 96, 103); before the jelly (Task 2) the middle read (31, 135, 147), milky. About 85 bright specks inside the head's front ellipse (91 bright points less the eyes' catchlights), against the close-up checklist's 40.
+
+What reads right: the dome now has a bright cyan fresnel rim all round, a lighter cyan crown cap, a darker denser middle facing the viewer, and fine specks scattered over head and arms, a few larger; it reads as glassy rather than matte. The arms are a more saturated aqua with a cyan top edge.
+
+What is not there yet, honestly:
+- **A grey cast:** every jelly sample carries 20 to 35 points of red that P2 does not (crown 36 vs 3, middle 23 to 28 vs 0 to 1): it greys the teal a little. Not from the jelly colours (their red is 1 to 4); it comes from what lies over the jelly (bloom from the over-bright face glow, the halo, the skin's grazing reflections). Crown delta E is over 10 on that red alone. Task 7.
+- **Face glow over-exposed** (255, 255, 197 at its heart against P2's 249, 228, 151), as in Task 2; the jelly's own core is kept low (0.35) so it does not add much. The face glow's spread is the skin's ramp (Task 7).
+- **Crown shape:** P2's crown is a broad soft cap; the render's is a little narrower and its lower edge is visible as a band. `crownHeight` 0.5 is a start.
+- **Rim width:** the jelly rim plus the halo give a thicker glowing edge than P2's thin bright line, on the arms most.
+- **Wet highlight:** spec 7.2's one soft broad specular from above left is not part of this task; the skin's own wet glints remain where the detail shows.
+- **Inner depth:** the "thick" middle is a darker colour, not real parallax: there is nothing seen through the jelly.
+- Twinkle and the shimmer wave are motion: not judged in stills (owner checks live).

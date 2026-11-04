@@ -172,20 +172,37 @@ export const VEYRA: CharacterConfig = {
   dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
   // The head swell's effect: none until the vault dial (spec 7.6).
   headEffect: 'none',
-  // Jelly detail: fine bright sparkles over the head and arms, no blotchy skin (spec 2.3); the
-  // jelly material (Task 3) takes over the look, this is what the current skin shader reads.
+  // Jelly glass on the mantle and the arms (spec 7.2), with fine bright sparkles over both and no
+  // blotchy skin (spec 2.3): the skin detail underneath is turned down to a faint drift and droplets.
   skin: {
-    speckDensity: 0.5,
+    speckDensity: 0.35,
     speckSize: [0.1, 0.3],
     speckScale: 12,
-    blotchDensity: 0.04,
+    blotchDensity: 0,
     blotchScale: 3,
-    tint: 0.4,
+    tint: 0.25,
     translucency: 0.6,
     wetness: 1.5,
     gloss: 140,
     streakScale: 1,
-    streakStrength: 0.2,
+    streakStrength: 0.15,
+    // Start values from the measured P2 samples (Task 7 tunes them against the panel): the dome's
+    // crown (4, 170, 188) and its darker see-through middle (1, 95, 103), a white-cyan rim, the
+    // warm cream core sitting inside behind the face; the arms mint-aqua with a brighter cyan top
+    // edge and only a little depth. Sparkles per square unit: at P2's size well over the 40 the
+    // close-up checklist asks for on the front of the head.
+    surfaces: {
+      mantle: {
+        mode: 'jelly',
+        jelly: { rim: '#3ee6f0', rimPower: 4, crown: '#04b4c8', crownHeight: 0.5, depth: '#015f67', depthStrength: 1, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.35 },
+        sparkle: 50,
+      },
+      arms: {
+        mode: 'jelly',
+        jelly: { rim: '#46e8ec', rimPower: 4, crown: '#30dcc8', crownHeight: 0.5, depth: '#0a9a8c', depthStrength: 0.35, core: '#f0eca0', coreCenter: [0, 0.12, -0.35], coreWarmth: 0.3 },
+        sparkle: 35,
+      },
+    },
   },
   // The calm guardian (spec 7.8): blinks less often, glances softly, sways little, rolls tight
   // coils, floats slowly, breathes slowly and swims in long glides.
