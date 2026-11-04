@@ -126,3 +126,9 @@ Known gaps for the owner to rule on:
 - Hover or focus on a card lifts it and brightens the border; the live preview and the host's look at the card come with Task 13.
 - `/explore`, `/create` and the profiles are an honest "not open yet" page until their tasks.
 - The phone's host box (55%) leaves the lower part of the intro empty; the overview's empty water above the host holds only Back.
+
+## Rulings and open gaps to check (controller notes, M2)
+- Card epithet text is 13px (name 16px): spec 7.15 says body text >= 16px, but 14px wraps Veyra's epithet at 768 x 1024. Kept as a caption; owner rule.
+- The face-clearance e2e measures against a geometry model (`window.__platform.faceRect`), not pixels; the six landing stills were overlaid by hand. A pixel or probe check is planned for the final pass (Task 21).
+- Bare `/` is now the landing; Nox's own specs open `/?world=nox` (commit 312361a, test files only).
+- Reef: the glass cards do not bob and there is no jellyfish yet (engine drives landed on Aether's branch; waiting on its engine sync); the gate glyph reads like an atom/React-style mark, not the octopus logo; fps 40.2 / 29.0 / 37.5 under load against a floor of 40.
