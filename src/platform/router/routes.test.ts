@@ -72,6 +72,16 @@ describe('parseRoute', () => {
   it('returns notFound with the path for unknown paths', () => {
     expect(parse('/nope/else').route).toEqual({ name: 'notFound', path: '/nope/else' });
   });
+
+  it('a double slash is not the landing: it is not found, with the path as typed', () => {
+    expect(parse('//').route).toEqual({ name: 'notFound', path: '//' });
+    expect(parse('//explore').route).toEqual({ name: 'notFound', path: '//explore' });
+    expect(parse('/explore//').route).toEqual({ name: 'notFound', path: '/explore//' });
+    expect(parse('///').route).toEqual({ name: 'notFound', path: '///' });
+    expect(parse('/@veyra//vault-os').route.name).toBe('notFound');
+    // One trailing slash is still tolerated.
+    expect(parse('/explore/').route).toEqual({ name: 'explore' });
+  });
 });
 
 describe('buildPath', () => {

@@ -295,9 +295,18 @@ const PLATFORM_ENGINE_ALLOWED = [
   'engine/ui/useStageBox', // stageBoxFor: landing.test.tsx cross-checks the platform's own projection against it
 ];
 
-/** Where a platform import is out of bounds, or null when it is allowed. `where` is relative to src/, without an extension. */
-function platformViolation(where: string): string | null {
+/**
+ * The one platform file allowed to import a world's bundle, and only dynamically (platform Task 14, spec 2.4): each world's bundle,
+ * kit and Theatre state load as their own chunk when its route is entered. Read from `file` (relative to src/platform); this test
+ * cannot tell a dynamic import from a static one, so src/platform/worlds/loadWorld.test.ts and the payload test hold that half.
+ */
+const WORLD_LOADER_FILE = 'worlds/loadWorld.ts';
+
+/** Where a platform import is out of bounds, or null when it is allowed. `where` is relative to src/, without an extension; `file` is the importing file, relative to src/platform. */
+function platformViolation(where: string, file = ''): string | null {
   const bare = where.replace(/\.(tsx?|css|json)$/, '');
+  // TEST-ONLY allowlist entry: the world loader may import each showcase world's bundle (and nothing else of a world's).
+  if (file === WORLD_LOADER_FILE && /^worlds\/(nox|veyra|flux|aether)\/bundle$/.test(bare)) return null;
   if (bare.startsWith('engine/')) return PLATFORM_ENGINE_ALLOWED.includes(bare) ? null : 'an engine module outside the allowlist';
   if (bare.startsWith('worlds/')) {
     if (bare === 'worlds/index' || bare.startsWith('worlds/octoverse/')) return null;
@@ -322,7 +331,7 @@ test('the platform imports only allowed engine modules and worlds', () => {
   for (const file of platformFiles) {
     for (const specifier of specifiers(withoutComments(read(PLATFORM, file), false))) {
       const where = landing(PLATFORM, file, specifier);
-      const why = where === null ? null : platformViolation(where);
+      const why = where === null ? null : platformViolation(where, file);
       if (why) hits.push(`platform/${file} -> ${where}: ${why}`);
     }
   }
@@ -330,7 +339,7 @@ test('the platform imports only allowed engine modules and worlds', () => {
 });
 
 test('the platform rule fails on a deep engine import, a world bundle, multi-line, bare and dynamic imports', () => {
-  const at = (code: string) => specifiers(code).map(s => landing(PLATFORM, 'pages/x.tsx', s)).filter((w): w is string => w !== null).map(platformViolation);
+  const at = (code: string, file = 'pages/x.tsx') => specifiers(code).map(s => landing(PLATFORM, file, s)).filter((w): w is string => w !== null).map(where => platformViolation(where, file));
   expect(at("import { a } from '../../engine/character/Octopus';")).toEqual(['an engine module outside the allowlist']);
   expect(at("import {\n  a,\n  b,\n} from '../../engine/host/EngineInstance';")).toEqual(['an engine module outside the allowlist']);
   expect(at("import '../../engine/ui/intro.css';")).toEqual(['an engine module outside the allowlist']);
@@ -342,6 +351,18 @@ test('the platform rule fails on a deep engine import, a world bundle, multi-lin
   expect(at("import { nox } from '../../worlds/veyra/content/noxProject';")).toHaveLength(1);
   expect(at("import { nox } from '../../worlds/nox/content/veyraTechnologies';")).toHaveLength(1);
   expect(at("import { nox } from '../../worlds/veyra/content/nox';")).toHaveLength(1);
+  // The world loader (one file) may import the four bundles, and nothing else of a world's, an engine module outside the list, or another world's bundle by a wrong id.
+  const loader = (code: string) => at(code, WORLD_LOADER_FILE);
+  expect(loader("const m = import('../../worlds/nox/bundle');\nconst v = import('../../worlds/veyra/bundle');\nconst f = import('../../worlds/flux/bundle');\nconst a = import('../../worlds/aether/bundle');")).toEqual([null, null, null, null]);
+  expect(loader("const m = import('../../worlds/nox/place/config');")).toHaveLength(1);
+  expect(loader("const m = import('../../worlds/octoverse/../nox/character');")).toHaveLength(1);
+  expect(loader("const m = import('../../worlds/nox/bundle.test');")).toHaveLength(1);
+  expect(loader("import { x } from '../../engine/character/Octopus';")).toEqual(['an engine module outside the allowlist']);
+  // A second file importing a bundle fails, whatever its name: only that exact file is allowed.
+  for (const other of ['pages/Landing.tsx', 'worlds/other.ts', 'world/WorldPage.tsx', 'worlds/loadWorld.tsx', 'x/worlds/loadWorld.ts', 'loadWorld.ts']) {
+    expect(at("const m = import('../../worlds/nox/bundle');", other), other).toHaveLength(1);
+    expect(at("import { NOX_BUNDLE } from '../../worlds/veyra/bundle';", other), other).toHaveLength(1);
+  }
   // What is allowed.
   expect(at("import { HOST_BUNDLE } from '../../worlds/octoverse/bundle';\nimport { nox } from '../../worlds/nox/content/nox';\nimport { noxProject } from '../../worlds/nox/content/noxProject';\nimport { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';\nimport { WORLDS } from '../../worlds';\nimport { WorldHost } from '../../engine/host/WorldHost';")).toEqual([null, null, null, null, null, null]);
 });

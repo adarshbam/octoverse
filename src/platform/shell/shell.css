@@ -1,0 +1,50 @@
+/*
+ * The route fade (platform spec 7.9): an HTML overlay in the reef's deep indigo (#021648, the host's water) above the page,
+ * 125 ms in and 125 ms out. It never takes a press or focus. With reduced motion it is not drawn at all (the route is an
+ * instant cut; src/platform/shell/routeFade.ts decides that too, so no overlay is mounted).
+ */
+.oct-route-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #021648;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.oct-route-fade[data-phase='in'] {
+  animation: oct-route-in 125ms linear forwards;
+}
+
+.oct-route-fade[data-phase='out'] {
+  animation: oct-route-out 125ms linear forwards;
+}
+
+@keyframes oct-route-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes oct-route-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-route-fade {
+    display: none;
+  }
+}
+
+/* The page a chunk shows while it loads: the water, and nothing else. */
+.oct-route-loading {
+  min-height: 100%;
+}

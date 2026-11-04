@@ -1,33 +1,34 @@
 import { expect, test, type Page } from '@playwright/test';
 import { overflowingElements, scrollToBottom } from './pageChecks';
 
-// The platform's static pages (platform Task 9; spec 2.5, 7.8, 7.11, 7.12): the profile, Explore and the not-found page, through the
-// temporary `?page=` switch of src/platform/App.tsx (Task 14 routes them). Every page, at 360, 390, 768, 1024 and 1536 px wide:
+// The platform's static pages (platform Task 9; spec 2.5, 7.8, 7.11, 7.12): the profile, Explore and the not-found page, at their real
+// routes (/@<handle>, /explore, any unknown path; Task 14). Every page, at 360, 390, 768, 1024 and 1536 px wide:
 // the page never scrolls sideways, and every link, button and tab is at least 44 px square. Plus the profile's tabs by keyboard.
 // These pages draw stills only (no WebGL), so they are quick; run with --workers=1 (four sessions share one GPU).
 
 const WIDTHS = [360, 390, 768, 1024, 1536] as const;
 const PAGES = [
-  { name: 'profile veyra', query: 'page=profile&handle=veyra' },
-  { name: 'profile flux', query: 'page=profile&handle=flux' },
-  { name: 'profile nox', query: 'page=profile&handle=nox' },
-  { name: 'profile aether', query: 'page=profile&handle=aether' },
-  { name: 'explore', query: 'page=explore' },
-  { name: 'not found', query: 'page=notfound' },
-  { name: 'unknown handle', query: 'page=profile&handle=nobody' },
+  { name: 'profile veyra', path: '/@veyra' },
+  { name: 'profile flux', path: '/@flux' },
+  { name: 'profile nox', path: '/@nox' },
+  { name: 'profile aether', path: '/@aether' },
+  { name: 'explore', path: '/explore' },
+  { name: 'not found', path: '/not-a-real-handle' },
+  { name: 'unknown handle', path: '/@nobody' },
 ];
 
-async function open(page: Page, query: string, width: number) {
+async function open(page: Page, path: string, width: number) {
   await page.setViewportSize({ width, height: width < 768 ? 800 : 1024 });
-  await page.goto(`/?${query}`);
+  await page.goto(path);
   await page.waitForSelector('#oct-main');
+  await page.evaluate(() => document.fonts.ready); // Poppins arriving late reflows the page: measure after it
   await page.evaluate(() => Promise.all([...document.images].map(i => (i.complete ? null : new Promise(done => { i.onload = i.onerror = done; })))));
 }
 
 for (const p of PAGES) {
   for (const width of WIDTHS) {
     test(`${p.name} at ${width}: no horizontal scroll, targets at least 44 px`, async ({ page }) => {
-      await open(page, p.query, width);
+      await open(page, p.path, width);
       const measured = await page.evaluate(() => {
         const small: string[] = [];
         for (const el of document.querySelectorAll<HTMLElement>('a, button, [role="tab"]')) {
@@ -53,7 +54,7 @@ for (const p of PAGES) {
 // `.oct-page`. At 390 x 844 every page's content can be scrolled to its bottom, and the footer or last element is then on screen.
 for (const p of PAGES) {
   test(`${p.name} scrolls at 390 x 844: its content can be scrolled to the bottom`, async ({ page }) => {
-    await open(page, p.query, 390);
+    await open(page, p.path, 390);
     await page.setViewportSize({ width: 390, height: 844 });
     const result = await scrollToBottom(page);
     if (p.name.startsWith('profile') || p.name === 'explore') {
@@ -66,7 +67,7 @@ for (const p of PAGES) {
 }
 
 test('the nav stays at the top while the page scrolls, and the skip link still jumps to the main landmark', async ({ page }) => {
-  await open(page, 'page=explore', 390);
+  await open(page, '/explore', 390);
   await page.evaluate(() => document.querySelector('.oct-page')!.scrollTo(0, 600));
   const nav = await page.locator('.oct-nav').boundingBox();
   expect(nav!.y).toBeLessThan(20);
@@ -79,7 +80,7 @@ test('the nav stays at the top while the page scrolls, and the skip link still j
 });
 
 test('the profile tabs work by keyboard: arrows move and select, Home and End jump, only the selected panel shows', async ({ page }) => {
-  await open(page, 'page=profile&handle=veyra', 1536);
+  await open(page, '/@veyra', 1536);
   const tab = (name: string) => page.getByRole('tab', { name });
   await tab('Projects (1)').focus();
   await expect(tab('Projects (1)')).toHaveAttribute('aria-selected', 'true');
@@ -105,7 +106,7 @@ test('the profile tabs work by keyboard: arrows move and select, Home and End ju
 });
 
 test('every tile and the primary action are reachable by keyboard, in reading order', async ({ page }) => {
-  await open(page, 'page=explore', 1536);
+  await open(page, '/explore', 1536);
   const hrefs: string[] = [];
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab');
@@ -114,6 +115,6 @@ test('every tile and the primary action are reachable by keyboard, in reading or
   }
   // The skip link, then the nav (the wordmark, Explore, Create), then the five tiles.
   expect(hrefs.slice(0, 9)).toEqual(['#oct-main', '/', '/explore', '/create', '/@veyra', '/@flux', '/@nox', '/@aether', '/create']);
-  await open(page, 'page=profile&handle=flux', 1536);
+  await open(page, '/@flux', 1536);
   await expect(page.getByRole('link', { name: "Enter Flux's world" })).toHaveAttribute('href', '/@flux/github-pipeline-engine');
 });

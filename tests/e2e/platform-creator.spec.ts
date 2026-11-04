@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { overflowingElements } from './pageChecks';
 
-// The creator composition (platform Task 10; spec 7.13, 7.15), through the temporary `?page=create` switch of src/platform/App.tsx
-// (Task 14 routes it). At 390 x 844 the two panels are the tabs Octopus and Projects and the picture is the sticky top 40%; at
+// The creator composition (platform Task 10; spec 7.13, 7.15), at its route /create (Task 14). At 390 x 844 the two panels are the tabs Octopus and Projects and the picture is the sticky top 40%; at
 // 768 x 1024 and 1536 x 1024 both panels show. At 360, 390, 768, 1024 and 1536 px wide the page never scrolls sideways and every
 // control is at least 44 px square. Stills only (no WebGL); run with --workers=1 (four sessions share one GPU).
 
@@ -11,7 +10,7 @@ const heightFor = (width: number) => (width === 390 ? 844 : width < 768 ? 800 : 
 
 async function open(page: Page, width: number, height = heightFor(width)) {
   await page.setViewportSize({ width, height });
-  await page.goto('/?page=create');
+  await page.goto('/create');
   await page.waitForSelector('#oct-main');
   await page.waitForSelector('[data-slot="preview"]');
   await page.evaluate(() => document.fonts.ready);

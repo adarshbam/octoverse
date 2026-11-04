@@ -1,9 +1,7 @@
 import { createRoot } from 'react-dom/client';
-import { Page } from './Page';
 import { parseUrlState } from '../engine/behavior/urlState';
 import { PlatformApp } from '../platform/App';
 import { parseRoute } from '../platform/router/routes';
-import { resolveWorld } from '../worlds';
 
 /**
  * The review switches that still mean "the engine's own page" on `/` (they are the engine's review and
@@ -34,10 +32,10 @@ if (import.meta.env.DEV && options.studio) {
 }
 
 if (isWorldReview(window.location.pathname, window.location.search)) {
-  // `?world=<id>` picks the world (an unknown id shows Nox, with a warning here, not a blank page).
-  const { bundle, warning } = resolveWorld(window.location.search);
-  if (warning) console.warn(warning);
-  createRoot(document.getElementById('root')!).render(<Page first={bundle} options={options} />);
+  // `?world=<id>` picks the world (an unknown id shows Nox, with a warning, not a blank page). The registry that names every
+  // world is a chunk of its own (ReviewPage), so the platform's landing never loads it (platform spec 2.4).
+  const root = createRoot(document.getElementById('root')!);
+  void import('./ReviewPage').then(({ default: ReviewPage }) => root.render(<ReviewPage search={window.location.search} />));
 } else {
   // The static page holds Nox's boot veil ("Security Lab" and the flame) for a page that shows Nox; the platform is not Nox.
   document.documentElement.setAttribute('data-boot-world', 'other');

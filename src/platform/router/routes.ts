@@ -34,7 +34,9 @@ export function parseRoute(
   search: string,
 ): { route: Route; replace?: string } {
   const notFound = (): { route: Route } => ({ route: { name: 'notFound', path: pathname } });
+  // One trailing slash is tolerated, except on a path that is only slashes or has an empty segment ('//' is not the landing).
   const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  if (pathname.startsWith('//') || (path.endsWith('/') && path.length > 1)) return notFound();
 
   switch (path) {
     case '/': {

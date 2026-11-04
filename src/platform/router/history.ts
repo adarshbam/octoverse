@@ -56,7 +56,9 @@ const serverRoute: Route = { name: 'landing' };
 const getServerRoute = () => serverRoute;
 
 export function navigate(to: string, opts?: { replace?: boolean }): void {
-  if (opts?.replace) window.history.replaceState(window.history.state, '', to);
+  // The address already shown is replaced, never pushed again (a second click on the current page's link must not add a Back step).
+  const here = window.location.pathname + window.location.search;
+  if (opts?.replace || to === here) window.history.replaceState(window.history.state, '', to);
   else window.history.pushState(null, '', to);
   canonicalise();
   notify();

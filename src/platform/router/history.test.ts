@@ -64,6 +64,23 @@ describe('history', () => {
     off();
   });
 
+  it('navigate to the url already shown replaces instead of pushing a duplicate entry', () => {
+    env.setUrl('/explore');
+    const cb = vi.fn();
+    const off = subscribe(cb);
+    navigate('/explore');
+    expect(env.hist.pushState).not.toHaveBeenCalled();
+    expect(env.hist.replaceState).toHaveBeenCalledTimes(1);
+    expect(getRoute()).toEqual({ name: 'explore' });
+    env.setUrl('/@veyra/vault-os?view=detail');
+    navigate('/@veyra/vault-os?view=detail');
+    expect(env.hist.pushState).not.toHaveBeenCalled();
+    // A different search on the same path is a different address: pushed.
+    navigate('/@veyra/vault-os?view=overview');
+    expect(env.hist.pushState).toHaveBeenCalledTimes(1);
+    off();
+  });
+
   it('goBack wraps history.back', () => {
     goBack();
     expect(env.hist.back).toHaveBeenCalledTimes(1);
