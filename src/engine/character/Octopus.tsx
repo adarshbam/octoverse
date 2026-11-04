@@ -16,7 +16,7 @@ import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed
 import { strokeAt } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
 import type { StagePose, SwimPoseSet } from '../poses/types';
-import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
+import { type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
 import { type BlowSheet, bubblesExist } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
@@ -420,7 +420,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
             e.settling = true;
             onEntranceSettling?.();
           }
-          if (!e.done && seconds >= ENTRANCE_SECONDS) {
+          if (!e.done && seconds >= sheet.length('entrance')) {
             e.done = true;
             onEntranceDone?.();
           }

@@ -7,7 +7,7 @@ import { createSwimRests, swimShapes as shapesFor } from '../motion/swimArms';
 import { NOX_POSES } from '../../worlds/nox/poses';
 import { SWIM_POSES } from '../../worlds/nox/swim';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
-import { ARM_HALF_SPAN, ENTRANCE_SECONDS, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
+import { ARM_HALF_SPAN, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from '../../worlds/nox/sequences/defaults';
 import { NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
 import { loadNoxSequences } from '../../worlds/nox/sequences/index';
@@ -25,10 +25,12 @@ const times = (from: number, to: number, step: number) => Array.from({ length: M
 const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const speed = (s: number, h = 0.005) => dist(at(s + h).position, at(s - h).position) / (2 * h);
 const timing = NOX.personality.swim;
+/** Nox's entrance length: his data (`worlds/nox/sequences`), read from the sheet set like the engine does. */
+const ENTRANCE_SECONDS = SEQUENCE_DEFAULTS.entrance.length;
 
 test('lasts 8.4 s and ends exactly at the intro spot facing the visitor', () => {
   expect(ENTRANCE_SECONDS).toBe(8.4);
-  expect(SEQUENCE_DEFAULTS.entrance.length).toBe(ENTRANCE_SECONDS);
+  expect(seq.length('entrance')).toBe(ENTRANCE_SECONDS);
   const end = at(ENTRANCE_SECONDS);
   end.position.forEach(v => expect(Math.abs(v)).toBeLessThan(1e-9));
   expect(end.yaw).toBe(0);
@@ -309,4 +311,12 @@ test('the entrance turn is data: a half turn has half the yaw all the way round'
   expect(entranceFrame(half, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY).position).toEqual([0, 0, 0]);
   expect(entranceFrame(half, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY).yaw).toBe(0);
   expect(entranceFrame(half, 6.4, NOX_ENTRANCE_GEOMETRY).position).toEqual(entranceFrame(seq, 6.4, NOX_ENTRANCE_GEOMETRY).position);
+});
+
+test("the entrance ends where the world's sheet set says (Sequences.length), not at a constant: a shorter set clamps earlier", () => {
+  const shorter: Sequences = { ...seq, length: id => (id === 'entrance' ? 4 : seq.length(id)) };
+  expect(entranceFrame(shorter, 6, NOX_ENTRANCE_GEOMETRY)).toEqual(entranceFrame(seq, 4, NOX_ENTRANCE_GEOMETRY));
+  expect(entranceFrame(shorter, 4, NOX_ENTRANCE_GEOMETRY)).not.toEqual(entranceFrame(seq, 6, NOX_ENTRANCE_GEOMETRY));
+  // Past the end of Nox's own sheet he stays at the intro spot.
+  expect(entranceFrame(seq, ENTRANCE_SECONDS + 5, NOX_ENTRANCE_GEOMETRY)).toEqual(entranceFrame(seq, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY));
 });
