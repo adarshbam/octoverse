@@ -12,6 +12,8 @@ beforeAll(async () => {
 });
 const at = (i: number, s: number) => blowFrame(seq, i, s);
 const COUNT = 15;
+/** One bubble's blow, as Nox's loaded sheet has it. */
+const LENGTH = () => seq.length('bubbleBlow');
 const BLOW_MOUTH = blowMouth(NOX.head, NOX.face);
 
 test('the mouth is worked out from the head and face: Nox\'s is where the module constant put it', () => {
@@ -33,50 +35,50 @@ test('no bubble exists before the entrance settles', () => {
 
   // Through the whole entrance, sheet loaded, the blow never starts: no bubble has any size.
   const run = new BlowRun();
-  for (let i = 0; i < 160; i++) run.step({ exist: bubblesExist('entering'), still: false, ready: true, dt: 0.05, count: COUNT });
+  for (let i = 0; i < 160; i++) run.step({ exist: bubblesExist('entering'), still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(run.seconds).toBeNull();
   expect(run.done).toBe(false);
   expect(run.blowing).toBe(false);
   // Settled into the intro, the blow starts from its first moment: every bubble still in the mouth.
-  run.step({ exist: bubblesExist('intro'), still: false, ready: true, dt: 0.05, count: COUNT });
+  run.step({ exist: bubblesExist('intro'), still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(run.seconds).toBe(0);
   expect(run.blowing).toBe(true);
   for (let i = 0; i < COUNT; i++) expect(at(i, run.seconds!).scale).toBe(0);
   // It runs on frame time and ends when the last bubble is full size.
   let steps = 0;
-  while (!run.done && steps++ < 1000) run.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT });
-  expect(steps * 0.05).toBeCloseTo(blowLength(COUNT), 1);
+  while (!run.done && steps++ < 1000) run.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
+  expect(steps * 0.05).toBeCloseTo(blowLength(COUNT, LENGTH()), 1);
   expect(run.blowing).toBe(false);
 });
 
 test('motion off (reduced motion, ?freeze): the bubbles are simply there, with no blow and no puff', () => {
   const run = new BlowRun();
-  run.step({ exist: false, still: true, ready: true, dt: 0.05, count: COUNT });
+  run.step({ exist: false, still: true, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(run.done).toBe(false);
-  run.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT });
+  run.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(run.done).toBe(true);
   expect(run.blowing).toBe(false);
   // Motion turned off mid-blow ends it at once.
   const mid = new BlowRun();
-  mid.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT });
-  mid.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT });
-  mid.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT });
+  mid.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
+  mid.step({ exist: true, still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
+  mid.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(mid.done).toBe(true);
 });
 
 test('a still of the blow (`at`) holds that moment; a sheet that never comes gives way to the plain fade', () => {
   const still = new BlowRun();
-  for (let i = 0; i < 5; i++) still.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT, at: 0.6 });
+  for (let i = 0; i < 5; i++) still.step({ exist: true, still: true, ready: true, dt: 0.05, count: COUNT, length: LENGTH(), at: 0.6 });
   expect(still.seconds).toBe(0.6);
   expect(still.blowing).toBe(true);
   const late = new BlowRun();
   let steps = 0;
-  while (!late.done && steps++ < 1000) late.step({ exist: true, still: false, ready: false, dt: 0.05, count: COUNT });
+  while (!late.done && steps++ < 1000) late.step({ exist: true, still: false, ready: false, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(late.seconds).toBeNull();
   expect(steps * 0.05).toBeCloseTo(BLOW_SHEET_WAIT, 1);
   // One that failed gives way at once.
   const failed = new BlowRun();
-  failed.step({ exist: true, still: false, ready: false, failed: true, dt: 0.05, count: COUNT });
+  failed.step({ exist: true, still: false, ready: false, failed: true, dt: 0.05, count: COUNT, length: LENGTH() });
   expect(failed.done).toBe(true);
 });
 
@@ -137,7 +139,7 @@ test('the path runs from the mouth to the orbit, round the front of the head', (
 test('bubbles are blown in order, 0.18 s apart', () => {
   expect(BLOW_STAGGER).toBe(0.18);
   expect(SEQUENCE_DEFAULTS.bubbleBlow.length).toBeCloseTo(0.9, 9);
-  expect(blowLength(COUNT)).toBeCloseTo(14 * 0.18 + 0.9, 9);
+  expect(blowLength(COUNT, LENGTH())).toBeCloseTo(14 * 0.18 + 0.9, 9);
   for (const i of [1, 4, 14]) {
     for (const s of [0.1, 0.3, 0.6, 1.2, 2.5, 3.3]) {
       const own = at(i, s);
@@ -153,5 +155,5 @@ test('bubbles are blown in order, 0.18 s apart', () => {
   });
   pops.forEach((s, i) => expect(s).toBeCloseTo(0.25 + i * 0.18, 2));
   // Every bubble is full size once the blow is over.
-  for (let i = 0; i < COUNT; i++) expect(at(i, blowLength(COUNT)).scale).toBeCloseTo(1, 6);
+  for (let i = 0; i < COUNT; i++) expect(at(i, blowLength(COUNT, LENGTH())).scale).toBeCloseTo(1, 6);
 });

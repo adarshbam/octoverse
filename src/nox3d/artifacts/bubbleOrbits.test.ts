@@ -1,16 +1,20 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { CAMERA_Z } from '../config/stage';
+import { NOX_ARTIFACTS } from '../config/nox.artifacts';
 import { NOX } from '../config/nox.character';
 import { NOX_POSES } from '../poses/nox.poses';
 import { STAGE_FRAMES, fovFor } from '../stage/framing';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { stageBoxFor } from '../ui/useStageBox';
 import { FOCUS_GROW } from './TechBubbles';
-import { NOX_SHELLS, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
+import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from '../sequences/keys';
 
 type Stage = 'intro' | 'overview';
+/** Nox's orbit placement: the shells and constants the bubbles run on. */
+const PLACEMENT = NOX_ARTIFACTS.placement;
+const NOX_SHELLS = PLACEMENT.shells;
 type Box = readonly [number, number, number, number];
 const STAGES: Stage[] = ['intro', 'overview'];
 const VIEWPORTS = [{ width: 1536, height: 1024 }, { width: 1280, height: 720 }];
@@ -22,7 +26,7 @@ test('fifteen bubbles on two or three shells', () => {
   expect(NOX_SHELLS.length).toBeGreaterThanOrEqual(2);
   expect(NOX_SHELLS.length).toBeLessThanOrEqual(3);
   for (const stage of STAGES) {
-    const orbits = layoutOrbits(15, NOX_SHELLS, stage);
+    const orbits = layoutOrbits(15, PLACEMENT, stage);
     expect(orbits).toHaveLength(15);
     expect(new Set(orbits.map(o => o.shell)).size).toBe(NOX_SHELLS.length);
     for (const o of orbits) expect(o.radius).toBe(NOX_SHELLS[o.shell].radius);
@@ -30,17 +34,17 @@ test('fifteen bubbles on two or three shells', () => {
 });
 
 test('the bubbles are smaller in the intro framing', () => {
-  expect(layoutOrbits(15, NOX_SHELLS, 'intro')[0].size).toBeLessThan(layoutOrbits(15, NOX_SHELLS, 'overview')[0].size);
+  expect(layoutOrbits(15, PLACEMENT, 'intro')[0].size).toBeLessThan(layoutOrbits(15, PLACEMENT, 'overview')[0].size);
 });
 
 test('bubbles never overlap each other', () => {
   const out = Array.from({ length: 15 }, () => new THREE.Vector3());
   for (const stage of STAGES) {
-    const orbits = layoutOrbits(15, NOX_SHELLS, stage);
+    const orbits = layoutOrbits(15, PLACEMENT, stage);
     let least = Infinity;
     // 60 s sampled at 10 Hz, as the orbit clock runs.
     for (let t = 0; t <= 60; t += 0.1) {
-      orbits.forEach((o, i) => orbitPoint(o, t, 0, out[i]));
+      orbits.forEach((o, i) => orbitPoint(o, t, 0, out[i], PLACEMENT));
       for (let i = 0; i < orbits.length; i++) {
         for (let j = i + 1; j < orbits.length; j++) least = Math.min(least, out[i].distanceTo(out[j]) / (orbits[i].size + orbits[j].size));
       }
@@ -77,7 +81,7 @@ test('bubbles never cover the face, the title or the nameplate', () => {
       camera.updateMatrixWorld();
       const { body } = NOX_POSES[stage];
       const boxes = Object.entries(BOXES[stage]).map(([name, box]) => [name, stageBoxFor(stage, box, size)] as const);
-      const orbits = layoutOrbits(15, NOX_SHELLS, stage);
+      const orbits = layoutOrbits(15, PLACEMENT, stage);
       const at = new THREE.Vector3();
       const edge = new THREE.Vector3();
       const px = (v: THREE.Vector3) => ({ x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height });
@@ -85,7 +89,7 @@ test('bubbles never cover the face, the title or the nameplate', () => {
       let least = { gap: Infinity, at: '' };
       for (const swell of SWELLS[stage]) for (let t = 0; t < 32; t += 0.1) {
         for (const o of orbits) {
-          orbitPoint(o, t, swell, at);
+          orbitPoint(o, t, swell, at, PLACEMENT);
           at.x += body.x;
           at.y += body.y;
           // The grown bubble in focus is the widest it gets.
@@ -110,9 +114,9 @@ test('the bubbles stay inside the stage frame', () => {
   for (const stage of STAGES) {
     const { body } = NOX_POSES[stage];
     const frame = STAGE_FRAMES[stage];
-    for (const o of layoutOrbits(15, NOX_SHELLS, stage)) {
+    for (const o of layoutOrbits(15, PLACEMENT, stage)) {
       for (const swell of SWELLS[stage]) for (let t = 0; t < 32; t += 0.1) {
-        orbitPoint(o, t, swell, at);
+        orbitPoint(o, t, swell, at, PLACEMENT);
         const scale = CAMERA_Z / (CAMERA_Z - at.z);
         expect(Math.abs((at.x + body.x) * scale) + o.size).toBeLessThan(frame.width / 2);
         expect(Math.abs((at.y + body.y) * scale) + o.size).toBeLessThan(frame.height / 2);
@@ -125,11 +129,11 @@ test('swell pushes the orbits outward', () => {
   const calm = new THREE.Vector3();
   const swollen = new THREE.Vector3();
   const middle = new THREE.Vector3();
-  for (const o of layoutOrbits(15, NOX_SHELLS, 'overview')) {
+  for (const o of layoutOrbits(15, PLACEMENT, 'overview')) {
     for (let t = 0; t < 30; t += 3) {
-      orbitPoint(o, t, 0, calm);
-      orbitPoint(o, t, 0.5, middle);
-      orbitPoint(o, t, 1, swollen);
+      orbitPoint(o, t, 0, calm, PLACEMENT);
+      orbitPoint(o, t, 0.5, middle, PLACEMENT);
+      orbitPoint(o, t, 1, swollen, PLACEMENT);
       expect(swollen.distanceTo(ORIGIN)).toBeGreaterThan(middle.distanceTo(ORIGIN));
       expect(middle.distanceTo(ORIGIN)).toBeGreaterThan(calm.distanceTo(ORIGIN));
     }
@@ -137,10 +141,10 @@ test('swell pushes the orbits outward', () => {
 });
 
 test('an orbit is a function of the clock alone, and closes after one lap', () => {
-  const o = layoutOrbits(15, NOX_SHELLS, 'intro')[4];
-  const a = orbitPoint(o, 7.3, 0, new THREE.Vector3());
-  expect(orbitPoint(o, 7.3, 0, new THREE.Vector3()).equals(a)).toBe(true);
-  expect(orbitPoint(o, 7.3 + (2 * Math.PI) / o.speed, 0, new THREE.Vector3()).distanceTo(a)).toBeLessThan(1e-9);
+  const o = layoutOrbits(15, PLACEMENT, 'intro')[4];
+  const a = orbitPoint(o, 7.3, 0, new THREE.Vector3(), PLACEMENT);
+  expect(orbitPoint(o, 7.3, 0, new THREE.Vector3(), PLACEMENT).equals(a)).toBe(true);
+  expect(orbitPoint(o, 7.3 + (2 * Math.PI) / o.speed, 0, new THREE.Vector3(), PLACEMENT).distanceTo(a)).toBeLessThan(1e-9);
 });
 
 test('orbits ease to still while a bubble is hot', () => {

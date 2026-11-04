@@ -109,3 +109,29 @@ test('restful only after 40 s idle in intro with no panel open', () => {
   expect(isRestful('intro', 60000, true)).toBe(false);
   expect(isRestful('overview', 60000, false)).toBe(false);
 });
+
+test('FOCUS_TECH is accepted only in the stages the world lists (choosableIn)', () => {
+  const only = (stages: readonly ('intro' | 'overview')[]) => (state: StageState, event: StageEvent) => stageReducer(state, event, known, stages);
+  const overviewOnly = only(['overview']);
+  const intro = at('intro');
+  // In the intro a choice changes nothing, and it is the very same state (no render).
+  expect(overviewOnly(intro, { type: 'FOCUS_TECH', id: 'kali' })).toBe(intro);
+  // In the overview it focuses, returning there.
+  expect(overviewOnly(at('overview'), { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali', 'overview'));
+  // The other way round.
+  const introOnly = only(['intro']);
+  expect(introOnly(intro, { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali', 'intro'));
+  const overview = at('overview');
+  expect(introOnly(overview, { type: 'FOCUS_TECH', id: 'kali' })).toBe(overview);
+  // Nox lists both: each focuses, as in the cases above. A world that lists none never focuses.
+  const both = only(['intro', 'overview']);
+  expect(both(intro, { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali', 'intro'));
+  expect(both(overview, { type: 'FOCUS_TECH', id: 'kali' })).toEqual(at('techFocus', 'kali', 'overview'));
+  const none = only([]);
+  expect(none(intro, { type: 'FOCUS_TECH', id: 'kali' })).toBe(intro);
+  expect(none(overview, { type: 'FOCUS_TECH', id: 'kali' })).toBe(overview);
+  // The other events do not depend on it: Explore still leads to the overview, and a focus moves on within its stage.
+  expect(overviewOnly(intro, { type: 'OPEN_OVERVIEW' })).toEqual(at('overview'));
+  expect(overviewOnly(at('techFocus', 'kali', 'overview'), { type: 'FOCUS_TECH', id: 'burp' })).toEqual(at('techFocus', 'burp', 'overview'));
+  expect(overviewOnly(at('techFocus', 'kali', 'overview'), { type: 'BLUR_TECH' })).toEqual(at('overview'));
+});

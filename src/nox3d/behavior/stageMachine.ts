@@ -29,16 +29,24 @@ export function initialStage({ entranceSeen, requested, reducedMotion }: { entra
   return at(entranceSeen || reducedMotion ? 'intro' : 'entering');
 }
 
-/** The stage transitions; any event a stage does not handle leaves the state as it is. */
-export function stageReducer(state: StageState, event: StageEvent, knownTechIds: ReadonlySet<string>): StageState {
+/** The stages in which an artifact can be chosen when a world names none: both. */
+const CHOOSABLE_IN_BOTH = ['intro', 'overview'] as const;
+
+/**
+ * The stage transitions; any event a stage does not handle leaves the state as it is. `choosableIn`
+ * is the stages in which `FOCUS_TECH` is accepted (the world's `ArtifactConfig.choosableIn`): in
+ * the other of the intro and the overview a choice changes nothing. Moving the focus on in a
+ * technology focus is a choice made where the focus began, so it is not asked again.
+ */
+export function stageReducer(state: StageState, event: StageEvent, knownTechIds: ReadonlySet<string>, choosableIn: readonly ('intro' | 'overview')[] = CHOOSABLE_IN_BOTH): StageState {
   switch (state.stage) {
     case 'entering':
       return event.type === 'ENTRANCE_DONE' || event.type === 'SKIP' ? at('intro') : state;
     case 'intro':
-      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) ? focus(event.id, 'intro') : state;
+      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) && choosableIn.includes('intro') ? focus(event.id, 'intro') : state;
       return event.type === 'OPEN_OVERVIEW' ? at('overview') : state;
     case 'overview':
-      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) ? focus(event.id, 'overview') : state;
+      if (event.type === 'FOCUS_TECH') return knownTechIds.has(event.id) && choosableIn.includes('overview') ? focus(event.id, 'overview') : state;
       if (event.type === 'OPEN_DETAIL') return at('detail');
       return event.type === 'CLOSE' ? at('intro') : state;
     case 'techFocus':

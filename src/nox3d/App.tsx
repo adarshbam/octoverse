@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { resolveExpressions } from './behavior/expressions';
 import { FOCUS_BEATS } from './behavior/focusChoreography';
-import { HOLD_BEATS } from './artifacts/suctionHold';
+import { SELECTS, choiceRemoved, choosableNow } from './artifacts/strategies';
 import { PoseBlender, STAGE_TRANSITION } from './behavior/poseBlend';
 import type { ReviewOptions } from './behavior/urlState';
 import { initialStage } from './behavior/stageMachine';
@@ -13,6 +13,7 @@ import { readEntranceSeen, readReducedMotion, useStage } from './behavior/useSta
 import { Octopus } from './character/Octopus';
 import { createGlowLightUniforms } from './character/glowLight';
 import { type AccentLink, createAccentUniforms } from './character/worldAccent';
+import { NOX_ARTIFACTS } from './config/nox.artifacts';
 import { NOX } from './config/nox.character';
 import { CAMERA_Z, STAGE_HALF, viewWindow } from './config/stage';
 import type { CharacterConfig, StageId } from './config/types';
@@ -248,7 +249,7 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   const page = mode === 'page';
   const reportEntrance = useMemo(() => entranceReporter(instance), [instance]);
   const config = useMemo(() => clampCharacterConfig(character), [character]);
-  const { state, dispatch, reducedMotion } = useStage(noxProject, { worldId: instance.id, mode, options });
+  const { state, dispatch, reducedMotion } = useStage(noxProject, { worldId: instance.id, mode, options, choosableIn: NOX_ARTIFACTS.choosableIn });
   const quality = useQuality(options);
   // What this instance shows of the project, and its Theatre sheets: its own, made here and not at module load.
   const model = useMemo(() => createProjectModel(noxProject, noxTechnologies), []);
@@ -413,7 +414,7 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   // The bubble's orbit eases to still in about 0.4 s once it is hot, and the suction hold pulls it
   // to its arm's tip, so the tooltip takes its place when it has arrived there (at once with motion
   // off): the bubble's place and the others', and the face's; it then keeps beside it as it lifts.
-  const SETTLE_MS = HOLD_BEATS.pullMs[1];
+  const SETTLE_MS = SELECTS[NOX_ARTIFACTS.select.kind].beats.pullMs[1];
   const settle = reducedMotion || options.freeze ? 0 : SETTLE_MS;
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: ReturnType<typeof faceSpot>; leaving: boolean }[]>([]);
@@ -462,6 +463,7 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
   const octopus = (
     <Octopus
       config={config}
+      artifacts={NOX_ARTIFACTS}
       blender={blender}
       stage={state.stage}
       expression={options.expression}
@@ -539,13 +541,16 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
           <SkipEntrance hidden={!entering || settling} onSkip={() => dispatch({ type: 'SKIP' })} />
           <OverviewPanel project={noxProject} open={state.stage === 'overview'} sheet={phone || !webgl} dispatch={dispatch} />
           <ProjectDetail project={detailProject} technologies={noxTechnologies} open={state.stage === 'detail'} showPlaceholders={SHOW_PLACEHOLDERS} forceSheet={!webgl} panelId={detailsId} dispatch={dispatch} />
-          <OrbButtons
-            orbs={orbs}
-            open={(shown === 'intro' || shown === 'overview') && webgl && !viewport.phonePortrait}
-            focused={focusedTech}
-            tooltipId={tooltipId}
-            onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
-          />
+          {/* In a stage the world does not let a technology be chosen in, there are no buttons and no tray. */}
+          {!choiceRemoved(shown, NOX_ARTIFACTS) && (
+            <OrbButtons
+              orbs={orbs}
+              open={choosableNow(shown, NOX_ARTIFACTS) && webgl && !viewport.phonePortrait}
+              focused={focusedTech}
+              tooltipId={tooltipId}
+              onChoose={id => dispatch({ type: 'FOCUS_TECH', id })}
+            />
+          )}
           {tips.map(tip => {
             const technology = tech.get(tip.techId);
             if (!technology) return null;
@@ -563,15 +568,17 @@ function NoxApp({ character, world, options }: { character: CharacterConfig; wor
               />
             );
           })}
-          <OrbTray
-            items={(trayAll ? order : overflow).map(trayItem)}
-            open={state.stage === 'overview' || state.stage === 'techFocus'}
-            all={trayAll}
-            lifted={state.stage === 'overview' && (phone || !webgl)}
-            focused={focusedTech}
-            tooltipId={tooltipId}
-            onChoose={id => dispatch(id === focusedTech ? { type: 'BLUR_TECH' } : { type: 'FOCUS_TECH', id })}
-          />
+          {!choiceRemoved(shown, NOX_ARTIFACTS) && (
+            <OrbTray
+              items={(trayAll ? order : overflow).map(trayItem)}
+              open={state.stage === 'overview' || state.stage === 'techFocus'}
+              all={trayAll}
+              lifted={state.stage === 'overview' && (phone || !webgl)}
+              focused={focusedTech}
+              tooltipId={tooltipId}
+              onChoose={id => dispatch(id === focusedTech ? { type: 'BLUR_TECH' } : { type: 'FOCUS_TECH', id })}
+            />
+          )}
         </>
       )}
     </div>

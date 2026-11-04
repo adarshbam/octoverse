@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { createHash } from 'node:crypto';
-import { beforeAll, expect, test, vi } from 'vitest';
-import { NOX_SHELLS, layoutOrbits, orbitPoint } from '../artifacts/bubbleOrbits';
+import { beforeAll, expect, test } from 'vitest';
+import { layoutOrbits, orbitPoint } from '../artifacts/bubbleOrbits';
+import { NOX_ARTIFACTS } from '../config/nox.artifacts';
 import { createDomeMaterial } from '../character/domeMaterial';
-import { GLYPH_SIZE, drawsGlyphs, glyphLayout, glyphsFor } from '../character/headGlyphs';
+import { HEAD_EFFECTS } from '../character/headEffects';
+import { GLYPH_SIZE, glyphLayout } from '../character/headEffects/glyphs';
 import { NOX } from '../config/nox.character';
 import { DOME_PANEL_BOX } from '../ui/OverviewPanel';
 import { SEQUENCE_DEFAULTS, SWELL_PUSH_PEAK, SWELL_PUSH_SETTLED } from './keys';
@@ -133,10 +135,10 @@ test('bubbles are pushed out while swollen', () => {
   const settled = restingSwell(true);
   expect(settled.push).toBeGreaterThan(0);
   expect(restingSwell(false).push).toBe(0);
-  for (const o of layoutOrbits(15, NOX_SHELLS, 'overview')) {
+  for (const o of layoutOrbits(15, NOX_ARTIFACTS.placement, 'overview')) {
     for (let t = 0; t < 30; t += 3) {
-      orbitPoint(o, t, 0, calm);
-      orbitPoint(o, t, settled.push, pushed);
+      orbitPoint(o, t, 0, calm, NOX_ARTIFACTS.placement);
+      orbitPoint(o, t, settled.push, pushed, NOX_ARTIFACTS.placement);
       expect(pushed.distanceTo(origin)).toBeGreaterThan(calm.distanceTo(origin));
     }
   }
@@ -155,22 +157,15 @@ test('bubbles are pushed out while swollen', () => {
 });
 
 test('headEffect none renders the approved dome', () => {
-  // No glyph mesh or material is built for 'none' or null; Nox's 'glyphs' builds one (Octopus.tsx
-  // draws exactly what glyphsFor returns). A silhouette capture builds none either.
-  const sentinel = { mesh: 'glyphs' };
+  // 'none' (and no effect named) builds no mesh or material; Nox's 'glyphs' builds one (Octopus.tsx
+  // draws exactly what HEAD_EFFECTS[config.headEffect ?? 'none'] returns). A silhouette capture
+  // builds none either, which Octopus decides before it looks the effect up (headEffects.test.ts).
   for (const effect of ['none', null] as const) {
-    const make = vi.fn(() => sentinel);
-    expect(glyphsFor({ ...NOX, headEffect: effect }, false, make)).toBeNull();
-    expect(make).not.toHaveBeenCalled();
+    const runtime = HEAD_EFFECTS[effect ?? 'none'].create(NOX.dome, NOX.palette);
+    expect(runtime.root).toBeNull();
+    runtime.dispose();
   }
-  const make = vi.fn(() => sentinel);
-  expect(glyphsFor(NOX, false, make)).toBe(sentinel);
-  expect(make).toHaveBeenCalledWith(NOX.dome, NOX.palette.effect);
-  const masked = vi.fn(() => sentinel);
-  expect(glyphsFor(NOX, true, masked)).toBeNull();
-  expect(masked).not.toHaveBeenCalled();
-  expect(drawsGlyphs('none')).toBe(false);
-  expect(drawsGlyphs(null)).toBe(false);
+  expect(NOX.headEffect).toBe('glyphs');
 
   // Settled open, the head and dome draw the approved dome's parameters as recorded before this
   // task (9f9a61d: domeState(1) = visible, scale 1, offset 0, reveal DOME_REACH 1.5, opacity 1; the

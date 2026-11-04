@@ -9,7 +9,7 @@ import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { reachesForPointer, reachingArm } from '../behavior/reach';
 import { isRestful } from '../behavior/stageMachine';
-import { ARM_IDS, type CharacterConfig, type StageId } from '../config/types';
+import { ARM_IDS, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
 import { strokeAt } from '../motion/stroke';
@@ -18,14 +18,15 @@ import { BODY_X } from '../poses/nox.poses';
 import { swimShapes } from '../poses/nox.swim';
 import { ENTRANCE_SECONDS, type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
-import { type BlowSheet, blowMouth } from '../sequences/bubbleBlow';
+import type { BlowSheet } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
 import { debugWindow } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
-import { type Box, HoldChoreography, nearestArm } from '../artifacts/suctionHold';
+import type { Box } from '../artifacts/suctionHold';
+import { APPEARS, SELECTS } from '../artifacts/strategies';
 import { ArmChain } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -36,7 +37,7 @@ import { createGlowMaterial } from './glowMaterial';
 import { createHaloMaterial } from './haloMaterial';
 import { createDomeGeometry, createHeadGeometry } from './headGeometry';
 import { createHeadSilhouetteMaterial } from './headMorph';
-import { glyphsFor } from './headGlyphs';
+import { HEAD_EFFECTS } from './headEffects';
 import { createSkinMaterial, createSkinUniforms } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
@@ -69,6 +70,8 @@ export interface EntranceSheet {
 
 export interface OctopusProps {
   config: CharacterConfig;
+  /** How the world's artifacts are placed, appear and are chosen: the strategies this character's bubbles and hold run (artifacts/strategies.ts). */
+  artifacts: ArtifactConfig;
   /** Moves Nox between stage poses; sampled every frame. */
   blender: PoseBlender;
   /** The current stage: the entrance's swim, resting and reaching for the pointer in the intro. */
@@ -142,19 +145,9 @@ const REST_IN = 2;
 const WAKE = 0.5;
 /** The warm glow card before the chin, facing the visitor. */
 const CORE_GLOW = 0.22;
-/**
- * The suction hold's arm (artifacts/suctionHold.ts), in body units: it reaches out toward the
- * bubble at most HOLD_REACH (stopping HOLD_SHORT shy of it), draws HOLD_DRAW of that back as it
- * pulls the bubble in, and lifts its tip HOLD_LIFT; the bubble rides HOLD_BOB higher on the tip.
- */
-const HOLD_REACH = 0.55;
-const HOLD_SHORT = 0.2;
-const HOLD_DRAW = 0.5;
-const HOLD_LIFT = 0.16;
-const HOLD_BOB = 0.04;
 
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, yaw = 0, armDrive, holdAt, headOpen, swellSheet }: OctopusProps) {
   const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
@@ -170,7 +163,9 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const headTurn = useRef<THREE.Group>(null);
   const headSpace = useRef<THREE.Group>(null);
   // Where the bubbles come out: this character's mouth, worked out once from its head and face.
-  const mouth = useMemo(() => blowMouth(config.head, config.face), [config.head, config.face]);
+  const appear = APPEARS[artifacts.appear.kind];
+  const select = SELECTS[artifacts.select.kind];
+  const mouth = useMemo(() => appear.origin(config.head, config.face), [appear, config.head, config.face]);
   // The entrance's stroke timing (the arguments entranceFrame takes of the character).
   const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
@@ -184,7 +179,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   // The suction hold: the arm nearest a chosen bubble (not across the face) turns, pulls it to its tip and lifts it.
   const holdArm = useRef<(bubble: number) => number>(() => 0);
-  const hold = useMemo(() => new HoldChoreography(bubble => holdArm.current(bubble)), [orbs]);
+  const hold = useMemo(() => select.choreography(bubble => holdArm.current(bubble)), [select, orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
   const restAt = useMemo(() => new THREE.Vector3(), []);
@@ -271,9 +266,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
   // open head the overview shows, not the closed one.
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
-  // The head swell's effect (Nox's: glowing red glyphs over the dome); 'none' draws the dome alone.
-  const glyphs = useMemo(() => glyphsFor(config, silhouette), [config, silhouette]);
-  useEffect(() => () => glyphs?.dispose(), [glyphs]);
+  // The head swell's effect (HEAD_EFFECTS; Nox's: glowing red glyphs over the dome); 'none' draws the
+  // dome alone, and so does a silhouette capture, where an effect would read as shape.
+  const effect = useMemo(() => (silhouette ? null : HEAD_EFFECTS[config.headEffect ?? 'none'].create(config.dome, config.palette)), [config, silhouette]);
+  useEffect(() => () => effect?.dispose(), [effect]);
 
   const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
 
@@ -285,13 +281,14 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const mesh = dome.current;
     if (!mesh) return;
     const was = mesh.visible;
-    const glyphsWere = glyphs?.mesh.visible ?? false;
+    const effectRoot = effect?.root;
+    const effectWas = effectRoot?.visible ?? false;
     mesh.visible = true;
-    if (glyphs) glyphs.mesh.visible = true;
+    if (effectRoot) effectRoot.visible = true;
     gl.compile(scene, camera);
     mesh.visible = was;
-    if (glyphs) glyphs.mesh.visible = glyphsWere;
-  }, [gl, scene, camera, rig, glyphs]);
+    if (effectRoot) effectRoot.visible = effectWas;
+  }, [gl, scene, camera, rig, effect]);
 
   // A lost WebGL context takes the face's texture with it, and a still face (freeze, reduced
   // motion, a held expression) is not redrawn: send it again once the context is restored
@@ -633,7 +630,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     const faceBox: Box = { x0: config.head.centerX - config.head.halfWidth, y0: config.head.bottom, x1: config.head.centerX + config.head.halfWidth, y1: config.head.top };
     holdArm.current = bubble => {
       const at = bubbleState.orbit[bubble];
-      return nearestArm(rig.arms.map(({ chain }) => [chain.tipX, chain.tipY, chain.pz[chain.segments]] as const), [at.x, at.y, at.z], faceBox);
+      return select.nearestArm(rig.arms.map(({ chain }) => [chain.tipX, chain.tipY, chain.pz[chain.segments]] as const), [at.x, at.y, at.z], faceBox);
     };
     hold.instant = reducedMotion || (freeze && !holdStill);
     hold.choose(selected >= 0 ? selected : null, holdStill ? 0 : now);
@@ -651,10 +648,10 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
       const dx = orbit.x - from.x;
       const dy = orbit.y - from.y;
       const d = Math.hypot(dx, dy) || 1;
-      const outward = Math.min(HOLD_REACH, Math.max(0, d - HOLD_SHORT)) * (1 - HOLD_DRAW * f.pull);
+      const outward = Math.min(select.arm.reach, Math.max(0, d - select.arm.short)) * (1 - select.arm.draw * f.pull);
       m.holdWeight[f.arm] += f.turn;
       m.holdSum[f.arm].x += (from.x + (dx / d) * outward) * f.turn;
-      m.holdSum[f.arm].y += (from.y + (dy / d) * outward + HOLD_LIFT * f.lift) * f.turn;
+      m.holdSum[f.arm].y += (from.y + (dy / d) * outward + select.arm.lift * f.lift) * f.turn;
     }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
@@ -700,7 +697,7 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     for (const f of holds) {
       const { px, py, pz, segments: n } = rig.arms[f.arm].chain;
       bubbleState.hold.pull[f.bubble] = f.pull;
-      bubbleState.hold.tip[f.bubble].set(px[n], py[n] + HOLD_BOB * f.lift, pz[n]);
+      bubbleState.hold.tip[f.bubble].set(px[n], py[n] + select.arm.bob * f.lift, pz[n]);
       // Across the view (no depth), so the bubble sits off the tip on the page, never over it.
       bubbleState.hold.dir[f.bubble].set(px[n] - px[n - 4], py[n] - py[n - 4], 0).normalize();
       flare[f.arm] = Math.max(flare[f.arm], f.flare);
@@ -733,13 +730,8 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
     dome.current!.position.set(config.dome.center[0], config.dome.center[1] + config.dome.halfHeight * hd.lift, 0);
     rig.domeMaterial.uniforms.uOpacity.value = hd.opacity;
     rig.domeMaterial.uniforms.uReveal.value = hd.reveal;
-    if (glyphs) {
-      // The glyphs ride the glass's swell; with motion off they stand still.
-      glyphs.mesh.visible = sf.effect > 0.001 && !solo;
-      glyphs.mesh.scale.setScalar(hd.scale);
-      glyphs.uniforms.uEffect.value = sf.effect;
-      glyphs.uniforms.uTime.value = reducedMotion ? 0 : t;
-    }
+    // The effect rides the glass's swell; with motion off it stands still (its clock is held at 0).
+    effect?.update(solo ? 0 : sf.effect, hd, reducedMotion ? 0 : t);
     rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease) * (1 - cupVeil), config.glow.halo.bandStrength * (1 - ease) * (1 - cupVeil));
   });
 
@@ -767,12 +759,12 @@ export function Octopus({ config, blender, stage, expression, freeze, reducedMot
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} mouth={mouth} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>
               <mesh ref={dome} geometry={rig.domeGeometry} material={rig.domeMaterial} visible={false} frustumCulled={false} />
-              {glyphs && <primitive object={glyphs.mesh} position={[config.dome.center[0], config.dome.center[1] - config.dome.halfHeight, 0]} />}
+              {effect?.root && <primitive object={effect.root} />}
               <mesh
                 ref={head}
                 geometry={rig.headGeometry}

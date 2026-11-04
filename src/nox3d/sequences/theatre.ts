@@ -12,6 +12,8 @@ export interface Sequences {
    * keep before sampling again.
    */
   sample<T>(id: SequenceId, objectKey: string, seconds: number): T;
+  /** The sequence's length in seconds, as this world's set gives it (not a Nox constant). */
+  length(id: SequenceId): number;
   /** How the entrance's final turn runs (`SequenceSet.entrance`). */
   readonly entrance: EntranceShape;
 }
@@ -72,6 +74,7 @@ async function load({ projectId, state, defaults, entrance = FULL_TURN }: Sequen
   return {
     entrance,
     sheet,
+    length: id => defaultsOf(id).length,
     sample<T>(id: SequenceId, objectKey: string, seconds: number): T {
       const obj = objectOf(id, objectKey);
       const length = defaultsOf(id).length;

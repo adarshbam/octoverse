@@ -1,8 +1,13 @@
+import type { APPEARS } from '../artifacts/strategies';
+
 /**
- * The sheet an artifact's appear kind plays (amendment A1, G5): 'bubbleBlow' is the blow's, Nox's
- * only. Task 7 derives it from the appear table (`APPEARS.blow.sheet`) and changes it there.
+ * The sheets the appear kinds play (amendment A1, G5): the `sheet` of each entry in the engine's
+ * appear table (`APPEARS.blow.sheet` is 'bubbleBlow'); a kind with no sheet adds none. Type-only
+ * import: this file also runs directly under Node (the seed script), where it is erased.
  */
-export type AppearSheet = 'bubbleBlow';
+export type AppearSheet = {
+  [K in keyof typeof APPEARS]: (typeof APPEARS)[K] extends { readonly sheet: infer S extends string } ? S : never;
+}[keyof typeof APPEARS];
 
 /** Sequence ids: one Theatre sheet each (the big sequences of the design's section 9.11). */
 export type SequenceId = 'entrance' | 'headSwell' | 'arrival' | AppearSheet;
@@ -294,7 +299,7 @@ const ARRIVAL: SequenceDefaults = {
 /**
  * Code defaults for each sheet's props and keyframes. `scripts/theatre-seed.mjs` writes them into
  * the state JSON the first time; exports from the studio replace that file afterwards.
- * Erasable TypeScript only, no imports: the seed script runs this file directly under Node.
+ * Erasable TypeScript only, and no value imports (the one import is type-only): the seed script runs this file directly under Node.
  */
 export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
   entrance: ENTRANCE,

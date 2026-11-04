@@ -2,12 +2,15 @@
 // reads only these values; a new character is a new config, not new code.
 // Units are world units (1 unit = 100 storyboard panel px, +y up).
 
+import type { AppearId, SelectId } from '../artifacts/strategies';
+import type { Shell } from '../artifacts/bubbleOrbits';
 import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
+import type { HeadEffectId } from '../character/headEffects';
 import type { StageLighting } from './lighting';
 
 import { ARM_IDS, type ArmId } from './arms';
 
-export { ARM_IDS, type ArmId };
+export { ARM_IDS, type ArmId, type HeadEffectId };
 export type Point2 = readonly [number, number];
 export type StageId = 'entering' | 'intro' | 'overview' | 'techFocus' | 'detail';
 
@@ -395,11 +398,42 @@ export interface DomeShape {
   mantleTop: number;
 }
 
+// The head effect a character's swell carries (design 9.9) is named by `HeadEffectId`, derived from
+// the engine's HEAD_EFFECTS table (character/headEffects): `'none'` draws the dome alone, as
+// approved; Nox's is `'glyphs'`, glowing red runes.
+
+/** Where the artifacts sit: a closed union, one member per placement in the engine's PLACEMENTS table (`pendant` joins in F01). */
+export type PlacementConfig = {
+  kind: 'orbit';
+  /** The rings the artifacts circle on (artifacts/bubbleOrbits.ts). */
+  shells: readonly Shell[];
+  /** An artifact's radius in each stage's framing (the intro frames the character smaller, and its artifacts are smaller with it). */
+  sizes: Record<'intro' | 'overview', number>;
+  /** Where the rings are centred, in body space, and the height they show. */
+  centreY: number;
+  halfHeight: number;
+  /** How square the rings are: 2 is an ellipse, more is a rounder rectangle. */
+  squareness: number;
+  /** How far a full swell pushes the rings out, as a fraction of their size. */
+  swellPush: number;
+};
+
+/** The orbit placement's settings. */
+export type OrbitPlacement = Extract<PlacementConfig, { kind: 'orbit' }>;
+
 /**
- * The special effect a character's head swell carries (design 9.9), inside or round the dome:
- * `'none'` draws the dome alone, as approved; Nox's is `'glyphs'`, glowing red runes.
+ * How a world's artifacts (its technologies' orbs) are placed, appear and are chosen: three
+ * independent strategies, each a kind from a closed table in the engine (artifacts/strategies.ts),
+ * and the stages in which one can be chosen. `appear` and `select` are objects so a later kind can
+ * carry parameters.
  */
-export type HeadEffectId = 'none' | 'glyphs';
+export interface ArtifactConfig {
+  placement: PlacementConfig;
+  appear: { kind: AppearId };
+  select: { kind: SelectId };
+  /** The stages in which an artifact can be chosen; the reducer ignores a choice in any other, and the buttons and the tray are not drawn there. */
+  choosableIn: readonly ('intro' | 'overview')[];
+}
 
 export interface CharacterConfig {
   id: string;

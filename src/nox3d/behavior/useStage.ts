@@ -38,8 +38,12 @@ export const readReducedMotion = () => window.matchMedia?.(REDUCED_MOTION).match
 /**
  * The instance's stage: starts from the review options it was given (the host parsed them from the
  * URL), the visitor's motion preference and, for a page, whether the world's entrance was seen this session.
+ * `choosableIn` is the stages in which a technology can be chosen (the world's ArtifactConfig).
  */
-export function useStage(project: Project, { worldId, mode, options }: { worldId: string; mode: 'page' | 'preview'; options: ReviewOptions }) {
+export function useStage(
+  project: Project,
+  { worldId, mode, options, choosableIn }: { worldId: string; mode: 'page' | 'preview'; options: ReviewOptions; choosableIn: readonly ('intro' | 'overview')[] },
+) {
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, readReducedMotion, () => false);
   const knownTechIds = useMemo(
     () => new Set([...(project.primaryTechnologyIds ?? []), ...(project.technologyUsages ?? []).map(usage => usage.technologyId)]),
@@ -49,7 +53,7 @@ export function useStage(project: Project, { worldId, mode, options }: { worldId
     const start = initialStage({ entranceSeen: readEntranceSeen(worldId, mode), requested: options.stage, reducedMotion: readReducedMotion() });
     return start.stage === 'techFocus' && options.tech && knownTechIds.has(options.tech) ? { ...start, techId: options.tech } : start;
   });
-  const dispatch = useCallback((event: StageEvent) => setState(current => stageReducer(current, event, knownTechIds)), [knownTechIds]);
+  const dispatch = useCallback((event: StageEvent) => setState(current => stageReducer(current, event, knownTechIds, choosableIn)), [knownTechIds, choosableIn]);
   useEffect(() => {
     if (state.stage !== 'entering') rememberEntranceSeen(worldId, mode);
   }, [state.stage, worldId, mode]);

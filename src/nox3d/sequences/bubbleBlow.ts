@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 import { mantleRadius } from '../character/headGeometry';
 import type { FaceLayout, HeadShape, StageId } from '../config/types';
 import type { Vec3 } from '../world/types';
-import { BLOW_STAGGER, SEQUENCE_DEFAULTS } from './keys';
+import { BLOW_STAGGER } from './keys';
 import type { Sequences } from './theatre';
 
 // The bubble blow (design 9.8): once the entrance has settled, Nox blows the technology bubbles
@@ -24,12 +24,9 @@ export interface BlowFrame {
   wobble: number;
 }
 
-/** One bubble's blow in seconds: the sheet's length. */
-const BLOW_SECONDS = SEQUENCE_DEFAULTS.bubbleBlow.length;
-
-/** Seconds the whole blow of `count` bubbles lasts: the last one starts (count - 1) staggers in. */
-export function blowLength(count: number) {
-  return Math.max(0, count - 1) * BLOW_STAGGER + BLOW_SECONDS;
+/** Seconds the whole blow of `count` bubbles lasts, one blow lasting `sheetSeconds` (the world's sheet length): the last one starts (count - 1) staggers in. */
+export function blowLength(count: number, sheetSeconds: number) {
+  return Math.max(0, count - 1) * BLOW_STAGGER + sheetSeconds;
 }
 
 /** The sheet's props at one moment. */
@@ -48,13 +45,14 @@ const ends = new WeakMap<Sequences, { before: BlowFrame; after: BlowFrame }>();
  */
 export function blowFrame(seq: Sequences, i: number, seconds: number): BlowFrame {
   const local = (Number.isFinite(seconds) ? seconds : 0) - i * BLOW_STAGGER;
+  const length = seq.length('bubbleBlow');
   let edge = ends.get(seq);
   if (!edge) {
-    edge = { before: sampleSheet(seq, 0), after: sampleSheet(seq, BLOW_SECONDS) };
+    edge = { before: sampleSheet(seq, 0), after: sampleSheet(seq, length) };
     ends.set(seq, edge);
   }
   if (local <= 0) return { ...edge.before };
-  if (local >= BLOW_SECONDS) return { ...edge.after };
+  if (local >= length) return { ...edge.after };
   return sampleSheet(seq, local);
 }
 
@@ -121,6 +119,8 @@ export interface BlowStep {
   dt: number;
   /** How many bubbles are blown. */
   count: number;
+  /** One bubble's blow in seconds: the loaded sheet's length (`Sequences.length`); unknown until it has loaded. */
+  length?: number;
   /** With `still`: the moment of the blow a still shows, in seconds (for review stills). */
   at?: number;
 }
@@ -143,7 +143,7 @@ export class BlowRun {
     return this.seconds !== null && !this.done;
   }
 
-  step({ exist, still, ready, failed = false, dt, count, at }: BlowStep) {
+  step({ exist, still, ready, failed = false, dt, count, length, at }: BlowStep) {
     if (this.done) return;
     if (still && at !== undefined) {
       if (ready) this.seconds = at;
@@ -162,6 +162,6 @@ export class BlowRun {
       return;
     }
     this.seconds += dt;
-    if (this.seconds >= blowLength(count)) this.done = true;
+    if (length !== undefined && this.seconds >= blowLength(count, length)) this.done = true;
   }
 }

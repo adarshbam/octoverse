@@ -1,17 +1,13 @@
 import * as THREE from 'three';
-import type { CharacterConfig, DomeShape, EffectColours, HeadEffectId } from '../config/types';
-import { RUNES } from '../world/textures';
+import type { DomeShape, EffectColours } from '../../config/types';
+import { RUNES } from '../../world/textures';
+import type { HeadEffectModule } from './index';
 
 // Nox's head effect (ledger R57, the owner's words: "Glowing red glyphs"): as the head swells into
 // its glass dome, a crown of red runes rises out of the glass and glows above it, the same runes,
 // strokes and reds as the world's glyph panels and rune pillars. They come in from the middle out
 // as the swell settles and go back into the glass as it closes. One instanced quad per rune, one
 // small atlas, no post pass; nothing is allocated per frame. Drawn premultiplied (black is empty).
-
-/** Whether a head effect draws the glyphs: `'none'` and null draw the dome alone, as approved. */
-export function drawsGlyphs(effect: HeadEffectId | null): effect is 'glyphs' {
-  return effect === 'glyphs';
-}
 
 /** The runes across the crown, left to right, from the world's own (world/textures.ts). */
 export const GLYPH_RUNES = ['zig', 'eye', 'arrow', 'diamond', 'gate', 'hook', 'fork'] as const;
@@ -167,13 +163,29 @@ export function createHeadGlyphs(dome: DomeShape, effect: EffectColours, strengt
 }
 
 /**
- * The glyphs a character's head swell draws, built by `make`: none for `'none'` or null (the dome
- * alone, as approved), and none in a silhouette capture, where they would read as shape.
+ * The `'glyphs'` head effect (HEAD_EFFECTS): the crown, its colours from the character's
+ * `palette.effect`, seated at the bottom of the dome. Each frame it follows the swell: shown once
+ * the effect has begun, scaled with the glass, brightening as the effect comes in; `clockSeconds`
+ * is the runes' glow clock (the caller holds it at 0 with motion off, so they stand still).
  */
-export function glyphsFor<T = ReturnType<typeof createHeadGlyphs>>(
-  config: Pick<CharacterConfig, 'headEffect' | 'dome'> & { palette: Pick<CharacterConfig['palette'], 'effect'> },
-  silhouette: boolean,
-  make: (dome: DomeShape, effect: EffectColours) => T = createHeadGlyphs as unknown as (dome: DomeShape, effect: EffectColours) => T,
-): T | null {
-  return drawsGlyphs(config.headEffect) && !silhouette ? make(config.dome, config.palette.effect) : null;
-}
+export const glyphsEffect: HeadEffectModule = {
+  create(dome, palette) {
+    const glyphs = createHeadGlyphs(dome, palette.effect);
+    glyphs.mesh.position.set(dome.center[0], dome.center[1] - dome.halfHeight, 0);
+    let disposed = false;
+    return {
+      root: glyphs.mesh,
+      update(swell, frame, clockSeconds) {
+        glyphs.mesh.visible = swell > 0.001;
+        glyphs.mesh.scale.setScalar(frame.scale);
+        glyphs.uniforms.uEffect.value = swell;
+        glyphs.uniforms.uTime.value = clockSeconds;
+      },
+      dispose() {
+        if (disposed) return;
+        disposed = true;
+        glyphs.dispose();
+      },
+    };
+  },
+};
