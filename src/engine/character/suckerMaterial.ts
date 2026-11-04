@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Palette, SuckerSettings } from '../config/types';
+import type { Palette, SuckerSettings, SuckerStyle } from '../config/types';
 import { glslColour } from '../world/colour';
 import type { SkinUniforms } from './skinMaterial';
 import { CUP_EMBED, CUP_FACE, type SuckerRow } from './suckerRow';
@@ -50,13 +50,79 @@ const bendCupSpace = /* glsl */ `
   }
 `;
 
+/** `source` with `from` (which must be there, once) replaced by `to`. */
+function swap(source: string, from: string, to: string) {
+  const at = source.indexOf(from);
+  if (at < 0 || source.indexOf(from, at + 1) >= 0) throw new Error(`frill cup shader: anchor not found once: ${from.trim().slice(0, 60)}`);
+  return source.slice(0, at) + to + source.slice(at + from.length);
+}
+
+/** `source` with the text from `start` up to and including `end` replaced by `to`. */
+function swapSpan(source: string, start: string, end: string, to: string) {
+  const a = source.indexOf(start);
+  const b = source.indexOf(end, a);
+  if (a < 0 || b < 0) throw new Error(`frill cup shader: span not found: ${start.trim().slice(0, 60)}`);
+  return source.slice(0, a) + to + source.slice(b + end.length);
+}
+
+/**
+ * The frill cup's colour (style.rimWidth, the cup's crest and the skin in cup space, from `uFrill`):
+ * a round hollow, darkest at its centre and paling to the edge colour up its sides to the rim; a
+ * raised rim, brightest along its crest; and below the rim's outer lip the wall, the edge colour,
+ * deepening a little where it rises out of the skin.
+ * Every colour is a uniform from the config: this text holds none.
+ */
+const FRILL_COLOUR = /* glsl */ `        float w = uFrill.x;
+        float inner = 1.0 - w;
+        float up = clamp((vLocal.z - uFrill.z) / max(uFrill.y - uFrill.z, 0.001), 0.0, 1.0);
+        float rimBand = smoothstep(inner - 0.06, inner + 0.04, r);
+        float onTop = smoothstep(uFrill.y - 0.5 * w - 0.08, uFrill.y - 0.3 * w, vLocal.z);
+        float crest = 1.0 - smoothstep(0.0, 0.5 * w + 0.02, abs(r - (1.0 - 0.5 * w)));
+        vec3 wall = uFrillEdge * mix(0.72, 1.0, up);
+        vec3 lip = mix(uFrillEdge, uFrillRim, 0.45 + 0.55 * crest);
+        vec3 hollow = mix(uFrillHollow * mix(0.75, 1.0, smoothstep(0.0, 0.45 * inner, r)), uFrillEdge, smoothstep(0.4 * inner, inner, r));
+        vec3 c = mix(hollow, mix(wall, lip, onTop), rimBand);
+`;
+
 /**
  * Sucker cups, as in the high-quality panel: shallow coral-peach discs sunk into the arm's red
  * band, each with a short red slit of a hollow lying along the arm, a lighter low rim and a
  * deeper edge where it meets the skin. Shaded in the cup's own space (radius 1, opening along +z).
  * The cups glow on their own; the skin's key light, bounce and underglow model them on top.
+ *
+ * With a frill `style` (Veyra; Aether in pink-white), the cups are the raised frill cups of
+ * createSuckerCup(detail, style), coloured from the style, glowing at its `glow`, and not
+ * flattened where seen edge-on: their edges are meant to stand proud of the arm's outline. Without
+ * one, the program is Nox's, unchanged to the character (the frill's text is swapped into a copy).
  */
-export function createSuckerMaterial(palette: Palette, light: CupLighting) {
+export function createSuckerMaterial(palette: Palette, light: CupLighting, style?: SuckerStyle) {
+  const material = createDiscMaterial(palette, light);
+  if (!style) return material;
+  material.uniforms.uFrillEdge = { value: new THREE.Color(style.edge) };
+  material.uniforms.uFrillRim = { value: new THREE.Color(style.rim) };
+  material.uniforms.uFrillHollow = { value: new THREE.Color(style.hollow) };
+  /** The rim's width, the crest's and the skin's height in cup space, and the glow. */
+  material.uniforms.uFrill = { value: new THREE.Vector4(style.rimWidth, CUP_EMBED + style.scallop, CUP_EMBED, style.glow) };
+  material.vertexShader = swapSpan(
+    material.vertexShader,
+    '        // Cups the viewer sees edge-on, along the arm',
+    'normalize(cameraPosition - m[3].xyz));\n',
+    '',
+  );
+  material.vertexShader = swap(material.vertexShader, '        p.z = mix(p.z, uFace + (p.z - uFace) * 0.3, 1.0 - smoothstep(0.05, 0.35, facing));\n', '');
+  let f = material.fragmentShader;
+  f = swap(f, '      uniform vec3 uVeilColor;\n', '      uniform vec3 uVeilColor;\n      uniform vec3 uFrillEdge;\n      uniform vec3 uFrillRim;\n      uniform vec3 uFrillHollow;\n      uniform vec4 uFrill;\n');
+  f = swapSpan(f, '        // A coral-peach disc', '(1.0 - smoothstep(0.85, 0.97, r)));\n', FRILL_COLOUR);
+  // The frill's wall seen edge-on is its band: it keeps its light.
+  f = swapSpan(f, '        // Cups seen edge-on darken', 'abs(dot(N, V))));\n', '');
+  f = swap(f, 'float rim = smoothstep(0.5, 0.72, r) * (1.0 - smoothstep(0.85, 0.97, r));', 'float rim = rimBand * onTop;');
+  f = swap(f, 'c *= uBoost;', 'c *= uFrill.w;');
+  material.fragmentShader = f;
+  return material;
+}
+
+/** Nox's cup program (see createSuckerMaterial). */
+function createDiscMaterial(palette: Palette, light: CupLighting) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uEdge: { value: new THREE.Color(palette.suckerEdge) },

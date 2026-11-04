@@ -18,6 +18,8 @@ export const LOGO_SLUGS: Record<string, string> = {
   kali: 'siKalilinux',
   burp: 'siBurpsuite',
   express: 'siExpress',
+  react: 'siReact',
+  cloudflare: 'siCloudflare',
 };
 
 interface SimpleIcon {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { headMorphVertex } from './headMorph';
 import type { StageLighting } from '../config/lighting';
-import type { CharacterConfig } from '../config/types';
+import type { CharacterConfig, JellySettings, SkinDetail, SurfaceLook } from '../config/types';
 import { glslColour } from '../world/colour';
 import { cheekCentres } from './headGeometry';
 import { ACCENT_GLSL, createAccentUniforms } from './worldAccent';
@@ -107,6 +107,9 @@ export function createSkinUniforms(config: CharacterConfig, lighting: StageLight
     uGroundLight: { value: new THREE.Color(lighting.ambient.ground).multiplyScalar(lighting.ambient.intensity) },
     uHaze: { value: new THREE.Vector3(lighting.haze.near, lighting.haze.far, lighting.haze.strength) },
     uHazeColor: { value: new THREE.Color(lighting.haze.color) },
+    /** The sparkles' twinkle clock, in seconds (0 when frozen), and the crown-to-face shimmer wave (0 to 1; 0 is none). Read only where a surface sparkles. */
+    uSkinTime: { value: 0 },
+    uSparkleWave: { value: 0 },
     /** The world's accents on the skin: none until a world feeds them. */
     ...createAccentUniforms(),
   };
@@ -155,8 +158,98 @@ const skinVertex = /* glsl */ `
   }
 `;
 
-/** The skin's fragment shader, with the white-hot rim colour (`palette.rimHot`) compiled in. */
-const skinFragment = (rimHot: string) => /* glsl */ `
+/** A sparkle speck's radius, in the surface's own units: a fine point of light at the stage's size. */
+export const SPARKLE_RADIUS = 0.012;
+/** Each speck fades in and out over this many seconds, its own pace and phase. */
+const TWINKLE_SECONDS = [2, 6] as const;
+/** The jelly crown's soft lower edge: the normal's up component over which the cap fades in above `crownHeight`. */
+const CROWN_SOFTNESS = 0.4;
+
+/**
+ * The jelly glass and the sparkles (spec 7.2), spliced into the skin's fragment shader only for a
+ * surface that has them, each behind its own define: a plain skin surface's program is the text it
+ * was before they existed, so Nox's compiled program is unchanged. Every colour is a uniform from
+ * the config; the only constants here are shape and pace.
+ */
+const LOOK_GLSL = /* glsl */ `
+
+  #ifdef JELLY
+    uniform vec3 uJellyRim;
+    uniform vec3 uJellyCrown;
+    uniform vec3 uJellyDepth;
+    uniform vec3 uJellyCore;
+    // rimPower, crownHeight (the normal's up component), depthStrength, coreWarmth.
+    uniform vec4 uJellyShape;
+    // The warm core's centre in world space, written each frame through the head's frame (jellyCoreWorld).
+    uniform vec3 uJellyCorePos;
+
+    // Jelly glass in one pass, over the skin's own shading: the face glow and its spill stay as the
+    // skin drew them, the rest takes the jelly's thick middle, its lighter crown, the warm core seen
+    // through it, and a bright fresnel rim all round.
+    vec3 jellyLook(vec3 col, vec3 N, vec3 V, float ndv, float faceGlow, float join) {
+      float clear = 1.0 - smoothstep(0.2, 0.65, faceGlow);
+      // Depth: the surface facing the viewer looks through the most jelly, darker and denser.
+      col = mix(col, uJellyDepth, ndv * uJellyShape.z * clear);
+      // Crown: a soft lighter cap toward the top, always the same soft width (a high crownHeight
+      // gives a smaller, fainter cap, never a hard edge).
+      float cap = smoothstep(uJellyShape.y, uJellyShape.y + ${glsl(CROWN_SOFTNESS)}, N.y);
+      col = mix(col, uJellyCrown, cap * clear);
+      // Warm core: brightest where the view through the jelly passes nearest it.
+      vec3 toCore = uJellyCorePos - cameraPosition;
+      vec3 ray = -V;
+      vec3 miss = toCore - ray * max(dot(toCore, ray), 0.0);
+      float core = exp(-dot(miss, miss) / (uGlowShape.x * uGlowShape.x)) * uGlowStrength * uJellyShape.w;
+      vec3 warm = texture2D(uGlowRamp, vec2(clamp(core, 0.0, 1.0), 0.5)).rgb;
+      col = mix(col, max(col, warm), clamp(core, 0.0, 1.0));
+      col += uJellyCore * core * core * 0.25;
+      // Fresnel rim, kept off the neck where the arms rise out of the body.
+      float rim = pow(1.0 - ndv, uJellyShape.x) * (1.0 - join);
+      col = mix(col, uJellyRim, clamp(rim, 0.0, 1.0)) + uJellyRim * rim * 0.6;
+      return col;
+    }
+  #endif
+
+  #ifdef SPARKLE
+    uniform float uSparkle;
+    uniform float uSparkleWave;
+    uniform float uSkinTime;
+
+    // Fine specks of light, about uSparkle per square unit of surface: a scattered point shows
+    // where it lies within a speck's radius of the surface, so cells hold 2 r / uSparkle each.
+    // Each twinkles on its own pace and phase; the shimmer wave sweeps them from crown to face.
+    float sparkles(vec3 p, float footprint, float up) {
+      float r = ${glsl(SPARKLE_RADIUS)};
+      float cell = pow(2.0 * r / max(uSparkle, 1e-3), 1.0 / 3.0);
+      vec3 offset;
+      vec4 s = nearestPoint(p / cell, offset);
+      // A few are slightly larger.
+      float size = r * (hash31(s.yzw + 17.3) > 0.88 ? 1.7 : 1.0);
+      // Never drawn thinner than a pixel; a speck drawn wider dims to match.
+      float aa = max(footprint, 1e-5);
+      float drawn = max(size, aa * 0.75);
+      float speck = (1.0 - smoothstep(drawn - aa * 0.5, drawn + aa * 0.5, s.x * cell)) * (size * size) / (drawn * drawn);
+      float pace = mix(${glsl(TWINKLE_SECONDS[0])}, ${glsl(TWINKLE_SECONDS[1])}, hash31(s.yzw + 4.1));
+      float twinkle = smoothstep(0.15, 1.0, 0.5 + 0.5 * sin(uSkinTime * 6.2832 / pace + hash31(s.yzw + 8.7) * 6.2832));
+      float wave = (1.0 - smoothstep(0.0, 0.12, abs(up - mix(1.25, -0.25, uSparkleWave))));
+      return speck * (twinkle + wave * 1.5);
+    }
+  #endif`;
+
+/** Where the look is applied: after the skin's own lighting, before the world's accents and the depth haze. */
+const LOOK_CALL = /* glsl */ `
+
+    #ifdef JELLY
+      col = jellyLook(col, N, V, ndv, faceGlow, join);
+    #endif
+    #ifdef SPARKLE
+      col += uWetColor * sparkles(p, footprint, up) * 1.4 * (1.0 - smoothstep(0.3, 0.7, faceGlow));
+    #endif`;
+
+/**
+ * The skin's fragment shader, with the white-hot rim colour (`palette.rimHot`) compiled in, and the
+ * jelly and sparkle code (`look`) where a surface has either: without, the text Nox's skin always was.
+ */
+const skinFragment = (rimHot: string, look = false) => /* glsl */ `
   uniform sampler2D uGlowRamp;
   uniform vec3 uGlowPos;
   uniform vec3 uGlowShape;
@@ -257,7 +350,7 @@ const skinFragment = (rimHot: string) => /* glsl */ `
     return normalize(abs(det) * N - grad);
   }
 
-  ${ACCENT_GLSL}
+  ${ACCENT_GLSL}${look ? LOOK_GLSL : ''}
 
   // The face texture's weight on a surface facing normalZ (head space): see faceWeight in skinMaterial.ts.
   float faceWeight(float normalZ) {
@@ -496,7 +589,7 @@ const skinFragment = (rimHot: string) => /* glsl */ `
     #else
       float edgeLine = pow(1.0 - ndv, 9.0);
     #endif
-    col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);
+    col += uWetColor * edgeLine * smoothstep(0.55, 0.95, up) * uWet.x * 1.1 * (1.0 - join) * (1.0 - 0.6 * headShade);${look ? LOOK_CALL : ''}
 
     // The world's light: small capped accents on the skin's own lighting, none outside a world, and
     // none on the face glow or where the arms join the body.
@@ -533,16 +626,70 @@ const skinFragment = (rimHot: string) => /* glsl */ `
 
 export type SkinKind = 'HEAD' | 'ARM' | 'BODY';
 
-/** A skin surface of `kind`, on the character's shared `uniforms`, its rim's white-hot line in `rimHot` (the character's `palette.rimHot`). */
-export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHot: string, face?: { texture: THREE.Texture; rect: THREE.Vector4 }) {
+/** Nox's look on a surface: living skin, no sparkle. */
+const PLAIN_SKIN: SurfaceLook = { mode: 'skin', sparkle: 0 };
+
+/** The mantle's and the arms' looks: the config's, or plain skin on both where it gives none (Nox). */
+export function surfaceLooks(skin: SkinDetail): { mantle: SurfaceLook; arms: SurfaceLook } {
+  return skin.surfaces ?? { mantle: PLAIN_SKIN, arms: PLAIN_SKIN };
+}
+
+type Triple = readonly [number, number, number];
+
+/**
+ * Where a jelly surface's warm core sits in the head's own space (the frame `glow.center` is given
+ * in): the face glow's centre plus the surface's `coreCenter`.
+ */
+export function jellyCoreLocal(glowCenter: Triple, coreCenter: Triple): THREE.Vector3 {
+  return new THREE.Vector3(glowCenter[0] + coreCenter[0], glowCenter[1] + coreCenter[1], glowCenter[2] + coreCenter[2]);
+}
+
+/**
+ * The warm core in world space, written into `out` (the surface's `uJellyCorePos`, preallocated):
+ * the head-space point `local` carried through the head's world matrix, so the core turns, tilts and
+ * scales with the head, as the face glow does. Allocates nothing; Octopus calls it each frame.
+ */
+export function jellyCoreWorld(out: THREE.Vector3, local: THREE.Vector3, headMatrixWorld: THREE.Matrix4): THREE.Vector3 {
+  return out.copy(local).applyMatrix4(headMatrixWorld);
+}
+
+/**
+ * One surface's jelly settings as uniforms: every colour and the core's place are values, never
+ * shader text. The core starts at its head-space point (`glowCenter` + `coreCenter`), which is its
+ * world place for a head at the origin, until the first frame carries it through the head's frame.
+ */
+function jellyUniforms(jelly: JellySettings, glowCenter: Triple) {
+  return {
+    uJellyRim: { value: new THREE.Color(jelly.rim) },
+    uJellyCrown: { value: new THREE.Color(jelly.crown) },
+    uJellyDepth: { value: new THREE.Color(jelly.depth) },
+    uJellyCore: { value: new THREE.Color(jelly.core) },
+    uJellyShape: { value: new THREE.Vector4(jelly.rimPower, jelly.crownHeight, jelly.depthStrength, jelly.coreWarmth) },
+    uJellyCorePos: { value: jellyCoreLocal(glowCenter, jelly.coreCenter) },
+  };
+}
+
+/**
+ * A skin surface of `kind`, on the character's shared `uniforms`, its rim's white-hot line in
+ * `rimHot` (the character's `palette.rimHot`), drawn in its surface's `look` (the mantle's for the
+ * head, the arms' for the arms and webs): a jelly or sparkling surface compiles that code behind its
+ * define, with its own uniforms; plain skin compiles exactly the skin program it always did.
+ * `glowCenter` is the character's `glow.center` (head space), where a jelly core is placed from.
+ */
+export function createSkinMaterial(kind: SkinKind, uniforms: SkinUniforms, rimHot: string, face?: { texture: THREE.Texture; rect: THREE.Vector4 }, look: SurfaceLook = PLAIN_SKIN, glowCenter: Triple = [0, 0, 0]) {
+  const jelly = look.mode === 'jelly';
+  const sparkle = look.sparkle > 0;
+  if (jelly && !look.jelly) throw new Error('A jelly skin surface needs its jelly settings (clampCharacterConfig fills them in)');
   return new THREE.ShaderMaterial({
-    defines: { [kind]: '' },
+    defines: { [kind]: '', ...(jelly ? { JELLY: '' } : {}), ...(sparkle ? { SPARKLE: '' } : {}) },
     uniforms: {
       ...uniforms,
       uFace: { value: face?.texture ?? null },
       uFaceRect: { value: face?.rect ?? new THREE.Vector4(0, 0, 1, 1) },
+      ...(jelly ? jellyUniforms(look.jelly!, glowCenter) : {}),
+      ...(sparkle ? { uSparkle: { value: look.sparkle } } : {}),
     },
     vertexShader: skinVertex,
-    fragmentShader: skinFragment(glslColour(rimHot)),
+    fragmentShader: skinFragment(glslColour(rimHot), jelly || sparkle),
   });
 }
