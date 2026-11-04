@@ -175,6 +175,10 @@ export const FLUX: CharacterConfig = {
   suckers: {
     size: 0.22, sizePower: 0.9, spacing: 2.6, elongation: 1.15, tilt: 26, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.6,
     style: { rimWidth: 0.18, scallop: 0.1, edge: '#f3afef', rim: '#f3afef', hollow: '#a850c8', glow: 1.2 },
+    // The cup pulse (spec 2.4, 7.5): root to tip in 0.75 s (speed 1.33), lighting 3 to 5 cups at once
+    // (wavelength 0.17); the leading cups electric cyan, the middle lavender, the tail the cup pink.
+    // Strength is a starting value: Task 6 tunes it against the 2.4 brightness cap.
+    pulse: { speed: 1.33, wavelength: 0.17, strength: 0.6, colours: ['#30e8ff', '#b8a0ff', '#f3afef'] },
   },
   // The overview's dome (P3): a wide capsule; Milestone 3 traces it.
   dome: { center: [0.1, 0.3], halfWidth: 1.6, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
