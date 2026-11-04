@@ -1,7 +1,7 @@
-// Usage: node scripts/platform-pages-capture.mjs [out-dir]
+// Usage: node scripts/platform-pages-capture.mjs [out-dir]   (ONLY=creator limits it to pages whose name starts with that)
 // Static captures of the platform's profile, explore and not-found pages (platform Task 9, spec 7.8, 7.11, 7.12) at 1536 x 1024,
 // 768 x 1024 and 390 x 844 (full viewport, device scale 1), through the temporary `?page=` switch of src/platform/App.tsx.
-// Names: profile-<handle>-<w>x<h>.png, explore-<w>x<h>.png, notfound-<w>x<h>.png. NOX_URL is the dev server (default :5197).
+// Names: profile-<handle>-<w>x<h>.png, explore-<w>x<h>.png, notfound-<w>x<h>.png, creator-<w>x<h>.png (the creator, platform Task 10). NOX_URL is the dev server (default :5197).
 // No WebGL on these pages: they hold stills only. Poppins is warmed first, as the other capture scripts do.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -15,7 +15,8 @@ const PAGES = [
   ...['veyra', 'flux', 'nox', 'aether'].map(h => ({ name: `profile-${h}`, query: `page=profile&handle=${h}` })),
   { name: 'explore', query: 'page=explore' },
   { name: 'notfound', query: 'page=notfound' },
-];
+  { name: 'creator', query: 'page=create' },
+].filter(p => !process.env.ONLY || p.name.startsWith(process.env.ONLY));
 
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });

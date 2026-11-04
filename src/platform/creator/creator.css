@@ -1,0 +1,590 @@
+/*
+ * The creator (platform spec 7.13, 7.15, P4): floating glass panels with a soft glow around the octopus's picture, over the same
+ * reef water as the other static pages (pages.css). Wide: "Your Octopus" at the left, "Your Projects" at the right, the actions under
+ * the picture. A tablet puts the picture on top and the two panels side by side. A phone (under 768 px) puts the picture in a sticky
+ * top 40% and the two panels as tabs below. Targets are 44 px and more; focus is the host's lavender (glass.css).
+ */
+.oct-page-main:has(.oct-creator) {
+  max-width: 1360px;
+}
+
+/*
+ * index.html's boot style fixes html, body and #root at the window's height with overflow hidden (the worlds are one screen), so
+ * a page that is longer than the window scrolls inside itself: the creator's page is its own scroller. The sticky preview sticks
+ * to this scroller's top.
+ */
+.oct-page:has(.oct-creator) {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+.oct-creator-title {
+  margin-bottom: 18px;
+}
+
+.oct-creator-grid {
+  display: grid;
+  gap: 22px;
+  align-items: start;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-areas:
+    'left centre right'
+    'left actions right';
+  /* The picture takes the height the taller panel gives; the actions sit at the bottom, under it, as in P4. */
+  grid-template-rows: 1fr auto;
+}
+
+.oct-creator-grid > .oct-octopus-panel {
+  grid-area: left;
+}
+
+.oct-creator-grid > .oct-creator-preview {
+  grid-area: centre;
+  align-self: center;
+}
+
+.oct-creator-grid > .oct-projects-panel {
+  grid-area: right;
+}
+
+.oct-creator-grid > .oct-creator-actions {
+  grid-area: actions;
+  align-self: end;
+}
+
+/* ---- the picture slot (centre) -------------------------------------------------------------- */
+
+.oct-creator-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.oct-creator-picture {
+  box-sizing: border-box;
+  width: min(100%, 480px);
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 30px;
+  border: 2px solid rgba(255, 198, 90, 0.8);
+  box-shadow: 0 0 34px rgba(255, 198, 90, 0.34), inset 0 0 22px rgba(255, 198, 90, 0.16);
+}
+
+.oct-creator-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  text-align: center;
+}
+
+.oct-creator-caption b {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.oct-creator-caption span {
+  font-size: 16px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-creator-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-creator-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.oct-creator-publish {
+  max-width: 100%;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  text-align: center;
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--oct-ink-soft);
+  cursor: not-allowed;
+}
+
+.oct-creator-publish:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--oct-glass-border);
+}
+
+/* ---- the glass panels ----------------------------------------------------------------------- */
+
+.oct-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px 22px;
+  border-radius: 24px;
+}
+
+.oct-panel-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.oct-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.oct-fieldset > legend {
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--oct-ink-soft);
+}
+
+/* Templates: the four world stills, two by two. */
+.oct-templates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.oct-template {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 2px solid rgba(190, 172, 255, 0.3);
+  background: rgba(10, 8, 40, 0.5);
+  color: var(--oct-ink);
+  font: 500 15px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.oct-template:hover {
+  border-color: rgba(220, 205, 255, 0.7);
+}
+
+.oct-template[aria-pressed='true'] {
+  border-color: #d8c8ff;
+  box-shadow: 0 0 18px rgba(170, 140, 255, 0.55);
+}
+
+.oct-creator .oct-template .oct-still {
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-position: 50% 62%;
+}
+
+.oct-template-name {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 4px 6px;
+}
+
+/* Palette: round swatches, 44 px (P4's are 18 px: a target is never smaller than 44). */
+.oct-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
+  gap: 10px;
+  justify-content: start;
+}
+
+.oct-swatch {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+/* Original: the template's own colours, drawn as a ring of the four worlds' hues. */
+.oct-swatch.is-original {
+  background: conic-gradient(from 200deg, #35e0c8, #5b9dff, #ff4a63, #b08dff, #35e0c8);
+}
+
+.oct-swatch:hover {
+  transform: scale(1.06);
+}
+
+.oct-swatch[aria-pressed='true'] {
+  border-color: #140c30;
+  box-shadow: 0 0 0 3px #f4eeff, 0 0 16px 4px rgba(190, 160, 255, 0.6);
+}
+
+.oct-swatch:focus-visible {
+  outline-offset: 7px;
+}
+
+.oct-palette-name {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--oct-ink-soft);
+}
+
+/* Personality: four pills, two by two. */
+.oct-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.oct-pill {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(190, 172, 255, 0.4);
+  background: rgba(40, 30, 100, 0.45);
+  color: var(--oct-ink);
+  font: 500 15px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.oct-pill:hover {
+  background: rgba(150, 120, 255, 0.25);
+}
+
+.oct-pill[aria-pressed='true'] {
+  background: rgba(150, 120, 255, 0.45);
+  border-color: rgba(230, 218, 255, 0.9);
+  box-shadow: 0 0 14px rgba(150, 120, 255, 0.5);
+}
+
+/* Text fields. 16 px so a phone does not zoom in. */
+.oct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--oct-ink-soft);
+}
+
+.oct-field input,
+.oct-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(190, 172, 255, 0.45);
+  background: rgba(10, 8, 40, 0.55);
+  color: var(--oct-ink);
+  font: 400 16px/1.3 'Poppins', system-ui, sans-serif;
+  letter-spacing: normal;
+}
+
+.oct-field textarea {
+  padding: 10px 14px;
+  resize: vertical;
+}
+
+.oct-field input::placeholder {
+  color: rgba(217, 207, 232, 0.7);
+}
+
+/* ---- projects ------------------------------------------------------------------------------- */
+
+.oct-project-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.oct-project-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-project-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(190, 172, 255, 0.3);
+  background: rgba(40, 30, 100, 0.45);
+  color: var(--oct-ink);
+  font: 500 16px/1.2 'Poppins', system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oct-project-row[aria-current='true'] {
+  border-color: rgba(230, 218, 255, 0.9);
+  background: rgba(150, 120, 255, 0.3);
+  box-shadow: 0 0 14px rgba(150, 120, 255, 0.4);
+}
+
+.oct-project-thumb {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #b99bff, #ff9bd6 55%, #ffc08a);
+  opacity: 0.85;
+}
+
+.oct-project-row-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oct-add {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(235, 225, 255, 0.8);
+  background: linear-gradient(135deg, var(--oct-button-from), var(--oct-button-to));
+  box-shadow: 0 0 20px rgba(150, 120, 255, 0.5);
+  color: var(--oct-ink-dark);
+  font: 600 28px/1 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.oct-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.oct-project-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.oct-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oct-subsection h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--oct-ink-soft);
+}
+
+.oct-empty {
+  margin: 0;
+  font-size: 15px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-images-empty {
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  border-radius: 12px;
+  border: 1px dashed rgba(190, 172, 255, 0.45);
+  background: repeating-linear-gradient(135deg, rgba(150, 120, 255, 0.08) 0 12px, rgba(150, 120, 255, 0.02) 12px 24px);
+  color: var(--oct-ink-soft);
+  font-size: 14px;
+}
+
+.oct-profile-fold {
+  border-top: 1px solid rgba(190, 172, 255, 0.28);
+  padding-top: 4px;
+}
+
+.oct-profile-fold > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.oct-profile-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.oct-profile-fold > summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 22px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-profile-fold[open] > summary::after {
+  content: '\2212';
+}
+
+.oct-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+/* ---- a tablet: the picture on top, the two panels side by side (768 to 1099 px) ------------- */
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .oct-creator-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'centre centre'
+      'left right'
+      'actions actions';
+    grid-template-rows: auto auto auto;
+  }
+
+  .oct-creator-picture {
+    width: min(100%, 300px);
+  }
+
+  .oct-creator-note {
+    display: none;
+  }
+}
+
+/* ---- a phone (spec 7.15): the picture in a sticky top 40%, the two panels as tabs below ---- */
+
+@media (max-width: 767px) {
+  /* The heading stays for screen readers; the preview's caption is the visible title. */
+  .oct-creator-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    -webkit-text-fill-color: initial;
+  }
+
+  .oct-creator-grid {
+    display: block;
+  }
+
+  .oct-creator-preview {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-sizing: border-box;
+    height: 40vh;
+    height: 40dvh;
+    /* Up to the top of the screen and across it; the navigation bar floats over its first 64 px. */
+    margin: -76px -16px 14px;
+    padding: 64px 16px 10px;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(14, 22, 80, 0.94);
+    border-bottom: 1px solid var(--oct-glass-border);
+    box-shadow: 0 8px 24px rgba(10, 12, 50, 0.6);
+    backdrop-filter: blur(10px);
+  }
+
+  .oct-creator-picture {
+    flex: 1 1 0;
+    width: auto;
+    max-width: 100%;
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  .oct-creator-caption {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 10px;
+  }
+
+  .oct-creator-caption b {
+    font-size: 18px;
+  }
+
+  .oct-creator-caption span {
+    font-size: 14px;
+  }
+
+  .oct-creator-note {
+    display: none;
+  }
+
+  .oct-creator .oct-tabs {
+    margin-top: 0;
+  }
+
+  .oct-creator .oct-tablist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-bottom: 12px;
+  }
+
+  .oct-creator .oct-tabpanel {
+    padding-top: 14px;
+  }
+
+  .oct-panel {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .oct-creator-actions {
+    margin-top: 18px;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-template,
+  .oct-swatch,
+  .oct-pill {
+    transition: none;
+  }
+
+  .oct-swatch:hover {
+    transform: none;
+  }
+}

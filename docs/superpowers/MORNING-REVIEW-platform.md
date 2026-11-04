@@ -152,3 +152,25 @@ Known gaps for the owner to rule on:
 - Nothing in the content supplies a profile link or a location, so the profile shows neither. Veyra and Flux have no screenshot, so their project card shows the placeholder; Nox's screenshot (the owner's supplied content) shows a site headed "VAULT" under the title Security Lab, and Aether's is the storyboard's placeholder screenshot (its alt text says so).
 - Tech Stack notes: only three technologies have a usage note in the content (GitHub Actions, Kali Linux, OpenAI, each the storyboard's panel 4 text flagged as a placeholder); the others show their category only, nothing invented. About is the content's introduction and summary, which the content flags as storyboard placeholder text.
 - Tile pictures are the 738 x 614 stills cropped a little; at 1536 the five tiles are about 245 px wide, so the page leaves a lot of empty water below them.
+
+## PENDING OWNER REVIEW: M3, the creator composition (Task 10)
+
+Commit on `claude/platform-overnight`: `feat(platform): creator composition; I01 statics (pending owner review)`. A static composition over a sample draft (Aether, peach, one placeholder project); edits live in memory only, no storage (Task 18), and the picture is the gold glyph card, not a live octopus (Task 13). Reach it at `/?page=create` (a temporary switch in `src/platform/App.tsx`, removed in Task 14).
+
+Stills (`docs/superpowers/evidence/platform/m3/`): `creator-1536x1024.png`, `creator-768x1024.png`, `creator-390x844.png`. Compare beside P4 (`docs/design/references/Octoverse/native-panels/04 - Octoverse Create Your Own Portfolio.png`). Captured by `scripts/platform-pages-capture.mjs` (`ONLY=creator`).
+
+What to check:
+1. Not a form dashboard: two floating glass panels with a soft glow around the picture, the actions under it, as P4. Say if the right panel (four text fields, chips, an images box, a Profile fold) reads too much like a form.
+2. No colour picker anywhere: template thumbnails, nine round swatches (Original plus P4's eight, sampled from P4: table in `src/platform/creator/swatchColours.ts`), four personality pills, Name. Swatches are 44 px round buttons (P4's are 18 px).
+3. Publish clearly unavailable: a dashed, disabled pill with the text "Publishing arrives with accounts", never in the focus order. "See live preview" opens `/create/preview` (not routed yet: the "not open yet" page until Task 14).
+4. Phone (390 x 844): the picture and its caption in a sticky top 40% (below the navigation bar), then the tabs Octopus and Projects, then the actions at the bottom of the page.
+5. Tablet (768 x 1024): the picture on top, the two panels side by side; wide (1536 x 1024): left panel, picture, right panel, all in one screen.
+
+Known gaps for the owner to rule on:
+- The template thumbnails are the four world stills (the creator stills, 4 x 9, come with Task 18); the picture slot is the gold glyph, so choosing a swatch or template changes the caption and the pressed states, not the picture.
+- The technology picker (searchable), project reorder, delete with undo, section text and image uploads are the editor's (Task 19): technologies show as chips and images as an empty box. Add (+) works in memory.
+- The "Original" swatch is a ring of the four worlds' hues (a stand-in: Original is the template's own colours).
+- The page is its own scroller (`.oct-page` is 100dvh with overflow auto), because `index.html` fixes html, body and #root at the window's height with overflow hidden. The Task 9 pages (profile, Explore) do not do this: on a phone they are clipped at the window's height and cannot be scrolled. Needs a fix before the platform ships (Task 14).
+
+Numbers: unit 25 tests in `creatorPage.test.tsx` (and the boundary test); e2e `tests/e2e/platform-creator.spec.ts` 11 of 11 (five widths: no horizontal scroll, 44 px controls, the Profile fold opened; phone tabs and sticky 40%; keyboard order and the lavender focus ring; both panels at 1536 and 768).
+

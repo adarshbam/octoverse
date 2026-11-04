@@ -278,3 +278,14 @@ Verdict: provisional, pending owner.
 1. The reef water is CSS, and the not-found page has no host picture: no still of the reef's far water or of the host exists yet.
 2. No profile link or location in any content, so none shows. Usage notes exist for three technologies only (storyboard panel 4 text, flagged placeholder).
 3. Hero and tiles are stills; the "alive" behaviour (live preview on hover, the arm reaching for the card) waits for Task 13.
+
+## Task 10: creator composition, static (2026-11-05)
+
+**I01 statics: provisional, pending owner.** The creator layout of spec 7.13 over a static sample draft: `creator/CreatorPage.tsx`, `OctopusPanel.tsx`, `ProjectsPanel.tsx`, `creator.css`; types and preset names in `types.ts` (types only, Task 18 adds validation); `sampleDraft.ts`, pure `draftEdits.ts`, `technologies.ts` (the worlds' own technology names, a stand-in for the shared catalogue) and `swatchColours.ts` (eight colours sampled from P4, with pixel coordinates; Task 17 re-records them in palettes.ts). Unit tests pass (`creatorPage.test.tsx`), e2e 11 of 11 (`platform-creator.spec.ts`). Stills `creator-<w>x<h>.png` in `docs/superpowers/evidence/platform/m3/`; review entry in `MORNING-REVIEW-platform.md`.
+
+### Gaps
+
+1. The picture is the gold glyph card, not a render; template thumbnails are the four world stills (creator stills: Task 18).
+2. The edits live in memory (the temporary `?page=create` holds the draft in state); no storage.
+3. The page scrolls inside `.oct-page` because index.html's boot style hides overflow on html, body and #root. The Task 9 pages lack this and cannot scroll on a phone: a Task 14 fix.
+
