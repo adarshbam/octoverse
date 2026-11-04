@@ -122,7 +122,7 @@ function isTripleHue(numbers: readonly string[], css: boolean): boolean {
 
 /** Every hue literal in a source text (comments already out): HUE's and the coloured triples. */
 function hues(text: string): string[] {
-  const found = text.match(HUE) ?? [];
+  const found: string[] = [...(text.match(HUE) ?? [])];
   for (const m of text.matchAll(TRIPLE)) {
     const numbers = (m[1] !== undefined ? m.slice(1, 4) : m[4] !== undefined ? m.slice(4, 7) : m.slice(7, 10)) as string[];
     if (isTripleHue(numbers, m[7] !== undefined)) found.push(m[0]);
