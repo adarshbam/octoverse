@@ -1,0 +1,80 @@
+{
+  "requests": 32,
+  "onLanding": 27,
+  "worldChecks": {
+    "veyra": [],
+    "flux": [],
+    "nox": [],
+    "aether": []
+  },
+  "forbidden": {
+    "veyra": {
+      "chunks": [
+        "assets/state.theatre-DXuDe8ox.js",
+        "assets/bundle-D1wej9hY.js"
+      ],
+      "folder": "/veyra/world/"
+    },
+    "flux": {
+      "chunks": [
+        "assets/state.theatre-BYk47ONE.js",
+        "assets/bundle-CHu-rmTG.js"
+      ],
+      "folder": "/flux/world/"
+    },
+    "nox": {
+      "chunks": [
+        "assets/state.theatre-C6Q8tgJ2.js",
+        "assets/bundle-NHWMVUP8.js"
+      ],
+      "folder": "/nox/world/"
+    },
+    "aether": {
+      "chunks": [
+        "assets/state.theatre-DbwhJoGC.js",
+        "assets/bundle-CodivMD4.js"
+      ],
+      "folder": "/aether/world/"
+    }
+  },
+  "hostFiles": [
+    "/octoverse/world/reef/near.glb",
+    "/octoverse/world/reef/far/far-0.ktx2",
+    "/octoverse/world/reef/far/far-1.ktx2",
+    "/octoverse/world/reef/far/far-2.ktx2"
+  ],
+  "allRequests": [
+    "/",
+    "/assets/index-aJaiIjtq.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/validateWorld-Cv1w-36A.js",
+    "/assets/index-DNppxGeK.css",
+    "/css2",
+    "/s/poppins/v24/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2",
+    "/s/poppins/v24/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2",
+    "/s/poppins/v24/pxiEyp8kv8JHgFVrJJfecg.woff2",
+    "/assets/state.theatre-C1WlyBzk.js",
+    "/assets/dist-Br0zSnYT.js",
+    "/octoverse/world/reef/near.glb",
+    "/octoverse/world/reef/far/far-0.ktx2",
+    "/octoverse/world/reef/far/far-1.ktx2",
+    "/octoverse/world/reef/far/far-2.ktx2",
+    "/nox/basis/basis_transcoder.js",
+    "/nox/basis/basis_transcoder.wasm",
+    "http://localhost:5297/7228230b-ea8d-4805-b685-05b01cc98f8d",
+    "http://localhost:5297/07c471b2-4324-426d-8aa8-9c92512cae6a",
+    "http://localhost:5297/c067d1d5-6e91-43bd-990b-d81460b27e08",
+    "http://localhost:5297/187a243b-ef6d-4b3a-9335-76999b534a77",
+    "http://localhost:5297/379835b6-29bb-4ccb-92d1-9698c12cb808",
+    "http://localhost:5297/1f48e507-025a-472b-a9b0-89485005f894",
+    "http://localhost:5297/8709a81b-45e0-4662-8515-c157393ecda7",
+    "http://localhost:5297/8709a81b-45e0-4662-8515-c157393ecda7",
+    "http://localhost:5297/8709a81b-45e0-4662-8515-c157393ecda7",
+    "http://localhost:5297/8709a81b-45e0-4662-8515-c157393ecda7",
+    "/platform/stills/veyra.webp",
+    "/platform/stills/flux.webp",
+    "/platform/stills/nox.webp",
+    "/platform/stills/aether.webp",
+    "/platform/stills/creator-aether-peach.webp"
+  ]
+}

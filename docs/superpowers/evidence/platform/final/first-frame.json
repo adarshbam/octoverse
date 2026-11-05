@@ -1,0 +1,25 @@
+{
+  "runs": [
+    {
+      "veilGone": 1264.300000000745,
+      "ready": 4551.599999997765,
+      "firstContentfulPaint": 92,
+      "loadEvent": 685.3000000007451,
+      "spread": 50.32750527721669
+    },
+    {
+      "veilGone": 1245.300000000745,
+      "ready": 4437.400000002235,
+      "firstContentfulPaint": 120,
+      "loadEvent": 1250.6000000014901,
+      "spread": 50.35069661193762
+    },
+    {
+      "veilGone": 1279.300000000745,
+      "ready": 4531.699999999255,
+      "firstContentfulPaint": 88,
+      "loadEvent": 624.8000000007451,
+      "spread": 50.31272927222381
+    }
+  ]
+}

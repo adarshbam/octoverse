@@ -485,3 +485,25 @@ Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can
 - **Poster.** `scripts/platform-poster.mjs` (vite on 5297, the engine's `?stage=intro&freeze&world=octoverse`, the host has no kit so only the plate is required, every overlay hidden, 1536 x 1024 at scale 1, WebP quality lowered to fit 150 KB: 138 KB at quality 92). The engine's `Poster` draws it `object-fit: cover; object-position: 50% 45%` under the platform's HTML; the spec maps the face's box (poster pixels 640,545 to 900,710) through that crop and checks no text or button meets it at 1536 x 1024, 768 x 1024 and 390 x 844. `/?nowebgl` is the engine's review switch (Nox's page), so the real no-WebGL path is tested with a stubbed `getContext` and with a browser launched with WebGL off.
 - **Not in this task:** 21b (performance, resources, world regression).
 - **Small text left as is:** the "Sample octopus" tag on the Your Octopus card is 11 px (a label; 4.7:1 at its lowest) and the card captions are 13 px by the earlier owner ruling; spec 7.15 says body text 16 px.
+
+## Task 21b: final measurements (under load) (2026-11-05)
+
+**Provisional, pending owner.** Measured at HEAD `9994de6` on a production build (`npx vite build --outDir dist/m5-prod --emptyOutDir`), Edge (msedge channel), 1536 x 1024, port 5297, one browser at a time. 'Under load': the machine was shared with other sessions (many node and Chrome processes alive, about 6.5 GB RAM free at the start); nothing else of mine ran during a measurement. Evidence: `docs/superpowers/evidence/platform/final/`. Report with all run lists: `.superpowers/sdd/2026-11-03-platform/task-21b-report.md`.
+
+### Resources spec re-run (`tests/e2e/platform-resources.spec.ts`, `playwright.platform-prod.config.ts`, `--workers=1`, strict timing, `PLATFORM_LOOSE_TIMING` unset)
+
+Result: 9 passed (5.6 min), of which 2 are the expected failures (`test.fail`: the two heap checks stay red, so they count as passed). No spec edit was needed (the Task 16 fix-round edits worked unchanged).
+
+| Check | Limit | Task 16 | Now |
+|---|---|---|---|
+| Contexts, peak over 20 trips (exact count) | <= 2 | held 1, attached 1 (polled) | held 1, attached 1; about 8 made per trip (166 in 20 trips); mid-trip attached 0/1/1/0 or 0/1/1/1 |
+| Window listeners | equal to trip 1 | 28 | 28 after every trip (20 trips, and 8 trips cycling the four worlds) |
+| Heap, 20 trips, CDP | within 15% | 24.8 to 50.9 MB (+105%) | 24.93 to 50.85 MB (+104.0%): same, no change |
+| Heap, 20 trips, performance.memory | (reported) | 69.7 to 112.9 MB (+62%) | 73.3 to 116.8 MB (+59.2%) |
+| Heap, 8 trips cycling worlds, vs trip 4 | within 15% | CDP 31.1 to 36.1 MB; +27 to +34% (perf.memory) | CDP 31.76 to 36.75 MB (+15.7%); perf.memory +25.3% |
+| Heap by segment (CDP slope per cycle) | (diagnostic) | 0.82 / 0.44 / 1.08 MB | 0.52 / 0.42 / 0.88 MB (landing-Explore / Explore-profile / profile-world; perf.memory 0.93 / 0.41 / 0.76 MB) |
+| Landing and How It Works payload | no other world's chunk, state or kit | 32 requests, none | 32 requests (27 on the landing), none; a world route requests its own and no other's |
+| First intro frame (veil gone), 3 cold runs | <= 3000 ms (median) | 2719, 1993, 1451 (median 1993) | 1264, 1245, 1279 ms (median 1264); FCP 92, 120, 88; ready flag 4552, 4437, 4532 ms; canvas luminance spread 50.3 (not blank) |
+| Route change, cached chunk | < 500 ms | explore to create 265, 156, 150; to profile 156, 151, 144 | explore to create 294, 157, 162; to profile 147, 145, 145 ms |
+
+Heap: the leak is unchanged (+104% CDP over 20 trips, about +1.3 MB per trip, linear; the per-trip CDP list is in `final/resources-run-log.txt`). It did not grow or shrink beyond noise (105% to 104%). The heap checks are expected failures and the spec's 15% limit is MISSED. Contexts, listeners, payload, first frame and route change are met. The cause is still unidentified (the diagnostic under 'Open issue: heap growth' above was not run: it is an engine/world investigation, out of scope here).

@@ -1,0 +1,54 @@
+
+Running 9 tests using 1 worker
+
+trip 1 (veyra) 8554 ms: contexts held 1 attached 1 (made 10), window listeners 28, heap 69.94 MB (cdp 24.93), attached mid-trip 0/1/1/0
+trip 2 (veyra) 6426 ms: contexts held 1 attached 1 (made 18), window listeners 28, heap 78.12 MB (cdp 27.69), attached mid-trip 0/1/1/1
+trip 3 (veyra) 5114 ms: contexts held 1 attached 1 (made 26), window listeners 28, heap 75.48 MB (cdp 29.45), attached mid-trip 0/1/1/0
+trip 4 (veyra) 4804 ms: contexts held 1 attached 1 (made 34), window listeners 28, heap 76.96 MB (cdp 30.41), attached mid-trip 0/1/1/0
+trip 5 (veyra) 4888 ms: contexts held 1 attached 1 (made 42), window listeners 28, heap 79.37 MB (cdp 31.70), attached mid-trip 0/1/1/0
+trip 6 (veyra) 6442 ms: contexts held 1 attached 1 (made 50), window listeners 28, heap 85.52 MB (cdp 33.27), attached mid-trip 0/1/1/1
+trip 7 (veyra) 7029 ms: contexts held 1 attached 1 (made 58), window listeners 28, heap 87.30 MB (cdp 34.31), attached mid-trip 0/1/1/1
+trip 8 (veyra) 5673 ms: contexts held 1 attached 1 (made 66), window listeners 28, heap 89.12 MB (cdp 35.63), attached mid-trip 0/1/1/1
+trip 9 (veyra) 6453 ms: contexts held 1 attached 1 (made 74), window listeners 28, heap 90.91 MB (cdp 36.91), attached mid-trip 0/1/1/1
+trip 10 (veyra) 5026 ms: contexts held 1 attached 1 (made 82), window listeners 28, heap 87.59 MB (cdp 38.03), attached mid-trip 0/1/1/0
+trip 11 (veyra) 5711 ms: contexts held 1 attached 1 (made 92), window listeners 28, heap 90.16 MB (cdp 39.60), attached mid-trip 0/1/1/0
+trip 12 (veyra) 6276 ms: contexts held 1 attached 1 (made 100), window listeners 28, heap 96.91 MB (cdp 40.90), attached mid-trip 0/1/1/1
+trip 13 (veyra) 6401 ms: contexts held 1 attached 1 (made 108), window listeners 28, heap 98.67 MB (cdp 42.16), attached mid-trip 0/1/1/1
+trip 14 (veyra) 5431 ms: contexts held 1 attached 1 (made 116), window listeners 28, heap 100.36 MB (cdp 43.38), attached mid-trip 0/1/1/1
+trip 15 (veyra) 5043 ms: contexts held 1 attached 1 (made 124), window listeners 28, heap 97.15 MB (cdp 44.57), attached mid-trip 0/1/1/0
+trip 16 (veyra) 5645 ms: contexts held 1 attached 1 (made 132), window listeners 28, heap 103.84 MB (cdp 45.86), attached mid-trip 0/1/1/1
+trip 17 (veyra) 5454 ms: contexts held 1 attached 1 (made 142), window listeners 28, heap 101.25 MB (cdp 47.17), attached mid-trip 0/1/1/0
+trip 18 (veyra) 5451 ms: contexts held 1 attached 1 (made 150), window listeners 28, heap 107.95 MB (cdp 48.40), attached mid-trip 0/1/1/1
+trip 19 (veyra) 6356 ms: contexts held 1 attached 1 (made 158), window listeners 28, heap 109.62 MB (cdp 49.63), attached mid-trip 0/1/1/1
+trip 20 (veyra) 6203 ms: contexts held 1 attached 1 (made 166), window listeners 28, heap 111.35 MB (cdp 50.85), attached mid-trip 0/1/1/1
+baseline trip 1: listeners 28, heap 73334390; last: listeners 28, heap 116754607 (59.21%); peak over the whole run: held 1, attached 1
+  ok 1 [platform-prod] › tests\e2e\platform-resources.spec.ts:222:3 › 20 round trips (spec 2.4): contexts, listeners, heap › 20 trips through veyra leave at most two live contexts and the window listeners of the first trip (2.6m)
+heap after trip 20 against trip 1: CDP 104.0%, performance.memory 59.2%
+  x  2 [platform-prod] › tests\e2e\platform-resources.spec.ts:236:3 › 20 round trips (spec 2.4): contexts, listeners, heap › 20 trips through veyra leave the JS heap within 15% of its size after the first trip (336ms)
+trip 1 (veyra) 5627 ms: contexts held 1 attached 1 (made 10), window listeners 28, heap 71.45 MB (cdp 25.18), attached mid-trip 0/1/1/1
+trip 2 (flux) 6585 ms: contexts held 1 attached 1 (made 18), window listeners 28, heap 76.22 MB (cdp 27.65), attached mid-trip 0/1/1/0
+trip 3 (nox) 14928 ms: contexts held 1 attached 1 (made 25), window listeners 28, heap 96.88 MB (cdp 29.91), attached mid-trip 0/1/1/1
+trip 4 (aether) 7923 ms: contexts held 1 attached 1 (made 33), window listeners 28, heap 106.50 MB (cdp 31.76), attached mid-trip 0/1/1/1
+trip 5 (veyra) 5744 ms: contexts held 1 attached 1 (made 41), window listeners 28, heap 115.03 MB (cdp 33.09), attached mid-trip 0/1/1/1
+trip 6 (flux) 5624 ms: contexts held 1 attached 1 (made 49), window listeners 28, heap 123.49 MB (cdp 34.44), attached mid-trip 0/1/1/1
+trip 7 (nox) 10088 ms: contexts held 1 attached 1 (made 57), window listeners 28, heap 125.16 MB (cdp 35.58), attached mid-trip 0/1/1/1
+trip 8 (aether) 5799 ms: contexts held 1 attached 1 (made 65), window listeners 28, heap 133.50 MB (cdp 36.75), attached mid-trip 0/1/1/1
+baseline trip 4: listeners 28, heap 111673830; last: listeners 28, heap 139982707 (25.35%); peak over the whole run: held 1, attached 1
+  ok 3 [platform-prod] › tests\e2e\platform-resources.spec.ts:250:3 › 20 round trips (spec 2.4): contexts, listeners, heap › 8 trips cycling the four worlds hold the context and listener limits, measured against the end of the first cycle (1.3m)
+heap after trip 8 against trip 4: CDP 15.7%, performance.memory 25.3%
+  x  4 [platform-prod] › tests\e2e\platform-resources.spec.ts:262:3 › 20 round trips (spec 2.4): contexts, listeners, heap › 8 trips cycling the four worlds leave the heap within 15% of its size after the first cycle (287ms)
+A landing<->explore: CDP heap 22.4 23.4 24.7 25.4 25.0 25.7 26.4 MB (slope 515 KB/cycle); performance.memory 61.0 62.0 58.4 58.9 58.7 64.3 65.0 MB (slope 0.93 MB/cycle)
+B explore<->profile: CDP heap 17.5 18.7 19.3 19.8 20.3 20.6 20.8 MB (slope 417 KB/cycle); performance.memory 30.0 31.2 31.8 32.3 32.7 33.0 33.2 MB (slope 0.41 MB/cycle)
+C profile<->world: CDP heap 22.5 24.8 25.6 27.1 27.3 28.9 28.8 MB (slope 878 KB/cycle); performance.memory 54.1 56.2 57.0 52.9 53.8 53.4 63.5 MB (slope 0.76 MB/cycle)
+  ok 5 [platform-prod] › tests\e2e\platform-resources.spec.ts:275:3 › where the heap grows (diagnostic: reported, not asserted) › heap per cycle of each segment (1.0m)
+landing + How It Works: 32 requests, none for a showcase world's chunk, state or kit
+  ok 6 [platform-prod] › tests\e2e\platform-resources.spec.ts:352:3 › payload (spec 2.4): a world loads only when its route is entered › the landing and How It Works request no showcase world's bundle, Theatre state or kit (9.6s)
+  ok 7 [platform-prod] › tests\e2e\platform-resources.spec.ts:377:3 › payload (spec 2.4): a world loads only when its route is entered › a world route requests its own bundle, Theatre state and kit and no other world's (4.6s)
+first frame (veil gone) / ready flag / canvas luminance spread: 1264 / 4552 ms (fcp 92, load 685) / 50.3; 1245 / 4437 ms (fcp 120, load 1251) / 50.4; 1279 / 4532 ms (fcp 88, load 625) / 50.3
+  ok 8 [platform-prod] › tests\e2e\platform-resources.spec.ts:394:3 › first intro frame (spec 2.4) › the landing's first frame is visible within 3.0 s of navigation start (reduced motion, cold cache, production preview) (14.9s)
+route change, cached chunk (production preview): explore->create 294, 157, 162 ms; explore->profile 147, 145, 145 ms
+  ok 9 [platform-prod] › tests\e2e\platform-resources.spec.ts:476:3 › route change (spec 2.4) › to a cached platform page the page is interactive well inside 500 ms (production preview) (9.1s)
+
+  Slow test file: [platform-prod] › tests\e2e\platform-resources.spec.ts (5.5m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  9 passed (5.6m)

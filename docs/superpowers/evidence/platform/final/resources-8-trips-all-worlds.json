@@ -1,0 +1,367 @@
+{
+  "start": {
+    "held": 1,
+    "attached": 1,
+    "made": 2,
+    "listeners": 28,
+    "byType": {
+      "scroll": 1,
+      "resize": 5,
+      "keydown": 2,
+      "pointerdown": 3,
+      "popstate": 1,
+      "__playwright_global_listeners_check__": 1,
+      "mousemove": 1,
+      "pointerup": 1,
+      "touchstart": 2,
+      "touchend": 1,
+      "touchcancel": 1,
+      "mousedown": 1,
+      "mouseup": 1,
+      "click": 1,
+      "auxclick": 1,
+      "dblclick": 1,
+      "contextmenu": 1,
+      "error": 1,
+      "unhandledrejection": 1,
+      "pointermove": 1
+    },
+    "perfHeap": 68410452,
+    "cdpHeap": 21535776
+  },
+  "rows": [
+    {
+      "trip": 1,
+      "world": "veyra",
+      "ms": 5627,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 10,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 74925344,
+        "cdpHeap": 26406660
+      }
+    },
+    {
+      "trip": 2,
+      "world": "flux",
+      "ms": 6585,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 18,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 79926270,
+        "cdpHeap": 28994804
+      }
+    },
+    {
+      "trip": 3,
+      "world": "nox",
+      "ms": 14928,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 25,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 101588712,
+        "cdpHeap": 31357728
+      }
+    },
+    {
+      "trip": 4,
+      "world": "aether",
+      "ms": 7923,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 33,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 111673830,
+        "cdpHeap": 33300572
+      }
+    },
+    {
+      "trip": 5,
+      "world": "veyra",
+      "ms": 5744,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 41,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 120615894,
+        "cdpHeap": 34694656
+      }
+    },
+    {
+      "trip": 6,
+      "world": "flux",
+      "ms": 5624,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 49,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 129488318,
+        "cdpHeap": 36114032
+      }
+    },
+    {
+      "trip": 7,
+      "world": "nox",
+      "ms": 10088,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 57,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 131241451,
+        "cdpHeap": 37306204
+      }
+    },
+    {
+      "trip": 8,
+      "world": "aether",
+      "ms": 5799,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 65,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 139982707,
+        "cdpHeap": 38531084
+      }
+    }
+  ],
+  "peak": {
+    "held": 1,
+    "attached": 1
+  },
+  "pageErrors": []
+}
