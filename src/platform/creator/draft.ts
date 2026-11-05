@@ -187,7 +187,9 @@ function migrateProject(raw: unknown): DraftProject | null {
     if (typeof raw.links.repo === 'string') links.repo = raw.links.repo;
   }
   // fromEntries defines own properties, so a key like "__proto__" in a damaged store stays a plain key and never reaches the prototype.
-  const usage: DraftProject['usage'] = isRecord(raw.usage) ? Object.fromEntries(Object.entries(raw.usage).filter((entry): entry is [string, string] => typeof entry[1] === 'string')) : {};
+  const notes: [string, string][] = [];
+  if (isRecord(raw.usage)) for (const [tech, note] of Object.entries(raw.usage)) if (typeof note === 'string') notes.push([tech, note]);
+  const usage: DraftProject['usage'] = Object.fromEntries(notes);
   return {
     id: raw.id,
     slug: text(raw.slug, raw.id),
