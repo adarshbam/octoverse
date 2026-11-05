@@ -1,8 +1,9 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import { Link } from '../ui/Link';
 import { CreatorStill, PageFrame } from '../pages/parts';
 import { Tabs } from '../pages/Tabs';
 import { OctopusPanel } from './OctopusPanel';
+import type { MediaApi } from './mediaUrls';
 import { ProjectsPanel } from './ProjectsPanel';
 import { PALETTE_NAMES, PERSONALITY_NAMES, TEMPLATE_NAMES, type CreatorDraft } from './types';
 import './creator.css';
@@ -55,20 +56,24 @@ function Actions() {
  * "Your Projects" at the right, the actions under the picture (on a tablet the picture on top and the panels side by side). Phone:
  * the picture in a sticky top 40% and the two panels as the tabs "Octopus" and "Projects" below. `layout` forces one of the two
  * (tests); by default it follows the window. The draft is controlled: every edit is `onChange(newDraft)`.
+ *
+ * `busy` makes the editing part inert and busy (the draft is not loaded yet, or a discard is under way): not editable, not focusable.
+ * `bar` (the save status and Discard draft) sits below it, OUTSIDE the inert part, so a discard can still be seen and retried.
+ * `media` is the browser's image store for the project images.
  */
-export function CreatorPage({ draft, onChange, layout }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void; layout?: CreatorLayout }) {
+export function CreatorPage({ draft, onChange, layout, busy = false, bar, media }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void; layout?: CreatorLayout; busy?: boolean; bar?: ReactNode; media?: MediaApi }) {
   const detected = useLayout();
   const mode = layout ?? detected;
   return (
     <PageFrame footer={false}>
       <div className="oct-creator" data-layout={mode}>
         <h1 className="oct-page-title oct-creator-title">Create your octopus</h1>
-        <div className="oct-creator-grid">
+        <div className="oct-creator-grid" inert={busy} aria-busy={busy}>
           {mode === 'wide' ? (
             <>
               <OctopusPanel draft={draft} onChange={onChange} />
               <Preview draft={draft} />
-              <ProjectsPanel draft={draft} onChange={onChange} />
+              <ProjectsPanel draft={draft} onChange={onChange} media={media} />
               <Actions />
             </>
           ) : (
@@ -78,13 +83,14 @@ export function CreatorPage({ draft, onChange, layout }: { draft: CreatorDraft; 
                 label="Creator"
                 tabs={[
                   { id: 'octopus', label: 'Octopus', panel: <OctopusPanel draft={draft} onChange={onChange} /> },
-                  { id: 'projects', label: 'Projects', panel: <ProjectsPanel draft={draft} onChange={onChange} /> },
+                  { id: 'projects', label: 'Projects', panel: <ProjectsPanel draft={draft} onChange={onChange} media={media} /> },
                 ]}
               />
               <Actions />
             </>
           )}
         </div>
+        {bar ? <div className="oct-creator-bar-slot">{bar}</div> : null}
       </div>
     </PageFrame>
   );
