@@ -272,6 +272,79 @@ describe('discard', () => {
   });
 });
 
+describe('dispose', () => {
+  it('after ready, saves a pending debounced edit at once and emits nothing afterwards', async () => {
+    const fake = fakeStore({ stored: STORED });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    c.update(namePatch('Last words'));
+    expect(fake.saves).toHaveLength(0);
+    const listener = vi.fn();
+    c.subscribe(listener);
+    c.dispose();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fake.saves.map(d => d.octopus.name)).toEqual(['Last words']);
+    expect(listener).not.toHaveBeenCalled();
+    c.update(namePatch('Too late'));
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fake.saves).toHaveLength(1);
+  });
+
+  it('with nothing pending it saves nothing', async () => {
+    const fake = fakeStore({ stored: STORED });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    c.dispose();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fake.saves).toHaveLength(0);
+  });
+});
+
+describe('a failed discard', () => {
+  it('leaves the status from the store, not stuck at "saving" by the save it cancelled', async () => {
+    let finish: () => void = () => undefined;
+    const fake = fakeStore({ stored: STORED, discard: async () => ({ cleared: false }) });
+    fake.store.save = () => new Promise<void>(resolve => (finish = resolve));
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    c.update(namePatch('In flight'));
+    await vi.advanceTimersByTimeAsync(800);
+    expect(c.getView().status).toBe('saving');
+    await c.discard();
+    expect(c.getView().discardError).toBe(DISCARD_ERROR);
+    expect(c.getView().status).toBe('saved');
+    finish();
+    await settle();
+    expect(c.getView().status).toBe('saved');
+  });
+
+  it('on a memory store the status is "memory"', async () => {
+    const fake = fakeStore({ persistent: false, discard: async () => ({ cleared: false }) });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    await c.discard();
+    expect(c.getView().status).toBe('memory');
+  });
+
+  it('says it is discarding while it waits, so the screen can refuse edits (they are not silently dropped)', async () => {
+    let release: (r: { cleared: boolean }) => void = () => undefined;
+    const fake = fakeStore({ stored: STORED, discard: () => new Promise(resolve => (release = resolve)) });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    const done = c.discard();
+    await settle();
+    expect(c.getView().discarding).toBe(true);
+    release({ cleared: false });
+    await done;
+    expect(c.getView().discarding).toBe(false);
+  });
+});
+
 describe('what a screen reader hears', () => {
   it('says loading until ready, then saved or cannot-save or the discard error; saving reads as saved', () => {
     const base = { ready: true, status: 'saved' as const, discardError: null };

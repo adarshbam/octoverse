@@ -93,9 +93,11 @@ export interface DraftView {
   ready: boolean;
   /** Set when a discard could not clear the browser's copy; cleared by the next edit or successful discard. */
   discardError: string | null;
+  /** True while a discard is under way: edits are refused then, so the screen should not offer them (the route makes the page inert). */
+  discarding: boolean;
 }
 
-export const INITIAL_VIEW: DraftView = { draft: SAMPLE_DRAFT, status: 'saved', ready: false, discardError: null };
+export const INITIAL_VIEW: DraftView = { draft: SAMPLE_DRAFT, status: 'saved', ready: false, discardError: null, discarding: false };
 
 /** The words a screen reader hears: they change only between loading, saved, cannot-save and a failed discard (saving reads as saved). */
 export function announcement(view: Pick<DraftView, 'ready' | 'status' | 'discardError'>): string {
@@ -169,7 +171,7 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
     },
 
     update(fn) {
-      // While a discard is under way an edit would be saved over what the discard clears.
+      // While a discard is under way an edit would be saved over what the discard clears; the view says `discarding` so none is offered.
       if (disposed || discarding) return;
       const next = fn(view.draft);
       if (saver) saver.schedule(next);
@@ -180,6 +182,7 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
     async discard() {
       if (disposed || store === null) return { cleared: false };
       discarding = true;
+      set({ discarding: true });
       try {
         const opened = await store;
         const hadPending = saver?.pending() ?? false;
@@ -192,8 +195,9 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
         }
         if (!cleared) {
           // The browser still holds a copy: keep the draft on screen, keep a pending change pending, and let the user retry.
+          // The status follows the store (it may have been left at "saving" by the change just cancelled), then a pending change is saved again.
+          set({ discardError: DISCARD_ERROR, status: opened.persistent ? 'saved' : 'memory' });
           if (hadPending) saver?.schedule(view.draft);
-          set({ discardError: DISCARD_ERROR });
           return { cleared: false };
         }
         queued = [];
@@ -201,6 +205,7 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
         return { cleared: true };
       } finally {
         discarding = false;
+        set({ discarding: false });
       }
     },
 
