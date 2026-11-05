@@ -23,6 +23,8 @@ interface Stub {
   throwTransaction: boolean;
   /** `deleteDatabase` fails with an error event. */
   failDelete: boolean;
+  /** Transactions never answer (a hung database). */
+  hang: boolean;
   deletes: () => number;
   fireVersionChange: () => void;
 }
@@ -30,7 +32,7 @@ interface Stub {
 function makeIdb(mode: Mode = 'ok'): Stub {
   const stores = { draft: new Map<unknown, unknown>(), media: new Map<unknown, unknown>() };
   const state = { opens: 0, closed: 0, created: false, deletes: 0 };
-  const stub: Stub = { factory: undefined as never, stores, opens: () => state.opens, closed: () => state.closed, failWrites: false, failClear: false, abortOnCommit: false, throwTransaction: false, failDelete: false, deletes: () => state.deletes, fireVersionChange: () => db.onversionchange?.() };
+  const stub: Stub = { factory: undefined as never, stores, opens: () => state.opens, closed: () => state.closed, failWrites: false, failClear: false, abortOnCommit: false, throwTransaction: false, failDelete: false, hang: false, deletes: () => state.deletes, fireVersionChange: () => db.onversionchange?.() };
 
   const db = {
     objectStoreNames: { contains: (name: string) => state.created && name in stores },
@@ -49,6 +51,7 @@ function makeIdb(mode: Mode = 'ok'): Stub {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const request = (write: boolean, run: () => unknown, fails = false) => {
         const req: Record<string, unknown> = { result: undefined, error: null, onsuccess: null, onerror: null };
+        if (stub.hang) return req;
         setTimeout(() => {
           if (write && (stub.failWrites || fails)) {
             const error = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
@@ -479,5 +482,80 @@ describe('discard never claims what it did not do', () => {
     await expect(store.discard()).resolves.toEqual({ cleared: true });
     expect(idb.stores.draft.size).toBe(0);
     expect(await store.load()).toBeNull();
+  });
+});
+
+describe('discard honesty by the reason the database cannot be opened (R23)', () => {
+  const cases: { reason: string; make: () => Stub; options: object; cleared: boolean }[] = [
+    { reason: 'open threw', make: () => makeIdb('throw'), options: {}, cleared: true },
+    { reason: 'open errored', make: () => makeIdb('error'), options: {}, cleared: false },
+    { reason: 'open blocked', make: () => makeIdb('blocked'), options: {}, cleared: false },
+    { reason: 'open timed out', make: () => makeIdb('never'), options: { openTimeoutMs: 20 }, cleared: false },
+  ];
+
+  it.each(cases)('$reason and deleteDatabase fails: cleared is $cleared; the memory draft survives a failed discard', async ({ make, options, cleared }) => {
+    const idb = make();
+    idb.failDelete = true;
+    const store = await createDraftStore({ factory: idb.factory, ...options });
+    await store.save(SAMPLE_DRAFT);
+    await expect(store.discard()).resolves.toEqual({ cleared });
+    // Only a cleared discard may take the draft held in memory.
+    expect(await store.load()).toEqual(cleared ? null : SAMPLE_DRAFT);
+  });
+
+  it.each(cases)('$reason and deleteDatabase works: cleared', async ({ make, options }) => {
+    const store = await createDraftStore({ factory: make().factory, ...options });
+    await store.save(SAMPLE_DRAFT);
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(await store.load()).toBeNull();
+  });
+
+  it('a retry after a failed discard succeeds once the browser lets it', async () => {
+    const idb = makeIdb('error');
+    idb.failDelete = true;
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    await expect(store.discard()).resolves.toEqual({ cleared: false });
+    idb.failDelete = false;
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+  });
+
+  it('no IndexedDB at all is cleared', async () => {
+    await expect((await createDraftStore({ factory: null })).discard()).resolves.toEqual({ cleared: true });
+  });
+});
+
+describe('a database that never answers does not hold the creator for ever', () => {
+  it('load() and save() give up after the timeout and the store goes to memory', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory, openTimeoutMs: 30 });
+    idb.hang = true;
+    expect(await store.load()).toBeNull();
+    expect(store.persistent).toBe(false);
+    await expect(store.save(SAMPLE_DRAFT)).resolves.toBeUndefined();
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+  });
+
+  it('discard() gives up on the clear, deletes the database instead, and is cleared if that works', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory, openTimeoutMs: 30 });
+    idb.hang = true;
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(idb.deletes()).toBe(1);
+  });
+
+  it('discard() with a hung clear and a failing delete is not cleared', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory, openTimeoutMs: 30 });
+    idb.hang = true;
+    idb.failDelete = true;
+    await expect(store.discard()).resolves.toEqual({ cleared: false });
+  });
+
+  it('an image read that hangs is null, not a hang', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory, openTimeoutMs: 30 });
+    idb.hang = true;
+    expect(await store.getMedia('x')).toBeNull();
   });
 });

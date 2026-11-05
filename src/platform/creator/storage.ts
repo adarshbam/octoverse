@@ -107,12 +107,20 @@ function pickFactory(options: StoreOptions): IDBFactory | null {
   }
 }
 
-/** The database, upgraded to the current version, or null when it cannot be opened (throws, errors, blocked, or too slow). */
-function openDb(factory: IDBFactory, timeoutMs: number): Promise<IDBDatabase | null> {
+/** How an open ended: it worked, `indexedDB.open` threw at once (the browser denies it), or it errored, was blocked or never answered. */
+type OpenReason = 'opened' | 'threw' | 'error' | 'blocked' | 'timeout';
+
+interface Opened {
+  db: IDBDatabase | null;
+  reason: OpenReason;
+}
+
+/** The database, upgraded to the current version, or `db: null` with the reason it cannot be opened. */
+function openDb(factory: IDBFactory, timeoutMs: number): Promise<Opened> {
   return new Promise(resolve => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const settle = (db: IDBDatabase | null) => {
+    const settle = (db: IDBDatabase | null, reason: OpenReason = db ? 'opened' : 'error') => {
       if (settled) {
         // A late answer after we gave up: close it, so it does not block a later upgrade.
         try {
@@ -124,23 +132,23 @@ function openDb(factory: IDBFactory, timeoutMs: number): Promise<IDBDatabase | n
       }
       settled = true;
       clearTimeout(timer);
-      resolve(db);
+      resolve({ db, reason });
     };
-    timer = setTimeout(() => settle(null), timeoutMs);
+    timer = setTimeout(() => settle(null, 'timeout'), timeoutMs);
     try {
       const request = factory.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
         try {
           upgrade(request.result);
         } catch {
-          settle(null);
+          settle(null, 'error');
         }
       };
       request.onsuccess = () => settle(request.result);
-      request.onerror = () => settle(null);
-      request.onblocked = () => settle(null);
+      request.onerror = () => settle(null, 'error');
+      request.onblocked = () => settle(null, 'blocked');
     } catch {
-      settle(null);
+      settle(null, 'threw');
     }
   });
 }
@@ -150,18 +158,24 @@ function upgrade(db: IDBDatabase) {
   for (const name of [DRAFT_STORE, MEDIA_STORE]) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
 }
 
-/** One transaction over the named stores; `work` makes the requests and returns the one whose result is wanted. Rejects if the transaction fails. */
-function run<T>(db: IDBDatabase, names: string[], mode: IDBTransactionMode, work: (store: (name: string) => IDBObjectStore) => IDBRequest | undefined): Promise<T | undefined> {
+/**
+ * One transaction over the named stores; `work` makes the requests and returns the one whose result is wanted. Rejects if the
+ * transaction fails, throws, or does not finish within `timeoutMs` (a hung database must not keep the creator waiting for ever).
+ */
+function run<T>(db: IDBDatabase, names: string[], mode: IDBTransactionMode, work: (store: (name: string) => IDBObjectStore) => IDBRequest | undefined, timeoutMs: number): Promise<T | undefined> {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('IndexedDB did not answer in time')), timeoutMs);
+    const done = () => clearTimeout(timer);
     try {
       const tx = db.transaction(names, mode);
       let result: T | undefined;
       const request = work(name => tx.objectStore(name));
       if (request) request.onsuccess = () => (result = request.result as T);
-      tx.oncomplete = () => resolve(result);
-      tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
-      tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+      tx.oncomplete = () => (done(), resolve(result));
+      tx.onerror = () => (done(), reject(tx.error ?? new Error('IndexedDB transaction failed')));
+      tx.onabort = () => (done(), reject(tx.error ?? new Error('IndexedDB transaction aborted')));
     } catch (error) {
+      done();
       reject(error);
     }
   });
@@ -209,7 +223,7 @@ export interface StoreOptions {
 export async function createDraftStore(options: StoreOptions = {}): Promise<DraftStore> {
   const factory = pickFactory(options);
   const timeoutMs = options.openTimeoutMs ?? OPEN_TIMEOUT_MS;
-  let db: IDBDatabase | null = factory ? await openDb(factory, timeoutMs) : null;
+  let db: IDBDatabase | null = factory ? (await openDb(factory, timeoutMs)).db : null;
   /** Whether writes still reach the browser (false after a refused write or a lost connection). */
   let writable = db !== null;
   // What the browser has not got: the latest draft, and the images saved after it stopped keeping them.
@@ -235,6 +249,8 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
   };
   if (db) adopt(db);
 
+  const exec = <T>(connection: IDBDatabase, names: string[], mode: IDBTransactionMode, work: (store: (name: string) => IDBObjectStore) => IDBRequest | undefined) => run<T>(connection, names, mode, work, timeoutMs);
+
   let queue: Promise<unknown> = Promise.resolve();
   /** Runs `work` after every earlier write has finished (whether it worked or not). */
   const inOrder = <T>(work: () => Promise<T>): Promise<T> => {
@@ -248,15 +264,18 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
 
   /**
    * Clears both stores. Through the open connection first; if that fails, by deleting the database (this tab's connection closed so
-   * it does not block it) and opening a fresh one. `cleared` is false only when the browser holds a database it would neither clear
-   * nor delete. A browser that will not even open one holds nothing this tab can reach: that counts as cleared.
+   * it does not block it) and opening a fresh one. `cleared` is true only when the browser's copy is really gone: the clear worked,
+   * or the delete did, or this tab has no way to hold one (there is no IndexedDB, or `open` threw at once: the browser denies it).
+   * A database that errored, was blocked or never answered MAY still hold the old draft: with a failed delete too, that is not cleared.
    */
   async function clearBrowser(): Promise<{ cleared: boolean }> {
     if (!factory) return { cleared: true };
-    const connection = db ?? (await openDb(factory, timeoutMs));
+    let connection = db;
+    let reason: OpenReason = 'opened';
+    if (!connection) ({ db: connection, reason } = await openDb(factory, timeoutMs));
     if (connection) {
       try {
-        await run(connection, [DRAFT_STORE, MEDIA_STORE], 'readwrite', store => {
+        await exec(connection, [DRAFT_STORE, MEDIA_STORE], 'readwrite', store => {
           store(MEDIA_STORE).clear();
           return store(DRAFT_STORE).clear();
         });
@@ -274,10 +293,9 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
       if (connection === db) db = null;
     }
     const deleted = await deleteDb(factory, timeoutMs);
-    const fresh = await openDb(factory, timeoutMs);
+    const { db: fresh } = await openDb(factory, timeoutMs);
     if (fresh) adopt(fresh);
-    if (deleted) return { cleared: true };
-    return { cleared: connection === null };
+    return { cleared: deleted || reason === 'threw' };
   }
 
   return {
@@ -290,7 +308,7 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
       if (memory.draft) return structuredClone(memory.draft);
       if (db) {
         try {
-          const stored = await run<CreatorDraft>(db, [DRAFT_STORE], 'readonly', store => store(DRAFT_STORE).get(DRAFT_KEY));
+          const stored = await exec<CreatorDraft>(db, [DRAFT_STORE], 'readonly', store => store(DRAFT_STORE).get(DRAFT_KEY));
           return stored ?? null;
         } catch {
           giveUp();
@@ -308,7 +326,7 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
           return;
         }
         try {
-          await run(db, [DRAFT_STORE], 'readwrite', store => store(DRAFT_STORE).put(copy, DRAFT_KEY));
+          await exec(db, [DRAFT_STORE], 'readwrite', store => store(DRAFT_STORE).put(copy, DRAFT_KEY));
           memory.draft = null;
         } catch {
           memory.draft = copy;
@@ -324,7 +342,7 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
         const id = newMediaId();
         if (db && writable) {
           try {
-            await run(db, [MEDIA_STORE], 'readwrite', store => store(MEDIA_STORE).put(blob, id));
+            await exec(db, [MEDIA_STORE], 'readwrite', store => store(MEDIA_STORE).put(blob, id));
             return id;
           } catch {
             writable = false;
@@ -341,7 +359,7 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
       if (!db) return null;
       // Reads can still work after writes stopped (a full disk): images already stored stay visible.
       try {
-        const stored = await run<unknown>(db, [MEDIA_STORE], 'readonly', store => store(MEDIA_STORE).get(id));
+        const stored = await exec<unknown>(db, [MEDIA_STORE], 'readonly', store => store(MEDIA_STORE).get(id));
         return stored instanceof Blob ? stored : null;
       } catch {
         giveUp();
@@ -351,13 +369,18 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
 
     discard() {
       return inOrder(async () => {
-        memory.draft = null;
-        memory.media.clear();
+        let result: { cleared: boolean };
         try {
-          return await clearBrowser();
+          result = await clearBrowser();
         } catch {
-          return { cleared: false };
+          result = { cleared: false };
         }
+        // The copy in memory goes only with the browser's: a failed discard keeps the draft whole.
+        if (result.cleared) {
+          memory.draft = null;
+          memory.media.clear();
+        }
+        return result;
       });
     },
   };
