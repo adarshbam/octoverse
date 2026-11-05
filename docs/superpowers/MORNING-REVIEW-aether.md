@@ -257,6 +257,22 @@ Only your eye can judge (nothing here was judged from video):
 6. **Logos**: five of her orbs are blank (OpenAI, Next.js, PostgreSQL, AWS, Vector DB): the engine has no mark for them and no lettered fallback (an earlier note said there was one: there is not). Redis is red. Both need the engine (request below).
 7. **No arm "catch" dip on landing** (spec 7.5 flight table): still missing; it needs the engine.
 
+### Synapse effect (Task 20, Milestone 7): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether, Explore (or click her head), and watch inside the glass as it swells (and again closing). Stills (the head swell's time in seconds, `?freeze&swell=`, beside P3) in `docs/superpowers/evidence/aether/m7/t20-synapse-stills-vs-p3.webp`: 0.2 s (nothing yet), 0.5 s (progress 0.26: nodes waking), 0.72 s (0.45: lines wiring up from the bottom), 0.9 s (0.61: the wave reaches the crown), 1 s (0.70: the pulse, the whole network lit), and the settled overview (bare `?freeze`: no network, the dome as Task 11 left it).
+
+What is built: the engine's new `synapse` head effect (HEAD_EFFECTS, one points draw of 24 nodes and one line draw, nothing allocated per frame), with her colours (node `#c9d6ff`, line `#d99982`). The sheet's `effect` track is retimed to the flight, 0.2 to 1.35 s (it was Nox's 0.65 to 1.5 s). In effect progress: nodes wake 0 to 0.3, lines wire face to crown 0.3 to 0.65, one pulse peaks at 0.725, lines thin and nodes melt into the glass 0.8 to 1; the network is gone at progress 1, so the settled overview is exactly Task 11's (dome samples 7.1 / 8.2 / 3.9, all within 10). Closing runs at twice the speed.
+
+Verified by test: node and line opacity are 0 at progress 0 and 1; exactly one pulse peak, inside 0.65 to 0.8; a lower edge wires before a higher one; closing is twice as fast (the effect is gone when the swell is half undone) and a jump to a moment lands at once; no Float32Array is made in `update`; `dispose()` is idempotent; reduced motion is a crossfade (no wave, no pulse); Nox's glyphs fixtures are unchanged. Not seen live (only tested): the closing, and reduced motion.
+
+Only your eye can judge:
+1. **The nodes waking**: 24 small stars lighting at random through the glass: too many, too few, too small? (The size is `NODE_SIZE` in `synapse.ts`; 12 px at the overview.)
+2. **The gold wave rising**: lines grow from the lower node of each edge and the lower edges wire first. Are the lines thick enough (they are 1 px; WebGL draws no wider) and the colour right on the blue glass (a pink-gold, `#d99982`)?
+3. **The single pulse** just before the dome settles: brighter and bigger for about a tenth of a second at 1.1 s.
+4. **The dissolve into the sheen**: the nodes swell and fade while the lines thin out; does it land as the dome settles, with the project panel to come (Task 21)?
+5. **Early in the swell** the dome is still a half shell (0.5 s) and the nodes stand where the finished glass will be, so a few show above the rim. If that reads wrong, the engine would clip them to the glass's reveal.
+6. **Frame rate**: settled overview at tier low 46.3 and 56.5 fps median under load; the live opening's window (2.5 s after Explore) read 42.9 and 62.1 fps median, with stalls in the first run (19 frames in 2.5 s). The stalls are not isolated to the effect (not measured with the effect off).
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).

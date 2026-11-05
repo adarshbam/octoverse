@@ -225,6 +225,11 @@ const TWINKLE: SequenceDefaults = {
  * swell, 0.2 to 1.35 s: the beads brighten and split as the head starts to swell, the orbs fly out
  * as it opens and land as it settles (Task 12). Nox's peak and settle, kept before, gave her flight
  * only 0.3 to about 0.6 s.
+ *
+ * `effect` is the synapse network's progress (head effect `synapse`, spec 7.6), 0 to 1 over the same
+ * flight, 0.2 to 1.35 s: the nodes wake, the lines wire face to crown, the network pulses once, then it
+ * dissolves into the glass as the swell lands (it is gone at 1, the settled overview). Closing plays the
+ * sheet backwards and the effect itself runs twice as fast on the way down.
  */
 const HEAD_SWELL: SequenceDefaults = {
   length: 1.5,
@@ -235,7 +240,7 @@ const HEAD_SWELL: SequenceDefaults = {
         squeeze: [[0, 0], [0.2, 1], [0.4, 0]],
         morph: [[0.18, 0], [0.85, 1.07], [1.3, 1]],
         push: [[0.2, 0], [1.35, SWELL_PUSH_SETTLED]],
-        effect: [[0.65, 0], [1.5, 1]],
+        effect: [[0.2, 0], [1.35, 1]],
       },
     },
   },

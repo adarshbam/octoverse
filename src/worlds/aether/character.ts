@@ -108,8 +108,9 @@ export const AETHER: CharacterConfig = {
     domeSheen: '#a4caff',
     // The in-focus orb's lavender-white rim (P4: 228,217,248).
     orbFocus: '#e4d9f8',
-    // The head swell's strokes: cyan-lavender light, not Nox's red runes.
-    effect: { halo: 'rgba(120,160,255,0.5)', stroke: '#9ac0ff', core: '#e8f0ff' },
+    // The synapse effect (spec 7.6): `core` the star nodes (lavender-white), `stroke` the lines that wire
+    // them (a warm gold-rose), `halo` the nodes' soft glow (the node colour, half strength).
+    effect: { halo: 'rgba(201,214,255,0.5)', stroke: '#d99982', core: '#c9d6ff' },
     rimHot: 'color(srgb-linear 0.85 0.85 1)',
     domeRimHot: 'color(srgb-linear 0.8 0.85 1)',
     suckerSpecular: 'color(srgb-linear 1 0.9 1)',
@@ -211,8 +212,8 @@ export const AETHER: CharacterConfig = {
   // (Nox and Veyra use 0.6): the deeper glass turns its sides from the camera over a wider band, so
   // the engine's fresnel rim reaches P3's rim sample 15 px inside the edge (at 0.6 it stayed 16.8 to 28.6 away whatever the rim colour).
   dome: { center: [0.07, 0.355], halfWidth: 1.38, halfHeight: 0.805, depth: 1.0, power: 3.2, mantleTop: -0.42 },
-  // The synapse effect arrives in Task 20; until then the dome swells alone.
-  headEffect: 'none',
+  // The head swell wires a synapse network inside the glass (engine effect `synapse`, Task 20; provisional).
+  headEffect: 'synapse',
   // Jelly skin with fine star specks and a lavender-pink glow through it; tuned in Task 6.
   skin: {
     speckDensity: 0.35,
