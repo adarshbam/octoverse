@@ -22,6 +22,16 @@ export const VEYRA_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spir
  */
 const APPEAR_END = 1;
 const TURN_START = 4.5;
+/**
+ * The keyed yaw (radians) she swims in with, on top of the shape's glide-turn: the glide-turn alone
+ * starts her at -200 degrees, her back to the visitor while she travels toward them. Keyed at
+ * YAW_START (-80 degrees, a total of -280, a side view facing right as P1 has her), held to YAW_HOLD and
+ * eased to 0 by the turn's start, the total runs -280 to -200 during the swim and is then the shape's own 200
+ * degree turn, -200 to exactly 0, in the spin window. It never decreases.
+ */
+/** Seconds she holds the side view before the yaw eases back to the shape's -200. */
+const YAW_HOLD = 3;
+const YAW_START = (-80 * Math.PI) / 180;
 const TURN_END = 5.5;
 const SETTLE_END = 6.5;
 
@@ -102,6 +112,8 @@ const ENTRANCE: SequenceDefaults = {
         open: [[TURN_END + 0.15, 0], [SETTLE_END, 1]],
         settle: [[TURN_END, 0], [SETTLE_END, 1]],
         shimmer: [[TURN_END, 0], [SETTLE_END, 1]],
+        // Facing the way she swims (a side view, as P1), easing to the shape's -200 degrees by the turn's start.
+        yaw: [[0, YAW_START], [YAW_HOLD, YAW_START], [TURN_START, 0]],
         // Out of the haze: the glow and aura first, then the shape.
         reveal: [[0, 0], [APPEAR_END, 1]],
         // Leaning a little head first while she glides in, upright by the end of the turn.

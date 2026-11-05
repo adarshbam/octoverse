@@ -239,7 +239,7 @@ test('the sequences are her own project, and her entrance is a keyed 6.5 s sheet
   expect(VEYRA_BUNDLE.sequences.projectId).toBe('OctoVerse-Veyra');
   const { props, keys } = VEYRA_BUNDLE.sequences.defaults.entrance!.objects.main;
   // Authored (Task 18, sequences/entrance.test.ts): it starts unrevealed and unopened, and keys the path, the strokes, the turn, the settle and the kit.
-  expect(Object.keys(keys).sort()).toEqual(['forward', 'lockRing', 'membraneFlash', 'open', 'pitch', 'reveal', 'settle', 'shimmer', 'spin', 'stroke', 'x', 'y', 'z']);
+  expect(Object.keys(keys).sort()).toEqual(['forward', 'lockRing', 'membraneFlash', 'open', 'pitch', 'reveal', 'settle', 'shimmer', 'spin', 'stroke', 'x', 'y', 'yaw', 'z']);
   expect(props).toMatchObject({ forward: 0, open: 0, settle: 0, reveal: 0, spin: 0 });
 });
 

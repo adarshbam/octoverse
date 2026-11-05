@@ -147,23 +147,27 @@ test('the membrane flashes once, peaking inside 3.3 to 3.7 s at the most its sha
   for (const p of samples) if (p.s <= 3.3 || p.s >= 4.0) expect(p.v).toBeCloseTo(1, 9);
 });
 
-test('the turn is 200 degrees, between 4.5 and 5.5 s: the yaw rises monotonically from -200 to exactly 0, and holds outside it', () => {
-  expect(deg(at(0).yaw)).toBeCloseTo(-200, 9);
+test('the yaw never decreases: a keyed side view while swimming, exactly -200 at 4.5 s, then the 200 degree turn to exactly 0 at 5.5 s', () => {
+  // She swims in a right-facing side view (-280 degrees in all, as P1 has her), not with her back to the visitor.
+  expect(deg(at(0).yaw)).toBeCloseTo(-280, 9);
+  expect(deg(at(3).yaw)).toBeCloseTo(-280, 9);
   expect(deg(at(4.5).yaw)).toBeCloseTo(-200, 9);
   expect(at(5.5).yaw).toBe(0);
   expect(at(LENGTH).yaw).toBe(0);
   let last = -Infinity;
+  let before = at(4.5).yaw;
   let rise = 0;
-  let before = at(0).yaw;
   for (const s of times(0, LENGTH, 0.001)) {
     const { yaw } = at(s);
     expect(yaw).toBeGreaterThanOrEqual(last);
-    if (s <= 4.5) expect(deg(yaw)).toBeCloseTo(-200, 9);
+    if (s >= 4.5) {
+      rise += yaw - before;
+      before = yaw;
+    }
     if (s >= 5.5) expect(yaw).toBe(0);
-    rise += yaw - before;
-    before = yaw;
     last = yaw;
   }
+  // The shape's turn: 200 degrees between 4.5 and 5.5 s.
   expect(deg(rise)).toBeCloseTo(200, 6);
   // Slow and graceful, not Nox's quick spin: no part of it turns faster than 400 degrees a second (Nox's spin peaks near 560), and it eases in and out.
   const rate = (s: number) => deg(at(s + 0.005).yaw - at(s - 0.005).yaw) / 0.01;
