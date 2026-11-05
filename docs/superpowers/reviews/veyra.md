@@ -718,3 +718,67 @@ Task 19's arm lift delivers the P4 static. Its criterion:
 - **Own arm** reported as the least over the swing: 0.0089 intro, 0.0099 overview (the test's five angles give 0.0096 / 0.0100).
 - **Envelope** taken from the placement's own swing limits (`swingLimits`), not the engine default.
 - Optional M3 (sparkle under the capped band): left. It is not a two-line change, because the `capped` term exists only in the head's program, so the sparkle line needs a HEAD branch.
+
+## Task 15 - back view: PENDING OWNER REVIEW
+
+Look at it live: http://localhost:5191/?world=veyra&stage=intro&freeze&yaw=180 (and `yaw=45`, `90`, `135`); add `&orbit` and drag on the water (not on her) to look from above or below. `yaw` turns her body about its upright axis; the stage camera stays put.
+
+Stills (`docs/superpowers/reviews/assets/veyra/`; frozen intro, P2's view box, 976 x 990 at scale 2, 200 px a unit):
+- `t15-orbit-yaws.png`: yaw 0, 45, 90, 135, 180 side by side (half size).
+- `t15-back.png`: yaw 180 at full size.
+- `t15-dome-front-vs-back.png`: the dome from the front and from behind, the same crop size.
+- `t15-roots-before-after.png`: the rear arm roots seen from behind, before and after the one fix (2x crop of the scale-2 still).
+- `t15-orbit-high-low.png`: the orbit camera about 25 degrees above (yaw 45, 135, 180) and about 17 degrees below (yaw 135).
+
+### The four checks, with my verdict
+
+1. **The back is round and glassy: yes.** Seen from behind, the dome is the same round jelly as from the front: a bright cyan rim all round, a lighter crown, a darker middle, and the warm core showing through faintly low in the middle. Its colours match the front within a few points (table below). Nothing of the face leaks through: no near-black pixel on the head at yaw 135 or 180 (5,417 at yaw 0: the eyes and brows).
+2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks keep the same scatter: 27 to 37 on the upper dome at every yaw (10.5 to 17.0 per 10,000 px; 33 on the front, 27 on the back). The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
+3. **The cups read from behind: yes, as an edge.** From behind the frill is on the far side of each arm, so it reads as a thin cream scalloped edge along each arm's underside, with a cup crest here and there; from three-quarters and from below the cups show in full. Cream pixels on the arms: 17% from the front, 13% from behind.
+4. **No seams, no matte patches, no popped geometry: yes after one fix, with one small residue.** Before the fix, the two rear arms' roots (T1 and T8) stood out behind the mantle and met in a hard crease with a dark notch under it, the one clear defect of the orbit (`t15-roots-before-after.png`, left). Now they root inside the neck and pass out under the dome (right). A small pinch remains where the two root caps meet at the body's axis, about 4 x 8 px at scale 2, half hidden under the dome's lower edge (see weaknesses). Nothing else popped, and there is no colour mismatch between front and back.
+
+### What changed (`src/worlds/veyra/character.ts` only)
+
+- **Rear roots:** `rear()` arm spec `z` from `[-0.3, -0.62]` (Nox's values) to `[0, -0.62]`. Each arm's root cap reaches in to the body's axis (engine, `armTube.ts`). At z -0.3 with T1's thick root (0.22) the two caps stood behind the mantle's back surface and met in the open. At z 0 they sit inside the neck. The tips still pass behind the head at -0.62, and the stage camera still sees the traced curve (`flattenForDepth`).
+- **Underglow:** `VEYRA_LIGHTING.underglow.intensity` from 0.4 to 0.25. The roots' move changes the rear arms' depth along their whole length, and that cost the intro's silhouette saturation 0.0020 (0.6561 to 0.6541, against the floor 0.655: a miss). Less cream fill from below brings it back to 0.6569, and moves saturation and brightness toward P2's (0.710 and 0.626).
+
+Tuning rounds (4, the rule's limit), each measured on the back still and the intro gate:
+
+| Round | Change | Back roots | Intro silhouette saturation | Gate |
+|---|---|---|---|---|
+| 0 | HEAD | hard crease and notch | 0.6561 | 13/13 |
+| 1 | rear z -0.12 | crease shorter, still up to the dome | 0.6547 | miss (saturation) |
+| 2 | rear z 0 | small pinch only | 0.6541 | miss (saturation) |
+| 3 | + underglow 0.3 | the same | 0.6558 | 13/13 |
+| 4 | + underglow 0.25 | the same | 0.6569 | 13/13 (kept) |
+
+### Numbers (`.tmp/t15/measure.py`, on the frozen intro at each yaw; the dome is her silhouette's run through the head's axis down to world y -0.2, eroded 10 px)
+
+| Yaw | Crown (top quarter) | Middle (centre third, lower half) | Sides | Specks (per 10k px) | Rim luminance | Arms mean | Cream on arms | Dark px on head |
+|---|---|---|---|---|---|---|---|---|
+| 0 | (12, 172, 191) | (16, 108, 116) | (11, 117, 133) | 33 (12.8) | 218 | (77, 178, 151) | 17.1% | 5,417 (face) |
+| 45 | (13, 177, 197) | (11, 105, 116) | (15, 124, 138) | 29 (12.3) | 219 | (85, 181, 153) | 19.3% | 2,614 (face) |
+| 90 | (17, 185, 205) | (14, 111, 123) | (51, 147, 148) | 35 (16.1) | 213 | (67, 174, 157) | 12.9% | 130 (face edge-on) |
+| 135 | (15, 179, 198) | (16, 109, 119) | (28, 141, 145) | 33 (13.8) | 215 | (56, 160, 138) | 12.8% | 0 |
+| 180 | (11, 173, 192) | (14, 107, 117) | (10, 117, 136) | 27 (10.5) | 220 | (53, 158, 134) | 12.9% | 0 |
+
+The P2 sample points mirrored to the back (x to -x): crown (13, 172, 193) against the front's (7, 159, 178); middle (13, 104, 114) against (15, 104, 110); side (5, 101, 116) against (9, 118, 137). The back's side is darker because the key light comes from above left, and that side faces away from it at yaw 180. Task 3 found the back's middle red about 10 against the front's 25 (the grey cast from bloom). Now both read 13 to 16: Task 7's bloom cut closed that gap. Through the back, the warm core reads (42, 124, 117) low in the middle, against (24, 126, 126) at the side.
+
+Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. The method is new: Task 3's count of 85 and Task 7's 48 were made another way, so these numbers compare yaws with each other, not with those counts.
+
+### Gates kept (final values)
+
+- Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0, 13/13. The samples are all within 0.1 of HEAD except: arm top 9.4 (HEAD 9.3), arm body 9.2 (9.3), cup rim 6.3 (5.3), chin 9.0 (9.1). Mean (72, 163, 144); saturation 0.657; brightness 0.655 (HEAD 0.659).
+- `veyra_shape.py`: PASS, "her" row unchanged (IoU without the extra arms 0.852, span 3.74).
+- Overview (`check_stage.py --world --stage overview --world-id veyra`): the same misses as HEAD (Task 12's dome glass); one sample moved 0.1 (arm T6, 9.7 to 9.8).
+- `veyra_world.py`: exit 1 on `no red`, 600 pixels, and **HEAD fails the same way (601)**. These pixels are the cream pendant caps (Tasks 13 and 14), which lie outside her silhouette mask, e.g. the cap at T1's tip at (466, 534). Task 12 passed it before the pendants hung in the intro. Not changed here: the fix belongs in the check or the pendant colours.
+- `npx vitest run src/worlds/veyra` (6 files, 60 tests) and `npx tsc -p tsconfig.nox3d.json --noEmit`, `npx tsc -b`: pass. No engine file touched, so Nox is untouched.
+
+### Remaining weaknesses (mine)
+
+- **Root pinch:** the two rear root caps still close to one point on the body's axis, so a small pinch shows under the dome from straight behind. Hiding it fully needs either the roots to overlap (a pose change: `withRoot`'s spread puts T1's and T8's roots 0.26 apart) or root caps that blend (engine, `armTube.ts`). Nox has the same construction (his rear arms are at z -0.3, with thinner roots).
+- **The side view (yaw 90) is not a design:** the arms are authored flat for the stage camera, so from the side they bunch into a column under the head. It is the same for Nox, and no stage shows her from the side.
+- **The arms read darker from behind** (mean green 158 against 178): the face glow and the cups' cream light fall on their front faces. They still read as jelly, with the rim and the specks, but a little more opaque than from the front.
+- **The warm core from behind** shows as a muted green patch low in the dome, where the front has the bright face glow. I left it: it is what a translucent head with a light inside should show, and spec 7.2 asks for the core inside. If you would rather the back read cleaner teal, that is `coreWarmth`, and changing it moves the front's face glow sample.
+- **Do not click on her in `?orbit`:** a click on her opens the dome (the head morph shows with the arms frozen in the intro), which looks like a cut head. Drag on the water instead. This is the click's interaction, not a geometry fault.
+- Twinkle, sway and the head turn are motion: check them live.
