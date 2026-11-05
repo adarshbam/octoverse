@@ -4,14 +4,17 @@ import type { Page } from '@playwright/test';
 //
 // HOW THE BACKDROP IS SAMPLED. The platform's text sits on glass (a translucent indigo panel with a blur) over the reef, over a still, or
 // over the live host, so the colour behind a letter is not any one CSS colour. For each screen of the page this takes ONE screenshot of
-// the page with every glyph made transparent (`color` and `-webkit-text-fill-color` transparent, no text shadow, no transitions, and the
-// gradient title's background removed): what is left is the real composite, the glass's alpha laid over the blurred backdrop, the
-// buttons' own fills, the card stills, at every pixel. The screenshot is decoded in the page (createImageBitmap on a canvas) and, for
+// the page with every glyph made transparent (`color` and `-webkit-text-fill-color` transparent, no transitions, the gradient title's background
+// removed; a text SHADOW is left, it is part of the backdrop the letters stand on and is still drawn for transparent glyphs): what is left
+// is the real composite, the glass's alpha laid over the blurred backdrop, the buttons' own fills, the card stills, at every pixel. The screenshot is decoded in the page (createImageBitmap on a canvas) and, for
 // every text element, the pixels of its text boxes (a Range over its own text nodes, so a wrapped paragraph is its lines, not a bounding
 // box of white space) are each compared with the element's computed text colour (its alpha and its ancestors' opacity composited over
-// that pixel). The element's contrast is the 5th percentile of those per-pixel ratios (the worst few pixels are the edge of a
-// neighbouring icon or an antialiased border, not the letters' ground), and the median is reported beside it. WCAG 2.x relative
-// luminance and ratio. The gradient wordmark (`background-clip: text`, a transparent colour) is judged by its LOWEST-contrast stop.
+// that pixel). Only the pixels the text itself changes count (a second screenshot of the same screen with the text drawn, compared
+// with the text-less one: the letters' pixels, antialiased edges included; the spaces between letters are not what is read), when
+// the screen holds still (the host pages are opened with `?freeze` for this). The element's contrast is the 5th percentile of those
+// per-pixel ratios (the worst few are a letter's soft edge), and the median is reported beside it. WCAG 2.x relative
+// luminance and ratio. The gradient wordmark (`background-clip: text`, a transparent colour) is judged pixel by pixel against the gradient's colour at that pixel's x
+// (the stops with their positions, interpolated), and its own `filter: drop-shadow` halo is NOT in the sample (a filter of absent glyphs draws nothing): its numbers are therefore pessimistic.
 // Skipped: a disabled control (exempt by WCAG 1.4.3: inactive component), text that is covered by another element at its centre, text
 // that is not drawn, the engine's own DOM inside a live preview layer.
 
@@ -83,17 +86,41 @@ function collectScript({ skipEngine, skip }: { skipEngine: boolean; skip: string
     if (boxes.length === 0) continue;
     // Fully on screen (a box cut by the window's edge is sampled at the next scroll step).
     if (boxes.some(b => b.left < -0.5 || b.top < -0.5 || b.right > vw + 0.5 || b.bottom > vh + 0.5)) continue;
-    // Covered by something that is not part of it: not seen at this scroll position.
+    // Covered by something that paints (a panel, a picture, other text) above it: not seen at this scroll position. Layout shells that
+    // paint nothing (the landing's full-window layers) do not cover anything; every element takes hits while this measures, so the
+    // stack at the text's centre is the whole stack.
     const cx = (boxes[0].left + boxes[0].right) / 2;
     const cy = (boxes[0].top + boxes[0].bottom) / 2;
-    const top = document.elementFromPoint(cx, cy);
-    if (!top || !(top === el || el.contains(top) || top.contains(el))) continue;
+    let covered = true;
+    for (const above of document.elementsFromPoint(cx, cy)) {
+      if (above === el || el.contains(above) || above.contains(el)) {
+        covered = false;
+        break;
+      }
+      const s2 = getComputedStyle(above);
+      const paints =
+        above.matches('img, canvas, svg, video, input, textarea, select') ||
+        !/^(rgba\(\d+, \d+, \d+, 0\)|transparent)$/.test(s2.backgroundColor) ||
+        (s2.backgroundImage !== 'none' && (s2.webkitBackgroundClip || s2.backgroundClip) !== 'text') ||
+        [...above.childNodes].some(n => n.nodeType === 3 && (n.textContent ?? '').trim() !== '');
+      if (paints) break;
+    }
+    if (covered) continue;
     const clipText = (style.webkitBackgroundClip || style.backgroundClip) === 'text';
     let colors: { r: number; g: number; b: number; a: number }[] = [];
+    let gradient: { stops: { r: number; g: number; b: number; a: number; at: number }[]; left: number; width: number } | null = null;
     if (clipText) {
-      for (const m of style.backgroundImage.matchAll(/rgba?\([^)]+\)/g)) {
-        const c = parse(m[0]);
-        if (c) colors.push(c);
+      // A left-to-right gradient clipped to the letters: each letter has the colour of the gradient where it stands, so a pixel is
+      // compared with the stop colour at its own x, not with every stop.
+      const stops: { r: number; g: number; b: number; a: number; at: number }[] = [];
+      for (const m of style.backgroundImage.matchAll(/(rgba?\([^)]+\))\s*([\d.]+)%/g)) {
+        const c = parse(m[1]);
+        if (c) stops.push({ ...c, at: Number(m[2]) / 100 });
+      }
+      const box = el.getBoundingClientRect();
+      if (stops.length) {
+        gradient = { stops, left: box.left, width: box.width };
+        colors = [stops[0]];
       }
       el.setAttribute('data-ct', '');
     } else {
@@ -108,6 +135,7 @@ function collectScript({ skipEngine, skip }: { skipEngine: boolean; skip: string
       text: (own || (el as HTMLInputElement).value || (el as HTMLInputElement).placeholder).slice(0, 40),
       tag: el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : ''),
       colors,
+      gradient,
       opacity,
       fontSize: parseFloat(style.fontSize),
       weight: Number(style.fontWeight),
@@ -128,7 +156,7 @@ function scrollerScript() {
 }
 
 /** In the page: ratio of each text element's pixels against the decoded screenshot. */
-async function scoreScript({ png, items }: { png: string; items: { id: number; text: string; tag: string; colors: { r: number; g: number; b: number; a: number }[]; opacity: number; fontSize: number; weight: number; boxes: { left: number; top: number; right: number; bottom: number }[] }[] }) {
+async function scoreScript({ png, inked, items }: { png: string; inked: string; items: { id: number; text: string; tag: string; colors: { r: number; g: number; b: number; a: number }[]; gradient: { stops: { r: number; g: number; b: number; a: number; at: number }[]; left: number; width: number } | null; opacity: number; fontSize: number; weight: number; boxes: { left: number; top: number; right: number; bottom: number }[] }[] }) {
   const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
   const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
   const canvas = document.createElement('canvas');
@@ -136,6 +164,14 @@ async function scoreScript({ png, items }: { png: string; items: { id: number; t
   canvas.height = bitmap.height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(bitmap, 0, 0);
+  // The same screen with the text drawn: a pixel the text changes is a pixel of a letter (antialiased edges included).
+  const inkedBytes = Uint8Array.from(atob(inked), c => c.charCodeAt(0));
+  const inkedBitmap = await createImageBitmap(new Blob([inkedBytes], { type: 'image/png' }));
+  const inkedCanvas = document.createElement('canvas');
+  inkedCanvas.width = inkedBitmap.width;
+  inkedCanvas.height = inkedBitmap.height;
+  const inkedCtx = inkedCanvas.getContext('2d', { willReadFrequently: true })!;
+  inkedCtx.drawImage(inkedBitmap, 0, 0);
   const scale = bitmap.width / window.innerWidth;
   const lin = (v: number) => {
     const s = v / 255;
@@ -144,33 +180,47 @@ async function scoreScript({ png, items }: { png: string; items: { id: number; t
   const lum = (r: number, g: number, b: number) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   const results: { id: number; p5: number; median: number }[] = [];
   for (const item of items) {
-    // A gradient is judged by the stop that is worst against the pixels.
-    let worst = { p5: Infinity, median: Infinity };
-    for (const color of item.colors) {
-      const ratios: number[] = [];
-      for (const box of item.boxes) {
-        const x = Math.max(0, Math.floor(box.left * scale));
-        const y = Math.max(0, Math.floor(box.top * scale));
-        const w = Math.max(1, Math.min(canvas.width - x, Math.ceil((box.right - box.left) * scale)));
-        const h = Math.max(1, Math.min(canvas.height - y, Math.ceil((box.bottom - box.top) * scale)));
-        const data = ctx.getImageData(x, y, w, h).data;
-        const alpha = color.a * item.opacity;
-        for (let i = 0; i < data.length; i += 4) {
-          const bgL = lum(data[i], data[i + 1], data[i + 2]);
-          const fr = color.r * alpha + data[i] * (1 - alpha);
-          const fg = color.g * alpha + data[i + 1] * (1 - alpha);
-          const fb = color.b * alpha + data[i + 2] * (1 - alpha);
-          const fgL = lum(fr, fg, fb);
-          const hi = Math.max(fgL, bgL);
-          const lo = Math.min(fgL, bgL);
-          ratios.push((hi + 0.05) / (lo + 0.05));
+    const ratios: number[] = [];
+    const allRatios: number[] = [];
+    const at = (g: NonNullable<typeof item.gradient>, x: number) => {
+      const t = Math.min(1, Math.max(0, (x - g.left) / g.width));
+      const stops = g.stops;
+      if (t <= stops[0].at) return stops[0];
+      for (let k = 1; k < stops.length; k++) {
+        if (t <= stops[k].at) {
+          const u = (t - stops[k - 1].at) / (stops[k].at - stops[k - 1].at || 1);
+          const a = stops[k - 1];
+          const b = stops[k];
+          return { r: a.r + (b.r - a.r) * u, g: a.g + (b.g - a.g) * u, b: a.b + (b.b - a.b) * u, a: 1 };
         }
       }
-      ratios.sort((a, b) => a - b);
-      const p5 = ratios[Math.floor(ratios.length * 0.05)] ?? 21;
-      const median = ratios[Math.floor(ratios.length / 2)] ?? 21;
-      if (p5 < worst.p5) worst = { p5, median };
+      return stops[stops.length - 1];
+    };
+    for (const box of item.boxes) {
+      const x = Math.max(0, Math.floor(box.left * scale));
+      const y = Math.max(0, Math.floor(box.top * scale));
+      const w = Math.max(1, Math.min(canvas.width - x, Math.ceil((box.right - box.left) * scale)));
+      const h = Math.max(1, Math.min(canvas.height - y, Math.ceil((box.bottom - box.top) * scale)));
+      const data = ctx.getImageData(x, y, w, h).data;
+      const drawn = inkedCtx.getImageData(x, y, w, h).data;
+      for (let i = 0; i < data.length; i += 4) {
+        const isInk = Math.abs(drawn[i] - data[i]) + Math.abs(drawn[i + 1] - data[i + 1]) + Math.abs(drawn[i + 2] - data[i + 2]) >= 3;
+        const color = item.gradient ? at(item.gradient, (x + ((i / 4) % w)) / scale) : item.colors[0];
+        const alpha = color.a * item.opacity;
+        const bgL = lum(data[i], data[i + 1], data[i + 2]);
+        const fr = color.r * alpha + data[i] * (1 - alpha);
+        const fg = color.g * alpha + data[i + 1] * (1 - alpha);
+        const fb = color.b * alpha + data[i + 2] * (1 - alpha);
+        const fgL = lum(fr, fg, fb);
+        const ratio = (Math.max(fgL, bgL) + 0.05) / (Math.min(fgL, bgL) + 0.05);
+        allRatios.push(ratio);
+        if (isInk) ratios.push(ratio);
+      }
     }
+    // The letters' own pixels when there are enough of them to say (the gaps between letters and lines are not what is read); otherwise the whole box.
+    const used = ratios.length >= 30 ? ratios : allRatios;
+    used.sort((a, b) => a - b);
+    const worst = { p5: used[Math.floor(used.length * 0.05)] ?? 21, median: used[Math.floor(used.length / 2)] ?? 21 };
     results.push({ id: item.id, ...worst });
   }
   return results;
@@ -191,8 +241,8 @@ export async function measureContrast(page: Page, { skipEngine = true } = {}): P
     const w = window as unknown as { __cdone?: WeakMap<Element, number> };
     w.__cdone = new WeakMap();
   });
-  // A colour that is still in a transition (a tab just pressed) is not the colour the text settles on: nothing transitions while this measures.
-  const still = await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+  // A colour that is still in a transition (a tab just pressed) is not the colour the text settles on: nothing transitions while this measures. Every element takes hits, so the "is something else on top of this text" test (elementFromPoint) sees the landing's text, which lies on the host with `pointer-events: none`.
+  const still = await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; pointer-events: auto !important; }' });
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
   for (let xi = 0; xi < xSteps; xi++) {
     for (let yi = 0; yi < ySteps; yi++) {
@@ -208,13 +258,14 @@ export async function measureContrast(page: Page, { skipEngine = true } = {}): P
       await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
       const items = (await page.evaluate(collectScript, { skipEngine, skip: SELECTOR_SKIP })) as { id: number }[];
       if (items.length === 0) continue;
+      const inked = (await page.screenshot({ type: 'png' })).toString('base64');
       await page.addStyleTag({
-        content: '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; transition: none !important; caret-color: transparent !important; } [data-ct] { background-image: none !important; } ::placeholder { color: transparent !important; -webkit-text-fill-color: transparent !important; }',
+        content: '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; transition: none !important; caret-color: transparent !important; } [data-ct] { background-image: none !important; } ::placeholder { color: transparent !important; -webkit-text-fill-color: transparent !important; }',
       }).then(async handle => {
         await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
         const png = (await page.screenshot({ type: 'png' })).toString('base64');
         await handle.evaluate(node => node.remove());
-        const scored = (await page.evaluate(scoreScript, { png, items: items as Parameters<typeof scoreScript>[0]['items'] })) as { id: number; p5: number; median: number }[];
+        const scored = (await page.evaluate(scoreScript, { png, inked, items: items as Parameters<typeof scoreScript>[0]['items'] })) as { id: number; p5: number; median: number }[];
         const byId = new Map(scored.map(s => [s.id, s]));
         for (const item of items as (Parameters<typeof scoreScript>[0]['items'][number])[]) {
           const s = byId.get(item.id)!;

@@ -56,12 +56,12 @@ export const hostReady = (page: Page) =>
 
 /**
  * Opens a route at a size and waits until it has settled: fonts, images, a host's ready flag, and (the host's pages) the animations
- * of the page's own layer. `seen: false` leaves the entrances to play (the reduced-motion and no-WebGL checks).
+ * of the page's own layer. `seen: false` leaves the entrances to play; `query` is added to the address (`?freeze` holds the host still for the contrast samples).
  */
-export async function openRoute(page: Page, route: PassRoute, size: { width: number; height: number }, { seen = true }: { seen?: boolean } = {}) {
+export async function openRoute(page: Page, route: PassRoute, size: { width: number; height: number }, { seen = true, query = '' }: { seen?: boolean; query?: string } = {}) {
   await page.setViewportSize({ width: size.width, height: size.height });
   if (seen) await entrancesSeen(page);
-  await page.goto(route.path);
+  await page.goto(route.path + query);
   await settleRoute(page, route);
 }
 

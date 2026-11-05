@@ -26,7 +26,14 @@ const EVIDENCE = join(process.cwd(), 'docs/superpowers/evidence/platform/pass');
 mkdirSync(EVIDENCE, { recursive: true });
 
 /** Text that cannot meet 4.5:1 and why (nothing is allowed here without a reason). */
-const CONTRAST_KNOWN: { route: string; text: string; reason: string }[] = [];
+const CONTRAST_KNOWN: { route: string; text: string; reason: string }[] = [
+  {
+    route: 'landing',
+    text: 'OCTOVERSE',
+    reason:
+      "The wordmark: the brand's logotype (WCAG 1.4.3 exempts logotypes) in the gradient sampled from the owner-approved reference P2 (tokens.ts titleGradient), 75 px on a desktop and 31 px on a phone. Its blue letters stand on the bright blue light shaft: measured 2.4:1 at 1536 and 1.5:1 at 390 (its own dark drop-shadow halo is not in the sample, so the real figure is somewhat better). Not changed: the colours are the approved look. For the owner: a darker halo or a scrim behind the title would lift it (MORNING-REVIEW-platform.md).",
+  },
+];
 
 interface Stop {
   label: string;
@@ -156,7 +163,8 @@ async function contrastOf(page: Page, route: PassRoute, size: { width: number; h
 for (const route of ROUTES.filter(r => !r.engineOwned)) {
   for (const size of CONTRAST_SIZES) {
     test(`contrast: ${route.name} at ${size.width} x ${size.height}: all text at least 4.5:1 on its backdrop`, async ({ page }) => {
-      await openRoute(page, route, size);
+      // The host pages are held still (`?freeze`): two screenshots of one screen must differ only by the text.
+      await openRoute(page, route, size, { query: route.host ? '?freeze' : '' });
       if (route.name === 'create') {
         await page.locator('summary').evaluateAll(els => els.forEach(el => ((el.parentElement as HTMLDetailsElement).open = true)));
         await contrastOf(page, route, size, 'octopus');

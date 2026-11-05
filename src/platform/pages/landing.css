@@ -132,8 +132,9 @@
 .oct-tagline {
   font-weight: 500;
   color: var(--oct-ink);
-  /* The water behind the text is bright in places (the light shafts): a soft dark halo keeps it readable. */
-  text-shadow: 0 1px 3px rgba(6, 4, 40, 0.7), 0 0 14px rgba(6, 4, 40, 0.6);
+  /* The water behind the text is bright in places (the light shafts): a soft dark halo keeps it readable (4.2:1 on a phone before the
+     middle layer, over 6:1 after; tests/e2e/platform-pass-a11y.spec.ts). */
+  text-shadow: 0 1px 3px rgba(6, 4, 40, 0.8), 0 0 8px rgba(6, 4, 40, 0.75), 0 0 16px rgba(6, 4, 40, 0.6);
 }
 
 .oct-desc {
