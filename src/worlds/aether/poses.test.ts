@@ -55,9 +55,11 @@ test('the left arms curl counter-clockwise and the right arms clockwise, as pain
   for (const id of ['T7', 'T8'] as const) expect(turn(id), id).toBeLessThan(-1);
 });
 
-test("the entrance still reuses the intro arms and body (P1 is traced later); the detail keeps the intro's arms on its own body (P5)", () => {
-  expect(AETHER_POSES.entering.arms).toBe(AETHER_POSES.intro.arms);
+test("the entrance is the swim's trail on the intro body (P1, Task 17); the detail keeps the intro's arms on its own body (P5)", () => {
+  // The entrance sheet carries her body, facing and lean; the pose keeps the intro's body and draws the trailing ribbons.
+  expect(AETHER_POSES.entering.arms).toEqual(SWIM_POSES.trail.arms);
   expect(AETHER_POSES.entering.body).toEqual(AETHER_POSES.intro.body);
+  expect(AETHER_POSES.entering.expression).toBe('happy');
   expect(AETHER_POSES.detail.arms).toBe(AETHER_POSES.intro.arms);
   expect(AETHER_POSES.detail.body).not.toEqual(AETHER_POSES.intro.body);
   expect(AETHER_POSES.overview.headMorph).toBe(1);
@@ -288,8 +290,8 @@ test('the open-water points hang their orbs clear of every arm: orb centre to ea
   }
 });
 
-test('the swim is the intro arms until Task 17', () => {
-  expect(SWIM_POSES.open.arms).toBe(AETHER_POSES.intro.arms);
-  expect(SWIM_POSES.trail.arms).toBe(AETHER_POSES.intro.arms);
-  expect(SWIM_POSES.stretch).toBe(1);
+test('the swim has her own open and trail arms (Task 17, swim.test.ts), stretched a little as she swims', () => {
+  expect(SWIM_POSES.open.arms).not.toBe(AETHER_POSES.intro.arms);
+  expect(SWIM_POSES.trail.arms).not.toBe(AETHER_POSES.intro.arms);
+  expect(SWIM_POSES.stretch).toBe(1.12);
 });

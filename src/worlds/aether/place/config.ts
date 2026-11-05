@@ -256,12 +256,15 @@ const WORLD_LIVE_COLOURS: WorldConfig['live']['colours'] = {
 };
 
 /**
- * The world's props: the rubble on `'bob'` (kit.ts OBSERVATORY_PROPS). The glyph's `'emissive'` prop
- * is left out here: nothing drives an emissive prop yet (only a sequence would, and none targets
- * it), and its pulse comes from its glow material, which validateWorld does not allow beside an
- * emissive drive (a glow sets its own level). MORNING-REVIEW-aether.md has the engine request.
+ * The world's props: the rubble on `'bob'` (kit.ts OBSERVATORY_PROPS) and the portal membrane's
+ * flash on `'emissive'` (Task 17), which the entrance drives as the brain glyph fires (spec 7.9:
+ * the membrane brightens; sequences/index.ts kitDrives). Its level is 1 at rest and at most 1 + its
+ * `flash` (0.25): the membrane's shader caps it (membraneMaterial.ts). The glyph's own `'emissive'`
+ * prop is left out: its pulse comes from its glow material, which validateWorld does not allow beside
+ * an emissive drive (a glow sets its own level). MORNING-REVIEW-aether.md has the engine request.
  */
-const WORLD_PROPS = OBSERVATORY_PROPS.filter(prop => prop.id !== 'portalGlyph');
+export const PORTAL_FLASH = { id: 'portalFlash', node: 'portal_membrane', drive: 'emissive' } as const;
+const WORLD_PROPS: NonNullable<WorldConfig['props']> = [...OBSERVATORY_PROPS.filter(prop => prop.id !== 'portalGlyph'), PORTAL_FLASH];
 
 /**
  * The world's water: the stage's colours with softer shafts (Task 10). At the desktop tier every
