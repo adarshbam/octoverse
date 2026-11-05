@@ -1,13 +1,17 @@
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
 import { NOX_BUNDLE } from '../../worlds/nox/bundle';
+import { FlourishScheduler } from '../behavior/flourish';
 import { parseUrlState } from '../behavior/urlState';
 import { clampCharacterConfig } from '../config/validate';
-import type { CupPulse, SuckerStyle } from '../config/types';
+import { ARM_IDS, type ArmId, type CharacterConfig, type CupPulse, type SuckerStyle } from '../config/types';
 import { createInstanceState } from '../host/instance';
-import { PULSE_ARMS, PULSE_IDLE, createPulseTriggers, cupPulseAt, firePulse, reducedLevel, writePulseUniforms } from './cupPulse';
+import { seededRng } from '../motion/micro';
+import { type WorldBundle, validateBundle } from '../types/bundle';
+import { PULSE_ARMS, PULSE_IDLE, createPulseTriggers, cupPulseAt, firePulse, reducedLevel, subscribeIdlePulse, writePulseUniforms } from './cupPulse';
 import { createSkinUniforms } from './skinMaterial';
 import { createSuckerMaterial } from './suckerMaterial';
 
@@ -184,4 +188,165 @@ test('the review switch ?pulse=<arm>@<seconds> names an arm and a moment; anythi
   expect(parseUrlState('?world=flux&stage=intro&freeze&pulse=t2@0.35').pulse).toEqual({ arm: 'T2', seconds: 0.35 });
   expect(parseUrlState('?pulse=T8@1').pulse).toEqual({ arm: 'T8', seconds: 1 });
   for (const bad of ['?pulse=t9@0.4', '?pulse=t2', '?pulse=t2@x', '?pulse=@0.4', '?pulse']) expect(parseUrlState(bad).pulse).toBeUndefined();
+});
+
+// --- The idle pulse (Flux Task 14, spec 2.4 and 7.8): a share of the idle flourishes pulse their arm ---------
+
+/** Flux's personality as far as the idle pulse reads it (the engine's tests may not import another world). */
+const FLUX_CONFIG = { ...NOX, personality: { ...NOX.personality, flourishRate: 10, flourishPulse: 0.75 }, suckers: { ...NOX.suckers, pulse: FLUX } } as CharacterConfig;
+const withShare = (flourishPulse: number | undefined) => ({ ...FLUX_CONFIG, personality: { ...FLUX_CONFIG.personality, flourishPulse } }) as CharacterConfig;
+const PULSE_SECONDS = (1 + FLUX.wavelength) / FLUX.speed;
+
+/**
+ * `seconds` of 60 fps frames: the flourish scheduler is stepped on its own clock (`t`), the pulse
+ * clock is the frame clock, which runs from a different origin (+100) as the R3F one does. Returns
+ * each idle pulse's frame-clock time and arm, taken from the triggers as they change.
+ */
+function idleRun(opts: { seconds?: number; seed?: number; pulseSeed?: number; busy?: (arm: ArmId) => boolean; reducedMotion?: boolean; cfg?: CharacterConfig } = {}) {
+  const { seconds = 600, seed = 1, pulseSeed = 7, busy, reducedMotion = false, cfg = FLUX_CONFIG } = opts;
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  const idle = subscribeIdlePulse(instance, cfg, { random: seededRng(pulseSeed), busy });
+  const scheduler = new FlourishScheduler(cfg.personality.flourishRate ?? 0, seededRng(seed));
+  const seen = Array.from(instance.pulse.times);
+  const pulses: { clock: number; arm: ArmId }[] = [];
+  const flourishes: { arm: ArmId; start: number }[] = [];
+  const unsubscribe = instance.flourish.subscribe(e => flourishes.push(e));
+  for (let i = 0; i <= seconds * 60; i++) {
+    const t = i / 60;
+    scheduler.step(t, busy, instance.flourish);
+    idle.flush(t + 100, reducedMotion);
+    instance.pulse.times.forEach((v, k) => {
+      if (v !== seen[k]) {
+        pulses.push({ clock: v, arm: ARM_IDS[k] });
+        seen[k] = v;
+      }
+    });
+  }
+  unsubscribe();
+  idle();
+  return { pulses, flourishes, instance };
+}
+
+test('flourishPulse 0 or absent subscribes nothing: Nox and Veyra are untouched', () => {
+  const none = [NOX as CharacterConfig, withShare(0), withShare(undefined), { ...FLUX_CONFIG, suckers: NOX.suckers } as CharacterConfig];
+  for (const cfg of none) {
+    const instance = createInstanceState(NOX_BUNDLE, 'page');
+    const subscribe = vi.spyOn(instance.flourish, 'subscribe');
+    const idle = subscribeIdlePulse(instance, cfg);
+    expect(subscribe).not.toHaveBeenCalled();
+    instance.flourish.emit({ arm: 'T3', start: 5 });
+    idle.flush(6);
+    expect(Array.from(instance.pulse.times).every(v => v === -Infinity)).toBe(true);
+    expect(() => idle()).not.toThrow();
+  }
+  // With a share and a pulse set, it does subscribe.
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  const subscribe = vi.spyOn(instance.flourish, 'subscribe');
+  subscribeIdlePulse(instance, FLUX_CONFIG)();
+  expect(subscribe).toHaveBeenCalledTimes(1);
+});
+
+test('over 600 s of flourishes at rate 10 and share 0.75, idle pulses average one every 6 to 10 s (about 8.5)', () => {
+  const means: number[] = [];
+  for (let seed = 1; seed <= 12; seed++) {
+    const { pulses, flourishes } = idleRun({ seed, pulseSeed: seed * 31 });
+    expect(pulses.length, `seed ${seed}`).toBeGreaterThan(0);
+    // 600 s of 4.8 to 8 s waits: 75 to 125 flourishes, about 94; a share of them pulse.
+    expect(flourishes.length, `seed ${seed}`).toBeGreaterThanOrEqual(75);
+    expect(flourishes.length, `seed ${seed}`).toBeLessThanOrEqual(125);
+    const mean = 600 / pulses.length;
+    expect(mean, `seed ${seed}`).toBeGreaterThanOrEqual(6);
+    expect(mean, `seed ${seed}`).toBeLessThanOrEqual(10);
+    means.push(mean);
+  }
+  expect(means.reduce((a, b) => a + b, 0) / means.length).toBeGreaterThan(7.8);
+  expect(means.reduce((a, b) => a + b, 0) / means.length).toBeLessThan(9.2);
+});
+
+test('the pulse fires on the flourish arm, on the frame clock the cups read (not the scheduler clock), in the frame it starts', () => {
+  const { pulses, flourishes } = idleRun({ seconds: 120 });
+  for (const p of pulses) {
+    const f = flourishes.find(e => Math.abs(e.start + 100 - p.clock) < 1 / 60 + 1e-3);
+    expect(f, `pulse at ${p.clock}`).toBeDefined();
+    expect(f!.arm).toBe(p.arm);
+  }
+  // About three in four of them pulse; the rest are the unroll alone.
+  expect(pulses.length / flourishes.length).toBeGreaterThan(0.6);
+  expect(pulses.length / flourishes.length).toBeLessThan(0.9);
+});
+
+test('no two idle pulses overlap: each is a whole band-length after the last, on any arm', () => {
+  for (let seed = 1; seed <= 6; seed++) {
+    const { pulses } = idleRun({ seed });
+    for (let i = 1; i < pulses.length; i++) expect(pulses[i].clock - pulses[i - 1].clock, `seed ${seed}`).toBeGreaterThan(PULSE_SECONDS);
+  }
+  // And firePulse's own guard holds when a second event arrives under half way along the same arm.
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  const idle = subscribeIdlePulse(instance, withShare(1));
+  instance.flourish.emit({ arm: 'T4', start: 0 });
+  idle.flush(50);
+  instance.flourish.emit({ arm: 'T4', start: 0.1 });
+  idle.flush(50 + 0.2 / FLUX.speed);
+  expect(instance.pulse.times[3]).toBe(50);
+});
+
+test('none fires on an arm that is lifting (busy), whether the scheduler picked it or the arm became busy since', () => {
+  const lifting = new Set<ArmId>(['T1', 'T2', 'T8']);
+  const { pulses, flourishes } = idleRun({ busy: arm => lifting.has(arm) });
+  expect(pulses.length).toBeGreaterThan(30);
+  for (const p of pulses) expect(lifting.has(p.arm), p.arm).toBe(false);
+  for (const f of flourishes) expect(lifting.has(f.arm), f.arm).toBe(false);
+  // An event for an arm that went busy after the scheduler chose it is dropped, not fired later.
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  let busy = false;
+  const idle = subscribeIdlePulse(instance, withShare(1), { busy: () => busy });
+  instance.flourish.emit({ arm: 'T5', start: 1 });
+  busy = true;
+  idle.flush(10);
+  busy = false;
+  idle.flush(11);
+  expect(instance.pulse.times[4]).toBe(-Infinity);
+});
+
+test('with reduced motion no idle pulse fires, and an event heard then does not fire later', () => {
+  expect(idleRun({ reducedMotion: true }).pulses).toEqual([]);
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  const idle = subscribeIdlePulse(instance, withShare(1));
+  instance.flourish.emit({ arm: 'T6', start: 1 });
+  idle.flush(2, true);
+  idle.flush(3, false);
+  expect(instance.pulse.times[5]).toBe(-Infinity);
+});
+
+test('the share is the probability per flourish: 1 pulses every one, and the unsubscribe stops it', () => {
+  const all = idleRun({ seconds: 300, cfg: withShare(1) });
+  expect(all.pulses.length).toBe(all.flourishes.length);
+  const instance = createInstanceState(NOX_BUNDLE, 'page');
+  const idle = subscribeIdlePulse(instance, withShare(1));
+  idle();
+  instance.flourish.emit({ arm: 'T2', start: 1 });
+  idle.flush(2);
+  expect(instance.pulse.times[1]).toBe(-Infinity);
+});
+
+test('flourishPulse is clamped to 0 to 1 and absent stays absent; the bundle refuses it out of range by name', () => {
+  const clamp = (v: unknown) => clampCharacterConfig({ ...NOX, personality: { ...NOX.personality, flourishPulse: v as number } }).personality.flourishPulse;
+  expect(clamp(0.75)).toBe(0.75);
+  expect(clamp(7)).toBe(1);
+  expect(clamp(-2)).toBe(0);
+  expect(clamp(Number.NaN)).toBe(0);
+  expect(clampCharacterConfig(NOX).personality.flourishPulse).toBeUndefined();
+  const bundle = (flourishPulse: unknown) => ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, personality: { ...NOX_BUNDLE.character.personality, flourishPulse } } }) as unknown as WorldBundle;
+  for (const ok of [0, 0.75, 1]) expect(() => validateBundle(bundle(ok))).not.toThrow();
+  for (const bad of [-0.1, 1.2, Number.NaN, Infinity, '0.75']) {
+    expect(() => validateBundle(bundle(bad)), String(bad)).toThrow(/character\.personality\.flourishPulse/);
+  }
+});
+
+test('the character wires the idle pulse to the frame clock (Octopus.tsx), with the unroll left to play', () => {
+  const octopus = readFileSync(new URL('./Octopus.tsx', import.meta.url), 'utf8');
+  expect(octopus).toMatch(/subscribeIdlePulse\(instance, config, \{ busy: armBusy \}\)/);
+  expect(octopus).toMatch(/\.flush\(state\.clock\.elapsedTime, reducedMotion\)/);
+  // The unroll is not suppressed: the flourish layer's own lines are as they were.
+  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), m\.holdWeight\[playing\.index\]\)/);
 });

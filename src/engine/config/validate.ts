@@ -271,6 +271,7 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       ...(p.settle !== undefined ? { settle: unit(p.settle, 1) } : {}),
       ...(p.glideBias !== undefined ? { glideBias: finite(p.glideBias) && p.glideBias > 0 ? p.glideBias : 1 } : {}),
       ...(p.flourishRate !== undefined ? { flourishRate: clamp(p.flourishRate, 0, Infinity, 0) } : {}),
+      ...(p.flourishPulse !== undefined ? { flourishPulse: unit(p.flourishPulse, 0) } : {}),
     },
   };
 }

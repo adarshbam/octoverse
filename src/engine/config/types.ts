@@ -386,10 +386,16 @@ export interface Personality {
    * curl and rolls it back. Unset: 0, none (Nox).
    */
   flourishRate?: number;
+  /**
+   * 0 to 1: the share of the idle flourishes that also run a cup pulse along their arm
+   * (character/cupPulse.ts subscribeIdlePulse; Flux's). The pulse travels alongside the flourish's
+   * tip unroll, which always plays. Unset or 0: none, and nothing subscribes (Nox, Veyra).
+   */
+  flourishPulse?: number;
 }
 
-/** What `Personality.settle`, `glideBias` and `flourishRate` read when unset: Nox's values, today's behaviour. */
-export const PERSONALITY_VARIANT_DEFAULTS = { settle: 1, glideBias: 1, flourishRate: 0 } as const;
+/** What `Personality.settle`, `glideBias`, `flourishRate` and `flourishPulse` read when unset: Nox's values, today's behaviour. */
+export const PERSONALITY_VARIANT_DEFAULTS = { settle: 1, glideBias: 1, flourishRate: 0, flourishPulse: 0 } as const;
 
 /**
  * Living skin detail: droplet bumps, dark blotches, cool and warm tints, wet gloss and light

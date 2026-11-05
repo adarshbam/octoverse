@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
-import { ARM_IDS, type ArmId, type CupPulse } from '../config/types';
+import { ARM_IDS, type ArmId, type CharacterConfig, type CupPulse } from '../config/types';
+import type { InstanceState } from '../host/instance';
 
 // The cup pulse (contract 18.1 F1, Flux spec 2.4 and 7.5): a band of light that runs along one arm's
 // cups, root to tip, when that arm's one-shot trigger fires. Its head leads in the first colour
@@ -56,6 +57,62 @@ export function firePulse(t: PulseTriggers, arm: ArmId, clock: number, cfg: CupP
   if (since * cfg.speed < REFIRE_TRAVEL) return false;
   t.times[i] = clock;
   return true;
+}
+
+/** What an idle pulse draws on: the random stream (Math.random by default; a seeded one in tests) and the busy-arm hook. */
+export interface IdlePulseOptions {
+  random?: () => number;
+  /** True for an arm that is lifting or holding something: it never pulses idle (the flourish layer's own busy hook). */
+  busy?: (arm: ArmId) => boolean;
+}
+
+/**
+ * The idle pulse's subscription, called to unsubscribe (on unmount). `flush` is called once a frame,
+ * after the flourish scheduler has stepped, with the pulse clock (the R3F frame clock) and whether
+ * reduced motion is on: it fires what the subscription heard this frame.
+ */
+export interface IdlePulse {
+  (): void;
+  flush(clock: number, reducedMotion?: boolean): void;
+}
+
+const NO_IDLE_PULSE: IdlePulse = Object.assign(() => {}, { flush: () => {} });
+
+/**
+ * The idle pulse (Flux, spec 2.4 and 7.8; amendment A2 X1): on each idle flourish, with probability
+ * `personality.flourishPulse`, the flourishing arm's cups run a pulse. Returns the unsubscribe
+ * function, which also carries `flush`. A `flourishPulse` of 0 or absent, or a config with no cup
+ * pulse, subscribes nothing, so Nox and Veyra are untouched.
+ *
+ * The flourish event is `{ arm, start }` and `start` is on the flourish scheduler's clock, which
+ * runs only while a flourish may play. The cups read the R3F frame clock, so the subscription only
+ * notes the arm and `flush` (Octopus's frame loop, which has that clock) fires it in the same frame.
+ *
+ * Interplay with Veyra's tip unroll: there is no way to suppress the unroll, and none is added. It
+ * plays on every flourish, so the pulse travels alongside it: the band runs root to tip in 0.75 s
+ * while the tip uncurls over the flourish's three seconds, and has gone before the unroll peaks.
+ *
+ * Two idle pulses never overlap: flourishes are 4.8 s or more apart and a pulse lasts about 0.9 s,
+ * and `firePulse` refuses an arm whose pulse is under half way regardless. An arm that is busy (lifting)
+ * or reduced motion drops the pulse; it is never held over to a later frame.
+ */
+export function subscribeIdlePulse(instance: Pick<InstanceState, 'flourish' | 'pulse'>, cfg: CharacterConfig, options: IdlePulseOptions = {}): IdlePulse {
+  const share = cfg.personality.flourishPulse;
+  const pulse = cfg.suckers.pulse;
+  if (!pulse || share === undefined || !Number.isFinite(share) || share <= 0) return NO_IDLE_PULSE;
+  const random = options.random ?? Math.random;
+  const pending: ArmId[] = [];
+  const unsubscribe = instance.flourish.subscribe(e => {
+    if (random() < share) pending.push(e.arm);
+  });
+  return Object.assign(() => unsubscribe(), {
+    flush(clock: number, reducedMotion = false) {
+      for (const arm of pending) {
+        if (!reducedMotion && !options.busy?.(arm)) firePulse(instance.pulse, arm, clock, pulse);
+      }
+      pending.length = 0;
+    },
+  });
 }
 
 /**

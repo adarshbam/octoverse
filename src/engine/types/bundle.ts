@@ -184,12 +184,14 @@ function checkOrbStyle(style: unknown) {
 
 /**
  * The personality's motion variants (engine contract 14.1), each optional (unset reads Nox's value),
- * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more.
+ * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more,
+ * `flourishPulse` 0 to 1.
  */
 function checkPersonalityVariants(personality: unknown) {
   if (!record(personality)) return;
   const at = 'character.personality';
-  const { settle, glideBias, flourishRate } = personality;
+  const { settle, glideBias, flourishRate, flourishPulse } = personality;
+  if (flourishPulse !== undefined && !(finite(flourishPulse) && flourishPulse >= 0 && flourishPulse <= 1)) throw new BundleError(`${at}.flourishPulse`, `${String(flourishPulse)} is not from 0 to 1 (the share of idle flourishes that pulse)`);
   if (settle !== undefined && !(finite(settle) && settle >= 0 && settle <= 1)) throw new BundleError(`${at}.settle`, `${String(settle)} is not from 0 to 1 (a share of the approved overshoot)`);
   if (glideBias !== undefined && !(finite(glideBias) && glideBias > 0)) throw new BundleError(`${at}.glideBias`, `${String(glideBias)} is not above 0 (a scale on the glide)`);
   if (flourishRate !== undefined && !(finite(flourishRate) && flourishRate >= 0)) throw new BundleError(`${at}.flourishRate`, `${String(flourishRate)} is not 0 or more (flourishes per minute)`);

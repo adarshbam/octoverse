@@ -43,7 +43,7 @@ import { HEAD_EFFECTS } from './headEffects';
 import { createSkinMaterial, createSkinUniforms, jellyCoreWorld, surfaceLooks } from './skinMaterial';
 import { createDomeMaterial } from './domeMaterial';
 import { LocalGrade } from './LocalGrade';
-import { writePulseUniforms } from './cupPulse';
+import { type IdlePulse, subscribeIdlePulse, writePulseUniforms } from './cupPulse';
 import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } from './suckerMaterial';
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 import { type AccentLink, farHaze } from './worldAccent';
@@ -391,6 +391,18 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // The busy-arm hook: no flourish starts on an arm that holds something (the suction hold's turn
   // toward its bubble; Task 19's pendant lift goes through the same hold).
   const armBusy = useCallback((arm: ArmId) => motion.current.holdWeight[ARM_IDS.indexOf(arm)] > 0, []);
+  // The idle pulse (Flux; cupPulse.ts subscribeIdlePulse): a share of the flourishes also pulse their arm's
+  // cups, alongside the tip unroll. Nothing subscribes at a `flourishPulse` of 0 or unset (Nox, Veyra).
+  // The frame loop flushes it with the frame clock the cups are drawn on.
+  const idlePulse = useRef<IdlePulse | null>(null);
+  useEffect(() => {
+    const idle = subscribeIdlePulse(instance, config, { busy: armBusy });
+    idlePulse.current = idle;
+    return () => {
+      idlePulse.current = null;
+      idle();
+    };
+  }, [instance, config, armBusy]);
 
   // The pointer and the keys wake him from rest. Only a page instance listens (a preview shares the window with the page and does not).
   useWindowListeners(instance.mode, {
@@ -797,6 +809,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // The cup pulse (Flux): each arm's trigger, on the frame clock; a review still fires one arm at 0 and shows a moment of it.
     const cupUniforms = (rig.suckers.material as THREE.ShaderMaterial).uniforms;
+    idlePulse.current?.flush(state.clock.elapsedTime, reducedMotion);
     if (cupUniforms.uPulseTimes) writePulseUniforms(cupUniforms, instance.pulse, state.clock.elapsedTime, reducedMotion, pulseAt);
     rig.suckers.instanceMatrix.needsUpdate = true;
     rig.suckerBend.needsUpdate = true;
