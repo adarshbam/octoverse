@@ -418,8 +418,11 @@
   resize: vertical;
 }
 
-.oct-field input::placeholder {
-  color: rgba(217, 207, 232, 0.7);
+/* The placeholders of the inputs and of the textarea: the browser's grey (#757575) is 4.0:1 on this glass; the soft ink at 0.8 is over 7:1. */
+.oct-field input::placeholder,
+.oct-field textarea::placeholder {
+  color: rgba(217, 207, 232, 0.8);
+  opacity: 1;
 }
 
 /* ---- projects ------------------------------------------------------------------------------- */

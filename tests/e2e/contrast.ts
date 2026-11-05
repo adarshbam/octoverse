@@ -63,7 +63,7 @@ function collectScript({ skipEngine, skip }: { skipEngine: boolean; skip: string
     let opacity = 1;
     for (let n: HTMLElement | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity);
     if (opacity < 0.05) continue;
-    if (el.matches(':disabled, [aria-disabled="true"]')) {
+    if (el.closest(':disabled, [aria-disabled="true"]')) {
       w.__cdone.set(el, 0);
       continue;
     }
@@ -191,6 +191,9 @@ export async function measureContrast(page: Page, { skipEngine = true } = {}): P
     const w = window as unknown as { __cdone?: WeakMap<Element, number> };
     w.__cdone = new WeakMap();
   });
+  // A colour that is still in a transition (a tab just pressed) is not the colour the text settles on: nothing transitions while this measures.
+  const still = await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
   for (let xi = 0; xi < xSteps; xi++) {
     for (let yi = 0; yi < ySteps; yi++) {
       await page.evaluate(
@@ -231,6 +234,7 @@ export async function measureContrast(page: Page, { skipEngine = true } = {}): P
       });
     }
   }
+  await still.evaluate(node => node.remove());
   void viewport;
   return { items: itemsOut, sampled };
 }
