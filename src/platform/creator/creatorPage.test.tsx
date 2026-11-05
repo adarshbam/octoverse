@@ -85,6 +85,8 @@ describe('the creator composition (spec 7.13)', () => {
     expect(slot).toContain('data-template="aether"');
     expect(slot).toContain('data-palette="peach"');
     expect(slot).toContain('data-personality="playful"');
+    expect(slot).toContain('data-project="sample-project"');
+    expect(slot).toMatch(/data-tech="react,typescript,postgresql,redis,docker"/);
     expect(slot).toContain('data-still="/platform/stills/creator-aether-peach.webp"');
     expect(slot).toMatch(/<button[^>]*aria-pressed="false"[^>]*>\s*Overview\s*<\/button>/);
     expect(slot).not.toContain('data-creator-layer');

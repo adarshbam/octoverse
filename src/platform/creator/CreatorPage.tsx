@@ -62,7 +62,7 @@ export function CreatorPage({ draft, onChange, layout, busy = false, bar, media 
             <>
               <OctopusPanel draft={draft} onChange={onChange} />
               {preview}
-              <ProjectsPanel draft={draft} onChange={onChange} media={media} />
+              {projects}
               <Actions />
             </>
           ) : (

@@ -38,6 +38,19 @@ const PENDING_MS = 6000;
 /** The one preview's drawing options (spec 7.13). The stage is read at mount: the toggle changes it with `stageRequest`. */
 const previewFor = (overview: boolean): PreviewOptions => ({ stage: overview ? 'overview' : 'intro', tierCap: 'low', motion: 'ambient', place: 'backdrop', artifacts: 'settled' });
 
+/**
+ * Development builds only: what the platform asked of the engine, for the end-to-end specs (`window.__platform.creator`). A preview
+ * instance reports nothing of its own (debugHooks.ts writes for the page instance only), so the engine's side of a reaction cannot be
+ * read; this is the platform's side of the contract: the gaze targets given to `attend`, the faces held, and the stages requested.
+ */
+function note(kind: 'attend' | 'face', value: unknown) {
+  if (!import.meta.env.DEV) return;
+  const w = window as unknown as { __platform?: Record<string, unknown> };
+  const platform = (w.__platform ??= {});
+  const creator = (platform.creator ??= { attend: [], face: [] }) as Record<'attend' | 'face', unknown[]>;
+  creator[kind].push({ at: Math.round(performance.now()), value });
+}
+
 const ids = new WeakMap<WorldBundle, number>();
 let nextId = 0;
 /** A React key for a bundle object (a new object is a new instance, as in the engine's own key). */
@@ -69,7 +82,7 @@ function ApiTap({ onApi }: { onApi: (api: InstanceApi | null) => void }) {
 }
 
 /** One live instance of one bundle, in its own layer; `show` fades it in once its canvas has drawn. */
-function Layer({ bundle, size, options, request, overview, show, onDrawn, onFail, onApi }: { bundle: WorldBundle; size: { width: number; height: number }; options: ReturnType<typeof defaultReviewOptions>; request?: { id: number; stage: 'intro' | 'overview' }; overview: boolean; show: boolean; onDrawn: () => void; onFail: () => void; onApi: (api: InstanceApi | null) => void }) {
+function Layer({ bundle, size, options, request, overview, show, onDrawn, onFail, onApi, onStage }: { bundle: WorldBundle; size: { width: number; height: number }; options: ReturnType<typeof defaultReviewOptions>; request?: { id: number; stage: 'intro' | 'overview' }; overview: boolean; show: boolean; onDrawn: () => void; onFail: () => void; onApi: (api: InstanceApi | null) => void; onStage: (stage: string) => void }) {
   const ref = useRef<HTMLSpanElement>(null);
   const drawn = useDrawn(ref, true);
   const told = useRef(onDrawn);
@@ -80,10 +93,16 @@ function Layer({ bundle, size, options, request, overview, show, onDrawn, onFail
     if (drawn) told.current();
   }, [drawn]);
   const preview = useMemo(() => previewFor(overview), [overview]);
+  // A new instance opens on the stage it was given; the engine tells of every change after that (onStageChange).
+  const opened = useRef(overview);
+  useEffect(() => {
+    onStage(opened.current ? 'overview' : 'intro');
+    return () => onStage('');
+  }, [onStage]);
   return (
     <span ref={ref} className={`oct-live-layer${drawn && show ? ' is-on' : ''}`} style={{ '--oct-still-w': size.width, '--oct-still-h': size.height } as CSSProperties} aria-hidden="true" inert data-creator-layer="">
       <Contained onFail={onFail}>
-        <WorldHost bundle={bundle} options={options} mode="preview" preview={preview} ui="none" stageRequest={request}>
+        <WorldHost bundle={bundle} options={options} mode="preview" preview={preview} ui="none" stageRequest={request} onStageChange={onStage}>
           <ApiTap onApi={onApi} />
         </WorldHost>
       </Contained>
@@ -108,12 +127,13 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
   // the name, handle and texts are not drawn (`ui: 'none'`), so they do not make a new bundle (typing a name must not remount).
   const chosen = draft.projects.find(p => p.id === selectedProjectId) ?? draft.projects[0];
   const techKey = chosen ? chosen.technologies.join(',') : '';
+  // The latest draft is read when the bundle is rebuilt (by the keys below), not on every render: a ref written in render, read in the memo.
   const latest = useRef(draft);
   latest.current = draft;
   const target = useMemo(
     () => {
       const current = latest.current;
-      return assembleBundle(TEMPLATES[template], { palette, personality, name: current.octopus.name, handle: current.profile.handle }, draftToContent(current, selectedProjectId));
+      return assembleBundle(TEMPLATES[template], { palette, personality, name: current.octopus.name, handle: current.profile.handle }, draftToContent(current, chosen?.id ?? null));
     },
     // techKey stands for the chosen project's technologies (the only part of the content the preview draws)
     [template, palette, personality, techKey, chosen?.id],
@@ -127,6 +147,8 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
 
   // The overview pose toggle: a request to the running instance (no remount); a new instance opens on the pose it was left in.
   const [overview, setOverview] = useState(false);
+  // The stage the ENGINE says the running instance is in (its onStageChange), as opposed to the stage asked for.
+  const [engineStage, setEngineStage] = useState<string | null>(null);
   const [request, setRequest] = useState<{ id: number; stage: 'intro' | 'overview' } | undefined>();
   const toggle = () => {
     const next = !overview;
@@ -165,7 +187,10 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
       if (r.wiggle) {
         const canvas = picture.current?.querySelector('canvas');
         const box = canvas?.getBoundingClientRect();
-        if (box) for (const step of wigglePath(box.width, box.height)) later(step.at, () => api.current?.attend(step.target, { reach: false }));
+        if (box) for (const step of wigglePath(box.width, box.height)) later(step.at, () => {
+          note('attend', step.target);
+          api.current?.attend(step.target, { reach: false });
+        });
       }
     },
     [later],
@@ -216,15 +241,18 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
     if (waiting && performance.now() - waiting.at < PENDING_MS) playLive(waiting.reaction);
   }, [playLive]);
 
+  useEffect(() => {
+    note('face', face ?? null);
+  }, [face]);
   const hostOptions = useMemo(() => ({ ...defaultReviewOptions(), ...(face ? { expression: face } : {}) }), [face]);
   const displayName = name.trim() === '' ? 'Your Octopus' : name.trim();
   const still = stillFor({ kind: 'creator', template, palette });
 
   return (
     <section className="oct-creator-preview" data-slot="preview" aria-label="Octopus preview">
-      <div ref={picture} className="oct-creator-picture" data-state={mounted ? (stale ? 'changing' : 'live') : 'still'} data-template={template} data-palette={palette} data-personality={personality} data-still={still.src} data-reaction={reacting ?? ''}>
-        <CreatorStill template={template} palette={palette} alt={`${displayName}, ${TEMPLATE_NAMES[template]} template in ${PALETTE_NAMES[palette]}`} />
-        {mounted && <Layer key={`layer-${idOf(bundle)}`} bundle={bundle} size={still} options={hostOptions} request={request} overview={overview} show={!stale} onDrawn={onDrawn} onFail={() => setFailedFor(bundle)} onApi={onApi} />}
+      <div ref={picture} className="oct-creator-picture" data-state={mounted ? (stale ? 'changing' : 'live') : 'still'} data-template={template} data-palette={palette} data-personality={personality} data-still={still.src} data-reaction={reacting ?? ''} data-project={chosen?.id ?? ''} data-tech={techKey} data-engine-stage={mounted ? (engineStage ?? '') : ''}>
+        <CreatorStill template={template} palette={palette} alt="" />
+        {mounted && <Layer key={`layer-${idOf(bundle)}`} bundle={bundle} size={still} options={hostOptions} request={request} overview={overview} show={!stale} onDrawn={onDrawn} onFail={() => setFailedFor(bundle)} onApi={onApi} onStage={setEngineStage} />}
         {shimmer > 0 && (
           <span key={`shimmer-${shimmer}`} className="oct-shimmer" aria-hidden="true" data-shimmer={shimmer}>
             {Array.from({ length: 9 }, (_, i) => (

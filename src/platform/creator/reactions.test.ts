@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { REACTION_CHANGES, REMOUNT_FADE_MS, reactionFor, wigglePath } from './reactions';
 
 describe('reactionFor (spec 7.13: the octopus reacts to every preset change)', () => {
-  it('a palette change shimmers and wiggles, with no face of its own', () => {
+  it('a palette change asks for a shimmer and a wiggle (both stand-ins: a platform sparkle and a gaze swing), with no face of its own', () => {
     const r = reactionFor('palette');
     expect(r).toMatchObject({ shimmer: true, wiggle: true });
     expect(r).not.toHaveProperty('expression');
@@ -14,7 +14,7 @@ describe('reactionFor (spec 7.13: the octopus reacts to every preset change)', (
     expect(r).toEqual({ holdMs: 3000 });
   });
 
-  it('a name change blinks and smiles with the happy face', () => {
+  it('a name change asks for a blink (a stand-in) and the happy face (the smile)', () => {
     const r = reactionFor('name');
     expect(r).toMatchObject({ blink: true, expression: 'happy' });
     expect(['gentle', 'happy', 'focused', 'attentive', 'curious', 'restful', 'blow']).toContain((r as { expression: string }).expression);
@@ -40,7 +40,7 @@ describe('reactionFor (spec 7.13: the octopus reacts to every preset change)', (
   });
 });
 
-describe('wigglePath (the small happy wiggle as gaze targets, in canvas pixels)', () => {
+describe('wigglePath (the wiggle stand-in: gaze targets for `attend`, in canvas pixels; the body does not move)', () => {
   it('swings to one side, the other and back, around the canvas centre, and ends released', () => {
     const steps = wigglePath(400, 300);
     expect(steps.length).toBeGreaterThanOrEqual(3);

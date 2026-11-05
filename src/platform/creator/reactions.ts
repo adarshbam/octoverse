@@ -17,11 +17,11 @@ export const REMOUNT_FADE_MS = 200;
 export interface Reaction {
   /** The face held for the reaction (an existing engine face; the instance's own blink and gaze carry on under it). */
   expression?: ExpressionId;
-  /** A brief closing of the eyes before the face (the engine has no blink trigger: the preview plays it as a short half-lidded face). */
+  /** (stand-in) A brief closing of the eyes before the face. The engine has no blink trigger: the preview holds the half-lidded `restful` face for a moment. */
   blink?: boolean;
-  /** A sparkle shimmer over the picture. */
+  /** (stand-in) A sparkle over the picture, drawn by the platform in HTML and CSS: the engine has no shimmer trigger. */
   shimmer?: boolean;
-  /** A small happy wiggle (a gaze swing side to side). */
+  /** (stand-in) A small happy wiggle, played as a gaze swing side to side with `attend`: the engine has no wiggle trigger, and the body does not move. */
   wiggle?: boolean;
   /** How long the reaction lasts before the octopus is left to its own idle. */
   holdMs: number;
@@ -30,7 +30,7 @@ export interface Reaction {
 /**
  * The reaction to a change: palette, a sparkle shimmer and a small happy wiggle; personality, the new personality's own idle shown
  * for 3 seconds (the preview of a new personality is a new instance, so its idle starts afresh and nothing is held over it);
- * name, a blink and a smile (`happy`); template, `'remount'` (the preview is mounted again with a 200 ms fade). Pure: each call
+ * name, a stand-in blink and a smile (`happy`); template, `'remount'` (the preview is mounted again with a 200 ms fade). Pure: each call
  * returns a new object.
  */
 export function reactionFor(change: PresetChange): Reaction | 'remount' {
