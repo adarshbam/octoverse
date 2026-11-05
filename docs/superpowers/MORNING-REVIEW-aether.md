@@ -232,6 +232,31 @@ What to check (motion is live only; nothing here was judged from video):
 
 Minor, not a decision: `AETHER_ARM_HALF_SPAN` in `sequences/clearance.ts` is hand-set (open 2.4, closed 1.3). Its comment says the trail's farthest point is 2.72 from her head; that is asserted, not verified. The clearance gaps (0.73 as drawn, 0.41 held open) depend on it.
 
+### Technologies live (Task 19, Milestone 6): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether, Explore (or click her head), then hover, Tab to or tap an orb. Phone: the same at 390 x 844 (the tray). Stills in `docs/superpowers/evidence/aether/m6/`:
+- `t19-techfocus-openai-lift.webp`: `?world=aether&stage=techFocus&tech=openai&freeze`, the lift at rest (T1 curled over OpenAI, the tooltip, the head closed).
+- `t19-lift-200ms.webp`: the same with `&hold=200`, 200 ms into the lift (root ahead of the tip).
+
+What is built: her select is Veyra's arm lift with her tuning (`select: { kind: 'armLift', ease: 0.5, scale: 1.3, threadShorten: 0.5 }`), choosable in the overview only. The orb's own arm lifts it: T1 to her traced P4 lift (`AETHER_POSES.techFocus`), every other arm turned rigidly toward the pointer (straight up and forward by keyboard or touch). The head closes and she wears `curious` (the techFocus pose's face). Each of her ten technologies has 3 or 4 placeholder usage lines (OpenAI's are P4's); the test five have none. The engine needed a small change (the arm lift ran only with the pendant placement); see the Task 19 report.
+
+Verified by test (unit and e2e):
+- the lift is 500 ms, every point of the arm there by 500 ms, the root ahead of the tip at 170 ms; choosing a second orb lowers the first (one at a time); OpenAI lifts on T1, Python on T8;
+- the intro has no orb button, the first stop after the skip link is Explore, and clicking her head opens the overview with ten orb buttons;
+- in the overview Tab reaches the ten orbs in slot order; Enter shows the tooltip with the usage lines; choosing another moves the lift to its arm; Escape hides the tooltip and lowers the arm;
+- on a phone the tray lists the ten, and tapping OpenAI plays the lift on T1 with its tooltip;
+- the frozen tech focus: T1's drawn tip is the tip nearest the OpenAI orb (the old T4 hold bug is gone for her), above the orb's centre and within an orb's width of it. The orb's centre reads at stage (-1.50, 0.39) against `TECH_FOCUS_ORB` (-1.568, 0.387); T1's tip reads about 0.13 from P4_LIFT's tip (Task 13 target 0.04 for the whole arm: not met, not chased).
+- twenty technologies put sixteen on her arms and four in the tray: **model only** (no page address loads a 20-technology test bundle, and a project names at most 15).
+
+Only your eye can judge (nothing here was judged from video):
+1. **The flight and the float** (unchanged from Task 12) now ending in a choice.
+2. **The lift**: does T1 rise root first and the tip curl over the top of the orb and hold it (P4)? The other arms lift rigidly (no traced shape of their own): do they read as reaching, or as stiff?
+3. **The wonder face**: the `curious` face with the head closing as the arm rises.
+4. **The tooltip**: placement beside the orb, the PLACEHOLDER badge, the lines.
+5. **The look of the chosen orb**: it grows 1.3x on a thread half as long. Its rim and halo go to her `orbFocus` lavender-white (#e4d9f8); the spec's soft *cyan* halo is not possible from her config (the halo takes the same focus colour; engine request). The other orbs dim 25% (engine constant), not the spec's about 20%.
+6. **Logos**: five of her orbs are blank (OpenAI, Next.js, PostgreSQL, AWS, Vector DB): the engine has no mark for them and no lettered fallback (an earlier note said there was one: there is not). Redis is red. Both need the engine (request below).
+7. **No arm "catch" dip on landing** (spec 7.5 flight table): still missing; it needs the engine.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -297,7 +322,7 @@ Please give the real names.
   - Paler, bluer, nearer and larger bells read further off (14.2 to 28.0). The blue cannot climb.
   - Wanted (optional, absent = today's look): `JellyfishConfig.glow` (a bell strength above 1, drawn with `toneMapped: false` so it can reach the bloom) and `JellyfishConfig.opacity` (today 0.75).
   - Target: P2's jellyfish bell sample (81, 155) within delta E 10, with her face glow still the brightest thing in frame.
-- **Tech focus shows the traced arm (Task 13).** `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
+- **Tech focus shows the traced arm (Task 13).** *Task 19: done by the arm lift with the satellite placement (engine commit `feat(engine): armLift works with the satellite placement (for Aether)`); the focus takes her techFocus head and face, and T1 lifts to the traced arm. T1's tip reads about 0.13 from P4_LIFT's, not 0.04.* `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
   - Wanted: the arm lift select (Veyra's `armLift`, spec 7.5) that blends the chosen arm to `poses.techFocus.arms[arm]` (root first, tip last, about 500 ms) and holds the orb under the curl, and the focus taking `poses.techFocus.headMorph`.
   - Target: on `?freeze&stage=techFocus&tech=openai` her T1 lies within 0.04 of `P4_LIFT` (poses.ts), the orb at `TECH_FOCUS_ORB` (-1.568, 0.387) grown 1.3x, the head closed; the P4 rim sample stays within dE 10.
 - **Open mouth shape and tongue (Task 4, Task 13).** `src/engine/character/mouthShape.ts` keeps the closed smile's curved top line and `FaceCanvas.ts` draws the tongue as an ellipse of 0.32 x the mouth's width in the bottom third of the opening.
@@ -307,7 +332,7 @@ Please give the real names.
   - Wanted: include `pose.body.yaw` in the facing.
 - **Phone composition (Task 13).** Spec 7.11 puts her in the upper screen on a phone; `fovFor` centres the frame, and the detail's sheet (`ProjectDetail`, portrait phone) covers her face (y 380 to 432 of 844).
   - Wanted: a per-stage phone offset (a lens shift that lifts her into the upper screen), and a detail sheet that stops below her face.
-- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
+- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** *Task 19: no longer affects Aether (her select is the arm lift, which lifts the arm the orb hangs from; the e2e test passes and its `test.fail` is gone). The hold's bug itself is still in the engine for worlds that hold (Nox): not fixed here.* `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
   - Wanted: pick the arm once the orbit point is written (or from the bubble's slot point when the orbit is unset), and re-pick if the hold's first pick was made from an unset point.
   - Measured on the real page (fix round 2, `tests/e2e/aether.spec.ts`, 1536 x 1024, frozen): the OpenAI orb button is 49 px from T4's drawn tip and 221 px or more from every other tip (T1's 459 px). The cause (the unset orbit point) is read from the code, not traced frame by frame.
   - Target: the e2e test "Aether tech focus, frozen: OpenAI is held near T1, the arm it hangs from [engine follow-up: ...]" is marked `test.fail` today; once the engine holds OpenAI on T1 it passes, Playwright reports it, and the `test.fail` line comes out. On the frozen still the orb then sits at T1's tip, clear of her face (the intended-pick model says 129 px at 509 x 504; model only).
@@ -368,3 +393,13 @@ Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same qu
 ## Nox still gate residual: bisected, it is capture noise
 
 After the Veyra Task 18/19 merge (`0bf10f8`) one full still-gate run read the Nox `techFocus` face-box mean at 0.0317 (feat/nox-3d reads 0.0164 at Task 19). Bisected afterwards: the same Aether HEAD alone gives 0.0218, 0.0158 and 0.0180 across captures, and the variants with the suspect files (`orbMaterial.ts`, the far fish in `Water.tsx`, then TechBubbles, strategies, Octopus and the other shared Nox engine files) restored from feat/nox-3d give 0.0211 to 0.0213. Two captures of the same code differ as much as any pair of variants. So the 0.0317 was one noisy capture; nothing in Aether's engine work moves Nox pixels. Every run passes the floor (face box 0.05 mean, 0.05% over 8). Details: `.superpowers/sdd/2026-11-03-aether-world/nox-residual-report.md`.
+
+## Engine follow-ups from Task 19 (technologies live)
+
+- **Logo marks and a fallback.** `LOGO_SLUGS` (`src/engine/artifacts/logoTexture.ts`) has no mark for OpenAI, Next.js, PostgreSQL, AWS or Vector DB (React has one), and a missing mark draws nothing: there is no lettered fallback. A world cannot name a slug, a colour or a fallback letter per technology.
+  - Wanted: marks for those five (simple-icons has `siOpenai`, `siNextdotjs`, `siPostgresql`, `siAmazonwebservices`; none for "Vector DB"), a lettered fallback for a key with no mark, and an optional per-technology logo colour override (spec 2.3: Redis's red on her lavender glass; owner's call whether to recolour).
+- **A cyan focus halo.** `createOrbHaloMaterial` takes the palette's `orbFocus` for both the rim and the halo. Spec 7.5 wants a lavender-white rim and a soft cyan halo. Wanted: an optional `palette.orbFocusHalo` (for Aether about `#9ad8ff`).
+- **Dimming of the other orbs.** `TechBubbles.tsx` dims the unchosen orbs by a fixed 25%; spec 7.5 says about 20%. Wanted: an optional `select.dim` (0.2 for Aether), default 0.25.
+- **Arm "catch" on landing (spec 7.5 flight table, assigned to Task 19 by the Task 12 review).** Not doable as Aether data: the arms' rests come from the stage pose; nothing lets a placement nudge an arm when an orb lands. Wanted: the satellite driver reports each orb's landing moment (it already knows `arrive[i]`), and Octopus dips that orb's slot arm by a small amount (about 0.04 down at the slot, 150 ms down, 300 ms back) with the personality's settle.
+- **Twenty-technology e2e.** A project names at most `MAX_PRIMARY_TECHNOLOGIES` (15) and no page address loads a test bundle, so "20 technologies put 4 in the tray" is a model test (`src/worlds/aether/artifacts.test.ts`). Wanted, if the page test matters: a development-only `?testworld=aether-20` (like `nox-b`) with a validated 20-technology project.
+- **Non-traced arms lift rigidly.** Only T1 has a traced lift (P4). The other arms turn rigidly about their root by up to 0.9 rad (`armLiftTarget`), with no tip curl over the orb. Wanted (owner's call after the live look): a generic curl for untraced lifts, or traced lifts for T8, T2, T7.

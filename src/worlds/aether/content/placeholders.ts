@@ -4,21 +4,33 @@ import type { ProjectSection, ProjectTechnologyUsage, Technology } from '../../.
 // flagged `placeholder: true` (the marker Nox's content uses), so the interface can badge it until
 // the owner replaces it.
 
-// Panel 4's text for OpenAI, with the "ooh" face Aether gives it there. No other technology has
-// project text yet: none is invented; the interface says so while developing.
-const OPENAI_USAGE: Omit<ProjectTechnologyUsage, 'id' | 'technologyId'> = {
-  role: 'LLM integration',
-  details: ['LLM integration', 'Text / image generation', 'Function calling', 'Prompt engineering'],
-  reaction: 'curious',
-  placeholder: true,
+type Usage = Omit<ProjectTechnologyUsage, 'id' | 'technologyId'>;
+
+/**
+ * The tooltip's usage notes (spec 7.5, Task 19): panel 4's text for OpenAI, and for the other nine
+ * shipped technologies three short lines in its manner, written for the storyboard (not facts about
+ * the project) and flagged as placeholders until the owner supplies the real ones. Each wears the
+ * "ooh" face Aether gives OpenAI in P4 (`curious`, the wonder expression). The five test-set
+ * technologies have none: they are not shipped.
+ */
+const USAGES: Readonly<Record<string, Usage>> = {
+  openai: { role: 'LLM integration', details: ['LLM integration', 'Text / image generation', 'Function calling', 'Prompt engineering'] },
+  python: { role: 'Experiment scripts', details: ['Model experiments', 'Data preparation', 'Evaluation scripts'] },
+  typescript: { role: 'Typed front end', details: ['Typed UI and API calls', 'Shared request types', 'Safer refactors'] },
+  react: { role: 'Playground UI', details: ['Chat interface', 'Experiment panels', 'Streaming responses'] },
+  nextjs: { role: 'App framework', details: ['Pages and routing', 'API routes', 'Server rendering'] },
+  postgresql: { role: 'Main database', details: ['Users and sessions', 'Saved experiments', 'Chat history'] },
+  redis: { role: 'Cache and queues', details: ['Response caching', 'Rate limiting', 'Job queue'] },
+  docker: { role: 'Containers', details: ['Local services', 'Repeatable builds', 'Deployment images'] },
+  aws: { role: 'Cloud hosting', details: ['Hosting', 'File storage', 'Background jobs'] },
+  'vector-db': { role: 'Semantic search', details: ['Document embeddings', 'Similarity search', 'Retrieval for answers'] },
 };
 
 export function placeholderUsages(technologies: readonly Technology[]): ProjectTechnologyUsage[] {
-  return technologies.map(technology => ({
-    id: `aether-${technology.id}`,
-    technologyId: technology.id,
-    ...(technology.id === 'openai' ? OPENAI_USAGE : { placeholder: true }),
-  }));
+  return technologies.map(technology => {
+    const usage = USAGES[technology.id];
+    return { id: `aether-${technology.id}`, technologyId: technology.id, ...(usage ? { ...usage, reaction: 'curious' as const } : {}), placeholder: true };
+  });
 }
 
 export const placeholderSections: readonly ProjectSection[] = [

@@ -22,10 +22,20 @@ test('all storyboard copy is flagged placeholder, and every technology has a usa
   expect(aetherProject.sections!.map(s => s.title)).toEqual(['Overview', 'Features', 'Tech Stack', 'Architecture', 'Experiments', 'Challenges', 'What I Learned']);
 });
 
-test("panel 4's OpenAI list is the model for usage notes; no other technology has invented text", () => {
+test("panel 4's OpenAI list is the model for usage notes: each shipped technology has 3 or 4 short placeholder lines and the wonder face; the test five have none", () => {
   const openai = aetherProject.technologyUsages!.find(u => u.technologyId === 'openai')!;
   expect(openai.details).toEqual(['LLM integration', 'Text / image generation', 'Function calling', 'Prompt engineering']);
-  for (const usage of aetherProject.technologyUsages!.filter(u => u.technologyId !== 'openai')) expect(usage.details).toBeUndefined();
+  for (const usage of aetherProject.technologyUsages!) {
+    expect(usage.placeholder).toBe(true);
+    expect(usage.reaction).toBe('curious');
+    expect(usage.role).toBeTruthy();
+    expect(usage.details!.length).toBeGreaterThanOrEqual(3);
+    expect(usage.details!.length).toBeLessThanOrEqual(4);
+    for (const line of usage.details!) expect(line.length).toBeLessThanOrEqual(28);
+  }
+  const testFive = aetherProjectFor(AETHER_TECHNOLOGIES_15).technologyUsages!.slice(10);
+  expect(testFive).toHaveLength(5);
+  for (const usage of testFive) expect([usage.details, usage.role, usage.reaction, usage.placeholder]).toEqual([undefined, undefined, undefined, true]);
 });
 
 test('the identity is panels 2 and 5: name, epithet, project, tagline, links, a three-slide carousel', () => {
