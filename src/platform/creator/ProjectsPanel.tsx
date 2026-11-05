@@ -147,7 +147,10 @@ export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft;
         try {
           const id = await media.put(file);
           const type = (await sniffBlob(file)) ?? 'image/png';
-          onChange(addMedia(latest.current, projectId, { id, name: file.name.slice(0, 80), type, size: file.size }));
+          // Chained on the draft as it is now (the next file of this batch starts from this result, even before React has rendered it).
+          const next = addMedia(latest.current, projectId, { id, name: file.name.slice(0, 80), type, size: file.size });
+          latest.current = next;
+          onChange(next);
         } catch (error) {
           setImageError(mediaErrorMessage(error));
         }

@@ -129,7 +129,10 @@ for (const [width, height] of [[1536, 1024], [768, 1024]] as const) {
 
 test('the presets work: a template, a swatch and a personality press and Name edits the caption; nothing is a colour picker', async ({ page }) => {
   await open(page, 1536, 1024);
-  await expect(page.locator('input[type=color], input[type=range], input[type=file], select')).toHaveCount(0);
+  await expect(page.locator('input[type=color], input[type=range], select')).toHaveCount(0);
+  // The one file input is the project images' (Task 19a): PNG, JPEG or WebP.
+  await expect(page.locator('input[type=file]')).toHaveCount(1);
+  await expect(page.locator('input[type=file]')).toHaveAttribute('accept', 'image/png,image/jpeg,image/webp');
   await expect(page.getByRole('button', { name: 'Peach' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Teal' }).click();
   await expect(page.getByRole('button', { name: 'Teal' })).toHaveAttribute('aria-pressed', 'true');
@@ -149,7 +152,7 @@ test('the presets work: a template, a swatch and a personality press and Name ed
 test('every control is reachable by keyboard in reading order, with the lavender focus ring', async ({ page }) => {
   await open(page, 1536, 1024);
   const seen: string[] = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 140; i++) {
     await page.keyboard.press('Tab');
     const label = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
