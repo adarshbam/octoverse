@@ -9,6 +9,8 @@ import type { WorldBundle } from '../../engine/types/bundle';
 export type CharacterConfig = WorldBundle['character'];
 /** A personality block: the motion of blink, gaze, sway, float, breath, stroke and the micro-animations (the engine's `Personality`). */
 export type Personality = CharacterConfig['personality'];
+/** A project of a world (the engine's `Project`; a creator draft project becomes one in draftToContent). */
+export type Project = WorldBundle['content']['project'];
 /** A technology of a catalogue or a project (the engine's `Technology`: id, name, category, iconKey). */
 export type Technology = WorldBundle['content']['technologies'][number];
 
@@ -64,11 +66,15 @@ export const PERSONALITY_NAMES: Readonly<Record<PersonalityId, string>> = { calm
 // Placeholders until the shared technology catalogue (Task 19) and the section list exist: plain ids.
 export type TechnologyId = string;
 export type SectionId = string;
-/** A local image of a project (stored in the browser only; Task 18). */
+/** The three image types a draft accepts (checked by signature, never by file name; storage.ts). */
+export type DraftMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
+/** A local image of a project: the blob lives in the browser's `media` store under `id` (storage.ts), never in the draft. */
 export interface DraftMediaRef {
   id: string;
   name: string;
-  type: 'image/png' | 'image/jpeg' | 'image/webp';
+  type: DraftMediaType;
+  /** Bytes, at most 2 MB. */
+  size: number;
 }
 
 export interface DraftProject {
