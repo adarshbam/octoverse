@@ -1,3 +1,4 @@
+import { SHOWCASE } from '../fixtures/showcase';
 import { RESERVED_HANDLES } from '../router/routes';
 import { CATALOG } from './catalog';
 import { PALETTE_IDS, PERSONALITY_IDS, TEMPLATE_IDS, type CreatorDraft, type DraftMediaRef, type DraftProject } from './types';
@@ -20,10 +21,11 @@ export const HANDLE_RE = /^[a-z][a-z0-9-]{1,23}$/;
 export const SLUG_RE = /^[a-z0-9-]{1,40}$/;
 
 /**
- * Handles the creator may not take because a showcase portfolio (or the host) already answers at them: `/@nox` is the showcase's. Kept
- * here, not in the router's RESERVED_HANDLES (those are the platform's own paths).
+ * Handles the creator may not take because a showcase portfolio (or the host) already answers at them: `/@nox` is the showcase's. The four showcase handles are read from the
+ * showcase fixtures; the host's (`octoverse`) is the one literal, held against the world registry by draft.test.ts. Kept here, not in the
+ * router's RESERVED_HANDLES (those are the platform's own paths).
  */
-export const SHOWCASE_HANDLES: readonly string[] = ['nox', 'veyra', 'flux', 'aether', 'octoverse'];
+export const SHOWCASE_HANDLES: readonly string[] = [...SHOWCASE.map(profile => profile.handle), 'octoverse'];
 
 /** A value as it is echoed in an issue message: never more than 40 characters, however long a damaged draft makes it. */
 const echo = (value: unknown): string => {

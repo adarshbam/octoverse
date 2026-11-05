@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { WORLDS } from '../../worlds';
 import { RESERVED_HANDLES } from '../router/routes';
-import { MAX_MEDIA_BYTES, emptyDraft, migrateDraft, validateDraft } from './draft';
+import { MAX_MEDIA_BYTES, SHOWCASE_HANDLES, emptyDraft, migrateDraft, validateDraft } from './draft';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { CreatorDraft, DraftProject } from './types';
 
@@ -55,6 +56,10 @@ describe('validateDraft', () => {
       expect(issues, handle).toEqual([{ field: 'profile.handle', message: 'That handle is used by a showcase portfolio' }]);
     }
     expect(RESERVED_HANDLES).not.toContain('nox');
+  });
+
+  it('the showcase handles are exactly the world registry ids (a new world cannot be taken by a creator)', () => {
+    expect([...SHOWCASE_HANDLES].sort()).toEqual(Object.keys(WORLDS).sort());
   });
 
   it('never echoes more than 40 characters of a value in a message', () => {
