@@ -246,3 +246,16 @@ What to check live at `/create` (the tests prove the rules; they cannot judge fe
 7. Validation: clear the octopus name (a warm line under it; the caption reads "Your Octopus"); open Profile and type a bad handle or link (inline lines; the Profile summary says "needs a look"). Nothing blocks saving.
 
 Decisions to rule on: the editor offers one free-text section ("Description", stored as the section `overview`); more sections or a title per section are not built. Removing an image drops it from the draft but the blob stays in the browser's store until Discard (storage has no single-image delete). The status line is aria-hidden; one polite line for screen readers speaks only on change (saving reads as saved).
+
+## PENDING OWNER REVIEW: M7, the live creator (Task 19b)
+
+Commits on `claude/platform-overnight`: `feat(creator): reactionFor and the wiggle path`, `feat(creator): the live preview in the centre (template backdrop, reactions, overview toggle)`, `feat(creator): e2e for the live preview; fix colliding keys, separate reaction timer`, then docs. Notes: `docs/superpowers/reviews/platform.md` (Task 19b), numbers in `.superpowers/sdd/2026-11-03-platform/task-19b-report.md`.
+
+What to check live at `/create` (desktop, motion allowed):
+1. The centre is the live octopus on its template's water (no kit), over the creator still. Change the template: the preview fades out in 200 ms and a new one fades in (about 0.7 s once that template has been shown in the session; 3 to 4 s the first time, while its shaders compile). Is it smooth enough, or does the swap read as a flicker?
+2. Palette: click a swatch. The still of the new colours shows at once and a gold sparkle runs over the picture; about a second later the live octopus fades in in the new colours and does a small look-left-right (the "wiggle"). **The spec's "no new canvas, under 200 ms" is not met**: the engine cannot recolour a running octopus (it reads its colours once). Is the still-first answer good enough until the engine has a live colour channel?
+3. Personality: the preview is rebuilt and the new personality's own idle runs; nothing else is added for the 3 s. Does it read as a reaction, or does it need something visible (a flourish)?
+4. Name: type a name and pause; the face changes to the smile (with a brief half-closed blink before it) for 1.4 s. No remount. The engine has no real blink trigger: this is a held face.
+5. The Overview toggle (bottom right of the picture) asks the running octopus for the overview pose (technology bubbles out); no remount. Phones and reduced motion: the still only, no toggle, no sparkle.
+
+Honest gaps (engine items E02b, recorded in the review notes): no live character-config channel; no runtime blink, wiggle or shimmer trigger (the shimmer is a platform sparkle, the wiggle a gaze swing). Frame rate (production, 1536 x 1024, under load): 88 to 120 fps with the live preview; the floor of 36 is met.

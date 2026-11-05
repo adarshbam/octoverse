@@ -27,6 +27,7 @@ for (const width of WIDTHS) {
         const r = el.getBoundingClientRect();
         const style = getComputedStyle(el);
         if (style.visibility === 'hidden' || style.display === 'none' || r.width === 0 || r.height === 0 || el.closest('[hidden]')) continue;
+        if (el.closest('.oct-live-layer')) continue; // the live preview's inert, aria-hidden engine DOM (its closed detail panel): not the visitor's controls
         if (r.bottom <= 0) continue; // the skip link waits above the page until it has focus
         if (r.width < 44 || r.height < 44) small.push(`${el.tagName.toLowerCase()}[${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 24)}] ${Math.round(r.width)} x ${Math.round(r.height)}`);
       }
