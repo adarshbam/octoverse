@@ -17,7 +17,9 @@ const TOP_DOWN: readonly ArmId[] = ['T1', 'T8', 'T2', 'T7', 'T3', 'T6', 'T4', 'T
  * than 0.05 clear of the other arms, the face (the dome in the overview) and the HTML (the intro's
  * title block and nameplate, the phone's sheet and tray) at the review desktop and at 390 x 844,
  * across the whole swing (plus and minus 25 degrees); no orb sits on its own arm away from where it
- * hangs; no two orbs touch. The overview's tips are P3's: each arm's first pendant hangs under its
+ * hangs; no two orbs touch. All sixteen hold at the desktop; on the phone overview they hold for up
+ * to twelve technologies: a thirteenth wraps the tray to a third row over her lowest pendants (the
+ * known limit Task 20 lifts). The overview's tips are P3's: each arm's first pendant hangs under its
  * hook or curl where P3 paints an orb (under T1 P3's React, T8 GitHub, T2 TypeScript, T7 Cloudflare,
  * T3 JavaScript, T6 Linux, T4 Express, T5 Docker; which technology hangs there is the project's
  * order, top arms first, not P3's). P3's four middle orbs (Node, MongoDB, Redis, AWS)
@@ -56,7 +58,8 @@ export const VEYRA_ARTIFACTS: ArtifactConfig & { placement: PendantPlacement } =
     maxPerArm: 2,
     // The orbs' radii, in the arms' units (the overview's on the stage: 0.085 x 1.1 = 0.094). The
     // largest that keep sixteen clear across the whole swing (Task 14's trade, in the review log):
-    // P3's orbs are about 0.28 on the stage, and its twelve alone would allow only about 0.1 here.
+    // P3's orbs are about 0.28 on the stage. Her twelve alone would allow 0.095 in the overview, but
+    // a thirteenth would then fail even at the desktop (0.048, and on its own arm), so 0.085 stays.
     sizes: { intro: 0.075, overview: 0.085 },
     // A short cyan thread (her wet-skin highlight) that bows a little, ending in a cream-gold cap (her cups' cream): 0.03 long, so the orb hangs snug under the arm, and 0.02 wide so it reads.
     tether: { length: 0.03, color: VEYRA.palette.wet, width: 0.02, sag: 0.12, cap: VEYRA.palette.suckerBody },

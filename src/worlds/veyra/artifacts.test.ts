@@ -33,21 +33,38 @@ test('every technology hangs from the same arm in the intro and the overview (it
   for (let i = 0; i < 16; i++) expect(intro[i].slot.arm, `technology ${i}`).toBe(overview[i].slot.arm);
 });
 
-test('threads and orbs stay more than 0.05 clear of the other arms, the face and the HTML, across the whole swing, at the desktop and the 390 x 844 phone', () => {
+/** The technologies her project shows today (content: twelve primaries). */
+const SHOWN = 12;
+
+/** Clearance with `shown` technologies hung and the phone's tray sized for them. */
+const clearance = (stage: (typeof STAGES)[number], view: ViewportName, shown: number) => stageClearance(VEYRA_POSES[stage], placement.slots[stage], placement, stage, VEYRA_STAGE_FRAMES[stage], view, shown, ENVELOPE);
+
+test('with her twelve technologies, threads and orbs stay more than 0.05 clear of the other arms, the face and the HTML, across the whole swing, at the desktop and the 390 x 844 phone', () => {
   for (const stage of STAGES) {
-    for (const view of VIEWS) {
-      expect(stageClearance(VEYRA_POSES[stage], placement.slots[stage], placement, stage, VEYRA_STAGE_FRAMES[stage], view, ENVELOPE), `${stage} ${view}`).toBeGreaterThan(0.05);
-    }
+    for (const view of VIEWS) expect(clearance(stage, view, SHOWN), `${stage} ${view}`).toBeGreaterThan(0.05);
   }
-  // The envelope is the swing's limit both ways (spec 7.5: 25 degrees).
+  // The envelope is her placement's swing limit both ways (spec 7.5: 25 degrees).
   expect(Math.max(...ENVELOPE)).toBeCloseTo((25 * Math.PI) / 180, 10);
+});
+
+test('all sixteen slots filled hold the same at the desktop, and in the intro on the phone', () => {
+  for (const stage of STAGES) expect(clearance(stage, 'desktop', 16), `${stage} desktop`).toBeGreaterThan(0.05);
+  expect(clearance('intro', 'phone', 16), 'intro phone').toBeGreaterThan(0.05);
+});
+
+test('the known limit: on the phone overview a thirteenth technology wraps the tray to three rows, over her lowest pendants', () => {
+  // Twelve fit two rows of six; thirteen to fifteen (content allows fifteen primaries) need a third
+  // row, whose top reaches her lowest pendants. Task 20 lifts this by hiding the hanging pendants
+  // when the tray lists everything, or by changing the tray; this test then flips and goes.
+  expect(clearance('overview', 'phone', 12)).toBeGreaterThan(0.05);
+  for (const shown of [13, 15]) expect(clearance('overview', 'phone', shown), `${shown} shown`).toBeLessThan(0.05);
 });
 
 test('no orb or thread under the intro title block or nameplate (the HTML boxes alone), at either viewport', () => {
   const pose = VEYRA_POSES.intro;
   const geometry = geometryFor(pose, placement, 'intro', ENVELOPE);
   for (const view of VIEWS) {
-    const boxes = htmlBoxes('intro', pose, VEYRA_STAGE_FRAMES.intro, view);
+    const boxes = htmlBoxes('intro', pose, VEYRA_STAGE_FRAMES.intro, view, 16);
     expect(boxes.length, view).toBeGreaterThanOrEqual(2);
     for (const box of boxes) expect(threadClearance(pose, placement.slots.intro, box, geometry), view).toBeGreaterThan(0.05);
   }

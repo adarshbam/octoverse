@@ -563,24 +563,27 @@ Open http://localhost:5191/?world=veyra&stage=overview, `&stage=techFocus&tech=r
 The slot criteria are one measure now, `src/worlds/veyra/slotCriteria.ts`, which the tests use:
 
 - every thread and orb more than 0.05 clear of the other arms, of the face (the head in the intro, the dome in the overview), and of the HTML. The HTML is the intro's title block and nameplate, from `ui/intro.css`'s percentages on the square stage; on a phone it also includes the tray, and in the overview the bottom sheet with the tray riding on it;
-- checked at the review desktop (1536 x 1024) and at 390 x 844;
+- checked at the review desktop (1536 x 1024) and at 390 x 844, with the number of technologies shown: the first n slots hang an orb, and the phone's tray is sized for n (it lists every technology in rows of six, so 13 or more make three rows);
 - checked across the whole swing: -25, -12.5, 0, 12.5 and 25 degrees;
 - no orb on its own arm more than 0.3 of arc from where it hangs (the frill is counted as the arm's tube only);
 - no two orbs touching at rest.
 
-I swept every arc fraction from 0.2 to 1 at 0.01 on the arms as drawn, took the best two slots an arm, then checked the gaps across arms:
+I swept every arc fraction from 0.2 to 1 at 0.01 on the arms as drawn, took the best two slots an arm, then checked the gaps across arms. The reviewer then measured the largest passing orb at the committed fractions, filling the first n slots (fix round 1 corrected this table from that measure; thread 0.03):
 
-| Slots | Intro: largest orb that passes | Overview: largest orb that passes |
+| Slots filled | Intro: largest orb that passes | Overview: largest orb that passes |
 |---|---|---|
-| 2 an arm (16, the spec) | 0.075 (thread 0.03) | 0.085 to 0.09 (thread 0.03) |
-| P3's twelve (2 on T3 to T6, 1 on the rest) | 0.07 | 0.10 |
-| 1 an arm (8) | about 0.12 | 0.15 and more |
+| 1 an arm (8) | 0.075 | 0.095 |
+| P3's twelve (2 on T3 to T6, 1 on the rest) | 0.075 | 0.095 |
+| 2 an arm (16, the spec) | 0.075 | 0.085 |
 
 The slot count does not decide the size. The swing envelope and her own arms do:
 
 - At 0.12 in the intro, T4, T5 and T8 have no place at all. The centre arms hang onto each other and onto the nameplate, and T8 hooks over T7.
 - In the overview, a midway slot on a rising or reaching arm hangs on that arm's own lower part.
-- P3's twelve allow only 0.085 to 0.10.
+- For the real twelve technologies the overview could take 0.095 (about 12% larger). The 16th slot costs 0.01 of overview orb size.
+- **Owner item (a spec inconsistency):** the spec asks for 16 slots, but content caps primary technologies at 15 (`MAX_PRIMARY_TECHNOLOGIES`, `src/engine/content/projectTypes.ts:127`). The 16th slot is never filled.
+
+Reconsidered in fix round 1: 0.095 in the overview passes with twelve shown (0.067 desktop, 0.058 phone, own arm 0.003), but a thirteenth technology then fails even at the desktop (0.048, and -0.010 on its own arm). At 0.085 the desktop holds through sixteen. So 0.085 stays; the tests stay as they are.
 
 **So: sixteen slots in both stages, with orbs 0.075 in the intro and 0.085 in the overview (0.094 on the stage). The thread is 0.03 long and 0.02 wide (it was 0.08 and 0.014; Veyra config only).**
 
@@ -611,19 +614,21 @@ The intro is the Milestone 1 trace and its shape gate has 0.005 to spare, so I d
 
 ### Numbers
 
-Slots (`artifacts.test.ts`, all held):
+Slots (`artifacts.test.ts`, all held). Re-measured in fix round 1 with the count shown: desktop with all 16 slots filled (the desktop has no tray, so the count changes nothing but which slots hang), phone with her 12 technologies and a two-row tray:
 
 | Measure | Intro | Overview |
 |---|---|---|
-| Clearance hanging straight down, desktop / phone | 0.060 / 0.058 | 0.110 / 0.078 |
+| Clearance hanging straight down, desktop (16) / phone (12) | 0.060 / 0.058 | 0.110 / 0.078 |
 | at +-2 degrees (idle sway) | 0.060 / 0.058 | 0.107 / 0.078 |
 | at +-10 degrees | 0.060 / 0.060 | 0.091 / 0.079 |
-| at +-25 degrees (the limit) | 0.060 / 0.060 | 0.062 / 0.062 |
+| at +-25 degrees (the limit) | 0.060 / 0.060 | 0.062 / 0.072 |
 | whole envelope (the test asks > 0.05) | 0.058 | 0.062 |
 | on the pose's rest curves (no rest bend) | 0.061 | 0.075 |
 | attach points alone | 0.196 | 0.160 |
-| own arm (the test asks > 0) | 0.010 | 0.010 |
+| own arm (the test asks > 0; least over the swing) | 0.0089 | 0.0099 |
 | least gap between orbs (the test asks > 0.02) | 0.021 | 0.095 |
+
+**The phone limit (fix round 1).** The tray lists every technology in rows of six. On the phone overview the clearance with the first n slots and a tray sized for n is 0.072 at n = 12 and -0.085 at n = 13 to 15: a thirteenth technology wraps the tray to a third row whose top reaches her lowest pendants. So "clear of the tray and the sheet on the phone" holds for 12 or fewer technologies; it breaks from 13 (content allows up to 15 primaries). The intro on the phone holds with 16 (0.058). A test pins the limit (13 and 15 fail the criterion on the phone overview); **Task 20 carries threshold 13**: hide the hanging pendants when the tray lists everything (`trayAll`, the three-row tray), or change the tray, and that test flips.
 
 The intro's title block and nameplate are also held on their own. Task 13's overlap of two intro orbs with the nameplate is gone: the lowest intro orb's bottom is more than 0.05 above the nameplate's top at both sizes. Task 13's intro measured -0.008 at 25 degrees.
 
@@ -661,7 +666,7 @@ Poses (`poses.test.ts`):
   - boundary test: passes, with no hue literal added;
   - still gate (`.tmp/capture-set-wrapped.sh`, kitwait 90000) then `still_compare.py`: PASS. Everything is 0.0000 except techFocus's residual (mean 0.0077);
   - Nox e2e `--workers=1`: 54 of 56. The skip link failed in the run and once more alone, then passed alone twice in a row: the known load flake. `embedding.spec.ts:163` ("a new bundle object of the same world replaces the instance") fails alone too, and fails again with my three changed source files put back to HEAD 6ad2578, so it fails without this change. I did not investigate it further.
-- **Veyra:** `artifacts.test.ts` 8 of 8, `poses.test.ts` 3 of 3, `bundle.test.ts` unchanged and passing. The overview still's composition checks are unchanged from Task 12 (above).
+- **Veyra:** `artifacts.test.ts` 8 of 8 (10 of 10 after fix round 1), `poses.test.ts` 3 of 3, `bundle.test.ts` unchanged and passing. The overview still's composition checks are unchanged from Task 12 (above).
 
 ### The five things to look at, with my verdict
 
@@ -682,8 +687,8 @@ Poses (`poses.test.ts`):
    - a kelp stalk of the vault stands in front of her.
 5. **The phone** (`t14-phone-390x844.png`): yes.
    - She sits in the upper screen, the twelve technologies are in the tray (two rows of six), and the sheet is below.
-   - No pendant is under the tray or the sheet (0.078 at rest).
-   - With 16 technologies the tray takes three rows and its top would reach stage y -1.15, over her lowest pendants. Task 20 should hide the hanging pendants when the tray lists everything, or fit more buttons in a row.
+   - No pendant is under the tray or the sheet with her twelve (0.078 at rest, 0.072 across the swing).
+   - This holds for 12 or fewer technologies only. From 13 (content allows 15) the tray takes three rows and its top reaches stage y -1.15, over her lowest pendants (-0.085). Task 20 carries threshold 13: hide the hanging pendants when the tray lists everything, or change the tray.
 
 ### Remaining weaknesses (mine)
 
@@ -694,4 +699,22 @@ Poses (`poses.test.ts`):
 - The detail's arms are not P5's, and the detail face is not P5's open smile.
 - AWS still has no logo. The content note says the pendants task decides; I did not decide it here.
 - `primaryTechnologyIds` allows 15 (content validation), so a sixteenth technology never hangs: the sixteenth slot is reachable only if that limit rises.
+
+### Ruling: P4 static deferred to Task 19 (controller, fix round 1)
+
+The `techFocus` pose stays data only. The engine does not render `poses.techFocus`: doing so would move Nox's frozen techFocus, and one static pose cannot be "the chosen arm" for every technology. So the P4 tech-focus still is **not yet reviewable**: `t14-techfocus-vs-p4.png` shows Nox's suction hold, which drops React onto JavaScript's pendant (T2's tip) with the dome up and empty.
+
+Task 19's arm lift delivers the P4 static. Its criterion:
+
+- the lift uses the traced `P4_LIFT` shape, with `TECH_FOCUS_ORB` as the target, for T1; or it derives an equivalent lift for each arm;
+- it closes the head;
+- it shows the `focused` face;
+- the techFocus-vs-P4 still is taken again there, and the cup flare (g) is judged then.
+
+### Fix round 1 (review)
+
+- **Count-aware criteria.** `stageClearance` takes the number of technologies shown: the first n slots hang an orb and the phone's tray is sized for n. Before, the 16-slot phone test measured against a two-row tray, which cannot occur with 16 pendants. Tests: 12 shown pass at desktop and phone; all 16 pass at the desktop and in the intro on the phone; the known limit (13 and 15 shown fail on the phone overview) is pinned for Task 20.
+- **Trade table** corrected to the reviewer's measure at the committed fractions (above). The overview orb stays 0.085 (reason above).
+- **Own arm** reported as the least over the swing: 0.0089 intro, 0.0099 overview (the test's five angles give 0.0096 / 0.0100).
+- **Envelope** taken from the placement's own swing limits (`swingLimits`), not the engine default.
 - Optional M3 (sparkle under the capped band): left. It is not a two-line change, because the `capped` term exists only in the head's program, so the sparkle line needs a HEAD branch.

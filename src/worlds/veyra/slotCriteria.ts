@@ -1,4 +1,4 @@
-import { armPoint, DEFAULT_SWING, threadClearance, type ClearanceGeometry } from '../../engine/artifacts/pendant';
+import { armPoint, assignPendants, swingLimits, threadClearance, type ClearanceGeometry } from '../../engine/artifacts/pendant';
 import type { Box } from '../../engine/artifacts/suctionHold';
 import { tetherCurve } from '../../engine/artifacts/tether';
 import { ArmChain, restFromCurve } from '../../engine/character/armChain';
@@ -6,6 +6,7 @@ import { armRadius } from '../../engine/character/armTube';
 import { ARM_IDS, type ArmId, type ChoosingStage, type PendantPlacement, type PendantSlot, type Point2 } from '../../engine/config/types';
 import type { StageFrame } from '../../engine/stage/framing';
 import type { StagePose } from '../../engine/poses/types';
+import { VEYRA_ARTIFACTS } from './artifacts';
 import { VEYRA } from './character';
 
 // Veyra's slot criteria (Task 14), shared by artifacts.test.ts and the review notes: what a pendant
@@ -16,8 +17,14 @@ import { VEYRA } from './character';
 export const VIEWPORTS = { desktop: { width: 1536, height: 1024 }, phone: { width: 390, height: 844 } } as const;
 export type ViewportName = keyof typeof VIEWPORTS;
 
-/** The swing envelope a pendant can reach: straight down, half way and the limit, both ways (spec 7.5: at most 25 degrees). */
-export const ENVELOPE: readonly number[] = [-1, -0.5, 0, 0.5, 1].map(f => f * DEFAULT_SWING.maxAngle);
+/** The swing envelope a placement's pendants can reach: straight down, half way and its limit, both ways (spec 7.5: at most 25 degrees). */
+export const envelopeFor = (placement: PendantPlacement): readonly number[] => [-1, -0.5, 0, 0.5, 1].map(f => f * swingLimits(placement).maxAngle);
+
+/** Veyra's swing envelope (her placement's limits). */
+export const ENVELOPE: readonly number[] = envelopeFor(VEYRA_ARTIFACTS.placement);
+
+/** The slots `shown` technologies hang from (the first `shown` in fill order, as the engine assigns them). */
+export const shownSlots = (slots: readonly PendantSlot[], shown: number): PendantSlot[] => assignPendants(shown, slots).placed.map(p => p.slot);
 
 /** The face's box in a stage's own arm space: the head's, or the dome the head opens into in the overview. */
 export function faceBox(stage: ChoosingStage): Box {
@@ -50,10 +57,11 @@ const toArmSpace = (pose: Pick<StagePose, 'body'>, [x0, y0, x1, y1]: readonly [n
  * bottom sheet (168 px) with the tray riding 12 px above it (48 px buttons); on a wider screen the
  * panel sits inside the dome (the face box already holds it). On a phone the tray lists every
  * technology in rows of six (48 px buttons, 8 px apart: measured on the Task 14 390 x 844 still,
- * twelve technologies in two rows, the tray's top 282 px above the bottom); `techCount` sets the rows.
- * The intro's tray on a phone (12 px from the bottom) is far below her and kept too.
+ * twelve technologies in two rows, the tray's top 282 px above the bottom); `techCount`, the number
+ * of technologies the world shows, sets the rows (13 to 18 make three). The intro's tray on a phone
+ * (12 px from the bottom) is far below her and kept too.
  */
-export function htmlBoxes(stage: ChoosingStage, pose: Pick<StagePose, 'body'>, frame: StageFrame, viewport: ViewportName, techCount = 12): Box[] {
+export function htmlBoxes(stage: ChoosingStage, pose: Pick<StagePose, 'body'>, frame: StageFrame, viewport: ViewportName, techCount: number): Box[] {
   const size = VIEWPORTS[viewport];
   const wpp = worldPerPixel(frame, size);
   const halfW = (size.width * wpp) / 2;
@@ -101,11 +109,14 @@ export function geometryFor(pose: Pick<StagePose, 'arms'>, placement: Pick<Penda
 
 /**
  * The least clearance of a stage's pendants from every other arm, the face, and the HTML at a
- * viewport (`threadClearance` once per box: each call also measures the arms), across `angles`.
+ * viewport (`threadClearance` once per box: each call also measures the arms), across `angles`,
+ * with `shown` technologies: the first `shown` slots hang an orb, and the phone's tray is sized for
+ * `shown` (it lists every technology), so the count is measured as it would be laid out.
  */
-export function stageClearance(pose: StagePose, slots: readonly PendantSlot[], placement: Pick<PendantPlacement, 'tether' | 'sizes'>, stage: ChoosingStage, frame: StageFrame, viewport: ViewportName, angles: readonly number[] = ENVELOPE): number {
+export function stageClearance(pose: StagePose, slots: readonly PendantSlot[], placement: Pick<PendantPlacement, 'tether' | 'sizes'>, stage: ChoosingStage, frame: StageFrame, viewport: ViewportName, shown: number, angles: readonly number[] = ENVELOPE): number {
   const geometry = geometryFor(pose, placement, stage, angles);
-  return Math.min(...[faceBox(stage), ...htmlBoxes(stage, pose, frame, viewport)].map(box => threadClearance(pose, slots, box, geometry)));
+  const hung = shownSlots(slots, shown);
+  return Math.min(...[faceBox(stage), ...htmlBoxes(stage, pose, frame, viewport, shown)].map(box => threadClearance(pose, hung, box, geometry)));
 }
 
 /** How far along its own arm (world units of arc) a pendant's orb is let near the arm it hangs from: the stretch round the attach point it hangs under. */
