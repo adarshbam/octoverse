@@ -248,6 +248,21 @@ function checkEntranceShape(shape: unknown) {
   if (!finite(arc.phase)) throw new BundleError('sequences.entrance.arc.phase', `${String(arc.phase)} is not a finite angle (radians)`);
 }
 
+/**
+ * The kit props the entrance drives (`sequences.kitDrives`), by field: each key a prop the place
+ * declares (`place.props`), each value a prop the entrance sheet's `main` object has.
+ */
+function checkKitDrives(sequences: SequenceSet, place: WorldConfig) {
+  const { kitDrives } = sequences;
+  if (kitDrives === undefined) return;
+  if (!record(kitDrives)) throw new BundleError('sequences.kitDrives', 'is not an object (kit prop id to the entrance sheet prop that drives it)');
+  const sheetProps = sequences.defaults.entrance?.objects.main?.props ?? {};
+  for (const [id, sheetProp] of Object.entries(kitDrives)) {
+    if (!(place.props ?? []).some(prop => prop.id === id)) throw new BundleError(`sequences.kitDrives.${id}`, `names no prop of the place (place.props has ${(place.props ?? []).map(prop => prop.id).join(', ') || 'none'})`);
+    if (typeof sheetProp !== 'string' || !Object.hasOwn(sheetProps, sheetProp)) throw new BundleError(`sequences.kitDrives.${id}`, `names the entrance sheet prop "${String(sheetProp)}", which the entrance's main object does not have`);
+  }
+}
+
 /** Each stage has a pose, and each pose has exactly the eight arms, T1..T8. */
 function checkPoses(poses: unknown) {
   if (!record(poses)) throw new BundleError('poses', 'is not an object');
@@ -341,6 +356,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (!sequences.defaults[sheet]) throw new BundleError(`sequences.defaults.${sheet}`, 'is missing (the engine plays this sheet)');
   }
   checkEntranceShape(sequences.entrance);
+  checkKitDrives(sequences, bundle.place);
 
   const world = validateWorld(bundle.place);
   if (world.length > 0) throw new BundleError('place', world.join('; '));

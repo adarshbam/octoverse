@@ -444,3 +444,32 @@ test('a layout clearance counts only the pieces with a footprint, in every group
   expect(onlyBlock.piece).toBe('blocks[0] block');
   expect(layoutClearance(through, layout, geometry, {}, 11, 1)).toEqual({ gap: Infinity, seconds: 0, piece: '' });
 });
+
+// --- The shimmer and the kit props the entrance drives (Task 18) -----------------------------------
+
+/** A sheet stub: Nox's keys plus extra props held at fixed values, and the world's `kitDrives`. */
+const withExtras = (extras: Record<string, number>, kitDrives?: Record<string, string>): Sequences => ({
+  ...seq,
+  kitDrives,
+  sample: <T>(id: Parameters<Sequences['sample']>[0], key: string, s: number) => ({ ...seq.sample<object>(id, key, s), ...extras }) as T,
+});
+
+test("Nox's frames carry neither a shimmer nor kit values (his sheet has no such props)", () => {
+  for (const s of [0, 2, 4, 5, 6.5, 7.4, 8.4]) {
+    const f = at(s);
+    expect(Object.keys(f), `${s} s`).not.toContain('shimmer');
+    expect(Object.keys(f), `${s} s`).not.toContain('kit');
+  }
+});
+
+test("a sheet's shimmer prop is the frame's shimmer, and its kitDrives read the named sheet props, by prop id", () => {
+  const g = withExtras({ shimmer: 0.4, ring: 1.5, flash: 1.2 }, { lockRing: 'ring', membraneFlash: 'flash' });
+  const f = entranceFrame(g, 3, NOX_ENTRANCE_GEOMETRY);
+  expect(f.shimmer).toBe(0.4);
+  expect(f.kit).toEqual({ lockRing: 1.5, membraneFlash: 1.2 });
+  // Everything else is the sheet's, as without them.
+  expect({ ...f, shimmer: undefined, kit: undefined }).toEqual({ ...at(3), shimmer: undefined, kit: undefined });
+  // kitDrives without the sheet prop reads 0, and a shimmer without kitDrives adds no kit field.
+  expect(entranceFrame(withExtras({}, { lockRing: 'ring' }), 3, NOX_ENTRANCE_GEOMETRY).kit).toEqual({ lockRing: 0 });
+  expect(Object.keys(entranceFrame(withExtras({ shimmer: 1 }), 3, NOX_ENTRANCE_GEOMETRY))).not.toContain('kit');
+});

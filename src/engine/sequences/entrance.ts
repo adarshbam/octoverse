@@ -56,6 +56,17 @@ export interface EntranceFrame {
   /** 0 to 1: out of the murk; the glow and aura first, then the shape. */
   reveal: number;
   expression: ExpressionId;
+  /**
+   * 0 to 1: how far the sparkle shimmer has run from the crown to the face (the skin's `uSparkleWave`;
+   * 0 and 1 are both out of sight). Only a sheet with a `shimmer` prop gives it: Nox's has none, and
+   * his frame has no such field.
+   */
+  shimmer?: number;
+  /**
+   * The values of the kit props the entrance drives, by prop id (`SequenceSet.kitDrives`: the sheet's
+   * own props, read at `seconds`). Only a world with `kitDrives` has it: Nox's frame has no such field.
+   */
+  kit?: Readonly<Record<string, number>>;
 }
 
 const smoothstep = (a: number, b: number, x: number) => {
@@ -85,6 +96,9 @@ interface EntranceProps {
   pitch: number;
   yaw: number;
   surge: number;
+  /** A world's own extras (a sheet may carry any): `shimmer` is the engine's, the kit props' names are the world's `kitDrives`. */
+  shimmer?: number;
+  [prop: string]: number | undefined;
 }
 
 const PHI = (1 + Math.sqrt(5)) / 2;
@@ -180,7 +194,11 @@ export function entranceFrame(seq: Sequences, seconds: number, { swim }: Entranc
     position = [path.x, path.y, path.z];
     yaw = k.yaw + glideTurnYaw(k.spin, shape.turn);
   }
+  const extras: Pick<EntranceFrame, 'shimmer' | 'kit'> = {};
+  if (typeof k.shimmer === 'number') extras.shimmer = k.shimmer;
+  if (seq.kitDrives) extras.kit = Object.fromEntries(Object.entries(seq.kitDrives).map(([id, prop]) => [id, k[prop] ?? 0]));
   return {
+    ...extras,
     position,
     yaw,
     pitch: k.pitch,
