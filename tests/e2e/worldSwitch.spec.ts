@@ -186,3 +186,168 @@ test("another world's boot veil and title carry none of Nox: no Security Lab, no
   expect(await page.title()).toBe('Nox · Security Lab');
   expect(problems).toEqual([]);
 });
+
+// Task 21 (spec 2.5): Aether to Nox to Aether, caught while Aether's entrance, then her ring forming, then the head's
+// opening flight (the swell, through the overview) is running. Each switch is a full remount: the stage, the clocks, the
+// selection and the sequences start again; the window's listeners are as they were; and Aether touches only her own
+// session flag (`octoverse.aether.entranceSeen`), never Nox's or Veyra's.
+const FLAGS = ['octoverse.nox.entranceSeen', 'octoverse.veyra.entranceSeen', 'octoverse.aether.entranceSeen'] as const;
+const flags = (page: Page) => page.evaluate(keys => Object.fromEntries(keys.map(key => [key, sessionStorage.getItem(key)])), FLAGS);
+const NONE = { 'octoverse.nox.entranceSeen': null, 'octoverse.veyra.entranceSeen': null, 'octoverse.aether.entranceSeen': null };
+type Swell = { open: boolean; moving: boolean; morph: number; effect: number; push: number };
+const swellOf = (page: Page) => page.evaluate(() => ((window as unknown as { __octoverse?: { swell?: unknown } }).__octoverse?.swell ?? null) as Swell | null);
+const liftsOf = (page: Page) => page.evaluate(() => ((window as unknown as { __octoverse?: { lift?: unknown[] } }).__octoverse?.lift ?? []).length);
+const entranceT = (page: Page) => page.evaluate(() => (window as unknown as Win).__octoverse?.entrance?.t ?? 0);
+
+test('Aether to Nox to Aether during her entrance: each entrance starts again from its first seconds, no listener leaks, and only her own flag is ever written', async ({ page }) => {
+  test.setTimeout(240_000);
+  const problems = watch(page);
+  await countListeners(page);
+  await page.goto('/?world=aether');
+  await expect(skip(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  await expect.poll(() => entranceT(page), { timeout: 60_000 }).toBeGreaterThan(0.6);
+  expect(await page.title()).toBe('Aether · AI Playground');
+  expect(await flags(page)).toEqual(NONE);
+  const before = await listeners(page);
+
+  // To Nox, mid-entrance: his own entrance plays (his flag is not set), from its start, under his own title.
+  await switchTo(page, 'nox');
+  await expect(skip(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  await expect.poll(() => entranceT(page), { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(await entranceT(page), "Nox's clock is his own, in its first seconds").toBeLessThan(8.4);
+  expect(await page.title()).toBe('Nox · Security Lab');
+  expect(await flags(page)).toEqual(NONE);
+  await expect(page.getByRole('region', { name: /AI Playground/ })).toHaveCount(0);
+
+  // And back: her entrance is not where it was left, it starts again; the page's listeners are the first visit's.
+  await switchTo(page, 'aether');
+  await expect(skip(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  await expect.poll(() => entranceT(page), { timeout: 60_000 }).toBeGreaterThan(0.6);
+  expect(await page.title()).toBe('Aether · AI Playground');
+  expect(await flags(page)).toEqual(NONE);
+  expect(await listeners(page)).toEqual(before);
+
+  // Once it is over (skipped) the session has seen her entrance and only hers.
+  await skip(page).click();
+  await expect(explore(page)).toBeVisible();
+  await expect.poll(() => flags(page)).toEqual({ ...NONE, 'octoverse.aether.entranceSeen': '1' });
+  expect(problems).toEqual([]);
+});
+
+test('Aether to Nox to Aether while her ring is forming (just after the entrance): back in a closed intro, nothing chosen, nothing leaked', async ({ page }) => {
+  test.setTimeout(240_000);
+  const problems = watch(page);
+  await countListeners(page);
+  await page.goto('/?world=aether');
+  await expect(skip(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  // The entrance ends (skipped here): the ring's twinkle (1.4 s from the first frame the ring exists) begins and her flag is set.
+  // The switch is made at once, well inside that 1.4 s. The ring itself has no probe: its states are the unit tests of `twinkleState`.
+  await skip(page).click();
+  await expect(explore(page)).toBeVisible();
+  const before = await listeners(page);
+  const clickedAt = Date.now();
+  await switchTo(page, 'nox');
+  expect(Date.now() - clickedAt, 'the switch was made inside the twinkle').toBeLessThan(1400);
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('.orb-button')).toHaveCount(15, { timeout: 60_000 });
+  await drawn(page);
+  expect(await page.title()).toBe('Nox · Security Lab');
+  expect((await flags(page))['octoverse.nox.entranceSeen']).toBeNull();
+  expect((await flags(page))['octoverse.veyra.entranceSeen']).toBeNull();
+
+  await switchTo(page, 'aether');
+  // Her flag says the entrance was seen, so she is in the intro (no entrance again), with the head closed and nothing chosen.
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await expect(skip(page)).toBeHidden();
+  await drawn(page);
+  await expect(page.locator('.orb-button')).toHaveCount(0);
+  await expect(page.getByRole('tooltip')).toBeHidden();
+  expect(await swellOf(page)).toMatchObject({ open: false, moving: false, morph: 0 });
+  expect(await liftsOf(page)).toBe(0);
+  expect(await page.title()).toBe('Aether · AI Playground');
+  expect(await listeners(page)).toEqual(before);
+  expect(await flags(page)).toEqual({ ...NONE, 'octoverse.aether.entranceSeen': '1' });
+  expect(problems).toEqual([]);
+});
+
+/** Explore by keyboard: her nameplate rides her float, so a pointer click never finds it still (Playwright waits for a stable box). */
+const pressExplore = async (page: Page) => {
+  await explore(page).focus();
+  await page.keyboard.press('Enter');
+};
+
+test('Aether to Nox to Aether during the opening flight (swell mid-way) and with an orb chosen: closed and in the intro each time, no lift, no listener leaked', async ({ page }) => {
+  test.setTimeout(240_000);
+  const problems = watch(page);
+  await countListeners(page);
+  // Her entrance is seen (it is not the subject here), so she opens in the intro.
+  await page.addInitScript(() => sessionStorage.setItem('octoverse.aether.entranceSeen', '1'));
+  await page.goto('/?world=aether');
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  const before = await listeners(page);
+
+  // Click Explore, and switch from inside the page at the first frame the head is mid-opening: the swell moving and the synapse effect
+  // under way (its sheet runs 0.2 to 1.35 s: the flight is in the air). A page-side watcher, so a slow runner cannot miss the moment.
+  await page.evaluate(() => {
+    type Mid = { morph: number; effect: number };
+    const w = window as unknown as Win & { __midFlight?: Mid | null; __octoverse?: { swell?: { moving: boolean; morph: number; effect: number } } };
+    w.__midFlight = null;
+    const tick = () => {
+      const s = w.__octoverse?.swell;
+      if (s && s.moving && s.morph > 0.35 && s.morph < 1.2 && s.effect > 0.05 && s.effect < 0.95) {
+        w.__midFlight = { morph: s.morph, effect: s.effect };
+        delete w.__octoverse;
+        w.__octoSwitchWorld!('nox');
+      } else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await pressExplore(page);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __midFlight?: unknown }).__midFlight ?? null), { timeout: 60_000 }).not.toBeNull();
+  const caught = await page.evaluate(() => (window as unknown as { __midFlight: { morph: number; effect: number } }).__midFlight);
+  test.info().annotations.push({ type: 'switched mid-flight at', description: JSON.stringify(caught) });
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator('.orb-button')).toHaveCount(15, { timeout: 60_000 });
+  await drawn(page);
+  expect(await page.title()).toBe('Nox · Security Lab');
+  expect(await swellOf(page)).toMatchObject({ open: false, morph: 0 });
+
+  await switchTo(page, 'aether');
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  expect(await swellOf(page), 'her head is closed again, not where the flight left it').toMatchObject({ open: false, moving: false, morph: 0, effect: 0 });
+  await expect(page.locator('.orb-button')).toHaveCount(0);
+  expect(await listeners(page)).toEqual(before);
+
+  // The sequences are loaded again and work: open the overview, let the orbs land, choose OpenAI (its arm lifts).
+  await pressExplore(page);
+  await expect(page.locator('.orb-button')).toHaveCount(10, { timeout: 60_000 });
+  await expect.poll(() => swellOf(page), { timeout: 60_000 }).toMatchObject({ open: true, moving: false, morph: 1 });
+  await page.getByRole('button', { name: 'OpenAI' }).focus();
+  await expect(page.getByRole('tooltip')).toContainText('Function calling', { timeout: 60_000 });
+  await expect.poll(() => liftsOf(page)).toBe(1);
+
+  // Switch with the choice up: Nox, then Aether again: nothing is chosen (no tooltip, no lift, no orb), she is in the intro.
+  await switchTo(page, 'nox');
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  await expect(page.getByRole('tooltip')).toBeHidden();
+  await switchTo(page, 'aether');
+  await expect(explore(page)).toBeVisible({ timeout: 90_000 });
+  await drawn(page);
+  await expect(page.getByRole('tooltip')).toBeHidden();
+  await expect(page.locator('.orb-button')).toHaveCount(0);
+  expect(await liftsOf(page)).toBe(0);
+  expect(await swellOf(page)).toMatchObject({ open: false, morph: 0 });
+  expect(await listeners(page)).toEqual(before);
+  // Neither of the other worlds' flags was written by her.
+  const seen = await flags(page);
+  expect(seen['octoverse.nox.entranceSeen']).toBeNull();
+  expect(seen['octoverse.veyra.entranceSeen']).toBeNull();
+  expect(problems).toEqual([]);
+});
