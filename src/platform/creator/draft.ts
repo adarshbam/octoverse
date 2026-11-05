@@ -94,8 +94,18 @@ export const isHttpsUrl = (value: unknown): boolean => parseHttpsUrl(value) !== 
 
 /** The bytes of every image the draft lists. */
 export function mediaBytes(draft: CreatorDraft): number {
+  // Defensive: validateDraft calls this on a draft that may be damaged (a null project, media that is not a list).
   let total = 0;
-  for (const project of draft.projects) for (const m of project.media) total += typeof m.size === 'number' && Number.isFinite(m.size) ? m.size : 0;
+  const projects: unknown = (draft as { projects?: unknown } | null)?.projects;
+  if (!Array.isArray(projects)) return 0;
+  for (const project of projects) {
+    const media: unknown = (project as { media?: unknown } | null)?.media;
+    if (!Array.isArray(media)) continue;
+    for (const m of media) {
+      const size: unknown = (m as { size?: unknown } | null)?.size;
+      total += typeof size === 'number' && Number.isFinite(size) ? size : 0;
+    }
+  }
   return total;
 }
 

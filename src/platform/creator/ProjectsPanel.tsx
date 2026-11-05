@@ -149,12 +149,23 @@ export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: Cre
   const undoNow = () => {
     const top = stack[stack.length - 1];
     if (!top) return;
+    // A throttled timer (a hidden tab) can leave a toast up after its time, and the media sweep may already have deleted the images.
+    if (top.expires <= Date.now()) {
+      setStack(previous => previous.filter(d => d !== top));
+      const message = `${clip(nameOf(top.project))} can no longer be brought back.`;
+      setProblem(message);
+      announce(message);
+      return;
+    }
     const next = undoDelete(latest.current, top.project, top.index);
     if (next === latest.current) {
+      const taken = latest.current.projects.some(p => p.id === top.project.id || p.slug === top.project.slug);
       const message =
         latest.current.projects.length >= MAX_PROJECTS
           ? `The list already has ${MAX_PROJECTS} projects, so ${clip(nameOf(top.project))} cannot come back yet. Delete another project first.`
-          : `${clip(nameOf(top.project))} cannot come back: its place in the list is taken.`;
+          : taken
+            ? `${clip(nameOf(top.project))} cannot come back: its place in the list is taken.`
+            : MEDIA_TOTAL_MESSAGE;
       setProblem(message);
       announce(message);
       return;

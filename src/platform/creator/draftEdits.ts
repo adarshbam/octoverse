@@ -76,11 +76,13 @@ export function deleteProject(draft: CreatorDraft, id: string): DeletedProject |
 
 /**
  * Puts a deleted project back at its index (the end, if the list is shorter now). Nothing changes (the same draft comes back) if the
- * list is full or the project, or its id or slug, is already there.
+ * list is full, the project (or its id or slug) is already there, or its images would take the draft past 24 MB in all.
  */
 export function undoDelete(draft: CreatorDraft, project: DraftProject, index: number): CreatorDraft {
   if (draft.projects.length >= MAX_PROJECTS) return draft;
   if (draft.projects.some(p => p.id === project.id || p.slug === project.slug)) return draft;
+  // The images it lists count again (the draft may have gained others since): never past the cap that addMedia keeps.
+  if (mediaBytes(draft) + mediaBytes({ ...draft, projects: [project] }) > MAX_MEDIA_TOTAL_BYTES) return draft;
   const projects = [...draft.projects];
   projects.splice(Math.max(0, Math.min(index, projects.length)), 0, project);
   return stamp({ ...draft, projects });

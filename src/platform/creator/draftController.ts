@@ -18,6 +18,9 @@ export const AUTOSAVE_MS = 800;
  */
 export const MEDIA_GRACE_MS = 8000;
 
+/** The wait before the media sweep tries again when a discard is under way and nothing could be swept. */
+export const SWEEP_RETRY_MS = 250;
+
 /** What the screen says when Discard could not clear the browser's copy (the draft is still on screen). */
 export const DISCARD_ERROR = "Could not clear this browser's copy. Your draft is still here. Try again.";
 
@@ -164,7 +167,9 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
   const scheduleSweep = () => {
     if (disposed || sweepTimer !== undefined || orphanSince.size === 0) return;
     const oldest = Math.min(...orphanSince.values());
-    sweepTimer = setTimeout(sweep, Math.max(0, oldest + MEDIA_GRACE_MS - Date.now()));
+    // While a discard is under way the sweep skips every orphan, so an already-due wait of 0 ms would spin: wait a little instead.
+    const due = Math.max(0, oldest + MEDIA_GRACE_MS - Date.now());
+    sweepTimer = setTimeout(sweep, discarding ? Math.max(due, SWEEP_RETRY_MS) : due);
   };
   function sweep() {
     sweepTimer = undefined;

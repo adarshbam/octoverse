@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from './catalog';
-import { MAX_MEDIA, MAX_MEDIA_TOTAL_BYTES, MAX_PROJECTS, MAX_TECHNOLOGIES, validateDraft } from './draft';
+import { MAX_MEDIA, MAX_MEDIA_TOTAL_BYTES, MAX_PROJECTS, MAX_TECHNOLOGIES, mediaBytes, validateDraft } from './draft';
 import {
   LINK_ISSUE,
   addMedia,
@@ -138,6 +138,21 @@ describe('deleteProject and undoDelete (5 s undo)', () => {
     expect(undoDelete(full, out.project, out.index)).toBe(full);
     const once = undoDelete(out.draft, out.project, out.index);
     expect(undoDelete(once, out.project, out.index)).toBe(once);
+  });
+
+  it('undo refuses a project whose images would take the draft past 24 MB, and says nothing changed', () => {
+    const big = (id: string): DraftMediaRef => ({ id, name: `${id}.png`, type: 'image/png', size: MAX_MEDIA_TOTAL_BYTES / 2 });
+    let draft = addProject(SAMPLE_DRAFT);
+    draft = addMedia(draft, draft.projects[0].id, big('a'));
+    draft = addMedia(draft, draft.projects[1].id, big('b'));
+    const out = deleteProject(draft, draft.projects[1].id)!; // 12 MB left in the list, 12 MB in the deleted project
+    // Meanwhile 12 MB more is added elsewhere: the total with the deleted project's images would be 36 MB.
+    const crowded = addMedia(out.draft, out.draft.projects[0].id, big('c'));
+    expect(mediaBytes(crowded)).toBe(MAX_MEDIA_TOTAL_BYTES);
+    expect(undoDelete(crowded, out.project, out.index)).toBe(crowded);
+    // Exactly at the cap is fine.
+    const roomy = removeMedia(crowded, crowded.projects[0].id, 'c');
+    expect(undoDelete(roomy, out.project, out.index).projects).toHaveLength(2);
   });
 
   it('deleting the last project leaves an empty list (zero projects is a valid draft)', () => {

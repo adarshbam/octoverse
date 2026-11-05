@@ -1,5 +1,5 @@
 import { CATALOG } from './catalog';
-import { MAX_TECHNOLOGIES, isHttpsUrl } from './draft';
+import { MAX_TECHNOLOGIES, parseHttpsUrl } from './draft';
 import type { CreatorDraft, DraftProject, Project, Technology } from './types';
 
 // A draft project as the engine's content (platform spec 7.13): `{ project, technologies }` for one project, ready for
@@ -56,8 +56,9 @@ export function draftToContent(draft: CreatorDraft, projectId: string | null, me
       ['repo', 'Repository', 'github'],
     ] as const
   ).flatMap(([key, label, kind]) => {
-    const url = chosen.links[key];
-    return url !== undefined && isHttpsUrl(url) ? [{ id: key, label, url, kind }] : [];
+    // The normalised address (HTTPS://X.COM links as https://x.com/), not the text as typed.
+    const parsed = parseHttpsUrl(chosen.links[key]);
+    return parsed !== null ? [{ id: key, label, url: parsed.href, kind }] : [];
   });
 
   const project: Project = {

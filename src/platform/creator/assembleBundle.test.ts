@@ -72,7 +72,13 @@ describe('draftToContent', () => {
 
   it('links: only https links are kept', () => {
     const { project: p } = draftToContent(draft([project({ links: { live: 'https://a.example', repo: 'http://b.example' } })]), 'p1');
-    expect(p.links?.map(l => l.url)).toEqual(['https://a.example']);
+    // The normalised address is passed on (a trailing slash, a lower-case host), not the text as typed.
+    expect(p.links?.map(l => l.url)).toEqual(['https://a.example/']);
+  });
+
+  it('links: an upper-case scheme and host come out normalised', () => {
+    const { project: p } = draftToContent(draft([project({ links: { live: 'HTTPS://X.COM', repo: 'https://github.com/a/b' } })]), 'p1');
+    expect(p.links?.map(l => l.url)).toEqual(['https://x.com/', 'https://github.com/a/b']);
   });
 
   it('media: refs become project media, url from the map or a local placeholder', () => {

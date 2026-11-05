@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DISCARD_ERROR, INITIAL_VIEW, MEDIA_GRACE_MS, announcement, createDraftController, resolveLoaded, statusLabel } from './draftController';
+import { DISCARD_ERROR, INITIAL_VIEW, MEDIA_GRACE_MS, SWEEP_RETRY_MS, announcement, createDraftController, resolveLoaded, statusLabel } from './draftController';
 import { addMedia, deleteProject, undoDelete, withOctopus } from './draftEdits';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { DraftStore } from './storage';
@@ -477,6 +477,29 @@ describe('images nobody refers to are removed from the browser after a grace per
     c.update(d => undoDelete(d, out.project, out.index));
     await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 3);
     expect(fake.deleted).toEqual([]);
+  });
+
+  it('during a discard the sweep does not spin: a due orphan waits (no 0 ms re-arm) and goes once the discard is done', async () => {
+    let release: (v: { cleared: boolean }) => void = () => undefined;
+    const { fake, c } = await started({ stored: STORED_WITH('gone'), discard: () => new Promise(resolve => (release = resolve)) });
+    c.update(d => ({ ...d, projects: d.projects.map(p => ({ ...p, media: [] })) }));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS - 100);
+    const done = c.discard(); // the grace period runs out while the discard is under way
+    await settle();
+    const before = vi.getTimerCount();
+    let fired = 0;
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    await vi.advanceTimersByTimeAsync(1000);
+    fired = spy.mock.calls.filter(([, ms]) => ms === 0).length;
+    spy.mockRestore();
+    // A 0 ms re-arm would have run hundreds of times in this second; the re-arm waits.
+    expect(fired).toBe(0);
+    expect(before).toBeLessThanOrEqual(2);
+    expect(fake.deleted).toEqual([]);
+    release({ cleared: false }); // the discard fails: the orphan is still there and is swept now
+    await done;
+    await vi.advanceTimersByTimeAsync(SWEEP_RETRY_MS + 10);
+    expect(fake.deleted).toEqual(['gone']);
   });
 
   it('a project deleted for good loses its images after the grace period (longer than the five second undo)', async () => {

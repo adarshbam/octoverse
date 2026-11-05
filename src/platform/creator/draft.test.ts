@@ -254,4 +254,14 @@ describe('a project title and the images of a draft are bounded', () => {
     expect(fields(twelve)).not.toContain('media');
     expect(fields(draftWith({ projects: projects(13) }))).toContain('media');
   });
+
+  it('mediaBytes counts what it can on a damaged draft and never throws, so validateDraft adds no "could not be checked"', () => {
+    const damaged = { ...SAMPLE_DRAFT, projects: [null, { media: 'x' }, { media: [null, { size: 'big' }, { size: 5 }] }, project()] };
+    expect(() => mediaBytes(damaged as unknown as CreatorDraft)).not.toThrow();
+    expect(mediaBytes(damaged as unknown as CreatorDraft)).toBe(5);
+    expect(mediaBytes({ projects: null } as unknown as CreatorDraft)).toBe(0);
+    const issues = validateDraft(damaged as unknown as CreatorDraft);
+    expect(issues.map(i => i.message)).not.toContain('could not be checked');
+    expect(issues.length).toBeGreaterThan(0);
+  });
 });
