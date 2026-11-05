@@ -862,3 +862,13 @@ There is no still of a flourish: no URL parameter freezes one, and adding one wa
 - Nox sets none of the new fields.
 - His stroke, swim drive, float, breath, blinks, springs and both overshoots equal fixtures captured from the code before the change (`src/engine/motion/fixtures/nox-motion.json`, at `4770b01`). They are tested with the fields unset and with them set to his values.
 - The still gate passes. Everything is 0.0000 except techFocus (0.0119, its known residual). The set's `intro.png` showed a one-off 15-pixel transient (max 29); two recaptures of it were bit-identical to the baseline.
+
+### Task 16 review round 1 (fix `d718155`)
+- **A flourish yields to a busy arm.** Before, a flourish that was playing ran to its end even if its arm started to hold something. Task 19's lift would then have moved the lifting arm's tip, and its pendant's attach point, for up to 3 s. Now the unroll is scaled by 1 minus the hold's weight on that arm (`yieldedUnroll`), so it is gone once the arm holds. Test: a flourish on its way up gives way as a hold ramps in, with no frame-to-frame jump. Nox is unaffected: his rate is 0, so no flourish ever plays.
+- **The play gate is a pure function.** `flourishMayPlay(moving, swimming, stage)` gates every flourish, and its behaviour is tested: none with reduced motion or `freeze` (moving 0), none while swimming, none in the entrance, every other stage allowed.
+- **flourishRate is nominal.** The scheduler plays about 0.94 of the rate: 3.75 a minute at her 4, an average wait of 16 s, every wait from 12 to 20 s. Her test now measures the scheduler's real waits over an hour.
+- **Owner decision, recorded and not built:** Flux's plan conflicts with this contract on the event field name (`clock` against `start`), on `settle` above 1, and on a hook to suppress the unroll. Details: the morning list and the spec row.
+- **For Task 19 and Task 20 (ledger, no code):**
+  - *(M4)* A playing flourish ends at once, without easing out, when motion turns off (reduced motion switched on mid-flourish) or the stage leaves the gate. The unroll snaps back to 0 in one frame. It is rare and small (at most a 0.28-unit tip move); ease it out if it shows.
+  - *(M6)* There is no review parameter to freeze a flourish at its peak, so the owner cannot judge one from a still. A `?flourish=<arm>&t=<s>` still would need an engine review hook.
+
