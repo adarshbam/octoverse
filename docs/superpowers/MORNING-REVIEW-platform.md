@@ -14,6 +14,7 @@ Biggest open items, in the order I would look at them:
 3. **Frame rates under load**: How It Works with one card live averages 34.5 against a floor of 36; the 3% per-world rule cannot be decided on this laptop.
 4. **Look calls for you**: host look 12 of 17 P2 samples within delta E 10 (arms read cobalt, cups cream-amber), the OCTOVERSE wordmark contrast (1.4 to 2.4:1, logotype), the glyph reads as an atom, the creator's "upper head" reference per template, Nox's palettes barely recolour him, the moved reef rocks, the unmet 0 to 1 s entrance beat, the 14.1 to 23.5 s flourish interval.
 5. **Process notes**: commit `6dfb30e` does not build alone (it swept in another agent's uncommitted files; HEAD is fine); an orphan dev server on port 5197 may still be running (stop it with `Stop-Process -Id 27896` if it is); Google Fonts load on every page (K05 to self-host).
+6. **Known spec gaps from the final-pass review (not fixed)**: the platform's skip link is not first on world visits and `/create/preview` (the engine's exit link and its "Skip to project details" come first; the platform wraps both routes and could add its own link); platform body text below 16 px (explore subtitle 14, creator labels 12 to 15, 11 px sample tag, 13 px card captions) is not asserted anywhere; the contrast test skips covered or cut-off text silently; engine controls under 44 px on world pages (exit link 36, View Project 37 to 40, nameplate 32 to 35 on phones) need engine tickets.
 
 ## PENDING OWNER REVIEW: M1 gate, the host's look on the P2 stage (Task 3)
 
