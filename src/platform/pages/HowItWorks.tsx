@@ -57,7 +57,8 @@ function Card({ card, index, placed, look, api, onOpen, attend }: { card: HowItW
   const { hot, handlers } = useHot();
   const { x0, y0, x1, y1 } = card.box;
   // Each card keeps its place against the stage as the camera hovers: the shift of its centre.
-  useShift(item, api, [(x0 + x1) / 2, (y0 + y1) / 2, 0], placed);
+  // Held inside the window: the camera's drift is wide enough on a tablet to carry the left card off its edge.
+  useShift(item, api, [(x0 + x1) / 2, (y0 + y1) / 2, 0], placed, { margin: 8 });
   // Hover or keyboard focus: the host looks at the card and the nearest arm reaches toward it; leaving (or the card going) lets both go.
   const gaze = look && hot;
   useEffect(() => {
@@ -121,7 +122,7 @@ export function HowItWorks({ onOpen }: { onOpen: (href: string) => void }) {
     <>
       {/* The intro's wordmark heading is hidden here: the page keeps one heading, for the screen reader. */}
       <h1 className="oct-sr-only">How it works</h1>
-      <ul className="oct-cards" data-layout={box.phone ? 'row' : 'stage'} aria-label="Example portfolios">
+      <ul className="oct-cards" data-layout={box.phone ? 'row' : 'stage'} data-hscroll={box.phone ? '' : undefined} aria-label="Example portfolios">
         {HOW_IT_WORKS_CARDS.map((card, i) => (
           <Card key={card.id} card={card} index={i} placed={!box.phone} look={!box.phone && !reduced} api={api} onOpen={onOpen} attend={attend} />
         ))}

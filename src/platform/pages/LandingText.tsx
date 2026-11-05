@@ -16,6 +16,25 @@ const PILL = 'Your Ideas. Your Octopus. Your Universe.';
 /** P2's frame: the stage square the intro's text is laid out on (5.12 x 5.08 units, the stage's centre at the origin). */
 const P2 = [-2.56, 2.54, 2.56, -2.54] as const;
 
+/** How far the intro's content keeps from the window's edges as it follows the face (px). */
+const KEEP_ON = 12;
+
+/**
+ * Where the intro's content is on screen now: the lines of the wordmark, tagline and description (their text, not their full-width boxes),
+ * the buttons and the pill. The block follows the hovering camera, and on a narrow window the camera's drift is wide enough to carry
+ * the description off the window's edge, so the block's shift is held to keep this content inside (hooks.ts `useShift`).
+ */
+function contentOf(el: HTMLElement) {
+  const out: DOMRect[] = [];
+  const range = document.createRange();
+  for (const text of el.querySelectorAll('.oct-wordmark, .oct-tagline, .oct-desc')) {
+    range.selectNodeContents(text);
+    out.push(range.getBoundingClientRect());
+  }
+  for (const box of el.querySelectorAll('.oct-actions .oct-button, .oct-pill')) out.push(box.getBoundingClientRect());
+  return out;
+}
+
 /**
  * The intro (P2) over the live host: the wordmark with its gradient, "Create. Showcase. Belong." and the
  * description beneath it, two glass buttons, and at the bottom the pill (text, not a button). On a
@@ -29,7 +48,7 @@ export function LandingText({ onSeeHow, onCreate, hidden = false }: { onSeeHow: 
   const box = useHostBox();
   const stage = useRef<HTMLDivElement>(null);
   // The block moves as one with the face as the camera hovers, so it keeps its place against it.
-  useShift(stage, api, api.faceAnchor, !box.phone);
+  useShift(stage, api, api.faceAnchor, !box.phone, { margin: KEEP_ON, measure: contentOf });
   const place = box.phone ? undefined : stageRect(HOST_BUNDLE.stage.frames.intro, box, P2);
   return (
     <div

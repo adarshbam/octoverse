@@ -44,6 +44,18 @@ export function stageRect(frame: StageFrame, box: Size, [x0, y0, x1, y1]: WorldB
   return { left: box.width / 2 + x0 * k, top: box.height / 2 - y0 * k, width: (x1 - x0) * k, height: (y0 - y1) * k };
 }
 
+/**
+ * The horizontal shift to apply to content that rests at `natural` (CSS px, no shift applied) in a box `width` wide, so that it stays
+ * `margin` px inside both edges: `dx` itself when it already does, otherwise the nearest shift that does. Content wider than the box
+ * (less its margins) cannot fit; it gets no shift at all.
+ */
+export function clampShift(natural: { left: number; right: number }, dx: number, width: number, margin: number): number {
+  const lowest = margin - natural.left;
+  const highest = width - margin - natural.right;
+  if (lowest > highest) return 0;
+  return Math.min(Math.max(dx, lowest), highest);
+}
+
 /** A stage point as pixels in `box`. */
 export function stagePoint(frame: StageFrame, box: Size, x: number, y: number) {
   const k = pixelsPerUnit(frame, box);
