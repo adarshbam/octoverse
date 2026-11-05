@@ -177,6 +177,19 @@ What to check:
 4. The pink wash low in the dome at yaw 135: the face glow through the jelly. Wanted?
 5. Motion (twinkle, sway, the head turn) was not judged from stills.
 
+### Curious personality (Task 16, Milestone 5): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether&stage=intro (no `freeze`: every item below is motion, so a still shows nothing). Leave the pointer away from her for a minute first. Values: `src/worlds/aether/character.ts` (personality) and `poses.ts` (`INTRO_LOOK_POINTS`); logic and tests: `moments.ts`, `moments.test.ts`. Report: `.superpowers/sdd/2026-11-03-aether-world/task-16-report.md`.
+
+What to look at, and what is only data and tests tonight:
+1. **The tilt** (visible live). Head leans up to 6 degrees to one side every 5 to 9 s, takes 4.6 s (2.2 s over, 0.2 s hold, 2.2 s back). Tests: count 6 to 12 in 60 s; never faster than her head turns (measured). Not judged by eye. Is 4.6 s too slow or the 6 degrees too small? Owner call: the "sometimes a blink at the top of the tilt" is not built (engine request below).
+2. **The gaze wander** (visible live). Eyes move to a new point every 4 to 8 s: the left jellyfish, the right jellyfish, the title's upper right corner, or you (straight ahead). With a look point in play the pointer holds her eyes for 1.5 s, not 3.5 s. Tests pin the points and the schedule; where the eyes really land was not looked at. The four points are authored from P2 and the title box: say if one should move.
+3. **The reach** (visible live). Every 10.4 to 17.4 s (flourishRate 4.6; the spec says 10 to 16, the engine's wait range is fixed at 0.8 to 4/3 of the mean) one arm uncurls its tip up to 40% and rolls back, 3 s. It is the flourish layer Veyra uses, so it does not aim "toward a nearby point of interest": that is an engine request below. Tests: 3 to 5 starts per 60 s over 200 seeds.
+4. **The spark** (DATA AND TESTS ONLY, not visible). The trigger (pointer within 1.2 units for over 1.5 s), the wave (1.2 s, `uSparkleWave` 1 to 0, face to crown), the bead flicker and the 8 s cooldown are a tested pure function, `sparkStep` in `moments.ts`. The engine has no hook to call it, so nothing happens live. Never fires during a lift or the swell (tested).
+5. **Nothing reads as nervous.** Visible live for the tilt, the wander and the reach, one at a time each; "never two moments at once" is tested on the schedules but NOT live: the engine runs the tilt, the reach and the wander independently, so today they can overlap (the test finds overlaps in the raw schedules). The tilt alone is about 66% of the time (4.6 s of every 7 s on average), so with the arbiter the reach and wander will be pushed back often. Owner call: shorten the tilt, or let the eyes-only wander run during it.
+
+Also changed (values from spec 7.8): `settle` 0.8 (the micro settle amount is Nox's 0.03 now; it was pre-scaled to 0.024, which would have been applied twice), `glideBias` 1.4 (the swim glide base is 0.85 / 1.4, so the effective glide stays 0.85 s and the entrance stroke stays 1.69 s). Other table values already matched.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -264,6 +277,12 @@ Please give the real names.
   - Rear beads seen through the jelly, dimmed (spec 7.5): the ring's rear beads are hidden behind the opaque head at yaw 0 and 45. Wanted: draw the ring and beads behind the head dimmed through the glass.
   - Orb logo from behind: a turned-away orb shows a dark disc without its logo. Wanted: a dim mirrored logo on the back face, or the logo as a billboard.
   - Rear arm root caps: where T1's and T8's caps meet at the body's axis they butt in a hard flat joint with a notch (`armTube.ts` root cap). Wanted: caps that overlap or blend, so a rear pair at z `[-0.3, -0.62]` (Nox's) needs no config change. Target: Aether intro yaw 180 shows no crease, the 23-sample P2 check unchanged (HEAD: 4 misses).
+
+- **Character moments hook (Task 16).** The spark of an idea and "never more than one moment at a time" need the engine to call world logic Aether already has (`src/worlds/aether/moments.ts`, pure and tested). Three requests:
+  - Moment arbiter. Wanted: an optional bundle field, e.g. `character.moments?: { arbiter: () => MomentArbiter }`, or simply the engine's own one-at-a-time rule, shared by the idle tilt (`idleTiltAt`), the flourish scheduler and the look-point pick (`pickLookPoint`). Each asks `claim(kind, t, seconds)` before it starts (tilt 4.6 s, reach 3 s, gaze shift 1.2 s) and waits when refused. Called in `Octopus.tsx` where `idleTiltAt`, `flourish.step` and `pickLookPoint` are called (about lines 598 to 642). Today they overlap (moments.test.ts finds overlaps in the raw schedules).
+  - Spark trigger. Wanted: a per-frame call `sparkStep(state, { t, dt, pointerDistance, lifting, swelling, otherMoment, reducedMotion }, frame)` in the same place; `pointerDistance` is the pointer's distance to her head centre in stage world units (the engine already has the pointer in NDC for the gaze), `lifting` is "a pendant lift is running" (the lift's busy arms), `swelling` the head swell. Its output drives `rig.uniforms.uSparkleWave.value = frame.wave` (the shader band runs crown to face as the value rises, so the world gives 1 down to 0 for face to crown; Octopus never writes it today, it stays 0) and one lit satellite bead's glow by `frame.bead` for the bead `sparkBeadIndex(count, start)`.
+  - Blink at the top of the tilt. Wanted: when an idle tilt is at its hold (`IDLE_TILT_SECONDS`, the 0.2 s plateau), sometimes (say one in three) start a blink now. Wanted: a `BlinkScheduler.blinkNow(t)` method (`behavior/ambient.ts` has only `sample(t)`). Not built: needs the tilt phase and the blink scheduler in the same place.
+  - Reach toward a point. The flourish layer unrolls a random free arm straight; the spec's reach aims the tip at a nearby point of interest. Wanted: a `FlourishScheduler` choice weighted to the upper arms (T1, T2, T7, T8) and, optionally, a bias of the unroll toward the current look point.
 
 ## Questions for the owner (Task 4, face)
 

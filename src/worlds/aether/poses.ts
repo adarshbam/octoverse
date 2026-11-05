@@ -155,9 +155,20 @@ const TECH_FOCUS: StagePose = {
 const DETAIL: StagePose = { ...INTRO, body: { x: -3.115, y: 0.95, scale: 1, yaw: 0.32 }, tilt: 0.37, look: [0.65, 0.2], expression: 'attentive' };
 const ENTERING: StagePose = { ...INTRO };
 
+/**
+ * The gaze wander (spec 7.8, Task 16): where her eyes go in the intro while nothing else holds them,
+ * a new one every 4 to 8 s (the pointer still wins). World points in the intro frame (P2, origin at
+ * the panel's centre): the two jellyfish P2 paints (bell rims at P2 px (81, 165) and (427, 151); the
+ * first and fourth of the world's scatter, place/config.ts JELLYFISH), the upper right corner of the
+ * title block (AETHER_INTRO_TITLE: half width 1.16, top 1.54), and the visitor, straight ahead on her
+ * own eye line (face origin x 0.12, eyes y -0.68). Only the intro wanders: the other stages spread
+ * the intro pose and keep their own single `look` or the glance.
+ */
+export const INTRO_LOOK_POINTS: readonly Point2[] = [[-1.76, 0.87], [1.7, 1.01], [1.16, 1.54], [0.12, -0.68]];
+
 export const AETHER_POSES: Record<StageId, StagePose> = {
   entering: ENTERING,
-  intro: INTRO,
+  intro: { ...INTRO, lookPoints: INTRO_LOOK_POINTS },
   overview: OVERVIEW,
   techFocus: TECH_FOCUS,
   detail: DETAIL,

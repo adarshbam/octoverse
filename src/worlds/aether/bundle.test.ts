@@ -1,7 +1,9 @@
 import { expect, test } from 'vitest';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { settleScale } from '../../engine/behavior/ambient';
 import { ARM_IDS } from '../../engine/config/types';
+import { strokeTiming } from '../../engine/motion/stroke';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { PLACEMENTS, choiceRemoved, choosableNow } from '../../engine/artifacts/strategies';
@@ -50,7 +52,8 @@ test('the shipped bundle carries exactly the ten technologies of panel 5', () =>
 });
 
 test("the entrance sheet's stroke length is the character's stroke (recovery + power + glide)", () => {
-  const { recovery, power, glide } = AETHER.personality.swim;
+  // The glide is stretched by glideBias, as the entrance swims it (Octopus: strokeTiming).
+  const { recovery, power, glide } = strokeTiming(AETHER.personality);
   expect(AETHER_STROKE_SECONDS).toBeCloseTo(recovery + power + glide, 9);
 });
 
@@ -58,7 +61,11 @@ test('her personality is spec 7.8', () => {
   const p = AETHER.personality;
   expect([p.blinkInterval, p.doubleBlinkChance, p.gazeOmega, p.headOmega, p.sway, p.curl]).toEqual([[2.8, 6.5], 0.25, 14, 2.8, 0.55, 1.25]);
   expect([p.float, p.breathPeriod]).toEqual([{ amplitude: 0.07, period: 6.8 }, 5.0]);
-  expect(p.swim).toEqual({ recovery: 0.6, power: 0.24, glide: 0.85, fill: 0.04, squeeze: 0.06 });
+  // The bases are restated so nothing is applied twice (Task 16): the stored glide is 0.85 / glideBias.
+  expect(p.swim).toEqual({ recovery: 0.6, power: 0.24, glide: 0.85 / 1.4, fill: 0.04, squeeze: 0.06 });
+  expect(strokeTiming(p).glide).toBeCloseTo(0.85, 12);
+  expect(p.micro.settle.amount * settleScale(p)).toBeCloseTo(0.024, 12);
+  expect([p.settle, p.glideBias, p.flourishRate, p.idleTilt]).toEqual([0.8, 1.4, 4.6, { amplitude: 0.105, period: [5, 9] }]);
 });
 
 test("the place is the observatory world (Task 9): tilt 0.04, a touch floatier than Nox, the kit, its bake and far plate; the stage backdrop is kept", () => {
