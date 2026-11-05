@@ -6,7 +6,7 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 8.4,
+        "length": 6.3,
         "type": "PositionalSequence",
         "tracksByObject": {
           "main": {
@@ -27,37 +27,49 @@
                       0.6666666666666666,
                       0.6666666666666666,
                       0.3333333333333333,
-                      0.3919500133616652
+                      0.3333333333333333
                     ],
-                    "value": -1
+                    "value": -3.5
                   },
                   {
                     "id": "entrance-0003",
-                    "position": 1.1420406494202673,
+                    "position": 1.6,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
-                      0.6322057586448362,
+                      0.6481481481481481,
                       0.3333333333333333,
-                      0.32657926436582824
+                      0.31666666666666665
                     ],
-                    "value": -0.7
+                    "value": 1
                   },
                   {
                     "id": "entrance-0004",
-                    "position": 2.494125604273724,
+                    "position": 3.2,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
-                      1.058535282122817,
+                      0.7825641025641026,
                       0.3333333333333333,
-                      0.06348445931396854
+                      2.2649572649572662
                     ],
-                    "value": -0.3
+                    "value": 6
                   },
                   {
                     "id": "entrance-0005",
-                    "position": 4.5,
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      3.2988505747126458,
+                      0.3333333333333333,
+                      0.2079912424740011
+                    ],
+                    "value": 6.3
+                  },
+                  {
+                    "id": "entrance-0006",
+                    "position": 6.1,
                     "connectedRight": false,
                     "handles": [
                       0.6666666666666666,
@@ -65,11 +77,11 @@
                       0.3333333333333333,
                       0.3333333333333333
                     ],
-                    "value": -0.8471545771301882
+                    "value": 0
                   }
                 ]
               },
-              "entrance-0006": {
+              "entrance-0007": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
@@ -78,44 +90,56 @@
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-0007",
+                    "id": "entrance-0008",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
                       0.6666666666666666,
                       0.3333333333333333,
-                      0.3919500133616651
+                      0.3333333333333333
                     ],
-                    "value": 1.3
-                  },
-                  {
-                    "id": "entrance-0008",
-                    "position": 1.1420406494202673,
-                    "connectedRight": true,
-                    "handles": [
-                      0.6666666666666666,
-                      0.6650445301944043,
-                      0.3333333333333333,
-                      0.3524982536012114
-                    ],
-                    "value": 0.9
+                    "value": 1.4
                   },
                   {
                     "id": "entrance-0009",
-                    "position": 2.494125604273724,
+                    "position": 1.6,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
-                      0.6817752691659433,
+                      0.6904761904761905,
                       0.3333333333333333,
-                      0.4720996542233571
+                      0.361111111111111
+                    ],
+                    "value": 1.05
+                  },
+                  {
+                    "id": "entrance-000a",
+                    "position": 3.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.5897435897435898,
+                      0.3333333333333333,
+                      0.25641025641025644
+                    ],
+                    "value": 0.75
+                  },
+                  {
+                    "id": "entrance-000b",
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.7126436781609194,
+                      0.3333333333333333,
+                      0.3639846743295019
                     ],
                     "value": 0.45
                   },
                   {
-                    "id": "entrance-000a",
-                    "position": 4.5,
+                    "id": "entrance-000c",
+                    "position": 6.1,
                     "connectedRight": false,
                     "handles": [
                       0.6666666666666666,
@@ -127,7 +151,7 @@
                   }
                 ]
               },
-              "entrance-000b": {
+              "entrance-000d": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
@@ -136,44 +160,56 @@
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-000c",
+                    "id": "entrance-000e",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
                       0.6666666666666666,
                       0.3333333333333333,
-                      0.39195001336166513
+                      0.3333333333333333
                     ],
-                    "value": -34
-                  },
-                  {
-                    "id": "entrance-000d",
-                    "position": 1.1420406494202673,
-                    "connectedRight": true,
-                    "handles": [
-                      0.6666666666666666,
-                      0.724154318983627,
-                      0.3333333333333333,
-                      0.43543901915443756
-                    ],
-                    "value": -18
-                  },
-                  {
-                    "id": "entrance-000e",
-                    "position": 2.494125604273724,
-                    "connectedRight": true,
-                    "handles": [
-                      0.6666666666666666,
-                      0.765360403379613,
-                      0.3333333333333333,
-                      0.7333333333333333
-                    ],
-                    "value": -6
+                    "value": -9
                   },
                   {
                     "id": "entrance-000f",
-                    "position": 4.5,
+                    "position": 1.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.7333333333333334,
+                      0.3333333333333333,
+                      0.44444444444444453
+                    ],
+                    "value": -5
+                  },
+                  {
+                    "id": "entrance-000g",
+                    "position": 3.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.735042735042735,
+                      0.3333333333333333,
+                      0.5677655677655676
+                    ],
+                    "value": -2.6
+                  },
+                  {
+                    "id": "entrance-000h",
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.5730706075533663,
+                      0.3333333333333333,
+                      0.2988505747126437
+                    ],
+                    "value": -1.9
+                  },
+                  {
+                    "id": "entrance-000i",
+                    "position": 6.1,
                     "connectedRight": false,
                     "handles": [
                       0.6666666666666666,
@@ -181,11 +217,11 @@
                       0.3333333333333333,
                       0.3333333333333333
                     ],
-                    "value": -0.30385707569081233
+                    "value": 0
                   }
                 ]
               },
-              "entrance-000g": {
+              "entrance-000j": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
@@ -194,8 +230,8 @@
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-000h",
-                    "position": 1.12,
+                    "id": "entrance-000k",
+                    "position": 0.8200000000000003,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
@@ -206,8 +242,8 @@
                     "value": 0
                   },
                   {
-                    "id": "entrance-000i",
-                    "position": 4.5,
+                    "id": "entrance-000l",
+                    "position": 4.2,
                     "connectedRight": false,
                     "handles": [
                       0.6666666666666666,
@@ -219,51 +255,17 @@
                   }
                 ]
               },
-              "entrance-000j": {
-                "type": "BasicKeyframedTrack",
-                "__debug_objectPath": [
-                  "entrance",
-                  "main",
-                  "forward"
-                ],
-                "keyframes": [
-                  {
-                    "id": "entrance-000k",
-                    "position": 5.5,
-                    "connectedRight": true,
-                    "handles": [
-                      0.5,
-                      1,
-                      0.5,
-                      0
-                    ],
-                    "value": 0
-                  },
-                  {
-                    "id": "entrance-000l",
-                    "position": 6,
-                    "connectedRight": false,
-                    "handles": [
-                      0.5,
-                      1,
-                      0.5,
-                      0
-                    ],
-                    "value": 1
-                  }
-                ]
-              },
               "entrance-000m": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "open"
+                  "spin"
                 ],
                 "keyframes": [
                   {
                     "id": "entrance-000n",
-                    "position": 5.8,
+                    "position": 4.2,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -275,7 +277,7 @@
                   },
                   {
                     "id": "entrance-000o",
-                    "position": 6.4,
+                    "position": 5.3,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -292,12 +294,12 @@
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "spin"
+                  "yaw"
                 ],
                 "keyframes": [
                   {
                     "id": "entrance-000q",
-                    "position": 6.4,
+                    "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -305,11 +307,35 @@
                       0.5,
                       0
                     ],
-                    "value": 0
+                    "value": 3.141592653589793
                   },
                   {
                     "id": "entrance-000r",
-                    "position": 7.4,
+                    "position": 3.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 2.443460952792061
+                  },
+                  {
+                    "id": "entrance-000s",
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 2.443460952792061
+                  },
+                  {
+                    "id": "entrance-000t",
+                    "position": 5.3,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -317,21 +343,21 @@
                       0.5,
                       0
                     ],
-                    "value": 1
+                    "value": 0
                   }
                 ]
               },
-              "entrance-000s": {
+              "entrance-000u": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "settle"
+                  "pitch"
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-000t",
-                    "position": 7.4,
+                    "id": "entrance-000v",
+                    "position": 4.2,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -339,11 +365,11 @@
                       0.5,
                       0
                     ],
-                    "value": 0
+                    "value": 0.4
                   },
                   {
-                    "id": "entrance-000u",
-                    "position": 8.4,
+                    "id": "entrance-000w",
+                    "position": 5.3,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -351,11 +377,11 @@
                       0.5,
                       0
                     ],
-                    "value": 1
+                    "value": 0
                   }
                 ]
               },
-              "entrance-000v": {
+              "entrance-000x": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
@@ -364,7 +390,7 @@
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-000w",
+                    "id": "entrance-000y",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -376,7 +402,7 @@
                     "value": 0
                   },
                   {
-                    "id": "entrance-000x",
+                    "id": "entrance-000z",
                     "position": 1,
                     "connectedRight": false,
                     "handles": [
@@ -389,41 +415,99 @@
                   }
                 ]
               },
-              "entrance-000y": {
+              "entrance-0010": {
                 "type": "BasicKeyframedTrack",
                 "__debug_objectPath": [
                   "entrance",
                   "main",
-                  "pitch"
+                  "glyphFire"
                 ],
                 "keyframes": [
                   {
-                    "id": "entrance-000z",
-                    "position": 0,
-                    "connectedRight": true,
-                    "handles": [
-                      0.5,
-                      1,
-                      0.5,
-                      0
-                    ],
-                    "value": 0.45
-                  },
-                  {
-                    "id": "entrance-0010",
-                    "position": 5.5,
-                    "connectedRight": true,
-                    "handles": [
-                      0.5,
-                      1,
-                      0.5,
-                      0
-                    ],
-                    "value": 0.45
-                  },
-                  {
                     "id": "entrance-0011",
-                    "position": 6,
+                    "position": 3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-0012",
+                    "position": 3.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1.25
+                  },
+                  {
+                    "id": "entrance-0013",
+                    "position": 3.7,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-0014": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "headYaw"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-0015",
+                    "position": 3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-0016",
+                    "position": 3.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.7
+                  },
+                  {
+                    "id": "entrance-0017",
+                    "position": 3.55,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.7
+                  },
+                  {
+                    "id": "entrance-0018",
+                    "position": 3.8,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -434,19 +518,253 @@
                     "value": 0
                   }
                 ]
+              },
+              "entrance-0019": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "headTilt"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001a",
+                    "position": 4.4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001b",
+                    "position": 4.95,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.20943951023931953
+                  },
+                  {
+                    "id": "entrance-001c",
+                    "position": 5.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-001d": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "forward"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001e",
+                    "position": 5.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001f",
+                    "position": 5.7,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-001g": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "open"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001h",
+                    "position": 5.3999999999999995,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001i",
+                    "position": 6.2,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-001j": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "look"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001k",
+                    "position": 5.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001l",
+                    "position": 5.45,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-001m": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "blink"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001n",
+                    "position": 5.65,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001o",
+                    "position": 5.75,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-001p",
+                    "position": 5.85,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-001q": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "settle"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001r",
+                    "position": 5.85,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001s",
+                    "position": 6.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
               }
             },
             "trackIdByPropPath": {
               "[\"x\"]": "entrance-0001",
-              "[\"y\"]": "entrance-0006",
-              "[\"z\"]": "entrance-000b",
-              "[\"stroke\"]": "entrance-000g",
-              "[\"forward\"]": "entrance-000j",
-              "[\"open\"]": "entrance-000m",
-              "[\"spin\"]": "entrance-000p",
-              "[\"settle\"]": "entrance-000s",
-              "[\"reveal\"]": "entrance-000v",
-              "[\"pitch\"]": "entrance-000y"
+              "[\"y\"]": "entrance-0007",
+              "[\"z\"]": "entrance-000d",
+              "[\"stroke\"]": "entrance-000j",
+              "[\"spin\"]": "entrance-000m",
+              "[\"yaw\"]": "entrance-000p",
+              "[\"pitch\"]": "entrance-000u",
+              "[\"reveal\"]": "entrance-000x",
+              "[\"glyphFire\"]": "entrance-0010",
+              "[\"headYaw\"]": "entrance-0014",
+              "[\"headTilt\"]": "entrance-0019",
+              "[\"forward\"]": "entrance-001d",
+              "[\"open\"]": "entrance-001g",
+              "[\"look\"]": "entrance-001j",
+              "[\"blink\"]": "entrance-001m",
+              "[\"settle\"]": "entrance-001q"
             }
           }
         }

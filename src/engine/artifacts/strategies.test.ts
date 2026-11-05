@@ -9,28 +9,30 @@ import type { AppearSheet, SequenceId } from '../sequences/keys';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { pendantFixture } from './fixtures/pendant';
 import { layoutPendants } from './pendant';
-import { APPEARS, ORBIT_CAPACITY, PLACEMENTS, SELECTS, choiceRemoved, choosableNow, placementCapacity, placementDriver } from './strategies';
+import { APPEARS, ORBIT_CAPACITY, PLACEMENTS, SELECTS, choiceRemoved, choosableNow, focusStagePose, placementCapacity, placementDriver } from './strategies';
 import { HOLD_BEATS } from './suctionHold';
 
-test("each table holds Nox's entry (and the placements Veyra's pendant and Aether's satellite), and the id unions follow the tables", () => {
+test("each table holds Nox's entries, Veyra's and (the placements) Aether's satellite, and the id unions follow the tables", () => {
   expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'pendant', 'satellite']);
-  expect(Object.keys(APPEARS)).toEqual(['blow']);
-  expect(Object.keys(SELECTS)).toEqual(['suctionHold']);
+  expect(Object.keys(APPEARS)).toEqual(['blow', 'bloom']);
+  expect(Object.keys(SELECTS)).toEqual(['suctionHold', 'armLift']);
   expect(NOX_ARTIFACTS.placement.kind in PLACEMENTS).toBe(true);
   expect(NOX_ARTIFACTS.appear.kind in APPEARS).toBe(true);
   expect(NOX_ARTIFACTS.select.kind in SELECTS).toBe(true);
 });
 
-test('a kind that is not in a table is a type error (they arrive in F01)', () => {
+test("a kind that is not in a table is a type error, and a kind's parameters are required", () => {
   const nox = NOX_ARTIFACTS;
-  const bloom: ArtifactConfig = {
+  const bloom: ArtifactConfig = { ...nox, appear: { kind: 'bloom', duration: 1.2 } };
+  const armLift: ArtifactConfig = { ...nox, select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 } };
+  const pulse: ArtifactConfig = {
     ...nox,
-    // @ts-expect-error appear.kind 'bloom' is built in F01 with Veyra
-    appear: { kind: 'bloom' },
+    // @ts-expect-error appear.kind 'pulse' is Flux's, built with it
+    appear: { kind: 'pulse' },
   };
-  const armLift: ArtifactConfig = {
+  const bare: ArtifactConfig = {
     ...nox,
-    // @ts-expect-error select.kind 'armLift' is built in F01 with Veyra
+    // @ts-expect-error the arm lift carries its ease, scale and threadShorten
     select: { kind: 'armLift' },
   };
   const satellite: ArtifactConfig = {
@@ -38,18 +40,19 @@ test('a kind that is not in a table is a type error (they arrive in F01)', () =>
     // @ts-expect-error placement.kind 'satellite' is Aether's, built with it
     placement: { kind: 'satellite' },
   };
-  expect([bloom.appear.kind, armLift.select.kind, satellite.placement.kind]).toEqual(['bloom', 'armLift', 'satellite']);
+  expect([bloom.appear.kind, armLift.select.kind, pulse.appear.kind, bare.select.kind, satellite.placement.kind]).toEqual(['bloom', 'armLift', 'pulse', 'armLift', 'satellite']);
 });
 
-test('the appear table says which sheet each kind plays, and the sequence ids follow it', () => {
+test('the appear table says which sheet each kind plays, and the sequence ids follow it (G5)', () => {
   expect(APPEARS.blow.sheet).toBe('bubbleBlow');
-  // AppearSheet is derived from the table: 'bubbleBlow' is one, 'entrance' is not (the engine's own sheet).
-  const sheet: AppearSheet = APPEARS.blow.sheet;
-  const ids: SequenceId[] = [sheet, 'entrance', 'headSwell', 'arrival'];
-  expect(ids).toHaveLength(4);
-  // @ts-expect-error 'bloom' joins the sheets in F01 with its table entry
-  const unknown: AppearSheet = 'bloom';
-  expect(unknown).toBe('bloom');
+  expect(APPEARS.bloom.sheet).toBe('bloom');
+  // AppearSheet is derived from the table: 'bubbleBlow' and 'bloom' are, 'entrance' is not (the engine's own sheet).
+  const sheets: AppearSheet[] = [APPEARS.blow.sheet, APPEARS.bloom.sheet];
+  const ids: SequenceId[] = [...sheets, 'entrance', 'headSwell', 'arrival'];
+  expect(ids).toHaveLength(5);
+  // @ts-expect-error 'pulse' has no sheet until Flux builds it
+  const unknown: AppearSheet = 'pulse';
+  expect(unknown).toBe('pulse');
 });
 
 test("Nox's artifacts hold the values the placement, the blow and the hold had", () => {
@@ -256,4 +259,80 @@ test('a pendant whose new stage puts it on the same arm slides there, and one on
 
 test('a pendant placement gives the suction hold the body middle to swing about, not a ring centre', () => {
   expect(SELECTS.suctionHold.centre(PENDANT)).toEqual({ x: 0, y: 0 });
+});
+
+// --- Task 19: the bloom and the arm lift (Veyra's) ---------------------------------------------
+
+const VEYRA_LIKE: ArtifactConfig = { placement: PENDANT, appear: { kind: 'bloom', duration: 1.2 }, select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 }, choosableIn: ['intro', 'overview'] };
+
+test('each select says when its tooltip may show, which face a focus wears and which pose a focus shows', () => {
+  // Nox: the hold's pull, his curious face, the stage he came from (all as before).
+  expect(SELECTS.suctionHold.settleMs).toBe(HOLD_BEATS.pullMs[1]);
+  expect(SELECTS.suctionHold.reaction).toBe('curious');
+  expect(SELECTS.suctionHold.focusPose).toBe('returnTo');
+  expect(SELECTS.suctionHold.mode).toBe('hold');
+  // Veyra: the lift's own ease, the focused face of P4, the head closed as the focus pose has it.
+  expect(SELECTS.armLift.settleMs(VEYRA_LIKE.select)).toBe(450);
+  expect(SELECTS.armLift.reaction).toBe('focused');
+  expect(SELECTS.armLift.focusPose).toBe('focus');
+  expect(SELECTS.armLift.mode).toBe('lift');
+});
+
+test('the pose a focus shows: Nox keeps the stage he came from; the arm lift closes the head and wears the focus pose\'s face', () => {
+  const overview = { arms: {} as never, body: { x: -0.3, y: 0.2, scale: 1.1, yaw: 0 }, expression: 'happy' as const, headMorph: 1, orbs: 1, tilt: 0 };
+  const intro = { ...overview, body: { x: 0, y: 0, scale: 1, yaw: 0 }, expression: 'gentle' as const, headMorph: 0, orbs: 0 };
+  const techFocus = { ...overview, headMorph: 0, expression: 'focused' as const, tilt: 0.05 };
+  const poses = { intro, overview, techFocus };
+  expect(focusStagePose(poses, 'overview', SELECTS.suctionHold)).toBe(overview);
+  expect(focusStagePose(poses, 'intro', SELECTS.suctionHold)).toBe(intro);
+  const lifted = focusStagePose(poses, 'overview', SELECTS.armLift);
+  expect(lifted).toEqual({ ...overview, headMorph: 0, expression: 'focused', tilt: 0.05 });
+  // The arms and the body stay the stage's: the lift moves only the owning arm.
+  expect(lifted.arms).toBe(overview.arms);
+  expect(focusStagePose(poses, 'intro', SELECTS.armLift)).toEqual({ ...intro, headMorph: 0, expression: 'focused', tilt: 0.05 });
+  // Worked out once per pose set (the blender caches its rests by pose object).
+  expect(focusStagePose(poses, 'overview', SELECTS.armLift)).toBe(lifted);
+});
+
+test('the bloom plays its own sheet over the appear\'s duration, or the reveal\'s timing, and its run ends with it', () => {
+  const run = APPEARS.bloom.createRun(VEYRA_LIKE);
+  const ready = { exist: true, still: false, ready: true, dt: 0.1, count: 16, length: 1.2 };
+  run.step(ready);
+  expect(run.blowing).toBe(true);
+  for (let k = 0; k < 11; k++) run.step(ready);
+  expect(run.done).toBe(false);
+  run.step(ready);
+  expect(run.done).toBe(true);
+  // With a reveal, its run lasts start + (count - 1) step + span.
+  const revealed = APPEARS.bloom.createRun({ ...VEYRA_LIKE, placement: { ...PENDANT, reveal: { start: 0, span: 0.5, step: 0.1 } } });
+  const quarter = { ...ready, count: 4, dt: 0.125 };
+  revealed.step(quarter);
+  for (let k = 0; k < 6; k++) revealed.step(quarter);
+  expect(revealed.done).toBe(false);
+  revealed.step(quarter);
+  expect(revealed.done).toBe(true);
+  // The blow's run is the blow's, whatever the config.
+  const blow = APPEARS.blow.createRun(VEYRA_LIKE);
+  blow.step(ready);
+  for (let k = 0; k < 12; k++) blow.step(ready);
+  expect(blow.done).toBe(false);
+});
+
+test('a lifted pendant hangs along its arm toward the lift\'s hang point by the lift\'s weight (none without one)', () => {
+  const arms = armsAt(() => 0);
+  const base = { stage: 'overview' as const, swell: 0, dt: 1 / 60, hot: false, still: true };
+  const plain = placementDriver(PENDANT, 2);
+  plain.step(base, arms);
+  const lifted = placementDriver(PENDANT, 2);
+  const at = new Float32Array([0.5, Number.NaN]);
+  lifted.step({ ...base, hang: { at, weight: new Float32Array([1, 1]) } }, arms);
+  // The fake arms put arc fraction u at y = -2u: pendant 0 now hangs from 0.5, pendant 1 (no hang point) from its slot.
+  expect(lifted.pendants![0].attach[1]).toBeCloseTo(-1, 9);
+  expect(lifted.pendants![1].attach).toEqual(plain.pendants![1].attach);
+  const half = placementDriver(PENDANT, 2);
+  half.step({ ...base, hang: { at, weight: new Float32Array([0.5, 0]) } }, arms);
+  const slotAt = plain.pendants![0].at;
+  expect(half.pendants![0].attach[1]).toBeCloseTo(-2 * (slotAt + (0.5 - slotAt) * 0.5), 9);
+  // The slot itself is unchanged: letting go returns it there.
+  expect(half.pendants![0].at).toBe(slotAt);
 });

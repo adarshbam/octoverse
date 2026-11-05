@@ -2,6 +2,7 @@ import { AETHER } from './character';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
 import { flattenForDepth, toContent, withRoot as withRootAt } from '../../engine/poses/authoring';
 import type { StagePose } from '../../engine/poses/types';
+import { swimArms } from './swimArms';
 
 /** Centre the hidden arm roots gather around (her head's centre), and where the roots sit (just under the chin). */
 export const BODY_X = 0.07;
@@ -153,7 +154,20 @@ const TECH_FOCUS: StagePose = {
 // spread, as Nox's and Veyra's details do: P5's own arms (longer, hanging to the frame's bottom) are
 // not traced.
 const DETAIL: StagePose = { ...INTRO, body: { x: -3.115, y: 0.95, scale: 1, yaw: 0.32 }, tilt: 0.37, look: [0.65, 0.2], expression: 'attentive' };
-const ENTERING: StagePose = { ...INTRO };
+/**
+ * The entrance (P1, Task 17): head leading, the arms streaming behind in long waves (the swim's
+ * trail, swimArms.ts), the happy face of the swim. The stage never draws this pose as such: the
+ * entrance sheet (sequences/defaults.ts) carries her body, its three-quarter facing and its lean, and
+ * the stage draws the swim's arms from the swim set; this is the same trail, kept as the stage's
+ * entering pose. The arms are built on first use, so nothing here delays the first frame.
+ */
+const ENTERING: StagePose = {
+  ...INTRO,
+  get arms() {
+    return swimArms(INTRO_ARMS).trail;
+  },
+  expression: 'happy',
+};
 
 /**
  * The gaze wander (spec 7.8, Task 16): where her eyes go in the intro while nothing else holds them,

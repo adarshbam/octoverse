@@ -145,6 +145,12 @@ export class BlowRun {
   /** Over (or given up, or not wanted): the bubbles are on their orbits. */
   done = false;
   private waited = 0;
+  /** Seconds the whole run lasts for `count` artifacts, one sheet `length` long (the blow's: blowLength; the bloom's: its ripple). */
+  private readonly total: (count: number, length: number) => number;
+
+  constructor(total: (count: number, length: number) => number = blowLength) {
+    this.total = total;
+  }
 
   /** Whether the blow is playing (or held by a still): the bubbles and the face follow it. */
   get blowing() {
@@ -170,6 +176,6 @@ export class BlowRun {
       return;
     }
     this.seconds += dt;
-    if (this.seconds >= blowLength(count, length)) this.done = true;
+    if (this.seconds >= this.total(count, length)) this.done = true;
   }
 }

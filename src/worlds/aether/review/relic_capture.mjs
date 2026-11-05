@@ -5,8 +5,8 @@
 // Every still is a `view` window onto the same unmoved stage camera (VIEW_BOX below, 100 px a unit), so her and the
 // portal share one exposure, tone mapping and bloom in every frame, and relic_entrance.py projects the portal the
 // same way in all of them. It writes:
-// - entering-t<t>.png (+ -mask.png, her silhouette): the frozen entrance at each of ENTRANCE_T (the placeholder
-//   entrance runs 8.4 s: the swim to 4.5 s, the hold, the opening, the spin and the settle). A frozen world holds its
+// - entering-t<t>.png (+ -mask.png, her silhouette): the frozen entrance at each of ENTRANCE_T (the real entrance
+//   runs 6.3 s: Task 17). A frozen world holds its
 //   glows at their mid level (the glow pulse is 1 - pulse / 2 while motion is held), so these stills show the
 //   portal's glyph and lanterns at that level, not at their peak; the stack below covers the peak.
 // - intro.png (+ -mask.png): the frozen intro in the same window, her face glow with her breath held (the reference
@@ -37,7 +37,10 @@ import { warmFonts, waitForReady } from '../../../../scripts/capture-ready.mjs';
 
 export const VIEW_BOX = '-3,4.165,9.5,-4.165';
 const [WIDTH, HEIGHT] = [1250, 833];
-export const ENTRANCE_T = [1, 2, 3.2, 4.5, 5.5, 6.5, 7.5, 8.4];
+// The real entrance's beats (Task 17, spec 7.9; sequences/defaults.ts ENTRANCE_BEATS): the glimmer (0.5), revealed (1),
+// the strokes (2), the glyph firing, its peak (3.2: the membrane's emissive flash is at its top in this frozen frame, the
+// kit drive being read at the frozen moment), the turn (4.2, 4.8, 5.3), the settle (6) and the end (6.3).
+export const ENTRANCE_T = [0.5, 1, 2, 3.2, 4.2, 4.8, 5.3, 6, 6.3];
 const GLYPH_PERIOD = 7.5;
 // relic_entrance.py filters the bubbles out with a window of HOLD = 0.45 s either side of each still, so a gap must
 // stay within the window (2 * HOLD; a wider gap only widens the pulse loss it allows for) and the stills must run a

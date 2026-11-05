@@ -4,11 +4,12 @@ import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWE
 // bubble blow, the head swell and the arrival wiggle), and the entrance's shape. They start as
 // Nox's keys, re-timed to her stroke (the sheets are the engine's); the entrance is re-authored in
 // Task 17, the bubble blow in Task 12 and the head swell in Task 20. World data: the engine's
-// sequence loader (theatre.ts) takes them through `WorldBundle.sequences`, never by import.
+// sequence loader (theatre.ts) takes them through `WorldBundle.sequences`, never by import. The
+// entrance is her own since Task 17 (spec 7.9).
 // `scripts/theatre-seed.mjs` runs this file directly under Node: erasable TypeScript only, and its
 // one value import (keys.ts) names its extension for the same reason.
 
-// --- The entrance (design 9.6) ---------------------------------------------------------------
+// --- The entrance (spec 7.9; Task 17) ---------------------------------------------------------
 
 /**
  * Aether's stroke, in seconds: recovery + power + glide of `personality.swim` in her character
@@ -17,119 +18,142 @@ import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWE
 export const AETHER_STROKE_SECONDS = 1.69;
 
 /**
- * The final arc: a golden spiral round the stage spot (sequences/entrance.ts `spiralOffset`). It
- * starts `r0` from the spot, at `phase` (radians, the angle about +y from +z): left of the spot
- * and a little behind it, where the spiral's own heading points at the visitor, so the swim runs
- * into it without a turn. With `yaw` += 2 pi spin, she then faces along the arc as it curls round.
- * The arc leaves the circle at atan(c / (1 - phi^-4)) to it, c = 2 ln(phi) / pi; the phase is a
- * half turn plus that angle's complement.
- */
-const GOLDEN = (1 + Math.sqrt(5)) / 2;
-const SPIRAL_RATE = (2 * Math.log(GOLDEN)) / Math.PI;
-export const ENTRANCE_SPIRAL = { r0: 0.9, phase: Math.PI + Math.atan((1 - GOLDEN ** -4) / SPIRAL_RATE) } as const;
-
-/** Aether's entrance turn: once round (2 pi), on the golden spiral above. */
-export const AETHER_ENTRANCE: EntranceShape = { turn: 2 * Math.PI, spiral: true, arc: ENTRANCE_SPIRAL };
-
-/** Where the swim ends and the arc begins: the spot plus the spiral's start. */
-const ARC_START = [ENTRANCE_SPIRAL.r0 * Math.sin(ENTRANCE_SPIRAL.phase), 0, ENTRANCE_SPIRAL.r0 * Math.cos(ENTRANCE_SPIRAL.phase)] as const;
-
-/**
- * The swim runs from 0 to 4.5 s (the last stroke's glide ends there); she holds for ENTRANCE_HOLD
- * s in the trail, opens her arms 5.5 to 6.4 s, then the spin runs 6.4 to 7.4 s and the settle to 8.4 s.
- */
-const SWIM_END = 4.5;
-/** Seconds between the end of the last stroke and the opening of the arms (owner request, Task 19b). */
-export const ENTRANCE_HOLD = 1.0;
-/**
- * Seconds the arms take to open from the trail into the intro pose before the spin (owner request:
- * she turns only once they are fully out). Near twice a stroke's recovery (0.52 s), its own umbrella
- * opening, so it reads as a deliberate unfurl and not one more stroke; much longer and the hold
- * and the opening run together into a stall before the spin.
+ * The entrance's shape (spec 7.9): no spiral (the engine's glide-turn, sequences/entrance.ts
+ * glideTurnYaw), a quarter turn. The keyed path is the whole way to the stage spot and the sheet's
+ * `spin` turns her in place on it, from three-quarter side to front.
  *
- * It runs in two overlapping beats: first the arms swing forward out of the trail (the stroke
- * drives fade) and she rights herself, over ENTRANCE_FORWARD s; then, from ENTRANCE_SPREAD_FROM s in,
- * they spread to the intro pose. Spread while still swung back and leaning, the tips point behind
- * her, at the near left pillar just behind the arc's start (Task 19c, ruling C6).
+ * The engine's glide-turn runs one way only: its yaw rises from -turn to 0, so on its own she would
+ * face left (-x) before the turn. She swims right, toward the portal, so the sheet's own `yaw` key
+ * carries her facing: it holds her facing plus the glide-turn's quarter before the turn and falls
+ * to 0 on the spin's own ease (YAW_KEYS), so the sum falls monotonically from +90 degrees (facing
+ * right, head leading) to exactly 0 (facing the visitor). MORNING-REVIEW-aether.md asks the engine
+ * for a signed glide-turn, which would make this key plain.
  */
-export const ENTRANCE_OPEN = 0.9;
-export const ENTRANCE_FORWARD = 0.5;
-export const ENTRANCE_SPREAD_FROM = 0.3;
-const OPEN_START = SWIM_END + ENTRANCE_HOLD;
-const FORWARD_END = OPEN_START + ENTRANCE_FORWARD;
-const SPIN_START = OPEN_START + ENTRANCE_OPEN;
-const SPIN_END = SPIN_START + 1;
-const SETTLE_END = SPIN_END + 1;
-/**
- * The swim path's waypoints: deep in the corridor on the left, drifting to the centre, to the
- * arc's start. The path must clear the pillars with her arms as they are (sequences/entrance.ts
- * `pathClearance`): the corridor is 4.8 wide between pillar faces at -18 to -20, so she passes
- * there between strokes, arms back, and opens them only where it is wider.
- */
-const WAYPOINTS: readonly (readonly [number, number, number])[] = [
-  [-1.0, 1.3, -34],
-  [-0.7, 0.9, -18],
-  [-0.3, 0.45, -6],
-  ARC_START,
-];
-/**
- * Fast far away, slowing on arrival, as the spike's ease: progress along the swim at `u` of its
- * time is 1 - (1 - u)^2.2, and its rate is this.
- */
-const SWIM_EASE = 2.2;
-const easeRate = (u: number) => SWIM_EASE * (1 - u) ** (SWIM_EASE - 1);
+export const AETHER_ENTRANCE: EntranceShape = { turn: Math.PI / 2, spiral: false };
+
+/** The beats (spec 7.9), in seconds. */
+export const ENTRANCE_BEATS = {
+  /** 0 to 1 s: the pink-violet glimmer in the haze on the left becomes Aether, glow first. */
+  appearEnd: 1,
+  /** The stroke clock's first and last moments: two whole strokes at her own rate (1.69 s), the surges at 1.42 and 3.11 s. */
+  strokeStart: 4.2 - 2 * AETHER_STROKE_SECONDS,
+  strokeEnd: 4.2,
+  /** ~3.2 s: in front of the portal's left side, the brain glyph fires (the membrane's flash, `glyphFire`). */
+  glyphFire: 3.2,
+  /** 3.0 to 3.8 s: her head turns back to the portal as she goes by (`headYaw`). */
+  lookBackStart: 3.0,
+  lookBackEnd: 3.8,
+  /** 4.2 to 5.3 s: the curve away and the quarter turn (`spin`), the head tilting 12 degrees and straightening (`headTilt`). */
+  turnStart: 4.2,
+  turnEnd: 5.3,
+  /** 5.3 to 6.3 s: the settle. The arms come forward and open; then she looks at you, blinks, and smiles (`look`, `blink`, `settle`). */
+  settleEnd: 6.3,
+  look: 5.45,
+  blink: 5.75,
+  smile: 6.3,
+} as const;
+
+const B = ENTRANCE_BEATS;
+
+/** The curious tilt as she first sees the visitor: 12 degrees, at its most two thirds of the way round the turn. */
+export const ENTRANCE_TILT = (12 * Math.PI) / 180;
+/** The look-back's head turn toward the portal (radians, about +y): about 40 degrees, her eyes doing the rest. */
+export const LOOK_BACK = 0.7;
+/** The membrane's emissive at the glyph's firing: 1 at rest, 1 + its `flash` (0.25, place/config.ts) at the peak, the most its shader draws. */
+export const GLYPH_FIRE_PEAK = 1.25;
 
 /**
- * x, y and z keyed at the waypoints. The eased progress runs with z (straight down the corridor),
- * so each waypoint's time is where the ease reaches its z; x and y follow it through their
- * waypoints, their slopes from the neighbours. Every slope is zero on arrival.
+ * Her facing (the total yaw, radians; 0 faces the visitor) at the keyed moments before the turn:
+ * +90 degrees as she comes out of the haze far on the left (the camera sees her near profile there,
+ * a little of her face), easing to +50 degrees as her path bends toward the camera past the portal,
+ * so the camera, which sees her from its left by then, keeps a three-quarter view of her face (P1).
+ * The turn takes the rest, 50 degrees to 0; the whole entrance turns 90.
+ */
+const FACING = { start: Math.PI / 2, pass: (50 * Math.PI) / 180 } as const;
+
+/**
+ * The path: [seconds, x, y, z] waypoints, the last the stage spot. She appears deep on the left in
+ * the haze (x -3.5, 9 back, between the near left tower and the floating stones), glides right
+ * along the path toward the portal, passes in front of its left side at 3.2 s (x 6, 2.6 back: the
+ * nearest floating stone, rubble_float_d, is 3.9 behind her), curves toward the camera, and drifts in
+ * to the spot as she turns, arriving at 6.1 s, inside the settle. The intro's arm-span box keeps the
+ * stage clear of every tower (layout.test), so the last stretch is open water.
+ */
+const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
+  [0, -3.5, 1.4, -9.0],
+  [1.6, 1.0, 1.05, -5.0],
+  [B.glyphFire, 6.0, 0.75, -2.6],
+  [B.turnStart, 6.3, 0.45, -1.9],
+  [6.1, 0, 0, 0],
+];
+
+/**
+ * x, y and z keyed at the waypoints, their slopes from the neighbours (the speed runs on smoothly
+ * through every waypoint): the first from the way to the next, and zero on arrival at the spot.
  */
 function swimKeys() {
-  const z0 = WAYPOINTS[0][2];
-  const zEnd = WAYPOINTS[WAYPOINTS.length - 1][2];
-  const progress = WAYPOINTS.map(w => (w[2] - z0) / (zEnd - z0));
-  const u = progress.map(p => 1 - (1 - p) ** (1 / SWIM_EASE));
-  const axis = (a: 0 | 1 | 2) =>
+  const axis = (a: 1 | 2 | 3) =>
     hermiteKeys(
       WAYPOINTS.map((w, i) => {
+        const last = i === WAYPOINTS.length - 1;
         const lo = Math.max(0, i - 1);
         const hi = Math.min(WAYPOINTS.length - 1, i + 1);
-        const perProgress = (WAYPOINTS[hi][a] - WAYPOINTS[lo][a]) / (progress[hi] - progress[lo]);
-        return [SWIM_END * u[i], w[a], (perProgress * easeRate(u[i])) / SWIM_END] as const;
+        const slope = last ? 0 : (WAYPOINTS[hi][a] - WAYPOINTS[lo][a]) / (WAYPOINTS[hi][0] - WAYPOINTS[lo][0]);
+        return [w[0], w[a], slope] as const;
       }),
     );
-  return { x: axis(0), y: axis(1), z: axis(2) };
+  return { x: axis(1), y: axis(2), z: axis(3) };
 }
 
-/*
- * The stroke count. Nox's entrance fits three whole strokes of his 1.33 s into the swim; Aether's
- * stroke (0.6 + 0.24 + 0.85 = 1.69 s, spec 7.8) would start the third before the sheet begins, so
- * the placeholder entrance fits two whole strokes from 1.12 to 4.5 s. Task 17 re-authors the whole
- * entrance (spec 7.9: head first, arms streaming behind in long waves, through the portal's side).
+/**
+ * The sheet's `yaw` key: her facing plus the glide-turn's quarter (the engine subtracts it before
+ * the turn), easing from the start to the pass and holding; through the turn it falls to 0 on the
+ * same default ease as `spin`, so the sum falls monotonically with no jump.
  */
-const STROKES = 2;
+const YAW_KEYS: readonly (readonly [number, number])[] = [
+  [0, FACING.start + Math.PI / 2],
+  [B.glyphFire, FACING.pass + Math.PI / 2],
+  [B.turnStart, FACING.pass + Math.PI / 2],
+  [B.turnEnd, 0],
+];
 
 const ENTRANCE: SequenceDefaults = {
-  length: SETTLE_END,
+  length: B.settleEnd,
   objects: {
     main: {
-      props: { x: WAYPOINTS[0][0], y: WAYPOINTS[0][1], z: WAYPOINTS[0][2], stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, pitch: 0.45, yaw: 0, surge: 0.6 },
+      props: {
+        x: WAYPOINTS[0][1], y: WAYPOINTS[0][2], z: WAYPOINTS[0][3], stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, pitch: 0.4, yaw: YAW_KEYS[0][1], surge: 0.35,
+        // The world's own extras. glyphFire drives the portal membrane's emissive (sequences/index.ts kitDrives). headYaw,
+        // headTilt, look and blink are her face's beats, authored here for the engine to read (MORNING-REVIEW-aether.md:
+        // the entrance frame passes no head turn, tilt, gaze or blink yet).
+        glyphFire: 1, headYaw: 0, headTilt: 0, look: 0, blink: 0,
+      },
       keys: {
         ...swimKeys(),
-        // Stroke clock: whole strokes, at an even rate of one per AETHER_STROKE_SECONDS.
-        stroke: [[SWIM_END - STROKES * AETHER_STROKE_SECONDS, 0, LINEAR], [SWIM_END, STROKES, LINEAR]],
-        // After the hold the arms swing forward out of the trail, then unfurl into the intro pose,
-        // eased in and out, fully open before the turn begins.
-        forward: [[OPEN_START, 0], [FORWARD_END, 1]],
-        open: [[OPEN_START + ENTRANCE_SPREAD_FROM, 0], [SPIN_START, 1]],
-        // One full turn along the spiral arc into the spot.
-        spin: [[SPIN_START, 0], [SPIN_END, 1]],
-        // The face lands on the gentle smile, the intro's words come in.
-        settle: [[SPIN_END, 0], [SETTLE_END, 1]],
-        // Out of the murk: the glow and aura first, then the shape.
-        reveal: [[0, 0], [1, 1]],
-        // Leaning head first while swimming and in the hold, upright as the arms come forward.
-        pitch: [[0, 0.45], [OPEN_START, 0.45], [FORWARD_END, 0]],
+        // Stroke clock: two whole strokes at her own rate, the last ending as the turn begins; she glides through the turn.
+        stroke: [[B.strokeStart, 0, LINEAR], [B.strokeEnd, 2, LINEAR]],
+        // The quarter turn into the front.
+        spin: [[B.turnStart, 0], [B.turnEnd, 1]],
+        yaw: YAW_KEYS,
+        // Head first while she swims (P1: level, the arms behind), upright by the end of the turn.
+        pitch: [[B.turnStart, 0.4], [B.turnEnd, 0]],
+        // Out of the haze: the glow and aura first, then the shape.
+        reveal: [[0, 0], [B.appearEnd, 1]],
+        // The brain glyph fires as she passes: the membrane brightens once, peaking at 3.2 s, gone by 3.7.
+        glyphFire: [[B.lookBackStart, 1], [B.glyphFire, GLYPH_FIRE_PEAK], [3.7, 1]],
+        // The curious look-back: her head turns toward the portal (behind her right) and back as she goes by.
+        headYaw: [[B.lookBackStart, 0], [3.3, LOOK_BACK], [3.55, LOOK_BACK], [B.lookBackEnd, 0]],
+        // The tilt as she first sees the visitor, then straightening, inside the turn.
+        headTilt: [[B.turnStart + 0.2, 0], [B.turnStart + 0.75, ENTRANCE_TILT], [B.turnEnd, 0]],
+        // The settle: the arms swing forward out of the trail and open into the intro pose.
+        forward: [[B.turnEnd, 0], [B.turnEnd + 0.4, 1]],
+        open: [[B.turnEnd + 0.1, 0], [B.settleEnd - 0.1, 1]],
+        // Then the P2 caption's beats in order: she looks at you (her gaze locks on the visitor),
+        look: [[B.turnEnd, 0], [B.look, 1]],
+        // blinks (one blink, closed at its middle),
+        blink: [[B.blink - 0.1, 0], [B.blink, 1], [B.blink + 0.1, 0]],
+        // and smiles: the face lands on the gentle smile and the intro's words come in.
+        settle: [[B.blink + 0.1, 0], [B.smile, 1]],
       },
     },
   },
@@ -224,7 +248,7 @@ const ARRIVAL: SequenceDefaults = {
  * the state JSON the first time; exports from the studio replace that file afterwards.
  * Erasable TypeScript only, and no value imports (the one import is type-only): the seed script runs this file directly under Node.
  */
-export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
+export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,

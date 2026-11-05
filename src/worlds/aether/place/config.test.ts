@@ -124,14 +124,14 @@ test("every kit material's brightest emissive value is below her face glow's (sp
   for (const m of OBSERVATORY_WORLD.materials ?? []) expect(kitMaterialBrightest(m), m.node).toBeLessThan(core);
 });
 
-test('the glyph pulses once every 6 to 9 s (spec 7.7), from its glow; nothing drives an emissive prop it would fight', () => {
+test('the glyph pulses once every 6 to 9 s (spec 7.7), from its glow; the only emissive prop is the membrane flash of the entrance (Task 17), none on the glyph', () => {
   const glyph = OBSERVATORY_WORLD.materials!.find(m => m.node === 'portal_glyph');
   expect(glyph?.material).toBe('glow');
   const { period, pulse } = glyph!.params as { period: number; pulse: number };
   expect(period).toBeGreaterThanOrEqual(6);
   expect(period).toBeLessThanOrEqual(9);
   expect(pulse).toBeGreaterThan(0.3);
-  expect((OBSERVATORY_WORLD.props ?? []).filter(p => p.drive === 'emissive')).toEqual([]);
+  expect((OBSERVATORY_WORLD.props ?? []).filter(p => p.drive === 'emissive')).toEqual([{ id: 'portalFlash', node: 'portal_membrane', drive: 'emissive' }]);
   // Every rubble fragment bobs.
   expect((OBSERVATORY_WORLD.props ?? []).filter(p => p.drive === 'bob').map(p => p.node).sort()).toEqual([...RUBBLE_PIECES].sort());
 });

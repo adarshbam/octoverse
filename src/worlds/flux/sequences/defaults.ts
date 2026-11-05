@@ -154,7 +154,7 @@ const ARRIVAL: SequenceDefaults = {
 };
 
 /** Code defaults for each sheet's props and keyframes (a seed script writes them into the state JSON). */
-export const SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
+export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,

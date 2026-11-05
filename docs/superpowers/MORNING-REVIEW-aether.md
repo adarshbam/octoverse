@@ -190,6 +190,48 @@ What to look at, and what is only data and tests tonight:
 
 Also changed (values from spec 7.8): `settle` 0.8 (the micro settle amount is Nox's 0.03 now; it was pre-scaled to 0.024, which would have been applied twice), `glideBias` 1.4 (the swim glide base is 0.85 / 1.4, so the effective glide stays 0.85 s and the entrance stroke stays 1.69 s). Other table values already matched.
 
+### Entrance (Task 17, Milestone 5): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether. Use a fresh tab: the entrance plays once per browser session (`octoverse.aether.entranceSeen` in sessionStorage). Clear it, or open a new private window, to see it again.
+
+Stills: `docs/superpowers/evidence/aether/m5/`:
+- `t17-entrance-stills.webp`: t 0.5, 2, 3.2, 4.8 and 6, with P1;
+- `t17-p1-vs-entrance-t2.webp` and `t17-p1-vs-entrance-t3.2.webp`.
+
+Review: `docs/superpowers/reviews/aether.md` "Task 17". Report: `.superpowers/sdd/2026-11-03-aether-world/task-17-report.md`.
+
+Numbers:
+- Clearance gap 0.73 with the arms as drawn, 0.41 held open, 1.51 held closed (bar 0.3).
+- Relic, worst counted ratio 0.926 (t 5.3). The counted ratios run 0.512 to 0.926 across the frames: 0.864 at t 2, 0.814 at t 4.8, 0.926 at t 5.3, and 0.901 at the pulse peak. Only the lantern and membrane rows are 0.51 to 0.58 (0.512 at the flash's peak). The others are bubbles on the steps, counted by the size rule (BLOB_MIN 850 px).
+  - Which side of 850 px a bubble lands on is arbitrary: the t 5.3 bubble counts at 964 px because it merged with the coral's sway; a t 6 bubble (Y 0.978, ratio 1.077) is excluded at 626 px; bubbles at 1.077 to 1.103 stay uncounted.
+  - The margin under 1.0 is about 7%, on an estimated trough of 0.813.
+- Under load at tier low: 99.0 and 98.0 fps median. Those runs used `--disable-frame-rate-limit` (not capped at 60), and a small, wide framing does not lower GPU cost. The sample is 6 s starting 1.5 s after `ready` (40 frames after load); it covers most of the 6.3 s entrance and may run into the intro, but the log does not record when the entrance clock started, so I cannot say exactly.
+
+What to check (motion is live only; nothing here was judged from video):
+1. **The glimmer in (0 to 1 s).** A violet glow left of centre, deep in the haze, becoming her. Is it found by the eye, or too faint?
+2. **The two strokes toward the portal (1 to 4.2 s).** Head leading, arms trailing.
+   - Do the arms read as P1's long ribbons? In the stills they read as short, thick arms: the trail is swung back and foreshortened.
+   - Is she too small? The frame is widened, not turned, to keep the portal in view.
+3. **The glyph firing and her look-back (~3.2 s).**
+   - Only the membrane brightens (up to 25%, once, peak at 3.2 s). The glyph's own light running across its folds needs the engine.
+   - The look-back (head toward the portal, 3.0 to 3.8 s) is authored in the sheet but **not drawn**: the engine passes no head turn from the entrance. Expect no look-back live.
+4. **The turn with the 12 degree tilt (4.2 to 5.3 s).** Owner decision: the turn inside 4.2 to 5.3 s is 50 degrees, not "about 90". Spec 7.9 says "turns about 90 degrees (three-quarter side to front)"; the parenthetical fits 50, the number does not, and the plan text conflicts. The whole entrance turns 90 (90 to 50 on the swim, 50 to 0 in the turn). Which do you want?
+   - She faces 90 degrees right at the start, 50 at the pass (so her face stays toward the unturned camera), and turns 50 to 0 here.
+   - The 12 degree tilt is authored but **not drawn** (engine). Does the turn read as "first sees the visitor"?
+5. **The settle, then look, blink, smile (5.3 to 6.3 s).**
+   - The arms come forward and open; the smile (gentle) lands by 6.3 s. The words come in at 5.85 s.
+   - The look and blink are authored but not drawn. The engine blinks on its own random schedule, so the order look, blink, smile is not guaranteed live.
+6. **The camera blend.** The entering frame (16 wide) eases into the intro's only after the entrance ends (6.3 s), not during the turn.
+   - Does the late zoom-in read well, or should the engine blend during the turn (request below)?
+   - Does the title land in the right place while the camera is still easing?
+7. **The ring.** It forms by the `twinkle` appear (Task 18); with no twinkle yet it is shown in the intro as before. The sheet ends at 6.3 s, not 7.7.
+8. **Skip, and reduced motion.**
+   - A key or click skips to the intro (ring shown).
+   - With reduced motion she is simply present in the intro pose.
+   - Tested: the engine's reducer (SKIP and ENTRANCE_DONE from entering land in the intro), Aether's own session-flag key, and the reduced-motion start pose, pinned. The reducer has no clock, so a skip at each time is not driven separately. Not looked at live tonight.
+
+Minor, not a decision: `AETHER_ARM_HALF_SPAN` in `sequences/clearance.ts` is hand-set (open 2.4, closed 1.3). Its comment says the trail's farthest point is 2.72 from her head; that is asserted, not verified. The clearance gaps (0.73 as drawn, 0.41 held open) depend on it.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -284,6 +326,26 @@ Please give the real names.
   - Blink at the top of the tilt. Wanted: when an idle tilt is at its hold (`IDLE_TILT_SECONDS`, the 0.2 s plateau), sometimes (say one in three) start a blink now. Wanted: a `BlinkScheduler.blinkNow(t)` method (`behavior/ambient.ts` has only `sample(t)`). Not built: needs the tilt phase and the blink scheduler in the same place.
   - Reach toward a point. The flourish layer unrolls a random free arm straight; the spec's reach aims the tip at a nearby point of interest. Wanted: a `FlourishScheduler` choice weighted to the upper arms (T1, T2, T7, T8) and, optionally, a bias of the unroll toward the current look point.
 
+- **Entrance (Task 17).** Aether's entrance sheet authors beats the engine does not draw yet. The sheet: `src/worlds/aether/sequences/defaults.ts`, `ENTRANCE_BEATS`; its test, `sequences/entrance.test.ts`. Four requests:
+  - **A signed glide-turn.** `EntranceShape.turn` must be above 0, and `glideTurnYaw` runs the yaw from -turn up to 0, so a non-spiral swimmer always starts facing left.
+    - Aether swims right, so her sheet's `yaw` key carries a half turn plus her facing and falls to 0 on the spin's ease.
+    - Wanted: allow `turn` below 0 (the yaw runs from -turn, now positive, down to 0), or a `direction: 1 | -1`; `validateBundle` and `glideTurnYaw` to match.
+    - Then her `yaw` key would hold only her facing drift (+90 to +50 degrees before the turn), with no half-turn offset.
+  - **The face beats from the entrance sheet.** `entranceFrame` passes no head turn, head tilt, gaze or blink, and Octopus zeroes the gaze while `stage === 'entering'`. Wanted: read four optional sheet props into the frame, as `shimmer` is read:
+    - `headYaw` (radians, about +y; her look-back to the portal: 0.7 from 3.3 to 3.55 s);
+    - `headTilt` (radians, roll; the 12 degree tilt peaking at 4.95 s);
+    - `look` (0 to 1; the eyes lock on the visitor, the camera, by 5.45 s);
+    - `blink` (0 to 1; a blink closed at 5.75 s).
+  - **How Octopus would draw them.** Add `headYaw` and `headTilt` to `headTurn.current.rotation` (y and z) while swimming. Blend the gaze toward the visitor by `look`. Draw `max(m.blinks.sample(...), frame.blink)`, and hold the random blinks off from the first keyed blink's start to the end of the settle, so the spec's order (look, blink, smile) is not broken by a random blink.
+  - **A glow node a kit drive can fire (the brain glyph).**
+    - `validateWorld` refuses an `'emissive'` drive on a node with a glow material, and the glyph's pulse is its glow on the world clock. So the glyph cannot fire at 3.2 s. Only the membrane's emissive flash (`portalFlash`, sheet prop `glyphFire`) is driven.
+    - Wanted: a drive a glow honours within its bound. For example, a `'pulse'` drive that sets the glow's pulse phase or adds up to its `pulse` share, so its brightest stays colour x strength.
+    - Better, for spec 7.7 and 7.9's "a light travelling across its folds": a `travel` value (0 to 1) the glow shader sweeps across the node's UVs or its x.
+    - Then Aether adds `{ id: 'portalGlyph', node: 'portal_glyph', drive: ... }` back to her world props, and `glyphFire` drives both.
+  - **A turned entering frame, blended during the turn.** `StageFrame` is `{ width, height }` about the stage centre, so the entering frame cannot turn right toward the portal (spec 7.9, P1). It is widened to 16 instead, and she draws at about half her intro size.
+    - Wanted: an optional `center: [x, y]` and/or `yaw` on `StageFrame`, which StageCamera places and aims by. For Aether, about yaw -0.35 rad (turned right) at P1's 5.1 width.
+    - Wanted: the stage camera's ease from the entering frame into the intro's, keyed from the entrance (the sheet's `spin`, or a `frame` sheet prop, 0 to 1 over 4.2 to 5.3 s) rather than started on ENTRANCE_DONE. Today it starts at 6.3 s, after the intro's words are in (5.85 s).
+
 ## Questions for the owner (Task 4, face)
 
 - Catchlights: spec 2.3 says "large upper, small lower". Aether's panels P2, P3 and P4 at 3x paint both upper right, so the face follows the panels. Say if you want the spec reading (one-line change).
@@ -298,3 +360,7 @@ Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same qu
 
 - Task 14 (back view) is docs and evidence only (no source changed) and skipped its separate task review. Its checklist verdicts are the implementer's own; look at the contact sheets in `docs/superpowers/evidence/aether/m4/`.
 - The engine merge `9ab7af7` (Veyra back view and Task 16 with Aether's satellite flight) was committed by an agent killed in the laptop crash. Afterwards the full unit suite (1089 passed) and the typecheck were re-run clean; the Nox still gate and the e2e specs were not re-run on that exact commit.
+
+## More engine follow-ups (from the merge reviews)
+
+- Validation gaps (latent, no world hits them): a `rotateZ`/`emissive` prop that names a placed piece (not an attached node) never moves and validateWorld accepts it; a `bob` prop must name a placed piece and must not also appear in `sequences.kitDrives` (the bob wins over the kit drive). Add both checks with tests.
