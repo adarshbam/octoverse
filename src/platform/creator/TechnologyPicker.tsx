@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { clip } from './clip';
 import { MAX_TECHNOLOGIES } from './draft';
 import { technologyName } from './technologies';
 import { searchTechnologies } from './techSearch';
@@ -105,7 +106,7 @@ export function TechnologyPicker({
         })}
       </ul>
       <p className="oct-hint" role="status" data-picker-count>
-        {total === 0 ? `No technology matches "${query.trim()}".` : total > matches.length ? `Showing ${matches.length} of ${total}. Type to narrow the list.` : `${total} ${total === 1 ? 'match' : 'matches'}.`}
+        {total === 0 ? `No technology matches "${clip(query.trim())}".` : total > matches.length ? `Showing ${matches.length} of ${total}. Type to narrow the list.` : `${total} ${total === 1 ? 'match' : 'matches'}.`}
       </p>
     </div>
   );

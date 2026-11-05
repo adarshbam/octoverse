@@ -215,6 +215,7 @@ export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: Cre
   const handleIssue = profileIssue('handle', 'Handle');
   const profileLinkIssue = profileIssue('link', 'Link');
   const untitled = project !== undefined && project.title.trim() === '';
+  const titleIssue = project ? issueFor(issues, `projects[${index}].title`, 'Title') : undefined;
 
   return (
     <section className="oct-glass oct-panel oct-projects-panel" aria-labelledby={`${uid}-title`}>
@@ -223,7 +224,7 @@ export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: Cre
       </h2>
 
       <div className="oct-project-list-row">
-        <ul className="oct-project-list" aria-label="Projects">
+        <ul ref={listRef} className="oct-project-list" aria-label="Projects">
           {draft.projects.map(p => (
             <li key={p.id}>
               <button type="button" data-project-id={p.id} aria-current={p.id === project?.id ? 'true' : undefined} className="oct-project-row" onClick={() => setSelectedId(p.id)}>
@@ -252,18 +253,19 @@ export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: Cre
         </div>
       ) : null}
 
-      {undo ? (
-        <div className="oct-toast" role="status" data-undo-toast>
-          <span>{undo.failed ? 'There is no room to bring it back. Delete another project first.' : `Deleted ${nameOf(undo.project)}.`}</span>
-          {undo.failed ? null : (
-            <button type="button" className="oct-small-button" onClick={undoNow}>
-              Undo
-            </button>
-          )}
+      {stack.length > 0 ? (
+        <div ref={toastRef} className="oct-toast" data-undo-toast>
+          <span>
+            {`Deleted ${clip(nameOf(stack[stack.length - 1].project))}.${stack.length > 1 ? ` ${stack.length} deleted projects can be brought back, newest first.` : ''}${problem === null ? '' : ` ${problem}`}`}
+          </span>
+          <button type="button" className="oct-small-button" onClick={undoNow}>
+            Undo
+          </button>
         </div>
       ) : null}
-      <p className="oct-sr-only" role="status">
-        {note}
+      <p className="oct-sr-only" role="status" data-panel-live>
+        {live.text}
+        {live.n % 2 === 1 ? ' ' : ''}
       </p>
 
       {project ? (
@@ -271,13 +273,14 @@ export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: Cre
           <div className="oct-link-field">
             <label className="oct-field">
               Title
-              <input ref={titleRef} type="text" value={project.title} placeholder="Untitled project" autoComplete="off" aria-describedby={untitled ? `${uid}-untitled` : undefined} onChange={event => edit({ title: event.target.value })} />
+              <input ref={titleRef} type="text" value={project.title} maxLength={MAX_TITLE_LENGTH} placeholder="Untitled project" autoComplete="off" aria-describedby={untitled ? `${uid}-untitled` : undefined} onChange={event => edit({ title: event.target.value })} />
             </label>
             {untitled ? (
               <p id={`${uid}-untitled`} className="oct-hint">
                 It shows as &quot;Untitled project&quot; until you give it a title.
               </p>
             ) : null}
+            <FieldIssue id={`${uid}-title-issue`} text={titleIssue} />
           </div>
           <label className="oct-field">
             Tagline

@@ -44,7 +44,7 @@ export function ProjectImages({
           ))}
         </ul>
       )}
-      <p className="oct-hint">{full ? 'A project has at most 4 images. ' : ''}Saved in this browser only. PNG, JPEG or WebP, up to 2 MB each.</p>
+      <p className="oct-hint">{full ? 'A project has at most 4 images. ' : ''}Images are saved in this browser only. PNG, JPEG or WebP, up to 2 MB each, 24 MB in all.</p>
       <label className="oct-file" data-disabled={!canAdd || full || busy ? 'true' : undefined}>
         <span>Add image</span>
         <input

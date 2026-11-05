@@ -1,0 +1,19 @@
+/*
+ * The editor's later rules (Task 19a fix round), kept apart from creator.css. A link shown under a field is a 44 px target; the page
+ * keeps room under a focused field for the sticky draft bar (so the field is never hidden behind it).
+ */
+.oct-link-shown {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.oct-page:has(.oct-creator) {
+  scroll-padding-bottom: 168px;
+}
+
+.oct-creator :is(input, textarea, button, summary, a):focus-visible {
+  scroll-margin-bottom: 168px;
+}

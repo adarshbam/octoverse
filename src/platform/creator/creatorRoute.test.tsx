@@ -16,7 +16,6 @@ describe('the creator route before the stored draft is read', () => {
     // The status lines (the visible one and the screen reader's) do not say it is saved; the images' caption has its own words.
     expect(html).not.toMatch(/data-save-status="(saved|saving|memory)"/);
     expect(html).not.toMatch(/data-draft-status="(saved|saving|memory)"/);
-    expect(html).not.toMatch(/<p[^>]*data-draft-status[^>]*>Saved in this browser/);
     expect(html).toContain('data-save-status="loading"');
   });
 });

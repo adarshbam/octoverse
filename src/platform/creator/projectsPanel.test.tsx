@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { issueFor, issueText } from './issueText';
 import { LinkField } from './LinkField';
-import { ProjectsPanel, UNDO_MS } from './ProjectsPanel';
+import { ProjectsPanel, UNDO_DEPTH, UNDO_MS } from './ProjectsPanel';
 import { TechnologyPicker, PICKER_LIMIT } from './TechnologyPicker';
 import { addMedia, addProject, setLink, setUsage, updateProject, withProfile } from './draftEdits';
 import { CATALOG } from './catalog';
@@ -75,6 +75,12 @@ describe('the technology picker (a search over the catalog)', () => {
     const items = buttons(html).filter(b => b.attrs.includes('data-picker-id'));
     expect(items.map(b => b.text)).toEqual([expect.stringMatching(/^TypeScript/)]);
     expect(textOf(html)).toContain('1 match.');
+  });
+
+  it('repeats at most 40 characters of a long search in the count line', () => {
+    const html = picker({ initialQuery: 'q'.repeat(300) });
+    expect(textOf(html)).toContain(`No technology matches "${'q'.repeat(40)}…".`);
+    expect(textOf(html)).not.toContain('q'.repeat(41));
   });
 
   it('says when nothing matches, and offers no free-text add', () => {
@@ -173,9 +179,9 @@ describe('Your Projects (the editor)', () => {
     expect(html).toContain('value="Ships it"');
   });
 
-  it('images say "Saved in this browser only", accept PNG, JPEG and WebP only, and the file input has a visible label', () => {
+  it('images say they are saved in this browser only (and the limits), accept PNG, JPEG and WebP only, and the file input has a visible label', () => {
     const html = panel();
-    expect(textOf(html)).toContain('Saved in this browser only');
+    expect(textOf(html)).toContain('Images are saved in this browser only. PNG, JPEG or WebP, up to 2 MB each, 24 MB in all.');
     const input = /<input\b[^>]*type="file"[^>]*>/.exec(html)![0];
     expect(input).toContain('accept="image/png,image/jpeg,image/webp"');
     expect(html).toMatch(/<label\b[^>]*class="oct-file"[^>]*>[\s\S]*?<span[^>]*>Add image<\/span>\s*<input\b[^>]*type="file"/);
@@ -212,8 +218,25 @@ describe('Your Projects (the editor)', () => {
     expect(textOf(/<summary\b[^>]*>([\s\S]*?)<\/summary>/.exec(panel())![1])).toBe('Profile');
   });
 
-  it('the undo window is five seconds', () => {
+  it('the undo window is five seconds and three deleted projects can be brought back', () => {
     expect(UNDO_MS).toBe(5000);
+    expect(UNDO_DEPTH).toBe(3);
+  });
+
+  it('has its polite line on the page from the start and empty (a toast is announced by changing that text, not by appearing), and no toast', () => {
+    const html = panel();
+    expect(html).toMatch(/role="status"[^>]*data-panel-live[^>]*>(<!-- -->)*<\/p>/);
+    expect(html).not.toContain('data-undo-toast');
+  });
+
+  it('a title is at most 80 characters in the field', () => {
+    const tag = panel().match(/<input[^>]*placeholder="Untitled project"[^>]*>/);
+    expect(tag?.[0]).toContain("maxLength=\"80\"");
+  });
+
+  it('a damaged draft with a title past 80 characters shows the flag', () => {
+    const draft = updateProject(SAMPLE_DRAFT, 'sample-project', { title: 'x'.repeat(90) });
+    expect(textOf(panel(draft))).toContain('Title has 90 characters; a title is at most 80');
   });
 
   it('every input and textarea has a wrapping label with its text before it', () => {
