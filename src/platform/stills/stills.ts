@@ -2,7 +2,8 @@ import type { PaletteId, TemplateId } from '../creator/types';
 import manifest from './manifest.json';
 
 // Engine-rendered stills (scripts/platform-stills.mjs, spec 7.14). Never hand-edited; reference art is never a still.
-// TemplateId and PaletteId are the creator's own (creator/types.ts, platform Task 17); Task 18 fills the creator set.
+// TemplateId and PaletteId are the creator's own (creator/types.ts). Two sets: the four world stills and the 36 creator stills
+// (4 templates x 9 palettes, `creator:<template>:<palette>`, files creator-<template>-<palette>.webp; a still shows no personality).
 export type StillWorld = TemplateId;
 
 export type StillKey =

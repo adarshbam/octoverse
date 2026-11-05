@@ -2,7 +2,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import manifest from './manifest.json';
-import { stillFor, type StillKey } from './stills';
+import { PALETTE_IDS, TEMPLATE_IDS } from '../creator/types';
+import { stillFor, stillKey, type StillKey } from './stills';
 
 const MAX_BYTES = 60 * 1024;
 const ROOT = resolve(__dirname, '../../..');
@@ -26,6 +27,45 @@ describe('world stills', () => {
       expect(entry!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
     expect(typeof manifest.assumption).toBe('string');
+  });
+});
+
+describe('creator stills', () => {
+  const combinations = TEMPLATE_IDS.flatMap(template => PALETTE_IDS.map(palette => [template, palette] as const));
+
+  it('are 4 templates x 9 palettes, Original included', () => {
+    expect(combinations).toHaveLength(36);
+    expect(PALETTE_IDS).toContain('original');
+  });
+
+  it.each(combinations)('resolves %s in %s', (template, palette) => {
+    const key: StillKey = { kind: 'creator', template, palette };
+    expect(stillKey(key)).toBe(`creator:${template}:${palette}`);
+    const still = stillFor(key);
+    expect(still.src).toBe(`/platform/stills/creator-${template}-${palette}.webp`);
+    expect(still.width).toBe(manifest.width);
+    expect(still.height).toBe(manifest.height);
+    const path = resolve(ROOT, 'public', still.src.slice(1));
+    expect(existsSync(path), still.src).toBe(true);
+    expect(statSync(path).size, still.src).toBeLessThanOrEqual(MAX_BYTES);
+  });
+
+  it('records bundle, commit, date and bytes for every creator still, and nothing else of that kind', () => {
+    const entries = manifest.entries.filter(e => e.key.startsWith('creator:'));
+    expect(entries.map(e => e.key).sort()).toEqual(combinations.map(([t, p]) => `creator:${t}:${p}`).sort());
+    for (const entry of entries) {
+      expect(entry.bundle, entry.key).toBe('u-review');
+      expect(entry.commit).toMatch(/^[0-9a-f]{7,}$/);
+      expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it('keeps the four world stills beside them', () => {
+    for (const world of WORLDS) expect(manifest.entries.some(e => e.key === `world:${world}`), world).toBe(true);
+  });
+
+  it('throws for a combination the manifest does not hold', () => {
+    expect(() => stillFor({ kind: 'creator', template: 'nox', palette: 'gold' as never })).toThrow(/no still recorded/);
   });
 });
 
