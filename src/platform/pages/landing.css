@@ -495,7 +495,9 @@
   }
 
   .oct-nav,
+  .oct-nav.is-hidden,
   .oct-intro,
+  .oct-intro.is-hidden,
   .oct-card {
     transition: none;
   }
