@@ -409,3 +409,21 @@ Ruled provisionally overnight; the owner judges the look live.
 - The pink fin behind the head belongs to the world kit and also shows at yaw 0.
 
 **Check:** `/?world=flux&stage=intro&freeze&yaw=180` (and 45, 90).
+
+## Milestone 5: Task 15, the entrance with the portal run (PENDING OWNER REVIEW)
+
+**Ruling (provisional, overnight):** owner reviews motion live; stills and numbers only, no video.
+
+**What changed:** `src/worlds/flux/swim.ts` (open and trail poses read from P1, Veyra's method copied: umbrella open, a loose wavy bundle, stretch 1.15), `sequences/defaults.ts` (entrance: `{ turn: Math.PI, spiral: false }`, 5.0 s sheet; arrival quicker), `sequences/state.theatre.json` (seeded: entrance, arrival), `sequences/index.ts` (`kitDrives` portalArc1..4, portalDisc), `sequences/clearance.ts` (footprints from kit.glb bounds, arm reach), `place/config.ts` (`props`: `portalArc<q>` on `portal_arc_<q>_inlay`, `portalDisc` on `portal_disc`, all `emissive`), `character.ts` (`gentle` = the intro smile). Tests: `swim.test.ts`, `sequences/entrance.test.ts`.
+
+**Numbers**
+- Clearance (ground plane, footprints of towers, rack modules, piers, decks, plinth): swimming to 3 s with the umbrella's reach 2.3: frame 0.35, open 0.35, closed 1.10 (rack module at (-2.4, -2.4)); arriving 3 to 5 s with the intro's 2.05: frame 0.27, open 0.20, closed 0.70 (rack module at (2.3, -2.0)). The spot itself is 2.32 from that module: the umbrella would not fit there, the intro does.
+- Surges 0.59, 1.11, 1.63, 2.15, 2.67 s; peak speed 4.0 units/s (2.77 s), about 1 in the glides.
+- Arcs peak 2.30 / 2.45 / 2.60 / 2.75 s (150 ms apart), disc 2.95 s. Overshoot 0.250 at 3.32 s. Peak yaw rate 402 deg/s at 3.83 s. Bounce 0.14.
+- Ring region (1280 x 720, luminance p99): lower arcs 70 dark, 118 at the flash (2.6 s), 93 lit; upper 61 / 88 / 74. Face glow median 182: the portal never competes.
+
+**Stills:** `entrance-t15-stills.webp` (`NOX_URL=http://localhost:5195 WORLD=flux VIEW=1280x720 SCALE=1 node scripts/stage-capture.mjs entering <out> "t=<s>&kitwait=180000"`).
+
+**Honest weaknesses:** the portal run is subtle and blue (no green), half the ring off-frame at 16:9, the disc flash too small to see; the brake's arm flare reads as arms dropping; mid-twirl back view at 3.3 s; surge pulse strong. Levers: `ARC_LIT`/`ARC_DARK`, the inlay `edge` colour (config.test caps its brightness under the face core), `surge`, `YAW_SWIM`.
+
+**Engine-owner items:** none required. Noted: the entrance's settle face is hard-wired to 'gentle' (Flux overrides it to his intro face); the `armHalfSpan` check takes one open reach for the umbrella and the intro (the test splits the swim from the arrival); the stroke lead uses the stroke's own period, so a clock faster than the timing amplifies `surge`.
