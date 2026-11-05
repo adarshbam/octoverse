@@ -18,10 +18,14 @@ import type { WorldBundle } from '../../engine/types/bundle';
 /**
  * What each stage frames, from its storyboard panel at 100 px to a world unit (the panels' own
  * pixel sizes: P1 510 x 504, P2 514 x 504, P3 509 x 504, P5 861 x 519). Focusing a technology
- * keeps the overview's framing (P4 is wider only for its tooltip, which the HTML layer draws).
+ * keeps the overview's framing (P4 is wider only for its tooltip, which the HTML layer draws). The
+ * entrance's is wider than P1's own (Task 17, below).
  */
 export const AETHER_STAGE_FRAMES: Record<StageId, StageFrame> = {
-  entering: { width: 5.1, height: 5.04 },
+  // The entrance (spec 7.9, Task 17): wider, so the portal (x 12.6, 9.5 back, its glyph at 6.6 to 7.4 across on the
+  // stage plane) is in view as she passes it, as in P1; the camera cannot turn right yet (MORNING-REVIEW-aether.md), so
+  // the frame widens instead: 16 across shows the glyph with a margin at 3:2 and 16:9. The stage eases it into the intro's frame.
+  entering: { width: 16, height: 5.04 },
   intro: { width: 5.14, height: 5.04 },
   overview: { width: 5.09, height: 5.04 },
   techFocus: { width: 5.09, height: 5.04 },

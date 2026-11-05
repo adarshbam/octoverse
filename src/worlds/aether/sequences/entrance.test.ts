@@ -6,7 +6,8 @@ import { strokeAt, strokeTiming } from '../../../engine/motion/stroke';
 import { type EntranceFrame, armHalfSpan, entranceClearance, entranceFrame } from '../../../engine/sequences/entrance';
 import { loadWorldSequences, type Sequences } from '../../../engine/sequences/theatre';
 import { validateBundle } from '../../../engine/types/bundle';
-import { AETHER_BUNDLE } from '../bundle';
+import { CAMERA_Z } from '../../../engine/config/stage';
+import { AETHER_BUNDLE, AETHER_STAGE_FRAMES } from '../bundle';
 import { AETHER } from '../character';
 import { OBSERVATORY_WORLD, PORTAL_FLASH, WORLD_MATERIALS } from '../place/config';
 import { AETHER_POSES } from '../poses';
@@ -247,4 +248,45 @@ test("the bundle validates with the entrance's kit drive: the membrane's emissiv
   expect(PORTAL_FLASH).toEqual({ id: 'portalFlash', node: 'portal_membrane', drive: 'emissive' });
   // The glyph keeps its glow (its own pulse) and has no emissive prop: the engine allows none beside a glow.
   expect(OBSERVATORY_WORLD.props!.some(p => p.node === 'portal_glyph')).toBe(false);
+});
+
+/**
+ * Where a world point lands on the stage plane (z = 0) as the unmoved stage camera sees it, and how
+ * far across and up the frame shows at `aspect` (the field of view fits the frame's height, or its
+ * width over the aspect, as fovFor does). The camera's small lean (0.04) is left out.
+ */
+const onPlane = ([x, y, z]: readonly number[]) => [(x * CAMERA_Z) / (CAMERA_Z - z), (y * CAMERA_Z) / (CAMERA_Z - z)];
+const halfView = (frame: { width: number; height: number }, aspect: number) => {
+  const half = Math.max(frame.height, frame.width / aspect) / 2;
+  return { x: half * aspect, y: half };
+};
+
+test('the entering frame is wider than the intro so the portal and its glyph are in view (P1), and she is in it the whole way', () => {
+  const arch = OBSERVATORY_WORLD.layout.groups.portal.find(p => p.piece === 'portal_arch')!;
+  const [px, py, pz] = arch.position;
+  const scale = arch.scale as number;
+  const c = Math.cos(arch.rotY!);
+  const n = Math.sin(arch.rotY!);
+  // The glyph's box in kit.glb (x -0.72 to 0.91, y 1.19 to 2.6, flat at z 0.04), placed as the layout places the arch.
+  const corners = [-0.72, 0.91].flatMap(x => [1.19, 2.6].map(y => [px + scale * (x * c + 0.04 * n), py + scale * y, pz + scale * (-x * n + 0.04 * c)]));
+  const intro = AETHER_STAGE_FRAMES.intro;
+  const entering = AETHER_STAGE_FRAMES.entering;
+  expect(entering.width).toBeGreaterThan(2.5 * intro.width);
+  for (const aspect of [1.5, 16 / 9]) {
+    const view = halfView(entering, aspect);
+    for (const corner of corners) {
+      const [x, y] = onPlane(corner);
+      expect(Math.abs(x), `glyph at ${aspect}`).toBeLessThan(view.x - 0.3);
+      expect(Math.abs(y), `glyph at ${aspect}`).toBeLessThan(view.y - 0.3);
+    }
+    // Her body's middle is inside the frame by a margin of a unit the whole way.
+    for (const s of times(0, LENGTH, 0.1)) {
+      const [x, y] = onPlane(at(s).position);
+      expect(Math.abs(x), `${s} s at ${aspect}`).toBeLessThan(view.x - 1);
+      expect(Math.abs(y), `${s} s at ${aspect}`).toBeLessThan(view.y - 1);
+    }
+    // The intro frame still leaves the glyph out (layout.test and portal_offframe.mjs check the whole portal).
+    const introView = halfView(intro, aspect);
+    for (const corner of corners) expect(Math.abs(onPlane(corner)[0])).toBeGreaterThan(introView.x);
+  }
 });
