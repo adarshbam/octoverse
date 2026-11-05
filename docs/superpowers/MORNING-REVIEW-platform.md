@@ -175,6 +175,38 @@ Known gaps for the owner to rule on:
 Numbers: unit 25 tests in `creatorPage.test.tsx` (and the boundary test); e2e `tests/e2e/platform-creator.spec.ts` 11 of 11 (five widths: no horizontal scroll, 44 px controls, the Profile fold opened; phone tabs and sticky 40%; keyboard order and the lavender focus ring; both panels at 1536 and 768).
 
 
+## PENDING OWNER REVIEW: M4, the host's personality and arrival wave (Task 11)
+
+Commit on `claude/platform-overnight`: `feat(octoverse): host personality and arrival wave (pending owner review)`. Owner review could not happen overnight. The aim (spec 7.5): warm, attentive, not fidgety; the wave reads as hello. Motion is yours to judge live. I checked numbers and stills only.
+
+What is set (`src/worlds/octoverse/character.ts`, spec 7.5's Host column):
+- Blink every 3.0 to 7.5 s, double blink 0.18, gaze response 14, head turn 2.8, sway 0.45, float 0.05 over 6.8 s, breath 5.0 s, stroke 0.58 / 0.24 / 0.8 s.
+- `settle` 0.8: the landing overshoot is 80% of Nox's approved one (0.024).
+- `flourishRate` 3.4 a minute. The engine draws each wait from 0.8 to 4/3 of 60 / rate, so the waits are 14.1 to 23.5 s (mean about 18.8 s). The spec asks 14 to 22 s; no rate gives both ends. Over 120 s, five seeds gave 6, 6, 6, 6 and 7 flourishes.
+- `idleTilt`: 0.03 rad (about 1.7 degrees), one every 9 s, each 4.6 s long (the engine's tilt length).
+- The arrival sheet (`sequences/defaults.ts`, seeded into `sequences/state.theatre.json`), 1.4 s from the settle: T1 waves at 0.38 s and 0.84 s; the face is `delighted` from 0.04 to 0.65 s (0.61 s), then `welcome`. The body leans a little into each wave, and the arms fan a little on the same two beats (peak 0.07 rad).
+
+What you will NOT see live yet (engine gaps, recorded as E02b; nothing in `src/engine` was touched):
+1. **T1's own wave and the delighted face in the arrival.** The engine's arrival wiggle has only a body roll and a fan of every arm. It drives no single arm from a sheet and takes no face from the arrival. The sheet's `t1Wave` and `delighted` tracks are authored and tested (`src/worlds/octoverse/moments.ts`), but nothing plays them. Live, you see the small lean and the all-arm fan on two beats, with the face staying `welcome`.
+2. **The flourish on the upper arms only, as a wave.** The engine's flourish picks any free arm and unrolls its tip curl. `hostFlourishBusy` keeps it to T1 and T8 in the tests, but the engine has no per-world hook to pass it. Live, any arm may flourish, about every 14 to 24 s.
+3. **Arrival and flourish stills.** `freeze` stops the arrival and flourish clocks, and no review flag seeks the arrival. So there are no stills of the wave peaks or a flourish.
+
+What to check live (`/?world=octoverse`, a fresh session so the entrance and arrival play; or Skip and wait in the intro):
+1. Blink rhythm: friendly and attentive, not twitchy (3 to 7.5 s, some doubles).
+2. Gaze: it notices the pointer quickly (14), and the head follows warmly (2.8), not in a hurry.
+3. Flourish rarity: one every 14 to 24 s. Is that welcoming or too busy? Does an arm other than T1 or T8 flourishing bother you until the engine hook lands?
+4. Idle tilt: a tiny lean every 9 s. Does it read as listening, or is it too small to see?
+5. Arrival: the lean and the arm fan on two beats as it settles. Does it read as hello without T1's own wave? Is the delighted face right? It is in `task11-arrival-delighted-0.34-face.png`. Its eyes narrow from both lids, so it may read as a sly or sleepy squint rather than happy arcs. That preset is Task 3's look, and I left it unchanged.
+
+Stills (frozen, `docs/superpowers/evidence/platform/m4/`):
+- `task11-arrival-settle-t5.4.png`: the entrance's end (the settle), where the arrival starts. All eight arms are in place.
+- `task11-arrival-delighted-0.34.png` and `-face.png`: the delighted face at its midpoint (the face only: `?expression=focused`, the preset `delighted` maps to).
+- `task11-arrival-welcome-0.70-face.png`: the face back at `welcome` after the delighted spell.
+- `task11-arrival-welcome-intro.png` (+ `-mask`): the settled intro. P2 check unchanged: 12 of 17 within delta E 10, every sample identical to `m2/task6-intro.png`, IoU 0.856, crown B - R 140.2.
+
+Numbers: `src/worlds/octoverse/motion.test.ts`, 8 tests (personality values, the flourish mapping, 120 s flourish counts, idle tilt, the two wave peaks, the delighted spell, the sheet in the saved state, the entrance untouched).
+
+
 ## PENDING OWNER REVIEW: M4, How It Works alive (Task 13)
 
 Commit on `claude/platform-overnight`: `feat(platform): How It Works alive (pending owner review)`. Owner review could not happen overnight; the live landing end to end is yours. What is built: the card ripple (five cards in over 600 ms, reading order, instant with reduced motion), hover or keyboard focus on a card (desktop and tablet) lifts it 4%, brightens the border and cross-fades its still to a live preview of that world within 400 ms of the preview's first frames; the host looks at the card and the nearest arm reaches toward it (`attend`); leaving fades the preview out at once and unmounts it 300 ms later. Click or Enter opens the profile; Your Octopus stays the gold glyph card and never goes live (the host still looks at it). Explore's world tiles come alive the same way; the profile hero is a live preview (artifacts settled). Phones, touch screens and reduced motion get stills only. The platform holds ONE live preview at a time (`previews/previewSlot.ts`), so the page has at most two WebGL canvases: the host (or none, on Explore and the profile) and one preview.
@@ -269,7 +301,7 @@ What to check live (desktop, motion allowed; the tests prove the rules, not the 
 2. Open the overview (the nameplate) and the project detail: the address gains `?view=overview` / `?view=detail`, browser Back walks them, Escape closes them. This is the same behaviour as the showcase worlds (the same code).
 3. Press the exit (or browser Back from the intro): you are back on `/create` with the See live preview button focused (focus ring) and the page scrolled where you left it. From the overview or detail the exit still goes to `/create` but as a new step (no focus restore); the same rule the showcase worlds use.
 4. **Publish** at the bottom of the creator is greyed out and says "Publishing arrives with accounts". It does nothing. Is it clear enough that it is not available, and not mistaken for a bug?
-5. No network: open the browser's Network tab and use the creator and the preview. Only the app's own files (and your own saved images as `blob:` addresses) are requested; the two Google Fonts requests are index.html's, on every page of the app, not the creator's.
+5. No network: open the browser's Network tab and use the creator and the preview. No creator action sends anything anywhere; every request goes to the app's own origin, blob: or data:. The document loads Poppins from Google Fonts at page load (third party, not triggered by the creator); K05 to self-host.
 6. Edit a Veyra-template draft (colours, name, projects, an image), then visit `/@veyra`: nothing there changes. The How It Works "Your Octopus" card shows your draft's picture once a draft exists.
 7. A draft with no projects, or a project with no technologies, opens the intro; the overview is empty (no bubbles). Does an empty overview look acceptable, or should it say something ("add technologies")? That text would be the engine's, which this task does not touch.
 

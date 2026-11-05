@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { overflowingElements } from './pageChecks';
 
@@ -6,9 +8,14 @@ import { overflowingElements } from './pageChecks';
 // navigation bar. Edge, --workers=1, one browser at a time (the world is WebGL).
 //   NOX_PORT=5197 npx playwright test -c playwright.nox3d.config.ts tests/e2e/platform-creator-preview.spec.ts --workers=1
 //
-// NETWORK. The only requests that leave the page are the app's own: the dev server's origin, plus `blob:` and `data:` (the browser's own
-// stored images and inline assets). index.html itself names two font hosts (Google Fonts), loaded once with every page of the app, not by
-// the creator: they are told apart ("fonts") and none may be asked for AFTER the creator opened. Anything else fails.
+// HAZARD: playwright.nox3d.config.ts has `reuseExistingServer: true`. A dev server (or another run) still listening on NOX_PORT is
+// silently tested instead of a fresh one, and two runs on one port kill each other's server mid-run. Use a port nobody holds (a unique
+// NOX_PORT per run) and make sure nothing listens on it afterwards.
+//
+// NETWORK. No creator action sends anything anywhere: every request goes to the app's own origin, `blob:` or `data:` (the browser's own
+// stored images and inline assets). The document loads Poppins from Google Fonts at page load (third party, not triggered by the creator;
+// K05 to self-host): those two hosts are told apart ("fonts"), recorded, and NOT asserted on (a font may arrive late); everything else
+// (`other`) must be empty.
 
 test.setTimeout(180_000);
 
@@ -90,28 +97,44 @@ async function previewUp(page: Page) {
 
 const pathNow = (page: Page) => new URL(page.url()).pathname + new URL(page.url()).search;
 
-/** Puts a draft straight into the creator's IndexedDB (the same database and key the creator saves to), from a page of the app. */
+/** The creator's database, stores and key, read from storage.ts itself (a rename or a version bump there cannot leave this spec writing somewhere else). */
+const STORAGE = (() => {
+  const source = readFileSync(resolve(process.cwd(), 'src/platform/creator/storage.ts'), 'utf8');
+  const of = (name: string) => new RegExp(`const ${name} = '([^']+)'`).exec(source)?.[1] ?? '';
+  const names = { db: of('DB_NAME'), draft: of('DRAFT_STORE'), media: of('MEDIA_STORE'), key: of('DRAFT_KEY') };
+  if (Object.values(names).some(value => value === '')) throw new Error(`storage.ts constants not found: ${JSON.stringify(names)}`);
+  return names;
+})();
+
+/**
+ * Puts a draft straight into the creator's IndexedDB (the same database and key the creator saves to), from a page of the app. The
+ * database is opened WITHOUT a version (a fresh browser context has none: it is made at version 1 with the two stores, and the app's
+ * own open, at its current version, upgrades it as it would any older database).
+ */
 async function storeDraft(page: Page, draft: unknown) {
   await page.goto('/explore');
   await page.evaluate(
-    value =>
-      new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('octoverse-creator', 1);
+    ({ value, names }) =>
+      new Promise<void>((done, fail) => {
+        const request = indexedDB.open(names.db);
         request.onupgradeneeded = () => {
-          for (const name of ['draft', 'media']) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
+          for (const name of [names.draft, names.media]) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
         };
-        request.onerror = () => reject(request.error);
+        request.onerror = () => fail(request.error);
         request.onsuccess = () => {
           const db = request.result;
-          const tx = db.transaction('draft', 'readwrite');
-          tx.objectStore('draft').put(value, 'current');
-          tx.oncomplete = () => (db.close(), resolve());
-          tx.onerror = () => reject(tx.error);
+          const tx = db.transaction(names.draft, 'readwrite');
+          tx.objectStore(names.draft).put(value, names.key);
+          tx.oncomplete = () => (db.close(), done());
+          tx.onerror = () => fail(tx.error);
         };
       }),
-    draft,
+    { value: draft, names: STORAGE },
   );
 }
+
+/** The names of the page's IndexedDB databases (Chromium). */
+const databases = (page: Page) => page.evaluate(async () => (await indexedDB.databases()).map(d => d.name));
 
 const project = (id: string, title: string, technologies: string[] = ['react', 'typescript']) => ({ id, slug: id, title, tagline: `${title} tagline`, sections: [], links: {}, technologies, usage: {}, media: [] });
 const draftOf = (over: Record<string, unknown> = {}, projects = [project('alpha', 'Alpha'), project('beta', 'Beta', ['rust', 'docker', 'redis'])]) => ({
@@ -154,11 +177,14 @@ test.describe('See live preview', () => {
     await openOverview(page);
     await expect(overviewPanel(page, 'Beta')).toBeVisible();
     await expect(page).toHaveURL(/\/create\/preview\?project=beta&view=overview$/);
+    // The tab title stays the draft's after a view change (the shell must not set its own over the host's).
+    await expect(page).toHaveTitle('Mira · Beta');
     await expect(page.locator('.orb-button')).toHaveCount(3);
     // The engine's own Escape closes the overview and the address follows (the pop lands on the intro entry).
     await page.keyboard.press('Escape');
     await expect(overviewPanel(page, 'Beta')).toBeHidden();
     await expect(page).toHaveURL(/\/create\/preview\?project=beta$/);
+    await expect(page).toHaveTitle('Mira · Beta');
 
     // Exit: the engine's own control, labelled; from the intro it is the same as Back (the creator is the entry before), so the creator is restored.
     await expect(exitLink(page)).toHaveText('Back to the creator');
@@ -206,9 +232,12 @@ test.describe('See live preview', () => {
     await previewUp(page);
     await openOverview(page);
     await expect(overviewPanel(page, 'Alpha')).toBeVisible();
+    await expect(page).toHaveTitle('Mira · Alpha');
     await page.goBack();
     await expect(page).toHaveURL(/\/create\/preview\?project=alpha$/);
     await expect(overviewPanel(page, 'Alpha')).toBeHidden();
+    // Back landing on the intro leaves the draft's title (not the shell's).
+    await expect(page).toHaveTitle('Mira · Alpha');
     await page.goBack();
     await expect(page).toHaveURL(/\/create$/);
     await settled(page);
@@ -226,6 +255,8 @@ test.describe('See live preview', () => {
     const errors = watchErrors(page);
     await page.goto('/create/preview');
     await previewUp(page);
+    // A visitor who never opened the creator keeps no creator database: the preview's read does not create one.
+    expect(await databases(page)).not.toContain(STORAGE.db);
     await expect(page.locator('[data-preview="draft"]')).toHaveAttribute('data-world', 'u-your-octopus');
     await expect(page.locator('[data-preview="draft"]')).toHaveAttribute('data-project', 'sample-project');
     await expect(page).toHaveTitle('Your Octopus · Sample project');
@@ -289,6 +320,52 @@ test.describe('See live preview', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Alpha' })).toBeVisible();
     // No entrance this time: the skip control the engine shows during one is absent.
     await expect(page.getByRole('button', { name: /skip/i })).toHaveCount(0);
+  });
+});
+
+test.describe('the preview shows the draft as it is on screen', () => {
+  test('an edit pressed straight into See live preview (the 800 ms autosave has not run) is in the preview', async ({ page }) => {
+    await seen(page, 'u-mira');
+    await storeDraft(page, draftOf());
+    await openCreator(page);
+    await page.getByLabel('Name', { exact: true }).fill('Kelp');
+    // No wait: the status is still "saving" when the link is pressed.
+    await expect(status(page)).toHaveAttribute('data-draft-status', 'saving');
+    await seeLive(page).click();
+    await previewUp(page);
+    await expect(page).toHaveTitle('Kelp · Alpha');
+    await expect(page.locator('[data-preview="draft"]')).toHaveAttribute('data-world', 'u-mira');
+    // What the creator saved on leaving is the same: back in the creator, after a reload, the name is Kelp.
+    await exitLink(page).click();
+    await settled(page);
+    await page.reload();
+    await settled(page);
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Kelp');
+  });
+
+  test('a browser that cannot keep drafts (IndexedDB blocked) previews the draft in this tab, not the sample; a reload of the preview has only the sample', async ({ page }) => {
+    await page.addInitScript(() => {
+      IDBFactory.prototype.open = function () {
+        throw new DOMException('denied', 'SecurityError');
+      };
+    });
+    await seen(page, 'u-your-octopus');
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await page.goto('/create');
+    await expect(status(page)).toHaveAttribute('data-draft-status', 'memory');
+    await page.getByLabel('Name', { exact: true }).fill('Kelp');
+    await press(page, 'Add project').click();
+    await page.getByLabel('Title', { exact: true }).fill('Memory only');
+    await page.locator('.oct-file input').setInputFiles({ name: 'shot.png', mimeType: 'image/png', buffer: PNG });
+    await expect(panel(page).locator('.oct-image img')).toHaveCount(1);
+    await seeLive(page).click();
+    await previewUp(page);
+    await expect(page).toHaveTitle('Kelp · Memory only');
+    await expect(page.locator('[data-preview="draft"]')).toHaveAttribute('data-project', /.+/);
+    // The hand-off lives in this page only: reloading the preview cannot bring the in-memory draft back.
+    await page.reload();
+    await previewUp(page);
+    await expect(page).toHaveTitle('Your Octopus · Sample project');
   });
 });
 
@@ -363,7 +440,7 @@ test.describe('Publish is unavailable', () => {
 });
 
 test.describe('no network request leaves the page', () => {
-  test('through every creator action (name, template, palette, a project, an image, the preview, exit, discard) only the app\'s own assets are requested, and no font after the creator opened', async ({ page, baseURL }) => {
+  test('no creator action (name, template, palette, a project, an image, the preview, exit, discard) sends anything anywhere: every request goes to the app\'s own origin, blob: or data:', async ({ page, baseURL }, info) => {
     await seen(page, 'u-your-octopus');
     const net = watchNetwork(page, new URL(baseURL!).origin);
     const errors = watchErrors(page);
@@ -398,9 +475,10 @@ test.describe('no network request leaves the page', () => {
     await page.waitForTimeout(500);
 
     const after = net.since();
-    expect(after.other, 'requests to anywhere but the app and the two font hosts').toEqual([]);
-    expect(net.other, 'requests to anywhere but the app and the two font hosts, over the whole run').toEqual([]);
-    expect(after.fonts, 'no font is asked for by a creator action').toEqual([]);
+    // The document's own Poppins stylesheet (Google Fonts) is a page-load request, not the creator's, and may arrive at any time: recorded, not asserted.
+    info.annotations.push({ type: 'fonts (third party, at page load; K05 to self-host)', description: `${net.fonts.length} requests, ${after.fonts.length} after the creator opened` });
+    expect(after.other, "requests since the creator opened that are not the app's own, blob: or data: (and not the document's font hosts)").toEqual([]);
+    expect(net.other, 'the same, over the whole run').toEqual([]);
     // The project's link is shown in the world as a link, never fetched: the example.com address never appears as a request.
     expect([...net.own, ...net.fonts].some(url => url.includes('example.com'))).toBe(false);
     // Positive control: the watch does see requests (the app's own).
