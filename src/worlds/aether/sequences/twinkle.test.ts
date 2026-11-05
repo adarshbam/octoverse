@@ -83,20 +83,27 @@ test('it runs after the entrance settles: the run waits through the entrance and
   expect(run.done).toBe(true);
 });
 
-test('after a skip the ring still forms and is whole by 1.4 s; under reduced motion it is whole at once', () => {
-  // SKIP from the entrance is the intro (stageReducer has no clock, so this is the one fact it can show), where the bubbles exist and the twinkle starts: the first time her ring is drawn.
+test('after a skip the ring is whole (the run is over at once); a finished entrance forms it; under reduced motion it is whole at once', () => {
+  // SKIP from the entrance is the intro (stageReducer has no clock), where the bubbles exist. The character tells the run the
+  // entrance was skipped (Octopus: it was entered and has not run its course), and the twinkle is then not played: the ring is whole.
   const skipped = stageReducer(initialStage({ entranceSeen: false, reducedMotion: false }), { type: 'SKIP' }, new Set<string>());
   expect(skipped.stage).toBe('intro');
   expect(bubblesExist(skipped.stage)).toBe(true);
-  const run = APPEARS.twinkle.createRun(AETHER_ARTIFACTS);
-  run.step({ exist: true, still: false, ready: true, dt: 0.016, count: 10, length: 1.4 });
-  expect(run.blowing).toBe(true);
-  // The ring is not whole at the skip, and is at the end of the run.
+  const step = { exist: true, still: false, ready: true, dt: 0.016, count: 10, length: 1.4 };
+  const afterSkip = APPEARS.twinkle.createRun(AETHER_ARTIFACTS);
+  afterSkip.step({ ...step, exist: false, skipped: true });
+  afterSkip.step({ ...step, skipped: true });
+  expect(afterSkip.done).toBe(true);
+  expect(afterSkip.blowing).toBe(false);
+  // The entrance that ran its course is not a skip: the run starts and forms the ring.
+  const finished = APPEARS.twinkle.createRun(AETHER_ARTIFACTS);
+  finished.step({ ...step, skipped: false });
+  expect(finished.blowing).toBe(true);
   expect(at(0).line).toBe(0);
   expect(at(1.4).beads).toEqual([1, 1, 1, 1, 1]);
   // Reduced motion (a still): the run is done at once, and the ring state is whole at t 0.
   const quiet = APPEARS.twinkle.createRun(AETHER_ARTIFACTS);
-  quiet.step({ exist: true, still: true, ready: true, dt: 0.016, count: 10, length: 1.4 });
+  quiet.step({ ...step, still: true });
   expect(quiet.done).toBe(true);
   expect(twinkleState(0, ring.beadCount, true)).toEqual({ line: 1, beads: [1, 1, 1, 1, 1] });
   expect(initialStage({ entranceSeen: false, reducedMotion: true }).stage).toBe('intro');
