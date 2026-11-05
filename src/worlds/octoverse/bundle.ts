@@ -47,12 +47,17 @@ export const HOST_STAGE_PANELS: StagePanels = {
 /** P2's title block: the description's line is the widest (native x 52 to 470), the wordmark's top at native y 100. */
 export const HOST_INTRO_TITLE: IntroTitleBox = { halfWidth: 2.1, top: 1.54 };
 
-/** The host's Theatre project, its own (two worlds sharing one would share a sheet store); its state is empty until the host's sequences are authored. */
+/**
+ * The host's Theatre project, its own (two worlds sharing one would share a sheet store). Its saved
+ * state holds the authored entrance (Task 12) and arrival (Task 11), seeded from sequences/defaults.ts.
+ */
 export const HOST_SEQUENCES: SequenceSet = {
   projectId: 'OctoVerse Host',
   state: () => import('./sequences/state.theatre.json').then(module => module.default),
   defaults: HOST_SEQUENCE_DEFAULTS,
   entrance: HOST_ENTRANCE,
+  // The gate greets its keeper (spec 7.6, ~3 s): the place's glyph and membrane props (place/config.ts), by the entrance sheet's props.
+  kitDrives: { glyph: 'glyph', membraneRipple: 'membraneRipple' },
 };
 
 export const HOST_BUNDLE: WorldBundle = {

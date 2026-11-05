@@ -1,35 +1,127 @@
-import type { EntranceShape, SequenceDefaults, SequenceId } from '../../../engine/sequences/keys';
+import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, hermiteKeys } from '../../../engine/sequences/keys.ts';
 
-// The host's sequence defaults: the props each Theatre sheet the engine plays starts from. Task 2
-// gave the host no motion of its own; Task 11 authored the arrival wave (spec 7.5), seeded into the
-// saved state (state.theatre.json) by scripts/theatre-seed.mjs. Every other sheet holds these props'
-// values, the landed, settled values; the entrance (spec 7.6) comes with Task 12. The host never
+// The host's sequence defaults: the props and keys each Theatre sheet the engine plays starts from,
+// seeded into the saved state (state.theatre.json) by scripts/theatre-seed.mjs. Task 11 authored the
+// arrival wave (spec 7.5), Task 12 the entrance with the gate greeting (spec 7.6). The host never
 // swells its head and has no artifacts to blow, so those two sheets stay at rest for good.
-// Erasable TypeScript only, and no value imports: a seed script may run this file under Node.
+// `node scripts/theatre-seed.mjs --world=octoverse <sheet>` runs this file directly under Node:
+// erasable TypeScript only, and its one value import (keys.ts) names its extension for that reason.
+
+// --- The entrance (spec 7.6; Task 12) ----------------------------------------------------------
 
 /**
- * The entrance's turn: about 200 degrees to face the visitor (spec 7.6). The landed engine has only
- * the spiral arc (`spiral: true`; the non-spiral path is F01's, A1 G2): a placeholder until the
- * host's entrance task. The arc starts `r0` left of the stage spot.
+ * The entrance's shape: a 200 degree glide-turn into the front, no spiral (amendment A1 G2; the
+ * engine's sequences/entrance.ts glideTurnYaw). The keyed path is the whole way to the stage spot,
+ * and the sheet's `spin` turns the host on it: the yaw runs from -200 degrees to exactly 0 (facing
+ * the visitor), always the same way, as `spin` goes 0 to 1.
  */
-export const HOST_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spiral: true, arc: { r0: 0.9, phase: -Math.PI / 2 } };
+export const HOST_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spiral: false };
+
+/** The beats (spec 7.6), in seconds. */
+export const ENTRANCE_BEATS = {
+  /** 0 to 1 s: the glow appears out of the haze on the left, then the shape. */
+  appearEnd: 1,
+  /**
+   * The stroke clock: two whole strokes, one every 1.4 s (its own stroke is 0.58 + 0.24 + 0.8 = 1.62 s;
+   * two of those from 1 s would run past the turn), the power strokes (the surges) at 1.1 and 2.5 s,
+   * the second's glide carrying it to the turn.
+   */
+  strokeStart: 0.6,
+  strokeEnd: 3.4,
+  /** About 3 s: the portal's glyph brightens as the host goes by, the membrane ripples just after it. */
+  glyph: 3.0,
+  membrane: 3.15,
+  /** 3.0 to 3.4 s: from profile, it turns its head toward the portal (the yaw eases to the glide-turn's -200). */
+  lookToGate: 3.0,
+  /** 3.4 to 4.4 s: the 200 degree turn to face the visitor, gliding to the stage spot (reached as it ends). */
+  turnStart: 3.4,
+  turnEnd: 4.4,
+  /** 4.4 to 5.4 s: the settle; the arrival wave (the arrival sheet) follows it. */
+  settleEnd: 5.4,
+} as const;
+
+const B = ENTRANCE_BEATS;
 
 /**
- * Where the arc starts (sequences/entrance.ts `spiralOffset` at spin 0): the keyed path ends here,
- * so a path held at it, with the spin complete, puts the host on the stage spot.
+ * The glyph's emissive intensity at its brightest (1 at rest, the kit's own lavender, below the
+ * host's face glow): about twice as bright for a moment, the gate greeting its keeper.
  */
-const ARC_START = [HOST_ENTRANCE.arc.r0 * Math.sin(HOST_ENTRANCE.arc.phase), 0, HOST_ENTRANCE.arc.r0 * Math.cos(HOST_ENTRANCE.arc.phase)] as const;
+export const GLYPH_PEAK = 2.2;
+/** The membrane's at its ripple's crest: 1 + its `flash` (0.3, place/config.ts), the most its shader draws. */
+export const MEMBRANE_PEAK = 1.3;
 
 /**
- * The entrance, held landed: on the spot, the turn done, arms open, settled and revealed, upright.
- * Its length is spec 7.6's 5.4 s, so a first visit waits as long as the real entrance will take.
+ * The keyed yaw (radians) it swims with, on top of the glide-turn's -200 degrees: -80, so the total is
+ * -280 (a profile facing right, a little toward the camera, as P1 has it), held to 3.0 s and eased to
+ * 0 by the turn's start (the total -200: facing right and away, toward the portal) as the gate greets
+ * it. The yaw never decreases.
  */
+const YAW_SIDE = (-80 * Math.PI) / 180;
+
+/**
+ * The path: [seconds, x, y, z] waypoints of the body, the last the stage spot. It appears deep on the
+ * left (x -8.4, 6 back, in the haze), drifts while the first stroke gathers, and the first power
+ * stroke carries it right through the gap between the left rocks; the second's glide brings it past
+ * the portal at about 3 s (x -0.45, 3 back: its head lands where P1 paints it, x -0.36, y -0.36 in
+ * P1's frame), then it glides in to the spot as it turns. The recoveries, where its arms open widest
+ * (the umbrella reaches 3 either side), fall where the water is widest (entrance.test measures it).
+ */
+const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
+  [0, -8.4, 0.8, -6.0],
+  [1.1, -7.0, 0.65, -5.5],
+  [1.6, -5.6, 0.5, -4.65],
+  [2.0, -4.2, 0.38, -4.0],
+  [2.5, -1.6, 0.15, -3.2],
+  [B.glyph, -0.58, 0.0, -3.0],
+  [B.turnStart, 0.25, -0.05, -2.75],
+  [B.turnEnd, 0, 0, 0],
+];
+
+/** x, y and z keyed at the waypoints, their slopes from the neighbours (the speed runs on smoothly through each), zero on arrival at the spot. */
+function swimKeys() {
+  const axis = (a: 1 | 2 | 3) =>
+    hermiteKeys(
+      WAYPOINTS.map((w, i) => {
+        const last = i === WAYPOINTS.length - 1;
+        const lo = Math.max(0, i - 1);
+        const hi = Math.min(WAYPOINTS.length - 1, i + 1);
+        const slope = last ? 0 : (WAYPOINTS[hi][a] - WAYPOINTS[lo][a]) / (WAYPOINTS[hi][0] - WAYPOINTS[lo][0]);
+        return [w[0], w[a], slope] as const;
+      }),
+    );
+  return { x: axis(1), y: axis(2), z: axis(3) };
+}
+
 const ENTRANCE: SequenceDefaults = {
-  length: 5.4,
+  length: B.settleEnd,
   objects: {
     main: {
-      props: { x: ARC_START[0], y: ARC_START[1], z: ARC_START[2], stroke: 0, spin: 1, forward: 1, open: 1, settle: 1, reveal: 1, pitch: 0, yaw: 0, surge: 0 },
-      keys: {},
+      props: {
+        x: WAYPOINTS[0][1], y: WAYPOINTS[0][2], z: WAYPOINTS[0][3], stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, pitch: 0.3, yaw: YAW_SIDE, surge: 0.3,
+        // The world's own extras: the kit props the entrance drives (bundle.ts kitDrives), 1 at rest.
+        glyph: 1, membraneRipple: 1,
+      },
+      keys: {
+        ...swimKeys(),
+        // Two whole strokes at an even rate, the second's glide ending as the turn begins.
+        stroke: [[B.strokeStart, 0, LINEAR], [B.strokeEnd, 2, LINEAR]],
+        // The 200 degree glide-turn into the front.
+        spin: [[B.turnStart, 0], [B.turnEnd, 1]],
+        // Profile facing right while it swims, turning its head to the portal as the gate greets it.
+        yaw: [[0, YAW_SIDE], [B.lookToGate, YAW_SIDE], [B.turnStart, 0]],
+        // Leaning a little head first while it swims, upright by the end of the turn.
+        pitch: [[B.turnStart, 0.3], [B.turnEnd, 0]],
+        // Out of the haze: the glow and aura first, then the shape.
+        reveal: [[0, 0], [B.appearEnd, 1]],
+        // The gate greets its keeper: the glyph brightens once, then the membrane ripples once (its emissive pulse).
+        glyph: [[B.glyph - 0.3, 1], [B.glyph, GLYPH_PEAK], [B.glyph + 0.5, 1]],
+        membraneRipple: [[B.membrane - 0.3, 1], [B.membrane, MEMBRANE_PEAK], [B.membrane + 0.6, 1]],
+        // The settle: the arms swing forward out of the trail, then open into the intro pose; the face
+        // lands on the welcome and the intro's words come in. Then the arrival wave.
+        forward: [[B.turnEnd, 0], [B.turnEnd + 0.4, 1]],
+        open: [[B.turnEnd + 0.1, 0], [B.settleEnd - 0.1, 1]],
+        settle: [[B.turnEnd, 0], [B.settleEnd, 1]],
+      },
     },
   },
 };
@@ -70,13 +162,16 @@ const ARRIVAL: SequenceDefaults = {
   },
 };
 
-/** The host has no bloom sheet (the engine's optional fifth sheet: Veyra's pendants), as Nox and Veyra's tables type it. */
-export const HOST_SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
+/**
+ * The host has no bloom sheet and no twinkle sheet (the engine's optional appear sheets: Veyra's
+ * pendants, Aether's ring), as Nox and Veyra's tables leave out the ones they do not play.
+ */
+export const HOST_SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom' | 'twinkle'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,
   arrival: ARRIVAL,
 };
 
-/** The name scripts/theatre-seed.mjs reads (`node scripts/theatre-seed.mjs --world=octoverse arrival`). */
+/** The name scripts/theatre-seed.mjs reads (`node scripts/theatre-seed.mjs --world=octoverse entrance`). */
 export const SEQUENCE_DEFAULTS = HOST_SEQUENCE_DEFAULTS;

@@ -10,6 +10,7 @@ import { HOST_SEQUENCE_DEFAULTS } from './sequences/defaults';
 
 // The host's motion personality and arrival (platform spec 7.5): warm, attentive, not fidgety; the
 // wave reads as hello. Task 11.
+// t1Wave and delighted are authored only, not played live (E02b): the engine has no channel for them yet.
 
 let seq: Sequences;
 beforeAll(async () => {
@@ -98,7 +99,6 @@ const sweep = (f: (t: number) => number) => {
 
 test('the arrival wave peaks twice on T1 between the settle and the settle + 1.2 s', () => {
   // The arrival plays from the settle (the entrance handing over: arrival clock 0, ARRIVAL_SETTLE).
-  expect(ARRIVAL_SETTLE).toBe(0);
   const wave = sweep(t => arrivalT1Wave(seq, t, p.micro));
   const peaks = wave.filter(([, v], i) => i > 0 && i < wave.length - 1 && v > 0.5 && v >= wave[i - 1][1] && v > wave[i + 1][1]).map(([t]) => t);
   expect(peaks).toHaveLength(2);
@@ -134,9 +134,9 @@ test('the arrival sheet is authored data: its keys in the saved Theatre state, i
   expect(def.length).toBe(1.4);
   expect(p.micro.arrival.duration).toBe(def.length);
   expect(Object.keys(def.objects.main.keys).sort()).toEqual(['armWave', 'delighted', 'roll', 't1Wave']);
-  // Seeded into the saved state (scripts/theatre-seed.mjs), the entrance's sheet left out (Task 12's).
+  // Seeded into the saved state (scripts/theatre-seed.mjs), beside the entrance (Task 12).
   const saved = (await HOST_SEQUENCES.state()) as { sheetsById: Record<string, { sequence: { length: number; tracksByObject: { main: { trackIdByPropPath: Record<string, string> } } } }> };
-  expect(Object.keys(saved.sheetsById)).toEqual(['arrival']);
+  expect(Object.keys(saved.sheetsById).sort()).toEqual(['arrival', 'entrance']);
   expect(saved.sheetsById.arrival.sequence.length).toBe(1.4);
   expect(Object.keys(saved.sheetsById.arrival.sequence.tracksByObject.main.trackIdByPropPath).sort()).toEqual(['["armWave"]', '["delighted"]', '["roll"]', '["t1Wave"]']);
   // The engine's own wiggle (body rock, all arms fanning) plays the same two beats, small.
@@ -145,7 +145,6 @@ test('the arrival sheet is authored data: its keys in the saved Theatre state, i
   expect(Math.max(...fan.map(([, v]) => v))).toBeGreaterThan(0);
 });
 
-test('the entrance placeholder is untouched (Task 12 replaces it)', () => {
+test('the entrance is 5.4 s, so the arrival wave starts where it settles (sequences/entrance.test.ts checks its beats)', () => {
   expect(HOST_SEQUENCE_DEFAULTS.entrance.length).toBe(5.4);
-  expect(HOST_SEQUENCE_DEFAULTS.entrance.objects.main.keys).toEqual({});
 });

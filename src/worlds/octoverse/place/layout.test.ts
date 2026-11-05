@@ -230,7 +230,9 @@ test('the engine accepts this kit and layout, with the glyph on the emissive dri
 
 test('the cards are on the bob drive, each its own prop with its own small, slow motion', () => {
   expect(PROP_DRIVE_IDS).toContain('bob');
-  const props = REEF_WORLD.props ?? [];
+  // The gate's glyph and membrane are the entrance's 'emissive' props (Task 12); the rest are the cards.
+  const props = (REEF_WORLD.props ?? []).filter(p => p.drive !== 'emissive');
+  expect((REEF_WORLD.props ?? []).filter(p => p.drive === 'emissive').map(p => p.node)).toEqual(['gate_glyph', 'gate_membrane']);
   expect(props.map(p => p.node)).toEqual(cards);
   expect(new Set(props.map(p => p.id)).size).toBe(cards.length);
   for (const prop of props) {

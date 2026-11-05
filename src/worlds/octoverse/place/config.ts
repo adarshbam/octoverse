@@ -144,7 +144,20 @@ const CARD_BOBS: readonly { amplitude: number; period: number }[] = [
   { amplitude: 0.06, period: 5 },
   { amplitude: 0.04, period: 8 },
 ];
-const PROPS: WorldProp[] = REEF_CARDS.map((node, i) => ({ id: node, node, drive: 'bob' as const, bob: CARD_BOBS[i % CARD_BOBS.length] }));
+const CARD_PROPS: WorldProp[] = REEF_CARDS.map((node, i) => ({ id: node, node, drive: 'bob' as const, bob: CARD_BOBS[i % CARD_BOBS.length] }));
+
+/**
+ * The gate greets its keeper in the entrance (spec 7.6, ~3 s; Task 12): the entrance sheet's `glyph`
+ * and `membraneRipple` (sequences/defaults.ts, bundle.ts kitDrives) drive these two on 'emissive',
+ * 1 at rest. The glyph keeps the kit's own lavender emissive material (no glow: validateWorld refuses
+ * an emissive drive beside one); the membrane's shader takes the drive as its flash level and caps it
+ * at 1 + its `flash`. The membrane's "ripple" is that one emissive pulse: the engine has no ripple drive.
+ */
+const GATE_PROPS: WorldProp[] = [
+  { id: 'glyph', node: 'gate_glyph', drive: 'emissive' },
+  { id: 'membraneRipple', node: 'gate_membrane', drive: 'emissive' },
+];
+const PROPS: WorldProp[] = [...GATE_PROPS, ...CARD_PROPS];
 
 /**
  * The jellyfish (spec 7.7): a few small orange bells with violet filaments, in the open water at the
