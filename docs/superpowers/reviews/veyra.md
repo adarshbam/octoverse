@@ -902,4 +902,4 @@ Nox's yaw jumps by 360 degrees half way round (the wrap); the glide-turn rises t
 
 ### Nox regression
 - Nox's entrance equals fixtures (`src/engine/sequences/fixtures/nox-entrance.json`, 169 frames at 0.05 s and the swim's clearance, captured from the code at `4ff01e3`), compared exactly in `entrance.test.ts`, including t = 0, 2, 4, 5, 5.5 and 6.5. The fixtures were also checked against a copy of the `4ff01e3` `entrance.ts` run side by side with the new one: both equal them.
-- Full gate: see the Task 17 report.
+- Full gate (run after the review, on 9a05110 + c1cddef): vitest 113 files, 854 passed, 1 skipped; Nox still gate PASS, everything 0.0000 except techFocus (mean 0.0112, 0.0388% of pixels over 8, its known residual); no implementer report exists (the machine crashed before it was written).
