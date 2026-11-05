@@ -77,6 +77,26 @@ What to check:
 5. **Blank orbs and Redis**: five orbs have no logo (OpenAI, Next.js, PostgreSQL, AWS, Vector DB; engine follow-up "Logo marks"). Redis's mark is red. Keep it or recolour it?
 6. Her ten leave the bottom of the horseshoe empty, where P3 has orbs all round.
 
+### Static P3, P4 and P5 (Milestone 3, Task 13): PROVISIONAL, not approved
+
+Open `?world=aether&stage=techFocus&tech=openai`, `?world=aether&stage=detail` and the same on a 390 x 844 phone. Stills in `docs/superpowers/evidence/aether/m3/`:
+- `t13-p4-vs-techfocus.webp`, `t13-p4-mouth-vs-render-3x.webp`: P4 left, the frozen tech focus right.
+- `t13-p5-vs-detail.webp`, `t13-detail-ui.webp`: P5 left, the detail right; the detail page with its panel.
+- `t13-phone-intro-overview-techfocus-detail.webp`: the four frozen stages at 390 x 844.
+
+Numbers (all in `docs/superpowers/reviews/aether.md`, Task 13):
+- P4 samples, feature-registered: mouth inside dE 7.5, focused orb rim 3.8, tongue 25.0 (MISS: the tongue's own colour is 1.8 off, but it is 22 px against P4's 176 px, so a 5x5 patch takes in the dark mouth). Eye-registered points miss (64.7 / 50.7): her mouth sits higher and is a V/U, not P4's D.
+- Detail: her eyes land within 2.5 px of P5's; eye line 22 degrees as painted; yaw 0.32, tilt 0.37.
+- Phone: no bead, orb or thread on her face rect, the title or the nameplate in any frozen stage, for 1 to 20 technologies; the ring keeps its 45-degree face sector and shrinks with her (ratio to her head 1.671 at both sizes); the phone tray lists her ten (e2e).
+
+What to check:
+1. **The lifted arm curling over the orb.** It is authored (`AETHER_POSES.techFocus`, T1 mirrored from P4) but **not drawn yet**: the engine shows a focus in the overview's pose (dome open) and pulls the orb with Nox's suction hold. On the still the held OpenAI orb sits by her left eye among T2's arm, about 10 px off her face. Task 19's arm lift draws the traced arm. Is the traced shape right (crest 1.2 above the eyes, tip over the orb's top)?
+2. **The open mouth.** Small V/U with a small tongue against P4's big D (engine). Colours are right.
+3. **Aether at the left edge facing the panel**: placement, turn and lean against P5; her arms are the intro's, not P5's longer hanging ones. The panel's left edge comes just over her right cheek on the page.
+4. **The ring back round her head** in the detail: tilted with her head it rides high round the crown (as P5's). Its rear bead passes behind her brow, hidden by her head.
+5. **Phone frames**: she is centred, not in the upper screen (shared framing); the overview's sheet and tray take the lower third; in the detail the sheet covers her. 15 or 16 technologies reach the tray's third row (known limit, as Veyra; Task 20).
+6. **From Task 12, still open**: the flight's stagger reads as a near-simultaneous launch (0.06 s first to last), not a "ripple" from the upper arms down; all ten orbs overlap an arm.
+
 ### Observatory world: bake, far plate, membrane and world light (Task 9): PROVISIONAL, not approved
 
 The page now shows `OBSERVATORY_WORLD` (kit, baked `near.glb`, three far-plate layers, sand floor, membrane, glyph pulse, jellyfish, manta fish). Task 10 is the look review. Open `?world=aether` live; stills in `docs/superpowers/evidence/aether/m2/`:
@@ -199,6 +219,16 @@ Please give the real names.
   - Paler, bluer, nearer and larger bells read further off (14.2 to 28.0). The blue cannot climb.
   - Wanted (optional, absent = today's look): `JellyfishConfig.glow` (a bell strength above 1, drawn with `toneMapped: false` so it can reach the bloom) and `JellyfishConfig.opacity` (today 0.75).
   - Target: P2's jellyfish bell sample (81, 155) within delta E 10, with her face glow still the brightest thing in frame.
+- **Tech focus shows the traced arm (Task 13).** `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
+  - Wanted: the arm lift select (Veyra's `armLift`, spec 7.5) that blends the chosen arm to `poses.techFocus.arms[arm]` (root first, tip last, about 500 ms) and holds the orb under the curl, and the focus taking `poses.techFocus.headMorph`.
+  - Target: on `?freeze&stage=techFocus&tech=openai` her T1 lies within 0.04 of `P4_LIFT` (poses.ts), the orb at `TECH_FOCUS_ORB` (-1.568, 0.387) grown 1.3x, the head closed; the P4 rim sample stays within dE 10.
+- **Open mouth shape and tongue (Task 4, Task 13).** `src/engine/character/mouthShape.ts` keeps the closed smile's curved top line and `FaceCanvas.ts` draws the tongue as an ellipse of 0.32 x the mouth's width in the bottom third of the opening.
+  - Wanted (optional, absent = today): `FaceLayout.mouth.openTop` (how flat the open mouth's top goes, for P4's D) and `FaceLayout.mouth.tongue` (`{ width, share }`; today 0.32 and 1/3).
+  - Target: P4's tongue sample (287, 239) within dE 10 on a 5x5 patch at the rendered tongue's centre; the rendered tongue at least 100 native px (P4 176).
+- **Face-glow card facing the pose's turn (Task 13).** `Octopus.tsx` sets `rig.coreGlow` strength by `coreGlowFacing((swim ? swim.yaw : 0) + extraYaw)`, not the pose's `body.yaw`. The card sits 0.9 in front of the face, so in a turned pose it reaches past the cheek. Aether's detail uses yaw 0.32 (P5's own turn) partly to keep it in.
+  - Wanted: include `pose.body.yaw` in the facing.
+- **Phone composition (Task 13).** Spec 7.11 puts her in the upper screen on a phone; `fovFor` centres the frame, and the detail's sheet (`ProjectDetail`, portrait phone) covers her face (y 380 to 432 of 844).
+  - Wanted: a per-stage phone offset (a lens shift that lifts her into the upper screen), and a detail sheet that stops below her face.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
 
 ## Questions for the owner (Task 4, face)

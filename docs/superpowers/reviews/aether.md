@@ -927,3 +927,53 @@ Three commits: two engine-only, one Aether.
 - The beads' `from` points ignore the head's turn.
 - Orbs appear with the overview's blow, then the flight runs.
 - During the flight the ring line, at brow height, crosses the dome's lower edge until it fades.
+
+## Task 13: tech focus (P4), detail (P5) and the phone frames (Milestone 3 statics); owner review PROVISIONAL
+
+Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and tests only: no engine file, no Nox, Veyra or Flux file.
+
+**Tech focus (P4).** `AETHER_POSES.techFocus` is the overview with T1 lifted, face `curious`, head closed (`headMorph` 0). OpenAI is technology 0 and hangs from slot order 0, T1's tip (her left), so P4's right-hand lift is mirrored, as Veyra's is.
+- Traced on native P4 relative to the head's near edge (x 347 px) and the eyes' midpoint (284, 204.5), at P4's 109 px a unit (eyes 75.5 px apart, hers 0.69). Placed on the overview: head edge at x -0.725, 0.1 further out (her arms are thicker), eyes' midpoint y -0.37. Root first, at the intro's root (no pop).
+- Drawn (rig at rest): the arm runs under the chin, rises beside the head (0.22 clear of the head box above the waist, thickness taken off), crests at (-1.49, 0.86), 1.23 above the eyes (P4 1.18), and its tip ends at (-1.72, 0.78), on the held orb's top far side. `TECH_FOCUS_ORB` (-1.568, 0.387), 0.76 above the eyes (P4's OpenAI (428, 122) mirrored).
+- Against her ten overview orbs: the lifted arm touches T2's mid-arm orb (gap -0.001, arm thickness and orb radius taken off). T1's own two orbs would ride the arm in a real lift.
+- **The render does not show this arm.** WorldHost shows a focus in the pose of the stage it came from (the overview, dome open) and moves the chosen orb by the select strategy, `suctionHold` (the only one). This pose is the target data for Task 19's arm lift, as Veyra's is. On the frozen capture the held OpenAI orb sits beside her left eye, among T2's arm, not grown much; it clears her face by about 10 px at 509 x 504. Engine follow-up recorded.
+
+**P4 samples** (bare `?freeze`, `stage=techFocus&tech=openai&expression=curious`, the settled rule; CIE76 as `check_stage.py`; `.tmp/t13/p4de.py`, `p4rim.py`):
+
+| Sample | Target | Feature-registered | dE | Region mean | dE | Eye-registered | dE |
+|---|---|---|---|---|---|---|---|
+| Open-mouth inside (P4 295,231) | 119,29,73 | 101,28,66 (5x5 at the inside's centroid) | **7.5** | 83,27,65 | 15.0 | 246,207,243 | 64.7 |
+| Open-mouth tongue (P4 287,239) | 253,135,143 | 176,88,109 (5x5 at the tongue's centroid) | **25.0 MISS** | 249,133,143 | **1.8** | 106,45,83 | 50.7 |
+| Focused orb rim (P4 385,110) | 228,217,248 | 217,215,250 (P4's place on the held orb) | **3.8** | mirrored side 222,205,244 | 5.9 | best on the rim | 1.3 |
+
+- Task 4 read inside 29.2 and tongue 16.8 (render lighter than the palette). Since Task 6's bloom threshold 0.95 the colours are right: the tongue's own pixels average dE 1.8, the inside's centre 7.5.
+- **The tongue miss is size, not colour.** The rendered tongue is about 22 native px; P4's is 176 px (inside 238 px against P4's 304). A 5x5 patch on it takes in the dark inside. The engine draws the tongue as a fixed ellipse in the bottom third of a V/U mouth (`FaceCanvas.ts`, `mouthShape.ts`); P4's is a D with the tongue filling nearly half.
+- Eye-registered points miss (64.7 / 50.7) because her mouth sits higher under the eyes than P4's and is a different shape: P4's sample points land on her lip and cheek.
+- Config tuning tried: `curious.mouthOpen` 0.7 to 1.0 (a deeper mouth, larger tongue). The mouth's bottom then went under her chin and the arm roots (tongue region 194 to 96 px at 3x, inside region mean 13.2): reverted. Nothing in the look changed, so the P2 samples and four global checks are as Task 10 left them (not re-measured).
+
+**Detail (P5).** Body (-3.115, 0.95), scale 1, yaw 0.32, tilt 0.37, `look` (0.65, 0.2) (the panel's screenshot), `attentive`; the intro's arms (as Nox's and Veyra's).
+- Registered on the face: P5's eyes (87.5, 246) and (152.5, 220) px of 861 x 519; the capture's (85, 244) and (151, 221): within 2.5 px. Eye line 22 degrees (P5 22).
+- Yaw 0.32, not Veyra's 0.45: P5's eyes' midpoint sits 0.19 right of her head's middle, which her face depth gives at 0.32. At 0.45 the additive face-glow card (it faces the camera only with the swim's turn) and T8's top showed as a pale band past her right cheek.
+- Her head is inside the frame (its left edge less than 0.6 in from the frame's), her left arms are cropped, her head is left of the panel's box. On the 1672 x 941 page the panel's left edge comes just over her right cheek, clear of the eyes.
+- The ring is back round her head (the satellite's rest form; stage `detail`). Tilted with her head, it sits higher round the crown, as P5's does. The rear bead (home 180 degrees) and part of the rear line project onto her brow area; they are behind her head and hidden there (depth-tested; tested: inside the head's outline). Not visible on the 3x capture.
+- Sections: Overview, Features, Tech Stack, Architecture, Experiments, Challenges, What I Learned, in order (content from Task 2, placeholder-marked; `content.test.ts`), shown on the page as P5's.
+- Not traced: P5's own arms (longer, hanging to the bottom). The detail's orbs fade with the overview; they do not fly back to the ring (Task 12 note).
+
+**Phone, 390 x 844** (`frames.test.ts`, `stageCriteria.ts`: the stage camera's framing from the bundle's stage frames, Octopus's pivots read from its source):
+- ringKeepOut: over a minute at 30 fps every bead angle is outside the 45-degree face sector; frozen, the nearest home is 72 degrees.
+- The ring shrinks with her: ring half-width / head half-width 1.671 at desktop and phone (intro), 1.605 (detail); intro ring 94 px at the phone against 253 px at 1536 x 1024.
+- Face rect: over a minute of sway, no bead in front of her head comes nearer than 30.8 px (phone intro) or 6.8 px (phone detail); counting the rear beads too, the phone intro's nearest is 8.9 px. The ring line in front never crosses it.
+- Intro, frozen: beads clear the face rect by 11.9 px, the title by 28.8 px and the nameplate by 104 px (phone); 31.7 / 75.2 / 273 px (desktop).
+- Overview and tech focus, frozen, 1, 3, 10, 15, 16 and 20 technologies: no orb or thread within 24 px of the face rect (phone; 65 px desktop); the held orb at `TECH_FOCUS_ORB` grown 1.3x clears it by more than 20 px.
+- Sheet and tray: her ten clear the bottom sheet and the two-row tray by 23.7 px. 15 and 16 (a third row) reach it by 23 px: the known limit Veyra has (Task 20).
+- Tray: the model (`createProjectModel` with the satellite's capacity 16) lists every technology in order on the phone for 1 to 20; `tests/e2e/aether.spec.ts` checks the live phone overview: ten 44 px+ tray buttons, OpenAI to Vector DB, above the sheet (passed).
+- Stills: on the phone she is centred, not in the upper screen (the shared framing fits the frame to the width); the overview's sheet and tray take the lower third. The detail's sheet covers her (her face is under it at y 380 to 432 px).
+
+**Tests.** `poses.test.ts`: tech focus (T1 only, root, curious, closed), the lift (crest, tip on the orb, head clearance 0.1+, frame), the detail (eyes on P5 within 0.06, eye line 17 to 27 degrees, left edge, cropped arms, left of the panel, face on screen at 861, 1536 and 390). RED: the four pose tests failed on the HEAD poses. `frames.test.ts` (8 tests) is a guard: it also passes on the old poses. `npx vitest run --testTimeout=30000`: 134 files, 1061 passed, 1 skipped. Typecheck clean. E2E `aether.spec.ts`: 3 of 3.
+
+**Stills** (`docs/superpowers/evidence/aether/m3/`): `t13-p4-vs-techfocus.webp`, `t13-p4-mouth-vs-render-3x.webp`, `t13-p5-vs-detail.webp`, `t13-detail-ui.webp`, `t13-phone-intro-overview-techfocus-detail.webp`. No videos; no fps measured.
+
+### Verdict, honest (not an approval)
+- Detail: the strongest match of the three: her face lands on P5's within 2.5 px, turned and leaning as painted, the ring round her head. The arms are the intro's, not P5's hanging ones.
+- Tech focus: the colours are right (inside 7.5, rim 3.8, tongue's own colour 1.8), but the open mouth is a small V/U with a small tongue against P4's big D, and the rendered focus is the dome-open overview with Nox's suction hold, not P4's closed head and lifted arm. The traced lift waits for the arm lift.
+- Phone: every frozen stage keeps beads, orbs and threads off her face, title and nameplate. The phone composition is centred, and the detail sheet hides her.
