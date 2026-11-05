@@ -86,10 +86,10 @@ export function pipelineRunState(swell: number, reducedMotion = false, out: Pipe
 
 /** The nodes' places on the quad, as fractions of the dome's half width across (-1 to 1) and of its half height up from its foot. */
 const NODE_X = [-0.62, -0.21, 0.21, 0.62];
-const NODE_LOW = 0.46;
+const NODE_LOW = 0.7;
 const NODE_ARCH = 0.2;
 /** A node ring's radius, and the line's half width, in head units. */
-const RING_RADIUS = 0.12;
+const RING_RADIUS = 0.15;
 const LINE_WIDTH = 0.012;
 
 /** Where the nodes sit, from the dome's foot (the middle of its lower edge), in the head's space: a gentle arc across the lower half, the middle highest. */
@@ -214,8 +214,8 @@ function createPipeline(dome: DomeShape, effect: EffectColours) {
         // The ripple: a soft ring spreading from the last node across the glass, thinning as it goes.
         float reach = uRipple * uHalf.x * 2.4;
         float rd = abs(length(vPos - uNodes[3]) - reach);
-        float ripple = exp(-rd * rd * 80.0) * smoothstep(0.0, 0.06, uRipple) * pow(1.0 - uRipple, 1.4);
-        light += colourAt(3) * ripple * 0.9;
+        float ripple = exp(-rd * rd * 60.0) * smoothstep(0.0, 0.06, uRipple) * pow(1.0 - uRipple, 0.9);
+        light += colourAt(3) * ripple * 1.1;
         cover = max(cover, ripple * 0.8);
 
         // Premultiplied: the light adds its colour and covers what is behind it as much as it is bright.
