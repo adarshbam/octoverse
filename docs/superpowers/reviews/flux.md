@@ -318,3 +318,71 @@ Ruled provisionally overnight; the owner judges the look live.
 - The orbs are still the placeholder orbit (Task 12 hangs them on the arms).
 - IoU 0.726: the lower arms are a few px thicker and less spread than P3's.
 - The tech focus now uses the overview's arms (head closed); before it used the intro's.
+
+## Task 12: P3 to P5 statics (pendant orbs, tech focus, detail), PENDING OWNER REVIEW (2026-11-05)
+
+Ruled provisionally overnight; the owner judges the look live.
+
+### What changed
+- `src/worlds/flux/artifacts.ts`: `FLUX_SLOTS` (16 a stage, intro and overview the same): the tips (`at` 1) in order 0-7 as T1, T8, T2, T7, T3, T6, T4, T5, then the mids (`at` 0.55) on T1, T8, T2, T7 (8-11) and T3, T6, T4, T5 (12-15). `FLUX_ARTIFACTS.placement`: kind `pendant`, `maxPerArm` 2, sizes intro 0.001 / overview 0.28, tether length 0, sag 0, width 0.001, colour and cap `#b58fd0`. `orbStyle`: no rim beads, rim `#bec0e8`, cap `#b58fd0` size 0.05. `choosableIn: ['overview']`. Appear and select stay `blow` and `suctionHold` until Task 16.
+- Colours sampled from native P3: cap = mean of the violet-pink cap pixels (181, 143, 208) on four caps; rim = brightest quarter of the rim on six orbs (190, 192, 232).
+- `src/worlds/flux/poses.ts`: the overview arms were redesigned round the orbs (Task 11's traced arms put the mid orbs 0.14-0.37 into the next arm, and the T3/T6 tips at about 0). T1/T8 climb beside the dome and hook out at y 0.9; T2/T7 run out level (their mid orbs hang off the level run) and hook down; T3/T6 and T4/T5 curl under. Mirrored about x = 0.02. `TECH_FOCUS`: the overview with T8 rising straight up at x about 2.0 to a hook at y 1.6, tip orb at (1.68, 1.21), expression focused, orbs 1. `DETAIL`: the intro arms, body (-3.33, 0.69) scale 1.04 yaw 0.35, tilt 0.08, look (0.3, 0.1), attentive (P5: eyes at (-3.71, 0.165) and (-2.94, 0.10), head x -4.03 to -2.63, top 1.02).
+- `src/worlds/flux/slotCriteria.ts` (test support only): the face rect in arm space, the HTML boxes per viewport (desktop panel; phone sheet 168 px plus the tray), clearance (engine `threadClearance` per box), perspective-seen orbs, orb gaps, dome distance.
+- `src/worlds/flux/artifacts.test.ts`: 16 tests (written first: 15 of 16 failed before the data).
+
+### Stills (`docs/superpowers/reviews/assets/flux/`)
+- `overview-t12-p3-sbs.webp`: P3 beside `?world=flux&stage=overview&freeze` (1536 x 1024, cropped to P3's frame).
+- `overview-t12-wide.webp`: the whole 1536 x 1024 overview.
+- `overview-t12-slots-on-p3.webp`: geometry plot: the arms as the rig draws them and the twelve orbs over P3.
+- `overview-t12-phone-390x844.webp`: the overview at 390 x 844.
+- `techfocus-t12-p4-sbs.webp`: P4 beside `?stage=techFocus&tech=github-actions&freeze` (what the engine draws: see weaknesses).
+- `techfocus-t12-pose-on-p3.webp`: geometry plot of the tech focus pose data (T8 up) over P3.
+- `detail-t12-p5-sbs.webp`: P5 beside `?stage=detail&freeze`.
+- `intro-t12-caps.webp`: the intro with the orb caps showing at the slots.
+
+### Numbers
+- Clearance (engine `threadClearance`, other arms + face + HTML; test needs > 0.05), twelve shown:
+
+  | Case | Value |
+  |---|---|
+  | Desktop at rest, panel | 0.089 |
+  | Swing +-18 deg | 0.029 |
+  | Swing +-25 deg | 0.001 |
+  | 390 x 844, arms and face | 0.089 |
+  | 390 x 844, with sheet and tray | -0.280 (T3-T6 tips covered; test pins this) |
+  | Tech focus pose | 0.064 |
+  | Least orb-to-orb gap | 0.243 |
+  | Least orb-to-face | 0.463 |
+  | Least orb to dome outline | 0.017 (T8 mid; T1 mid 0.037) |
+
+- Sixteen shown (13 or more technologies): -0.100 clearance, -0.200 orb gap (the T3-T6 mids). Content has 12.
+- Orb centres (stage): tips T1 (-1.95, 0.49), T8 (2.00, 0.51), T2 (-2.14, -1.23), T7 (2.16, -1.23), T3 (-1.71, -1.91), T6 (1.77, -1.93), T4 (-0.66, -2.02), T5 (0.70, -2.01); mids T1 (-1.54, -0.28), T8 (1.56, -0.27), T2 (-1.35, -1.14), T7 (1.37, -1.11). Seen radius 0.266-0.293 (perspective).
+- Detail face anchor on screen at the left (x under 30% of the width) at 1536 x 1024, 1280 x 720 and 390 x 844 (test).
+- `check_stage.py .tmp/t12/ov.png --panel 3 --world-id flux` (506 x 504): 6 misses of 9. ok: domeRimBottom 6, domeInsideSide 16, headTop 24. MISS: domeRimTop 37, domeRimLeft 81, domeInsideTop 47, domeInsideBottom 45, faceGlow 28, chin 53. (Task 11: also 6, with headTop a miss at 52 and faceGlow ok at 12.)
+- Intro `check_stage --panel 2` (no solo): 5 misses (Task 10: 5).
+- Perf, under load (131 node/msedge processes, shared Intel UHD GPU), `WORLD=flux node scripts/perf.mjs "stage=overview&tier=low"`: median 37.5 / 43.3 / 40.0 fps over three runs (slowest 10%: 15.4 / 33.4 / 23.5). Intro tier low in the same load: 39.4.
+
+### Five things to look at
+1. The overview reads as P3: twelve glass orbs in a ring, each hanging off an arm tip or the level run of an upper arm.
+2. The redesigned arms: do they still read as Flux's arms (T1/T8 hooks, T2/T7 level runs, curled lower arms) and not as wire?
+3. The orb glass and the small violet-pink cap where it meets the arm.
+4. The detail: Flux at the left, eyes where P5 puts them.
+5. The phone overview: the lowest four orbs sit behind the tray.
+
+### Remaining weaknesses
+- The tech focus: the engine draws the overview pose there (`WorldHost`: `shown = returnTo`) and never reads `poses.techFocus`, so `techfocus-t12-p4-sbs.webp` shows the overview, the dome open, a suction hold and the tooltip. GitHub Actions is order 0, so it hangs on the T1 tip, not T8 as P4 paints it. The T8-up pose is data only until Task 16's arm lift.
+- The intro: the engine refuses size 0 and width 0 (`checkPendants`), so 0.001 is used; the orb style's cap is sized from its own 0.05 with depth test off, so 12 lavender cap dots show at the slots, and the blow appear runs on invisible orbs.
+- The phone: the sheet and tray cover the T3-T6 tip orbs (spec 7.11 wants Flux in the upper screen or the hanging orbs hidden where the tray lists them).
+- The swing: at +-18 deg the clearance drops to 0.029 (+-25: 0.001); Task 16 must hold the swing under that or retune.
+- 13 or more technologies collide (the lower mids, -0.10).
+- The overview arms are a redesign of Task 11's P3 trace; their silhouette IoU against `p3-mask.png` was not re-measured (Task 11: 0.726).
+- The T1/T8 mid orbs sit 0.017-0.037 inside the dome's rim line; the orbs overlap their own arm at the hook tips (by design: they hang off it).
+- check_stage `--panel 3` stays at 6 misses (dome tint: engine gradient).
+- The detail head reads a little wider than P5's; the attentive smile is closed where P5's is open.
+- Logos are blank for githubactions, aws and bash (R17).
+
+### Engine-owner items
+- `checkPendants`: allow `sizes.intro` 0 and `tether.width` 0.
+- `createOrbStyle`: scale or hide the cap with the orb (size 0 means no cap).
+- Tech focus: draw `poses.techFocus` (or the arm lift) and let the focused tech hang from the lifted arm.
+- Phone overview layout for pendant worlds (spec 7.11).
