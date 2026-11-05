@@ -4,7 +4,16 @@ Branch: `claude/platform-overnight`. Everything below is PENDING OWNER REVIEW. F
 
 Each entry: item, still paths, numbers, what to check.
 
-(Entries added as milestones land.)
+## Start here: what is built, what is open
+
+Built (all provisional, none owner-approved): the host on the P2 stage (M1), the reef and landing (M2), profile, Explore, not found and the creator composition (M3), the host's personality, entrance and live How It Works (M4), routes and world visits with exact history (M5), creator data, drafts, storage and 36 stills (M6), the live creator, editor and full draft preview (M7), and the final pass (responsive, keyboard, contrast, reduced motion, no-WebGL poster). Measurements are in `docs/superpowers/reviews/platform.md`.
+
+Biggest open items, in the order I would look at them:
+1. **Heap growth**: about 1.3 MB per round trip (landing, Explore, profile, world, back), +105% over 20 trips against a 15% limit. Not a context or listener leak; likely per-mount engine retention. Next diagnostic is in `reviews/platform.md` ("Open issue: heap growth"). The e2e encodes it as an expected failure.
+2. **Engine items the platform cannot fix** (all E02b candidates): a live character-colour channel (the creator's palette change needs a new canvas, the "no remount, under 200 ms" criterion is NOT met); blink, wiggle and shimmer triggers; a per-world arrival hook (the host's T1 wave and `delighted` face are authored but do not play live); a one-sided mantle light (head sides miss delta E 10); shader warm-up and a ready signal (first show of a template can freeze the page about 4 s); the HTML layer sized to the window; engine controls under 44 px.
+3. **Frame rates under load**: How It Works with one card live averages 34.5 against a floor of 36; the 3% per-world rule cannot be decided on this laptop.
+4. **Look calls for you**: host look 12 of 17 P2 samples within delta E 10 (arms read cobalt, cups cream-amber), the OCTOVERSE wordmark contrast (1.4 to 2.4:1, logotype), the glyph reads as an atom, the creator's "upper head" reference per template, Nox's palettes barely recolour him, the moved reef rocks, the unmet 0 to 1 s entrance beat, the 14.1 to 23.5 s flourish interval.
+5. **Process notes**: commit `6dfb30e` does not build alone (it swept in another agent's uncommitted files; HEAD is fine); an orphan dev server on port 5197 may still be running (stop it with `Stop-Process -Id 27896` if it is); Google Fonts load on every page (K05 to self-host).
 
 ## PENDING OWNER REVIEW: M1 gate, the host's look on the P2 stage (Task 3)
 
