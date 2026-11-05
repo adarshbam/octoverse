@@ -86,8 +86,8 @@ test('tabbing to an orb shows its tooltip, and Escape clears it', async ({ page 
   await toOverview(page);
   const actions = page.getByRole('button', { name: 'GitHub Actions' });
   const index = (await page.locator(BUTTONS).evaluateAll(list => list.map(el => el.getAttribute('aria-label')))).indexOf('GitHub Actions');
-  // Let the orbs settle in (the head's opening and the appear), then note where GitHub Actions hangs.
-  await page.waitForTimeout(3000);
+  // Let the orbs come in (a button is live only while its orb is drawn), then note where GitHub Actions hangs.
+  await expect.poll(() => page.locator(BUTTONS).evaluateAll(list => list.filter(el => (el as HTMLElement).style.pointerEvents !== 'none').length), { timeout: 30_000 }).toBe(12);
   const hung = (await places(page))[index];
   for (let i = 0; i < 60 && !(await actions.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab');
   await expect(actions).toBeFocused();
@@ -128,10 +128,13 @@ test('hover intent with a moving anchor: a pass chooses none, a rest chooses one
 
   // 1. Glide across the orb, having come from outside: it must not be chosen.
   const typescript = page.getByRole('button', { name: 'TypeScript' });
-  const box = (await typescript.boundingBox())!;
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height / 2;
+  // Where the orb is now (it moves): read again right before each approach.
+  const live = async () => {
+    const b = (await typescript.boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
   await page.mouse.move(40, 40);
+  const { x, y } = await live();
   // A quick pass over the orb that does not stop: no tooltip.
   await page.mouse.move(x - 120, y, { steps: 4 });
   await page.mouse.move(x + 120, y, { steps: 8 });
@@ -141,10 +144,6 @@ test('hover intent with a moving anchor: a pass chooses none, a rest chooses one
   await expect(tip).toBeHidden();
 
   // 2. Come to rest on one (the orb is under the pointer when it stops): it is chosen once and stays chosen.
-  const live = async () => {
-    const b = (await typescript.boundingBox())!;
-    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  };
   const at = await live();
   await page.mouse.move(at.x, at.y, { steps: 6 });
   await expect(tip).toBeVisible({ timeout: 10_000 });
@@ -212,12 +211,13 @@ test.describe('phone', () => {
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } });
 
-  // With reduced motion the entrance is skipped and the orbs are simply there. The pendants' swing is held at
-  // zero by the engine (pendant.ts `pendantSwing`, unit-tested); the page cannot read the swing apart from the
-  // arms, and the engine's arm tip curl (`curl: live * personality.curl` in Octopus.tsx, not gated by reduced
-  // motion) still moves every orb by up to about 45 px over a few seconds. So this test reads what the page can
-  // show: the orbs are live, nothing swings at the speed of a swing, and a choice lifts the arm well beyond that drift.
-  test('the orbs show, with no swing', async ({ page }) => {
+  // With reduced motion the entrance is skipped and the orbs are simply there. This test claims only that: twelve live
+  // orb buttons and no Skip control, the orbs' drift bounded, and a choice lifting its arm far beyond that drift.
+  // It does NOT show "no swing". The engine holds the pendants' swing at zero in reduced motion (`pendantSwing`,
+  // unit-tested), but the engine has no swing probe, the page cannot read the swing apart from the arms, and the arm
+  // tip curl (`curl: live * personality.curl` in Octopus.tsx, not gated by reduced motion) drifts the orbs by about
+  // 45 px, about what the idle sway does with motion on: the bounds below cannot tell the two apart.
+  test('the orbs show, their drift is bounded, and a choice lifts the arm', async ({ page }) => {
     test.setTimeout(150_000);
     const problems = watch(page);
     await page.goto(`/?${QUERY}&stage=overview`);
@@ -227,8 +227,7 @@ test.describe('reduced motion', () => {
     await expect.poll(() => page.locator(BUTTONS).evaluateAll(list => list.filter(el => (el as HTMLElement).style.pointerEvents !== 'none').length), { timeout: 30_000 }).toBe(12);
     await expect(page.getByRole('button', { name: 'Skip intro' })).toHaveCount(0);
 
-    // The orbs' places for about five seconds: finite, and no orb moves faster than the arm curl's slow drift (a swing
-    // snaps about 18 degrees of a 3 unit arm in under a second: hundreds of px).
+    // The orbs' places for about five seconds: finite, and no orb jumps (a bound on the drift, not a proof of stillness).
     const first = await places(page);
     expect(first.every(p => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
     let last = first;
@@ -242,8 +241,8 @@ test.describe('reduced motion', () => {
       last = now;
     }
     test.info().annotations.push({ type: 'reduced-motion drift', description: `largest step in 0.5 s ${step.toFixed(1)} px, widest from the start ${widest.toFixed(1)} px` });
-    expect(step, 'no orb jumps within half a second').toBeLessThan(60);
-    expect(widest, 'the drift stays within the arm curl').toBeLessThan(120);
+    expect(step, 'no orb jumps within half a second (bound only)').toBeLessThan(60);
+    expect(widest, 'the drift stays bounded (bound only)').toBeLessThan(120);
 
     // Choosing one lifts its arm at once, far beyond that drift.
     const names = await page.locator(BUTTONS).evaluateAll(list => list.map(el => el.getAttribute('aria-label')));

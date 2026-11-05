@@ -463,11 +463,13 @@ Ruled provisionally overnight; motion is checked live (no video). No source or c
 - Tab to GitHub Actions: tooltip with P4's list, `aria-describedby`, the orb moves about 310 px (the arm lifts; idle sway is 46 px at most), Escape clears the tooltip and keeps focus.
 - Hover intent with a moving anchor: a pass chooses none, a rest chooses one, the tooltip is the same for 2 s of sampling (no flicker).
 - Phone 390x844: tray lists 12 (48 px), a tap sets `aria-pressed` and opens the tooltip, a second choice moves the press, a third tap lets go.
-- Reduced motion: 12 live buttons, no skip control, drift bounded (step under 60 px per 0.5 s, widest under 120 px), a choice lifts far beyond that.
+- Reduced motion: 12 live buttons, no skip control, drift bounded (step under 60 px per 0.5 s, widest under 120 px; does not separate reduced from normal motion), a choice lifts far beyond that.
 
 ### Honest weaknesses
 - "No swing" is indirect: the engine's swing is zero in reduced motion (unit-tested) but the arm tip curl is not gated by reduced motion, so orbs still drift up to about 45 px; the test bounds it, it does not show zero.
 - No lift or swing probe in the engine; the lift is read from the orb button's place and the tray's `aria-pressed`.
 - The phone tooltip covers the tray's first row, so the phone test's second tap is on the second row. The phone test does not check the orbs are uncovered (Task 12 known limit).
 - Nothing in the e2e judges the five looks above.
+- The reduced-motion test bounds the drift but the bound cannot separate reduced motion from normal motion; the engine has no swing probe; the no-swing guarantee is the unit test of pendantSwing plus the ungated curl engine-owner item. The test claims only live buttons, bounded drift and a lift far beyond it.
+- Lifted-orb overlap (Task 16, still open): the chosen orb at 1.25x and its lifted arm overlap neighbours in the arms' plane (-0.31 to -0.41 against the 0.05 threshold); the e2e does not look at it.
 - Engine-owner items: gate the arm tip curl with reduced motion (`curl: moving * ...`), a lift/swing probe, the phone tooltip over the tray.
