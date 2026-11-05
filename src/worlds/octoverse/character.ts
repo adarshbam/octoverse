@@ -299,9 +299,8 @@ export const HOST: CharacterConfig = {
       },
     },
   },
-  // Spec 7.5, the Host (start) column: attentive and friendly, buoyant, calm, graceful. Task 11
-  // tunes it live. The idle flourish (a wave every 14 to 22 s) and idle tilt (0.03 rad over 9 s)
-  // have no field in the landed engine yet (F01 flourish, H01 idleTilt).
+  // Spec 7.5, the Host (start) column: attentive and friendly, buoyant, calm, graceful; warm,
+  // attentive, not fidgety (Task 11, provisional until the owner's live review).
   personality: {
     blinkInterval: [3.0, 7.5],
     doubleBlinkChance: 0.18,
@@ -318,9 +317,19 @@ export const HOST: CharacterConfig = {
       glance: { first: 2, wait: [2.0, 4.5], x: 0.45, y: 0.3, lift: 0.05 },
       saccade: { first: 0.4, wait: [0.35, 1.25], x: 0.07, y: 0.05 },
       startle: { duration: 0.6, lift: 0.05, armsIn: 0.12, eyes: 0.5, speed: 3.5, near: 0.55, cooldown: 3 },
-      // Settle overshoot 80% of Nox's (0.03): a happy landing.
-      settle: { duration: 0.9, amount: 0.024, cycles: 1.5 },
+      // Nox's approved overshoot: `settle` 0.8 (below) lands the host at 80% of it, 0.024 (a happy landing).
+      settle: { duration: 0.9, amount: 0.03, cycles: 1.5 },
+      // The arrival sheet (sequences/defaults.ts) at its own 1.4 s: the wiggle's lean and arm fan at
+      // their peaks; T1's two waves and the delighted face are the sheet's own props (moments.ts).
       arrival: { duration: 1.4, roll: 0.09, armWave: 0.14 },
     },
+    // The host's motion personality (spec 7.5, engine contract 14.1): it lands at 80% of the
+    // approved overshoot; about 3.4 times a minute (waits of 14.1 to 23.5 s, mean about 18.8 s:
+    // flourish.ts draws 0.8 to 4/3 of 60 / rate) one arm gives an idle flourish (the engine picks
+    // the arm and unrolls its tip; spec 7.5's upper-arm wave waits on an engine hook, moments.ts);
+    // and every 9 s the head leans 0.03 rad, listening (behavior/idleTilt.ts: 4.6 s each).
+    settle: 0.8,
+    flourishRate: 3.4,
+    idleTilt: { amplitude: 0.03, period: [9, 9] },
   },
 };

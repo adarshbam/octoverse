@@ -1,5 +1,284 @@
 {
-  "sheetsById": {},
+  "sheetsById": {
+    "arrival": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.4,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "arrival-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "t1Wave"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-0003",
+                    "position": 0.38,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-0004",
+                    "position": 0.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.2
+                  },
+                  {
+                    "id": "arrival-0005",
+                    "position": 0.84,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-0006",
+                    "position": 1.15,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "arrival-0007": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "delighted"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0008",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-0009",
+                    "position": 0.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-000a",
+                    "position": 0.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-000b",
+                    "position": 0.7,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "arrival-000c": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "roll"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-000d",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-000e",
+                    "position": 0.38,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.5
+                  },
+                  {
+                    "id": "arrival-000f",
+                    "position": 0.84,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.4
+                  },
+                  {
+                    "id": "arrival-000g",
+                    "position": 1.2,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "arrival-000h": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "armWave"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-000i",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-000j",
+                    "position": 0.38,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.5
+                  },
+                  {
+                    "id": "arrival-000k",
+                    "position": 0.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.1
+                  },
+                  {
+                    "id": "arrival-000l",
+                    "position": 0.84,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.5
+                  },
+                  {
+                    "id": "arrival-000m",
+                    "position": 1.15,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"t1Wave\"]": "arrival-0001",
+              "[\"delighted\"]": "arrival-0007",
+              "[\"roll\"]": "arrival-000c",
+              "[\"armWave\"]": "arrival-000h"
+            }
+          }
+        }
+      }
+    }
+  },
   "definitionVersion": "0.4.0",
   "revisionHistory": []
 }
