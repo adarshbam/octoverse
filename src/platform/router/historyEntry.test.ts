@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { elementForFocusKey, entryState, focusKeyOf, insertOpener, navigate, restoreArrival, subscribe } from './history';
+import { RESTORE_WAIT_MS, elementForFocusKey, entryState, focusKeyOf, insertOpener, navigate, restoreArrival, subscribe } from './history';
 
 // What a history entry remembers (spec 7.9): where the page was scrolled and which control had focus (restored when Back lands on it),
 // and which page opened the world it holds. Kept in `history.state.platform`, so it survives a reload and goes with the entry.
@@ -159,6 +159,81 @@ describe('history entries (spec 7.9)', () => {
     off();
   });
 
+  describe('a page that mounts late (a lazy chunk on a cold cache)', () => {
+    let observers: { callback: () => void; disconnect: ReturnType<typeof vi.fn> }[];
+    beforeEach(() => {
+      vi.useFakeTimers();
+      observers = [];
+      (globalThis as unknown as { MutationObserver: unknown }).MutationObserver = class {
+        callback: () => void;
+        disconnect = vi.fn();
+        constructor(callback: () => void) {
+          this.callback = callback;
+          observers.push(this);
+        }
+        observe() {}
+      };
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+      delete (globalThis as unknown as { MutationObserver?: unknown }).MutationObserver;
+    });
+    const popTo = (state: unknown) => {
+      const off = subscribe(() => {});
+      env.hist.state = state;
+      env.fire('popstate');
+      return off;
+    };
+
+    it('waits for the scroller and the control, then restores once and stops watching', () => {
+      const enter = link('/@veyra/vault-os');
+      const key = '/@veyra/vault-os|0';
+      const off = popTo({ platform: { scrollY: 420, focusId: key } });
+      doc.scroller = null;
+      doc.links = [];
+      restoreArrival();
+      expect(observers).toHaveLength(1);
+      // The page mounts: the scroller first, the control a moment later.
+      doc.scroller = { scrollTop: 0 };
+      observers[0].callback();
+      expect(observers[0].disconnect).not.toHaveBeenCalled();
+      doc.links = [enter];
+      observers[0].callback();
+      expect(doc.scroller.scrollTop).toBe(420);
+      expect(enter.focus).toHaveBeenCalledTimes(1);
+      expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(RESTORE_WAIT_MS * 2);
+      expect(enter.focus).toHaveBeenCalledTimes(1);
+      off();
+    });
+
+    it('gives up after a bounded wait, restoring what is there', () => {
+      const off = popTo({ platform: { scrollY: 90, focusId: '/gone|0' } });
+      doc.scroller = { scrollTop: 0 };
+      doc.links = [];
+      restoreArrival();
+      expect(doc.scroller.scrollTop).toBe(90);
+      expect(observers).toHaveLength(1);
+      vi.advanceTimersByTime(RESTORE_WAIT_MS + 1);
+      expect(observers[0].disconnect).toHaveBeenCalled();
+      off();
+    });
+
+    it('a newer navigation cancels the wait, and an entry with nothing to restore waits for nothing', () => {
+      const off = popTo({ platform: { scrollY: 90, focusId: null } });
+      doc.scroller = null;
+      restoreArrival();
+      expect(observers).toHaveLength(1);
+      navigate('/explore');
+      expect(observers[0].disconnect).toHaveBeenCalled();
+      env.hist.state = { platform: { scrollY: 0, focusId: null } };
+      env.fire('popstate');
+      restoreArrival();
+      expect(observers).toHaveLength(1);
+      off();
+    });
+  });
+
   it('a push arrival restores nothing (a new page starts at its top)', () => {
     const enter = link('/@veyra/vault-os');
     doc.links = [enter];
@@ -176,6 +251,55 @@ describe('history entries (spec 7.9)', () => {
     const off = subscribe(() => {});
     expect(env.hist.scrollRestoration).toBe('manual');
     off();
+  });
+
+  describe('entryState reads what a history entry holds, which is whatever the page or the browser left there', () => {
+    it.each([
+      ['null', null],
+      ['a number', 42],
+      ['a string', 'x'],
+      ['an array', []],
+      ['no platform key', { octFromIntro: true }],
+      ['platform a string', { platform: 'x' }],
+      ['platform null', { platform: null }],
+      ['platform an array', { platform: [] }],
+      ['platform empty', { platform: {} }],
+      ['scrollY a string', { platform: { scrollY: 'a', focusId: null } }],
+      ['scrollY not finite', { platform: { scrollY: Number.NaN, focusId: null } }],
+      ['focusId a number', { platform: { scrollY: 0, focusId: 7 } }],
+    ])('is no state for %s', (_name, state) => {
+      env.hist.state = state;
+      expect(entryState()).toBeNull();
+    });
+
+    it('drops a field of the wrong type and keeps the rest, and ignores extra keys', () => {
+      env.hist.state = { platform: { scrollY: 12, focusId: null, opener: 5, depth: 'x', prev: {}, extra: true }, other: 1 };
+      expect(entryState()).toEqual({ scrollY: 12, focusId: null });
+      env.hist.state = { platform: { scrollY: 3, focusId: 'a|0', opener: '/@veyra', depth: 2, prev: '/@veyra/vault-os' } };
+      expect(entryState()).toEqual({ scrollY: 3, focusId: 'a|0', opener: '/@veyra', depth: 2, prev: '/@veyra/vault-os' });
+    });
+
+    it('restoreArrival, a push and insertOpener survive a malformed entry without throwing', () => {
+      const off = subscribe(() => {});
+      for (const state of [{ platform: 'x' }, { platform: { focusId: 7, scrollY: 'a', opener: 4 } }, 42]) {
+        env.hist.state = state;
+        env.fire('popstate');
+        expect(() => restoreArrival()).not.toThrow();
+        expect(() => navigate('/explore')).not.toThrow();
+        env.hist.state = state;
+        expect(() => insertOpener('/@veyra')).not.toThrow();
+      }
+      off();
+    });
+
+    it('a replace within the same path keeps what the entry before it is (the opener, the entry before and the depth stay true)', () => {
+      navigate('/@veyra/vault-os');
+      navigate('/@veyra/vault-os?view=overview');
+      navigate('/@veyra/vault-os?view=detail');
+      const was = entryState();
+      navigate('/@veyra/vault-os?view=overview', { replace: true });
+      expect(entryState()).toEqual(was);
+    });
   });
 
   describe('insertOpener: a deep link has no page behind it in this tab', () => {

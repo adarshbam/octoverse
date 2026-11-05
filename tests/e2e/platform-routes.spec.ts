@@ -326,6 +326,13 @@ async function enterFromProfile(page: Page, world: (typeof WORLDS)[number] = vey
   await worldUp(page, world.handle);
   // The intro's words are in: the nameplate is a live control (it is inert while the intro is not the stage).
   await expect(introTitle(page, world.title)).toBeVisible();
+  await onlyTheWorld(page);
+}
+
+/** Entering a world unmounts the landing and every preview (spec 7.9): while it is up there is its one canvas, no landing, no navigation bar, no preview. */
+async function onlyTheWorld(page: Page) {
+  await expect(page.locator('.oct-landing, .oct-hostbox, .oct-nav, [data-slot="preview"], .oct-preview')).toHaveCount(0);
+  await expect(page.locator('canvas')).toHaveCount(1);
 }
 
 test.describe('Back and Forward inside a world (spec 7.9)', () => {
@@ -535,6 +542,95 @@ test.describe('Back and Forward inside a world (spec 7.9)', () => {
   });
 });
 
+test.describe('quick step-downs and a cold page (spec 7.9)', () => {
+  test('two Escapes pressed back to back from a deep-linked detail end on the intro, and the address has no view', async ({ page }) => {
+    await seen(page, 'veyra');
+    await page.goto('/@veyra/vault-os?view=detail');
+    await worldUp(page, 'veyra');
+    await expect(detailPanel(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(overviewPanel(page)).toBeHidden();
+    await expect(detailPanel(page)).toBeHidden();
+    await expect(introTitle(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    // Nothing reopened it a moment later.
+    await page.waitForTimeout(1500);
+    await expect(overviewPanel(page)).toBeHidden();
+    expect(pathNow(page)).toBe('/@veyra/vault-os');
+  });
+
+  for (const rate of [1, 4]) {
+    test(`two Escapes back to back from a walked detail end on the intro entry (CPU throttling x${rate})`, async ({ page }) => {
+      test.setTimeout(240_000);
+      await seen(page, 'veyra');
+      await enterFromProfile(page);
+      await openOverview(page);
+      await openDetail(page);
+      await expect(detailPanel(page)).toBeVisible();
+      const before = await historyLength(page);
+      if (rate > 1) await (await page.context().newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate });
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      await expect(introTitle(page)).toBeVisible({ timeout: 60_000 });
+      await expect(overviewPanel(page)).toBeHidden();
+      await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+      await page.waitForTimeout(2000);
+      await expect(overviewPanel(page)).toBeHidden();
+      await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+      expect(await historyLength(page)).toBeLessThanOrEqual(before);
+      // Back is the profile: no entry is left that reopens the overview.
+      await page.goBack();
+      await expect(page).toHaveURL(/\/@veyra$/);
+      await profileReady(page);
+    });
+  }
+
+  test('a reload inside the world, then Back: the profile has its scroll and focus back, and nothing throws', async ({ page }) => {
+    test.setTimeout(240_000);
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await seen(page, 'veyra');
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto('/@veyra');
+    await profileReady(page);
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>('.oct-page')!.scrollTop = 220;
+    });
+    const scrolled = await scrollerTop(page);
+    expect(scrolled).toBeGreaterThan(100);
+    await enterLink(page).click();
+    await worldUp(page, 'veyra');
+    await page.reload();
+    await worldUp(page, 'veyra');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
+    await expect.poll(() => scrollerTop(page), { timeout: 15_000 }).toBe(scrolled);
+    await expect(enterLink(page)).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test('a malformed history state (written by something else) does not take the app down', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await seen(page, 'veyra');
+    await page.goto('/@veyra');
+    await profileReady(page);
+    await page.evaluate(() => history.replaceState({ platform: { scrollY: 'a', focusId: 7, opener: 3, prev: {} } }, ''));
+    await enterLink(page).click();
+    await worldUp(page, 'veyra');
+    await page.evaluate(() => history.replaceState({ platform: 'x' }, ''));
+    await openOverview(page);
+    await expect(overviewPanel(page)).toBeVisible();
+    await page.goBack();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe("the world's exit control", () => {
   test('is the first focusable element, is named for the profile that opened the world, and is Back from the first entry', async ({ page }) => {
     await seen(page, 'veyra');
@@ -598,6 +694,18 @@ test.describe('leaving a world mid-entrance (spec 7.9)', () => {
   const ONCE = ['error', 'unhandledrejection'];
   const TYPES = ['keydown', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'resize', 'popstate', 'visibilitychange', 'blur', 'focus'];
   const snapshot = async (page: Page) => ({ total: await listeners(page), once: await Promise.all(ONCE.map(t => listeners(page, t))), types: await Promise.all(TYPES.map(t => listeners(page, t))) });
+  /** The profile may start things of its own after it is up (its live hero preview loads and attaches listeners): the baseline is taken once the window's listeners have stopped changing. */
+  const settledSnapshot = async (page: Page) => {
+    let last = -1;
+    let steady = 0;
+    for (let i = 0; i < 60 && steady < 3; i++) {
+      const now = await listeners(page);
+      steady = now === last ? steady + 1 : 0;
+      last = now;
+      await page.waitForTimeout(500);
+    }
+    return snapshot(page);
+  };
   const enterByKeyboard = async (page: Page) => {
     await enterLink(page).focus();
     await page.keyboard.press('Enter');
@@ -622,7 +730,7 @@ test.describe('leaving a world mid-entrance (spec 7.9)', () => {
     await seen(page); // the landing's only: the world's entrance plays
     await page.goto('/@veyra');
     await profileReady(page);
-    const before = await snapshot(page);
+    const before = await settledSnapshot(page);
     const canvasesBefore = await page.locator('canvas').count();
     const log: string[] = [];
     let afterFirst = before;
@@ -658,7 +766,7 @@ test.describe('leaving a world mid-entrance (spec 7.9)', () => {
     await seen(page);
     await page.goto('/@veyra');
     await profileReady(page);
-    const before = await snapshot(page);
+    const before = await settledSnapshot(page);
     await enterByKeyboard(page);
     await page.goBack();
     await profileAfterLeaving(page);

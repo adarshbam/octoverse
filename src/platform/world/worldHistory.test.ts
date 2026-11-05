@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { profileFor } from '../fixtures/showcase';
 import type { Route } from '../router/routes';
-import { type EngineSync, exitFor, exitMove, reported, requested, routeAfterBack, settleMove, viewToRequest, worldHistoryStep } from './worldHistory';
+import { type EngineSync, exitFor, exitMove, reported, requested, routeAfterBack, settleLanded, settleMove, settleStarted, duringSettle, viewToRequest, worldHistoryStep } from './worldHistory';
 
 // Spec 7.9, the half of it that is arithmetic: which stage changes make a history entry, what a browser Back or Forward asks
 // the engine for, and where the world's exit control goes. The walk through a real browser is tests/e2e/platform-routes.spec.ts.
@@ -142,5 +142,41 @@ describe('settleMove: how the address follows an engine step-down (spec 7.9, rul
     expect(settleMove(null, 'overview')).toBe('replace');
     expect(settleMove('intro', 'overview')).toBe('replace');
     expect(settleMove('overview', 'intro')).toBe('replace');
+  });
+});
+
+describe('a step-down in flight: a second one waits for the first to land (two quick Escapes)', () => {
+  // history.back() lands a popstate later, so a second step-down in between would read the old view and entry. It is held and replayed
+  // when the first has landed, against the view and the entry the visitor is then really on.
+  it('holds the stage reported while a pop is in flight, and replays the latest one once it has landed', () => {
+    let settling = settleStarted();
+    expect(settling).toEqual({ inflight: true, queued: null });
+    const held = duringSettle(settling, 'intro');
+    expect(held.hold).toBe(true);
+    settling = held.settling;
+    const landed = settleLanded(settling);
+    expect(landed.replay).toBe('intro');
+    expect(landed.settling).toEqual({ inflight: false, queued: null });
+  });
+
+  it('keeps only the latest held stage', () => {
+    let settling = settleStarted();
+    settling = duringSettle(settling, 'overview').settling;
+    settling = duringSettle(settling, 'intro').settling;
+    expect(settleLanded(settling).replay).toBe('intro');
+  });
+
+  it('holds nothing when no pop is in flight, and a landing with nothing held replays nothing', () => {
+    const idle = { inflight: false, queued: null };
+    expect(duringSettle(idle, 'intro')).toEqual({ hold: false, settling: idle });
+    expect(settleLanded(settleStarted()).replay).toBeNull();
+  });
+
+  it('after the replay the history follows it: two Escapes from the detail end on the intro', () => {
+    // First Escape: detail -> overview, settled by a pop. Second Escape (held): overview -> intro, settled against the overview entry.
+    expect(worldHistoryStep({ view: 'detail' }, 'overview')).toEqual({ settle: 'overview' });
+    expect(worldHistoryStep({ view: 'overview' }, 'intro')).toEqual({ settle: 'intro' });
+    expect(settleMove('overview', 'overview')).toBe('back');
+    expect(settleMove('intro', 'intro')).toBe('back');
   });
 });

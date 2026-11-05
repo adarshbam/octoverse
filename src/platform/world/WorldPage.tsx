@@ -7,8 +7,11 @@ import { SHOWCASE } from '../fixtures/showcase';
 import { entryState, goBack, insertOpener, navigate } from '../router/history';
 import { type View, parseRoute } from '../router/routes';
 import { loadWorld } from '../worlds/loadWorld';
-import { type EngineSync, type StageId, exitFor, exitMove, reported, requested, settleMove, viewToRequest, worldHistoryStep } from './worldHistory';
+import { type EngineSync, type Settling, type StageId, duringSettle, settleLanded, settleStarted, exitFor, exitMove, reported, requested, settleMove, viewToRequest, worldHistoryStep } from './worldHistory';
 import '../ui/glass.css';
+
+/** How long a settling pop may take to land before a held step-down is judged anyway. */
+const SETTLE_SAFETY_MS = 1500;
 
 type State = { status: 'loading' } | { status: 'ready'; bundle: WorldBundle } | { status: 'failed' };
 
@@ -61,12 +64,21 @@ export default function WorldPage({ world, view }: { world: WorldId; view: View 
   const sync = useRef<EngineSync>({ engine: opensOn ?? 'intro', pending: false });
   // The address this page was opened at: a stage reported after the visitor has left it (a quick Back while the world is busy) is not an entry of any other page.
   const [path] = useState(() => (typeof window === 'undefined' ? '' : window.location.pathname));
+  const settling = useRef<Settling>({ inflight: false, queued: null });
+  const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const process = useRef<(stage: StageId) => void>(() => {});
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
   const [request, setRequest] = useState<{ id: number; stage: LinkStage } | undefined>();
   useEffect(() => {
     if (seen.current === view) return;
     seen.current = view;
     if (pushed.current === view) {
       pushed.current = null;
+      // A settling pop has landed: a step-down held meanwhile is judged now, against the view and entry the visitor is on.
+      const landed = settleLanded(settling.current);
+      settling.current = landed.settling;
+      clearTimeout(settleTimer.current);
+      if (landed.replay !== null) process.current(landed.replay);
       return;
     }
     sync.current = requested(sync.current, view);
@@ -74,11 +86,8 @@ export default function WorldPage({ world, view }: { world: WorldId; view: View 
   }, [view]);
 
   // The stage asks for the route.
-  const onStageChange = useCallback(
+  const processStage = useCallback(
     (stage: StageId) => {
-      const heard = reported(sync.current, stage);
-      sync.current = heard.sync;
-      if (heard.echo || window.location.pathname !== path) return;
       const step = worldHistoryStep({ view: viewNow.current }, stage);
       if (step?.settle) {
         // The engine stepped down itself: the address follows, without a new entry and without leaving the world's page.
@@ -86,8 +95,17 @@ export default function WorldPage({ world, view }: { world: WorldId; view: View 
         const before = entryState()?.prev;
         const [prevPath, prevQuery] = (before ?? '').split('?');
         const previous = before && prevPath === path ? ((parseRoute(prevPath, prevQuery ? `?${prevQuery}` : '').route as { view?: View }).view ?? null) : null;
-        if (settleMove(previous, step.settle) === 'back') goBack();
-        else {
+        if (settleMove(previous, step.settle) === 'back') {
+          // The pop lands a popstate later: a second step-down in between is held until then (two quick Escapes). A safety timer lets go if it never lands.
+          settling.current = settleStarted();
+          clearTimeout(settleTimer.current);
+          settleTimer.current = setTimeout(() => {
+            const landed = settleLanded(settling.current);
+            settling.current = landed.settling;
+            if (landed.replay !== null) process.current(landed.replay);
+          }, SETTLE_SAFETY_MS);
+          goBack();
+        } else {
           const params = new URLSearchParams(window.location.search);
           if (step.settle === 'intro') params.delete('view');
           else params.set('view', step.settle);
@@ -101,6 +119,18 @@ export default function WorldPage({ world, view }: { world: WorldId; view: View 
       const params = new URLSearchParams(window.location.search);
       params.set('view', step.push);
       navigate(`${path}?${params}`);
+    },
+    [path],
+  );
+  process.current = processStage;
+  const onStageChange = useCallback(
+    (stage: StageId) => {
+      const heard = reported(sync.current, stage);
+      sync.current = heard.sync;
+      if (heard.echo || window.location.pathname !== path) return;
+      const held = duringSettle(settling.current, stage);
+      settling.current = held.settling;
+      if (!held.hold) process.current(stage);
     },
     [path],
   );

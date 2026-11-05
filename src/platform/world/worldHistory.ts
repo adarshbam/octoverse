@@ -33,6 +33,28 @@ export function settleMove(previous: View | null, view: View): 'back' | 'replace
   return previous === view ? 'back' : 'replace';
 }
 
+/** A pop (`history.back()`) that settles the address after an engine step-down is in flight, and the latest stage the engine reported meanwhile. */
+export interface Settling {
+  inflight: boolean;
+  queued: StageId | null;
+}
+
+/** A settling pop was started. */
+export const settleStarted = (): Settling => ({ inflight: true, queued: null });
+
+/**
+ * The engine reported `stage`. While a settling pop is in flight the report is held (`hold`): the address and the entry it would be
+ * judged against are not the visitor's yet (two quick Escapes would otherwise both read the old view). Only the latest is kept.
+ */
+export function duringSettle(settling: Settling, stage: StageId): { settling: Settling; hold: boolean } {
+  return settling.inflight ? { settling: { inflight: true, queued: stage }, hold: true } : { settling, hold: false };
+}
+
+/** The pop has landed: the held stage, if any, is replayed against the view and entry the visitor is now on. */
+export function settleLanded(settling: Settling): { settling: Settling; replay: StageId | null } {
+  return { settling: { inflight: false, queued: null }, replay: settling.queued };
+}
+
 /** A browser Back or Forward landed on this view: the stage request that takes the engine there (a new `id` is a new request). */
 export function viewToRequest(view: View, id: number): { id: number; stage: View } {
   return { id, stage: view };

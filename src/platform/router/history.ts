@@ -22,6 +22,8 @@ export function canonicalise(): boolean {
 
 const onPopState = () => {
   arrival = 'pop';
+  cancelRestore?.();
+  cancelRestore = null;
   canonicalise();
   notify();
 };
@@ -61,6 +63,8 @@ const getServerRoute = () => serverRoute;
 export function navigate(to: string, opts?: { replace?: boolean; from?: Element | null }): void {
   // The address already shown is replaced, never pushed again (a second click on the current page's link must not add a Back step).
   const here = window.location.pathname + window.location.search;
+  cancelRestore?.();
+  cancelRestore = null;
   if (opts?.replace || to === here) {
     arrival = 'replace';
     window.history.replaceState(window.history.state, '', to);
@@ -101,11 +105,25 @@ export interface EntryState {
 const SCROLLER = '.oct-page';
 
 type Stored = Record<string, unknown> & { platform?: EntryState };
-const stored = (): Stored => (window.history.state !== null && typeof window.history.state === 'object' ? (window.history.state as Stored) : {});
+const stored = (): Stored => (window.history.state !== null && typeof window.history.state === 'object' && !Array.isArray(window.history.state) ? (window.history.state as Stored) : {});
 
-/** What the current entry remembers, or null for an entry the platform did not make (a typed address, a reload of one, another feature's state alone). */
+/**
+ * What the current entry remembers, or null for an entry the platform did not make (a typed address, a reload of one, another
+ * feature's state alone) or one whose state is not in the shape this module writes (the state is whatever the page or the browser
+ * left there: anything malformed is no state, and a field of the wrong type is dropped).
+ */
 export function entryState(): EntryState | null {
-  return stored().platform ?? null;
+  const raw = stored().platform as unknown;
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const { scrollY, focusId, opener, depth, prev } = raw as Record<string, unknown>;
+  if (typeof scrollY !== 'number' || !Number.isFinite(scrollY) || (focusId !== null && typeof focusId !== 'string')) return null;
+  return {
+    scrollY,
+    focusId,
+    ...(typeof opener === 'string' && { opener }),
+    ...(typeof depth === 'number' && Number.isFinite(depth) && { depth }),
+    ...(typeof prev === 'string' && { prev }),
+  };
 }
 
 const pathOf = (url: string) => url.split('?')[0];
@@ -164,15 +182,45 @@ export function insertOpener(opener: string): void {
 type Arrival = 'load' | 'push' | 'replace' | 'pop';
 let arrival: Arrival = 'load';
 
+/** How long a page may take to mount (a lazy chunk on a cold cache) before what it remembers is put back anyway, as far as the page allows. */
+export const RESTORE_WAIT_MS = 4000;
+let cancelRestore: (() => void) | null = null;
+
+/** Puts back what the entry remembers; true when everything it names is on the page (the scroller, and the control when it names one). */
+function applyEntry(entry: EntryState): boolean {
+  const scroller = document.querySelector<HTMLElement>(SCROLLER);
+  const control = entry.focusId !== null ? elementForFocusKey(entry.focusId) : null;
+  control?.focus({ preventScroll: true });
+  if (scroller) scroller.scrollTop = entry.scrollY;
+  return scroller !== null && (entry.focusId === null || control !== null);
+}
+
 /**
  * Called when a new page is on screen: after the browser's Back or Forward, the scroll and the focus the entry remembers are put
- * back (focus on the control that opened the world). After a push or a load a page starts at its top.
+ * back (focus on the control that opened the world). After a push or a load a page starts at its top. A page behind Suspense (a lazy
+ * chunk on a cold cache) may not be mounted yet: the restore waits for it, watching the document, for at most RESTORE_WAIT_MS, and a
+ * newer navigation cancels it. It is done once, as soon as everything the entry names is there.
  */
 export function restoreArrival(): void {
+  cancelRestore?.();
+  cancelRestore = null;
   if (arrival !== 'pop' || typeof document === 'undefined') return;
   const entry = entryState();
-  if (!entry) return;
-  if (entry.focusId !== null) elementForFocusKey(entry.focusId)?.focus({ preventScroll: true });
-  const scroller = document.querySelector<HTMLElement>(SCROLLER);
-  if (scroller) scroller.scrollTop = entry.scrollY;
+  // Nothing to put back (a world's own entries): nothing to wait for.
+  if (!entry || (entry.scrollY === 0 && entry.focusId === null) || applyEntry(entry)) return;
+  if (typeof MutationObserver === 'undefined') return;
+  const stop = () => {
+    observer.disconnect();
+    clearTimeout(timer);
+    if (cancelRestore === stop) cancelRestore = null;
+  };
+  const observer = new MutationObserver(() => {
+    if (applyEntry(entry)) stop();
+  });
+  const timer = setTimeout(() => {
+    applyEntry(entry);
+    stop();
+  }, RESTORE_WAIT_MS);
+  cancelRestore = stop;
+  observer.observe(document.body, { childList: true, subtree: true });
 }

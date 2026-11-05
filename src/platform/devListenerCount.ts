@@ -15,15 +15,14 @@ declare global {
 
 type Listener = EventListenerOrEventListenerObject | null;
 
-
-
 export function installListenerCount(): void {
   if (typeof window === 'undefined' || window.__listenerCount !== undefined) return;
   const ids = new WeakMap<object, number>();
   const live = new Set<string>();
   let next = 0;
   const key = (type: string, listener: Listener, options?: boolean | AddEventListenerOptions | EventListenerOptions) => {
-    if (listener === null) return null;
+    // A call with no listener (null, undefined or not an object) is a native no-op: nothing to count, and nothing to give an id.
+    if (listener === null || (typeof listener !== 'object' && typeof listener !== 'function')) return null;
     let id = ids.get(listener);
     if (id === undefined) ids.set(listener, (id = ++next));
     const capture = typeof options === 'boolean' ? options : options?.capture === true;
