@@ -2,12 +2,48 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { profileFor } from '../fixtures/showcase';
+import { aetherProject } from '../../worlds/aether/content/aetherProject';
+import { aetherTechnologies } from '../../worlds/aether/content/aetherTechnologies';
+import { fluxProject } from '../../worlds/flux/content/fluxProject';
+import { fluxTechnologies } from '../../worlds/flux/content/fluxTechnologies';
+import { noxProject } from '../../worlds/nox/content/noxProject';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
+import { veyraProject } from '../../worlds/veyra/content/veyraProject';
+import { veyraTechnologies } from '../../worlds/veyra/content/veyraTechnologies';
 import { Profile } from './Profile';
 
 // Server rendering stands in for jsdom (not installed). The tabs' keyboard logic is a pure function (tabKeys.test.ts).
 const decode = (html: string) => html.replace(/&#x27;/g, "'").replace(/&amp;/g, '&');
 const textOf = (html: string) => decode(html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
 const render = (handle: 'veyra' | 'flux' | 'nox' | 'aether') => renderToStaticMarkup(createElement(Profile, { profile: profileFor(handle)! }));
+
+// What the Tech Stack panel says of each technology is what the world's own content declares: read here from the content modules, never typed.
+describe('the Tech Stack panel follows the world content', () => {
+  const SOURCES = {
+    veyra: { project: veyraProject, technologies: veyraTechnologies },
+    flux: { project: fluxProject, technologies: fluxTechnologies },
+    nox: { project: noxProject, technologies: noxTechnologies },
+    aether: { project: aetherProject, technologies: aetherTechnologies },
+  } as const;
+  it.each(['veyra', 'flux', 'nox', 'aether'] as const)('%s: every technology in the content order, each with exactly its declared note, and the placeholder label only on notes the content flags', world => {
+    const html = render(world);
+    const items = [...html.matchAll(/<li\b[^>]*data-tech="([^"]+)"[^>]*>([\s\S]*?)<\/li>/g)].map(m => ({ id: m[1], text: textOf(m[2]), note: /<p>([\s\S]*?)<\/p>/.exec(m[2]) }));
+    const { project, technologies } = SOURCES[world];
+    expect(items.map(i => i.id)).toEqual(technologies.map(t => t.id));
+    for (const [i, t] of technologies.entries()) {
+      const usage = project.technologyUsages?.find(u => u.technologyId === t.id);
+      const note = usage?.summary ?? usage?.role;
+      const item = items[i];
+      if (note === undefined) {
+        expect(item.note, `${world} ${t.id} shows no note`).toBeNull();
+        continue;
+      }
+      expect(item.note, `${world} ${t.id} shows its note`).not.toBeNull();
+      expect(textOf(item.note![1]).startsWith(note)).toBe(true);
+      expect(item.text.includes('placeholder text'), `${world} ${t.id} placeholder label`).toBe(usage?.placeholder === true);
+    }
+  });
+});
 
 describe('a profile', () => {
   const html = render('veyra');

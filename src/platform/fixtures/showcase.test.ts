@@ -3,10 +3,25 @@ import { aether } from '../../worlds/aether/content/aether';
 import { flux } from '../../worlds/flux/content/flux';
 import { nox } from '../../worlds/nox/content/nox';
 import { veyra } from '../../worlds/veyra/content/veyra';
+import { veyraProject } from '../../worlds/veyra/content/veyraProject';
+import { veyraTechnologies } from '../../worlds/veyra/content/veyraTechnologies';
+import { aetherProject } from '../../worlds/aether/content/aetherProject';
+import { aetherTechnologies } from '../../worlds/aether/content/aetherTechnologies';
+import { fluxProject } from '../../worlds/flux/content/fluxProject';
+import { fluxTechnologies } from '../../worlds/flux/content/fluxTechnologies';
+import { noxProject } from '../../worlds/nox/content/noxProject';
+import { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';
 import { contentFor } from './worldContent';
 import { SHOWCASE, profileFor } from './showcase';
 
 const CONTENT = { veyra, flux, nox, aether };
+const SOURCES = {
+  veyra: { project: veyraProject, technologies: veyraTechnologies },
+  flux: { project: fluxProject, technologies: fluxTechnologies },
+  nox: { project: noxProject, technologies: noxTechnologies },
+  aether: { project: aetherProject, technologies: aetherTechnologies },
+} as const;
+const WORLDS = ['veyra', 'flux', 'nox', 'aether'] as const;
 
 /** Whether a value, and everything reachable from it, is frozen. */
 function deeplyFrozen(value: unknown, seen = new Set<unknown>()): boolean {
@@ -69,17 +84,42 @@ describe('contentFor (what the pages show, from the content modules)', () => {
     expect(contentFor('aether').technologies.slice(0, 3).map(t => t.name)).toEqual(['OpenAI', 'Python', 'TypeScript']);
   });
 
-  it("gives a usage note only to the technologies whose content has one (the storyboard's panel 4 text, one per world but Veyra)", () => {
-    const notes = (w: 'veyra' | 'flux' | 'nox' | 'aether') => contentFor(w).technologies.filter(t => t.note !== undefined).map(t => [t.id, t.note]);
-    expect(notes('veyra')).toEqual([]);
-    expect(notes('flux')).toEqual([['github-actions', 'Workflow runner integration']]);
-    expect(notes('nox')).toEqual([['kali', 'Security toolchain']]);
-    expect(notes('aether')).toEqual([['openai', 'LLM integration']]);
+  // The expected notes are read from each world's own content modules (never typed here), so a content change cannot leave this test behind.
+  it("gives a technology the usage note its world's content declares, and only that: the same set, in the content's order, with the same text", () => {
+    for (const w of WORLDS) {
+      const { project, technologies } = SOURCES[w];
+      const declared = technologies.flatMap(t => {
+        const usage = project.technologyUsages?.find(u => u.technologyId === t.id);
+        const note = usage?.summary ?? usage?.role;
+        return note === undefined ? [] : [[t.id, note] as const];
+      });
+      const shown = contentFor(w).technologies.filter(t => t.note !== undefined).map(t => [t.id, t.note] as const);
+      expect(shown, w).toEqual(declared);
+      // Every technology of the content is shown, in the content's order, with its own name and category.
+      expect(contentFor(w).technologies.map(t => [t.id, t.name, t.category]), w).toEqual(technologies.map(t => [t.id, t.name, t.category]));
+    }
   });
 
-  it("carries the content's placeholder flag with each note, so the page can say so", () => {
-    for (const w of ['flux', 'nox', 'aether'] as const) for (const t of contentFor(w).technologies.filter(x => x.note !== undefined)) expect(t.placeholder).toBe(true);
-    for (const t of contentFor('veyra').technologies) expect(t.placeholder).toBeUndefined();
+  it('does not invent a note: no technology shows one that the content does not declare for it', () => {
+    for (const w of WORLDS) {
+      const usages = SOURCES[w].project.technologyUsages ?? [];
+      for (const t of contentFor(w).technologies) {
+        const usage = usages.find(u => u.technologyId === t.id);
+        if (t.note !== undefined) expect([usage?.summary, usage?.role], `${w} ${t.id}`).toContain(t.note);
+        else expect(usage?.summary ?? usage?.role, `${w} ${t.id}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("carries the content's placeholder flag with each note, so the page can say so (and only where the content flags it)", () => {
+    for (const w of WORLDS) {
+      const usages = SOURCES[w].project.technologyUsages ?? [];
+      for (const t of contentFor(w).technologies) {
+        const usage = usages.find(u => u.technologyId === t.id);
+        const expected = t.note !== undefined && usage?.placeholder === true ? true : undefined;
+        expect(t.placeholder, `${w} ${t.id}`).toBe(expected);
+      }
+    }
   });
 
   it('has a screenshot only where the content has one', () => {
