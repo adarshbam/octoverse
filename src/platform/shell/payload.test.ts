@@ -114,16 +114,37 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
   });
 
   // Vitest runs with NODE_ENV=test, which a child `vite build` would inherit: that makes `import.meta.env.DEV` true and the build a
-  // development one (jsxDEV, the dev-only branches kept). The build above sets NODE_ENV=production, so this proves the real thing.
-  it('the build is a production build: the dev-only branches are gone (the creator review entry, Theatre studio, the world switcher)', () => {
-    const chunks = Object.values(manifest).map(chunk => join(OUT, chunk.file));
-    const text = chunks.filter(file => file.endsWith('.js')).map(file => readFileSync(file, 'utf8'));
-    expect(text.length).toBeGreaterThan(10);
-    expect(text.some(code => code.includes('jsxDEV'))).toBe(false);
-    // Strings survive minification where names do not: the review bundle's id and the review address's parameter value.
-    expect(text.filter(code => code.includes('u-review')), 'the creator review bundle (u-review) is not in any chunk').toEqual([]);
-    expect(text.filter(code => code.includes('creatorReviewBundle')), 'creatorReviewBundle is not in any chunk').toEqual([]);
-    expect(modulesOf(Object.keys(manifest)), 'its module is in no chunk').not.toContain('src/platform/creator/review.ts');
+  // development one (jsxDEV, the dev-only branches kept). The build above sets NODE_ENV=production. The checks come in pairs: what must
+  // be absent, and a positive control that the same scan does find a string or module that IS in the build (so it can fail).
+  describe('the build is a production build: the dev-only branches are gone', () => {
+    const jsFiles = () => Object.values(manifest).map(chunk => join(OUT, chunk.file)).filter(file => file.endsWith('.js'));
+    const code = () => jsFiles().map(file => ({ file, text: readFileSync(file, 'utf8') }));
+    const holding = (needle: string) => code().filter(chunk => chunk.text.includes(needle)).map(chunk => chunk.file);
+    const modules = () => modulesOf(Object.keys(manifest));
+
+    it('the scan reads real chunks (positive controls)', () => {
+      expect(jsFiles().length).toBeGreaterThan(10);
+      expect(code().every(chunk => chunk.text.length > 0)).toBe(true);
+      // The creator route's chunk holds the database name, so the scan finds a string that is in the build.
+      expect(holding('octoverse-creator').some(file => /CreatorRoute/.test(file)), 'the creator chunk holds the DB name').toBe(true);
+      // The source maps are read: the creator's modules, the entry's review-address parser and Theatre's core are all listed.
+      expect(modules()).toEqual(expect.arrayContaining(['src/platform/creator/draft.ts', 'src/platform/creator/storage.ts', 'src/platform/creator/reviewParam.ts', 'src/app/Page.tsx']));
+      expect(modules().some(m => m.includes('@theatre/core/'))).toBe(true);
+    });
+
+    it('is not a development build (no jsxDEV)', () => {
+      expect(holding('jsxDEV')).toEqual([]);
+    });
+
+    it('has no creator review entry: no creatorReviewBundle, and the module is in no chunk', () => {
+      expect(holding('creatorReviewBundle')).toEqual([]);
+      expect(modules()).not.toContain('src/platform/creator/review.ts');
+    });
+
+    it("has no world switcher (src/app/Page.tsx is built, but its dev-only __octoSwitchWorld is not) and no Theatre studio", () => {
+      expect(holding('__octoSwitchWorld')).toEqual([]);
+      expect(modules().filter(m => m.includes('@theatre/studio'))).toEqual([]);
+    });
   });
 
   it("a world's chunks hold no other world's code (each world and its kit are separate chunks)", () => {
