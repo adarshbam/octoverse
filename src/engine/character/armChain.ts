@@ -17,6 +17,8 @@ const fract = (x: number) => x - Math.floor(x);
 
 export interface ArmDrive {
   time: number;
+  /** The clock of the arm's slow depth wave (default `time`). Reduced motion gives a constant so the arm does not drift in depth. */
+  depthTime?: number;
   /** Travelling-wave amplitude, radians accumulated toward the tip. */
   sway: number;
   /** Tip curl toward the sucker side (zero-mean over time). */
@@ -158,7 +160,7 @@ export class ArmChain {
     this.rest = rest;
   }
 
-  solve({ time: t, sway, curl, droop, reach, bend = 0, flare = 0, pitch = 0, straighten = 0 }: ArmDrive) {
+  solve({ time: t, depthTime = t, sway, curl, droop, reach, bend = 0, flare = 0, pitch = 0, straighten = 0 }: ArmDrive) {
     const n = this.segments;
     const ph = this.phase;
     let acc = 0;
@@ -205,7 +207,7 @@ export class ArmChain {
       this.reachTurn.fill(0);
       this.reachSpeed.fill(0);
     }
-    this.updateZ(t);
+    this.updateZ(depthTime);
     if (pitch !== 0) this.pitchBack(pitch);
   }
 
