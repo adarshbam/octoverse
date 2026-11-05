@@ -1,4 +1,4 @@
-import type { ArmId, ChoosingStage, PendantSlot, Point2, StageId } from '../config/types';
+import type { ArmId, ChoosingStage, PendantSlot, Point2, SelectConfig, StageId } from '../config/types';
 import type { StagePose } from '../poses/types';
 import type { Vec3 } from '../world/types';
 import { armPoint } from './pendant';
@@ -87,6 +87,12 @@ export function liftWeightAt(frame: LiftFrame, u: number, easeMs: number, settle
  * at 0 and yields to this (`yieldedUnroll`).
  */
 export const busyWeight = (hold: number, lift: number): number => Math.max(hold, Math.abs(lift));
+
+/** How much larger a pendant's orb is, lifted by `lifted` (0 to 1): 1 up to the select's `scale` (1 for a select that does not lift). */
+export const liftedScale = (select: SelectConfig, lifted: number): number => (select.kind === 'armLift' ? 1 + (select.scale - 1) * lifted : 1);
+
+/** What share of its thread a pendant hangs on, lifted by `lifted` (0 to 1): 1 down to 1 - the select's `threadShorten` (1 for a select that does not lift). */
+export const liftedReach = (select: SelectConfig, lifted: number): number => (select.kind === 'armLift' ? 1 - select.threadShorten * lifted : 1);
 
 interface Entry {
   frame: LiftFrame;

@@ -296,6 +296,9 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const kindsMatch: [Same<AppearConfig['kind'], AppearId>, Same<SelectConfig['kind'], SelectId>] = [true, true];
 void kindsMatch;
 
+// An accepted exception to "no module-level state" (Task 19 review): a cache of derived data only,
+// keyed by the world's poses object and held weakly, so it never outlives a bundle and never carries
+// one instance's state into another (the same poses give the same focus pose).
 const focusPoses = new WeakMap<object, Map<ChoosingStage, StagePose>>();
 
 /**

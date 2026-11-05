@@ -7,6 +7,7 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SequenceId } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
+import { liftedReach, liftedScale } from './armLift';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
 import { APPEARS, type AppearModule, SELECTS, holdModule, placementDriver } from './strategies';
 import type { ArmReader } from './pendant';
@@ -211,9 +212,6 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const select = SELECTS[artifacts.select.kind];
   // The suction hold's module (with the arm lift nothing is held, so it is never used there).
   const holder = holdModule(select);
-  // The arm lift's growth and thread (1 and 0 for a select that does not lift).
-  const liftScale = artifacts.select.kind === 'armLift' ? artifacts.select.scale : 1;
-  const liftShorten = artifacts.select.kind === 'armLift' ? artifacts.select.threadShorten : 0;
   // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).
   const holdCentre = useMemo(() => holder.centre(placementConfig), [holder, placementConfig]);
   const group = useRef<THREE.Group>(null);
@@ -309,12 +307,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
       // Lifted by its arm, a pendant grows by the lift's scale (the focus's own growth is the hold's).
       const lifted = s.lift[i] ?? 0;
-      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : 1 + (liftScale - 1) * lifted);
+      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : liftedScale(artifacts.select, lifted));
       // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching (blooming, it grows where it hangs).
       const b = blowing ? appear.frame(blowing, i, blow.seconds!, bubbles.length, artifacts) : null;
       // A pendant hangs its orb a radius past its cap at the size it is now, on a thread drawn down as far as the bloom has it and shortened as far as the lift has it.
       const pendant = threads && driver.pendants ? driver.pendants[i] : null;
-      const reach = (b?.bloom ? b.bloom.thread : 1) * (1 - liftShorten * lifted);
+      const reach = (b?.bloom ? b.bloom.thread : 1) * liftedReach(artifacts.select, lifted);
       if (pendant && pendant.points.length > 0) {
         const [ax, ay, az] = pendant.attach;
         const end = pendant.points[pendant.points.length - 1];
