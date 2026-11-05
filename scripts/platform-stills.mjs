@@ -115,9 +115,12 @@ mkdirSync(OUT_DIR, { recursive: true });
 const prior = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : { entries: [] };
 const entries = prior.entries.filter(e => !chosen.some(j => j.key === e.key));
 
-const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
-const server = await createServer({ root: ROOT, logLevel: 'warn', server: { host: 'localhost', port: PORT, strictPort: true, watch: null } });
+// Both are made inside the try: a server that cannot start (the port is taken) must not leave the browser open.
+let browser;
+let server;
 try {
+  browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
+  server = await createServer({ root: ROOT, logLevel: 'warn', server: { host: 'localhost', port: PORT, strictPort: true, watch: null } });
   await server.listen();
   for (const job of chosen) {
     const png = join(tmp, `${job.file}.png`);
@@ -129,8 +132,8 @@ try {
     entries.push({ key: job.key, file: job.file, bundle: job.bundle, commit, date, bytes });
   }
 } finally {
-  await browser.close();
-  await server.close();
+  await browser?.close();
+  await server?.close();
   rmSync(tmp, { recursive: true, force: true });
 }
 
