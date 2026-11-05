@@ -207,6 +207,28 @@ function checkOrbStyle(style: unknown) {
 }
 
 /**
+ * The appear's and the select's own parameters, by field name (Task 19): the bloom's `duration`
+ * (seconds, above 0, at most 10) and the arm lift's `ease` (seconds, above 0, at most 2), `scale`
+ * (1 to 2) and `threadShorten` (0 to under 1). Both grow out of and lift a pendant, so both need a
+ * placement that hangs pendants (refused at the kind otherwise).
+ */
+function checkAppearSelect(artifacts: ArtifactConfig) {
+  const { placement, appear, select } = artifacts;
+  if (appear.kind === 'bloom') {
+    if (placement.kind !== 'pendant') throw new BundleError('artifacts.appear.kind', `"bloom" grows each artifact out of a cup on its arm: it needs the pendant placement, not "${placement.kind}"`);
+    const { duration } = appear as { duration?: unknown };
+    if (!(finite(duration) && duration > 0 && duration <= 10)) throw new BundleError('artifacts.appear.duration', `${String(duration)} is not above 0 and at most 10 (seconds the bloom takes in all)`);
+  }
+  if (select.kind === 'armLift') {
+    if (placement.kind !== 'pendant') throw new BundleError('artifacts.select.kind', `"armLift" lifts the arm an artifact hangs from: it needs the pendant placement, not "${placement.kind}"`);
+    const { ease, scale, threadShorten } = select as { ease?: unknown; scale?: unknown; threadShorten?: unknown };
+    if (!(finite(ease) && ease > 0 && ease <= 2)) throw new BundleError('artifacts.select.ease', `${String(ease)} is not above 0 and at most 2 (seconds the lift eases over)`);
+    if (!(finite(scale) && scale >= 1 && scale <= 2)) throw new BundleError('artifacts.select.scale', `${String(scale)} is not from 1 to 2 (how much the chosen orb grows)`);
+    if (!(finite(threadShorten) && threadShorten >= 0 && threadShorten < 1)) throw new BundleError('artifacts.select.threadShorten', `${String(threadShorten)} is not from 0 to under 1 (the share of its thread the chosen orb loses)`);
+  }
+}
+
+/**
  * The personality's motion variants (engine contract 14.1), each optional (unset reads Nox's value),
  * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more,
  * `idleTilt` an amplitude of 0 or more (radians) and a period [low, high] of seconds, 0 < low <= high.
@@ -388,6 +410,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   if (bundle.artifacts.orbStyle !== undefined) checkOrbStyle(bundle.artifacts.orbStyle);
   if (!Object.hasOwn(APPEARS, appear.kind)) throw new BundleError('artifacts.appear.kind', `"${appear.kind}" is not an appear the engine has (${Object.keys(APPEARS).join(', ')})`);
   if (!Object.hasOwn(SELECTS, select.kind)) throw new BundleError('artifacts.select.kind', `"${select.kind}" is not a select the engine has (${Object.keys(SELECTS).join(', ')})`);
+  checkAppearSelect(bundle.artifacts);
   for (const stage of choosableIn) if (!isChoosingStage(stage)) throw new BundleError('artifacts.choosableIn', `"${stage}" is not a stage a technology can be chosen in`);
   for (const sheet of ['entrance', 'headSwell', 'arrival', APPEARS[appear.kind].sheet] as const) {
     if (!sequences.defaults[sheet]) throw new BundleError(`sequences.defaults.${sheet}`, 'is missing (the engine plays this sheet)');

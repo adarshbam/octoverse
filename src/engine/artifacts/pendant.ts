@@ -221,6 +221,12 @@ export interface PendantFrame {
   swell: number;
   dt: number;
   reducedMotion: boolean;
+  /**
+   * The arm lift (Task 19): where along its arm each pendant hangs at the full lift (`at`, an arc
+   * fraction; NaN: its slot) and how far it is lifted (`weight`, 0 to 1). A lifted pendant's attach
+   * point runs from its slot toward `at` with the weight, so it rides under the lifted arm's crown.
+   */
+  hang?: { at: ArrayLike<number>; weight: ArrayLike<number> };
 }
 
 /** One pendant's live state between frames, written by `stepPendants` and read by the page's buttons and the thread's drawing. */
@@ -282,7 +288,10 @@ export function stepPendants(run: ReturnType<typeof createPendantRun>, places: r
     } else {
       live.at += (place.slot.at - live.at) * (frame.reducedMotion ? 1 : 1 - Math.exp(-SLIDE_PER_S * frame.dt));
     }
-    arms[ARM_IDS.indexOf(reach)].pointAt(live.at, at);
+    const hangAt = frame.hang?.at[i] ?? Number.NaN;
+    const hangWeight = frame.hang?.weight[i] ?? 0;
+    const u = Number.isFinite(hangAt) && hangWeight > 0 ? live.at + (hangAt - live.at) * Math.min(1, hangWeight) : live.at;
+    arms[ARM_IDS.indexOf(reach)].pointAt(u, at);
     const speed: Vec3 = live.hasPrev && dt > 0 ? [(at.x - live.prev[0]) / dt, (at.y - live.prev[1]) / dt, (at.z - live.prev[2]) / dt] : [0, 0, 0];
     live.prev[0] = live.attach[0] = at.x;
     live.prev[1] = live.attach[1] = at.y;
