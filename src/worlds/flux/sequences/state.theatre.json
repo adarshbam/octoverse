@@ -1,1 +1,1092 @@
-{"sheetsById":{},"definitionVersion":"0.4.0","revisionHistory":[]}
+{
+  "sheetsById": {
+    "entrance": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 5,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "entrance-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "x"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": -6.8
+                  },
+                  {
+                    "id": "entrance-0003",
+                    "position": 0.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.736111111111111,
+                      0.3333333333333333,
+                      0.3838383838383838
+                    ],
+                    "value": -5.2
+                  },
+                  {
+                    "id": "entrance-0004",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6856060606060606,
+                      0.3333333333333333,
+                      0.3547008547008548
+                    ],
+                    "value": -3
+                  },
+                  {
+                    "id": "entrance-0005",
+                    "position": 2.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6754300551768906,
+                      0.3333333333333333,
+                      0.3496081977094635
+                    ],
+                    "value": -1.05
+                  },
+                  {
+                    "id": "entrance-0006",
+                    "position": 3.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.708091366627952,
+                      0.3333333333333333,
+                      0.5073170731707314
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-0007",
+                    "position": 3.32,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0
+                    ],
+                    "value": 0.25
+                  },
+                  {
+                    "id": "entrance-0008",
+                    "position": 3.6,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-0009": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "y"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000a",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0.95
+                  },
+                  {
+                    "id": "entrance-000b",
+                    "position": 0.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.7037037037037036,
+                      0.3333333333333333,
+                      0.35555555555555546
+                    ],
+                    "value": 0.8
+                  },
+                  {
+                    "id": "entrance-000c",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6533333333333333,
+                      0.3333333333333333,
+                      0.32098765432098764
+                    ],
+                    "value": 0.55
+                  },
+                  {
+                    "id": "entrance-000d",
+                    "position": 2.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6640100015627441,
+                      0.3333333333333333,
+                      0.3288502109704641
+                    ],
+                    "value": 0.28
+                  },
+                  {
+                    "id": "entrance-000e",
+                    "position": 3.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.7052845528455285,
+                      0.3333333333333333,
+                      0.4878048780487802
+                    ],
+                    "value": 0.12
+                  },
+                  {
+                    "id": "entrance-000f",
+                    "position": 3.32,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0
+                    ],
+                    "value": 0.08
+                  },
+                  {
+                    "id": "entrance-000g",
+                    "position": 3.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-000h",
+                    "position": 3.85,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.14
+                  },
+                  {
+                    "id": "entrance-000i",
+                    "position": 4.1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.03
+                  },
+                  {
+                    "id": "entrance-000j",
+                    "position": 4.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-000k": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "z"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000l",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1.05
+                  },
+                  {
+                    "id": "entrance-000m",
+                    "position": 0.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.8333333333333333,
+                      0.3333333333333333,
+                      0.6666666666666656
+                    ],
+                    "value": 1.15
+                  },
+                  {
+                    "id": "entrance-000n",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      2.166666666666665,
+                      0.3333333333333333,
+                      0.14583333333333331
+                    ],
+                    "value": 1.2
+                  },
+                  {
+                    "id": "entrance-000o",
+                    "position": 2.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.5516877637130801,
+                      0.3333333333333333,
+                      0.23112986404125646
+                    ],
+                    "value": 0.8
+                  },
+                  {
+                    "id": "entrance-000p",
+                    "position": 3.08,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6856368563685635,
+                      0.3333333333333333,
+                      0.3902439024390242
+                    ],
+                    "value": 0.35
+                  },
+                  {
+                    "id": "entrance-000q",
+                    "position": 3.32,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0
+                    ],
+                    "value": 0.2
+                  },
+                  {
+                    "id": "entrance-000r",
+                    "position": 3.6,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-000s": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "stroke"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000t",
+                    "position": 0.36,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-000u",
+                    "position": 2.96,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 5
+                  }
+                ]
+              },
+              "entrance-000v": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "forward"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000w",
+                    "position": 3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-000x",
+                    "position": 3.3,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-000y": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "open"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-000z",
+                    "position": 3.05,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-0010",
+                    "position": 3.4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.4
+                  },
+                  {
+                    "id": "entrance-0011",
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.3333333333333333,
+                      0.3333333333333333,
+                      0.33,
+                      1
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "entrance-0012",
+                    "position": 4.65,
+                    "connectedRight": false,
+                    "handles": [
+                      0.68,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-0013": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "settle"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-0014",
+                    "position": 4.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-0015",
+                    "position": 5,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-0016": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "yaw"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-0017",
+                    "position": 3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0
+                    ],
+                    "value": -2.007128639793479
+                  },
+                  {
+                    "id": "entrance-0018",
+                    "position": 3.6,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.5515982472889209,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-0019": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "spin"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001a",
+                    "position": 3.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.2864788975654116
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001b",
+                    "position": 4.2,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-001c": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "reveal"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001d",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "entrance-001e",
+                    "position": 0.25,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              },
+              "entrance-001f": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "pitch"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001g",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "entrance-001h",
+                    "position": 2.9,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "entrance-001i",
+                    "position": 3.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.15
+                  },
+                  {
+                    "id": "entrance-001j",
+                    "position": 3.75,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "entrance-001k": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "portalArc1"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001l",
+                    "position": 2.1999999999999997,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-001m",
+                    "position": 2.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 5
+                  },
+                  {
+                    "id": "entrance-001n",
+                    "position": 2.65,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 3
+                  }
+                ]
+              },
+              "entrance-001o": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "portalArc2"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001p",
+                    "position": 2.35,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-001q",
+                    "position": 2.45,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 5
+                  },
+                  {
+                    "id": "entrance-001r",
+                    "position": 2.8000000000000003,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 3
+                  }
+                ]
+              },
+              "entrance-001s": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "portalArc3"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001t",
+                    "position": 2.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-001u",
+                    "position": 2.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 5
+                  },
+                  {
+                    "id": "entrance-001v",
+                    "position": 2.95,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 3
+                  }
+                ]
+              },
+              "entrance-001w": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "portalArc4"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-001x",
+                    "position": 2.65,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-001y",
+                    "position": 2.75,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 5
+                  },
+                  {
+                    "id": "entrance-001z",
+                    "position": 3.1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 3
+                  }
+                ]
+              },
+              "entrance-0020": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "entrance",
+                  "main",
+                  "portalDisc"
+                ],
+                "keyframes": [
+                  {
+                    "id": "entrance-0021",
+                    "position": 2.8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "entrance-0022",
+                    "position": 2.95,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1.4
+                  },
+                  {
+                    "id": "entrance-0023",
+                    "position": 3.4000000000000004,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"x\"]": "entrance-0001",
+              "[\"y\"]": "entrance-0009",
+              "[\"z\"]": "entrance-000k",
+              "[\"stroke\"]": "entrance-000s",
+              "[\"forward\"]": "entrance-000v",
+              "[\"open\"]": "entrance-000y",
+              "[\"settle\"]": "entrance-0013",
+              "[\"yaw\"]": "entrance-0016",
+              "[\"spin\"]": "entrance-0019",
+              "[\"reveal\"]": "entrance-001c",
+              "[\"pitch\"]": "entrance-001f",
+              "[\"portalArc1\"]": "entrance-001k",
+              "[\"portalArc2\"]": "entrance-001o",
+              "[\"portalArc3\"]": "entrance-001s",
+              "[\"portalArc4\"]": "entrance-001w",
+              "[\"portalDisc\"]": "entrance-0020"
+            }
+          }
+        }
+      }
+    },
+    "arrival": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.4,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "arrival-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "roll"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-0003",
+                    "position": 0.15,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-0004",
+                    "position": 0.38,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.8
+                  },
+                  {
+                    "id": "arrival-0005",
+                    "position": 0.62,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.5
+                  },
+                  {
+                    "id": "arrival-0006",
+                    "position": 0.86,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.25
+                  },
+                  {
+                    "id": "arrival-0007",
+                    "position": 1.1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              },
+              "arrival-0008": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "arrival",
+                  "main",
+                  "armWave"
+                ],
+                "keyframes": [
+                  {
+                    "id": "arrival-0009",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "arrival-000a",
+                    "position": 0.12,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 1
+                  },
+                  {
+                    "id": "arrival-000b",
+                    "position": 0.34,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.7
+                  },
+                  {
+                    "id": "arrival-000c",
+                    "position": 0.58,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0.45
+                  },
+                  {
+                    "id": "arrival-000d",
+                    "position": 0.82,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": -0.18
+                  },
+                  {
+                    "id": "arrival-000e",
+                    "position": 1.1,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"roll\"]": "arrival-0001",
+              "[\"armWave\"]": "arrival-0008"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitionVersion": "0.4.0",
+  "revisionHistory": []
+}

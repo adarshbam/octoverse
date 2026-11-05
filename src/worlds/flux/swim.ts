@@ -89,12 +89,12 @@ const pose = (intro: IntroRests, arms: Record<ArmId, SwimArm>): StagePose => ({
  */
 const OPEN: Record<ArmId, SwimArm> = {
   T1: { heading: 146, bend: -12, curl: 150 },
-  T2: { heading: 182, bend: -12, curl: 240 },
+  T2: { heading: 190, bend: -14, curl: 300 },
   T3: { heading: 218, bend: -10, curl: 240 },
   T4: { heading: 253, bend: 10, curl: 200 },
   T5: { heading: 287, bend: -10, curl: 200 },
   T6: { heading: 322, bend: 10, curl: 240 },
-  T7: { heading: 358, bend: 12, curl: 240 },
+  T7: { heading: 352, bend: 12, curl: 270 },
   T8: { heading: 34, bend: 12, curl: 150 },
 };
 

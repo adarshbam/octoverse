@@ -171,8 +171,11 @@ export const FLUX: CharacterConfig = {
   },
   // The intro and overview faces are the big open smile (P2), with a stronger blush; the tech-focus
   // face is the eager one (spec 7.3): eyes wider, brows up, mouth a little open.
+  // `gentle` is the face the engine's entrance settles on (sequences/entrance.ts); Flux's settle lands
+  // on his intro face, the big open smile, so it is the same (Task 15: no change at the hand-over).
   expressions: {
     happy: { mouthOpen: 1, blush: 0.6 },
+    gentle: { mouthCurve: 0.8, mouthOpen: 1, blush: 0.6 },
     focused: { lidRest: -0.06, browLift: 0.5, browTilt: 0.1, mouthCurve: 0.7, mouthOpen: 0.3, blush: 0.45 },
   },
   arms: [rear('T1'), middle('T2'), side('T3'), lower('T4', 1), lower('T5', -1), side('T6'), middle('T7'), rear('T8')],

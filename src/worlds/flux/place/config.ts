@@ -3,7 +3,7 @@ import { applyPlacement } from '../../../engine/world/placement';
 import type { Placement, Vec3, WorldConfig, WorldLight } from '../../../engine/world/types';
 import { asWorldLayout } from '../../../engine/world/validateWorld';
 import farData from './far.json';
-import { PIPELINE_KIT, inlayMaterials, ledMaterials } from './kit';
+import { INLAY_NODES, PIPELINE_KIT, inlayMaterials, ledMaterials } from './kit';
 import layoutData from './layout.json';
 
 // "Pipeline Deep" (spec 7.7): Flux's world, a sunken server city under deep navy water. Server
@@ -134,6 +134,17 @@ const MATERIALS: WorldConfig['materials'] = [
   { node: 'bridge_arch', material: 'glow', params: { color: '#c070f0', strength: 1, tips: 5, pulse: 0.2, period: 6 } },
 ];
 
+/**
+ * The portal's parts the entrance lights (spec 7.9, Task 15: the pipeline run going green): each ring
+ * arc's inlay (its own membrane node, `portal_arc_<q>_inlay`: the arc itself is baked stone, which an
+ * emissive drive would not light) and the disc, all on the `emissive` drive. The sheet's props of the
+ * same names give the values (sequences/index.ts kitDrives); at rest they hold where it ends.
+ */
+const PORTAL_PROPS: WorldConfig['props'] = [
+  ...INLAY_NODES.map((node, i) => ({ id: `portalArc${i + 1}`, node, drive: 'emissive' as const })),
+  { id: 'portalDisc', node: 'portal_disc', drive: 'emissive' },
+];
+
 export const PIPELINE_WORLD: WorldConfig = {
   id: 'pipeline',
   kit: { url: PIPELINE_KIT.url, pieces: PIPELINE_KIT.pieces, nodes: PIPELINE_KIT.nodes, attached: PIPELINE_KIT.attached },
@@ -142,6 +153,7 @@ export const PIPELINE_WORLD: WorldConfig = {
   farPlate: { cutZ: farData.cutZ, layers: farData.layers.map((layer, i) => ({ url: `/flux/world/far/far-${i}.ktx2`, z: layer.z })) },
   materials: MATERIALS,
   layout,
+  props: PORTAL_PROPS,
   // The camera leans up as Nox's (radians), and drifts a little livelier: the shared hover at his
   // amount, at 1.2 times his pace (spec 7.7).
   camera: { tilt: 0.07, hover: { amount: 1, pace: 1.2 } },
