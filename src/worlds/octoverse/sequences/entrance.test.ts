@@ -85,31 +85,25 @@ test("the footprints cover the reef kit's gate and rocks as built (kit.nodes.jso
 });
 
 // The path keeps clear of the gateway and the rocks of the reef's layout (every one, as a box on the
-// floor plane however low it is) until it reaches the stage spot at the turn's end; from there it
-// settles into the intro, the arms opening where the intro pose has them. A gap of 0.3 is about the
-// width of one of its arms. The arms open wide only as a stroke's recovery opens them, so the strokes
-// are placed in the open water: the frame's reach (umbrella open at each recovery) clears too.
-test('the path clears layout.json with the arms closed and as drawn by 0.3, and held open as wide as the intro the whole way', () => {
+// floor plane however low it is) all the way to the stage spot, which it reaches as the turn ends. A
+// gap of 0.3 is about the width of one of its arms. The arms open widest (the swim's umbrella, 3.0
+// either side) only at a stroke's recovery, during the swim; through the turn they are drawn in (the
+// settle test), and they open into the intro (2.45) at the spot. Three rocks were moved for this
+// (Task 12 fix round 1: the back-left rock_d 0.5 back, the front-left rock_d 0.3 forward, rock_b 0.27
+// out to the right; the bake follows the layout).
+test("the path clears layout.json with the arms open and closed: closed and as drawn by 0.3, the umbrella held open the whole swim, the intro's arms held open to the spot", () => {
   const layout = REEF_WORLD.layout;
   expect(HOST_BUNDLE.place.layout).toBe(layout);
   const gaps = entranceClearance(seq, HOST_ENTRANCE_GEOMETRY, layout, HOST_ENTRANCE_FOOTPRINTS, { samples: 651, until: B.turnEnd });
   expect(gaps.closed.gap, `closed: ${gaps.closed.piece} at ${gaps.closed.seconds} s`).toBeGreaterThan(0.3);
   expect(gaps.frame.gap, `frame: ${gaps.frame.piece} at ${gaps.frame.seconds} s`).toBeGreaterThan(0.3);
-  // Held open as wide as the intro's welcome (the settle's arms) the whole swim, to the turn: clear by 0.2.
-  const intro = { ...HOST_ENTRANCE_GEOMETRY, armHalfSpan: { open: HOST_ARM_HALF_SPAN.intro, closed: HOST_ARM_HALF_SPAN.closed } };
-  const held = entranceClearance(seq, intro, layout, HOST_ENTRANCE_FOOTPRINTS, { samples: 651, until: B.turnStart });
-  expect(held.open.gap, `open: ${held.open.piece} at ${held.open.seconds} s`).toBeGreaterThan(0.2);
-  // Recorded, not hidden (two limits of the reef's layout, Task 4, not of the path):
-  // - the umbrella held open (3.0 either side) the whole swim does not fit between the left rocks (the
-  //   open water there is narrower than 6 units plus the stone): it overlaps the back-left rock's floor
-  //   box by under 0.35. Its arms open that wide only at a recovery, which the frame's check clears.
-  // - at the stage spot itself the intro's arms (2.45) reach 0.2 over the low front-right rock's floor
-  //   box (rock_b, 2.25 away on the floor plane, its top 1.4 below the host's centre): the intro pose's place.
+  // The umbrella (3.0) held open for the whole swim, to the turn: clear.
   const swim = entranceClearance(seq, HOST_ENTRANCE_GEOMETRY, layout, HOST_ENTRANCE_FOOTPRINTS, { samples: 651, until: B.turnStart });
-  expect(swim.open.gap).toBeGreaterThan(-0.35);
-  expect(gaps.open.piece).toBe('rocks[3] rock_b');
-  expect(gaps.open.seconds).toBeCloseTo(B.turnEnd, 6);
-  expect(gaps.open.gap + HOST_ARM_HALF_SPAN.open - HOST_ARM_HALF_SPAN.intro).toBeGreaterThan(-0.25);
+  expect(swim.open.gap, `open: ${swim.open.piece} at ${swim.open.seconds} s`).toBeGreaterThan(0.1);
+  // The intro's arms (2.45) held open the whole way, the stage spot included: clear.
+  const intro = { ...HOST_ENTRANCE_GEOMETRY, armHalfSpan: { open: HOST_ARM_HALF_SPAN.intro, closed: HOST_ARM_HALF_SPAN.closed } };
+  const held = entranceClearance(seq, intro, layout, HOST_ENTRANCE_FOOTPRINTS, { samples: 651, until: B.turnEnd });
+  expect(held.open.gap, `intro open: ${held.open.piece} at ${held.open.seconds} s`).toBeGreaterThan(0.03);
 }, 30000);
 
 test('two strokes: each power stroke (the surge) starts between 1 and 3.4 s, and the clock is still after', () => {
@@ -188,7 +182,9 @@ test('the glyph brightens once, peaking between 2.8 and 3.2 s, and the membrane 
     down.forEach((q, i) => i > 0 && expect(q.v, `${name} ${q.s}`).toBeLessThanOrEqual(down[i - 1].v + 1e-12));
     for (const q of p.samples) if (q.s <= 2.5 || q.s >= 3.9) expect(q.v, `${name} ${q.s}`).toBeCloseTo(1, 9);
   }
+  // Bright enough to read as a greeting, never a flare: at most 4 times its rest (its rest is below the face glow; the peak lasts a moment).
   expect(GLYPH_PEAK).toBeGreaterThan(1.5);
+  expect(GLYPH_PEAK).toBeLessThanOrEqual(4);
   // The membrane's flash is its shader's: never above 1 + its `flash`, the most it draws.
   const params = REEF_WORLD.materials!.find(m => m.node === 'gate_membrane')!.params as { flash: number };
   expect(MEMBRANE_PEAK).toBeLessThanOrEqual(1 + params.flash + 1e-9);

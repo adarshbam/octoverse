@@ -125,6 +125,24 @@ def load_kit():
         own_export(coll)
     kit.export = export
     kit.NODES = list(kit.GATE_NODES)
+
+    def check_flow(raw):
+        """The vault's bake asks its kit to check the membrane's flow map on the export (vault
+        build_kit.check_flow, added after this bake was written). The reef's membrane is
+        `gate_membrane`, its doorway another shape: its flow v must still run from about 0 (the
+        edge) to about 1 (the middle), on its second UV set as the page reads it."""
+        import struct
+        data = Path(raw).read_bytes()
+        json_len = struct.unpack_from("<I", data, 12)[0]
+        doc = json.loads(data[20:20 + json_len])
+        binary = data[20 + json_len + 8:]
+        node = next(n for n in doc["nodes"] if n.get("name") == "gate_membrane")
+        attrs = doc["meshes"][node["mesh"]]["primitives"][0]["attributes"]
+        assert "TEXCOORD_1" in attrs, f"gate_membrane has {sorted(attrs)}: no flow map"
+        flow = [f[1] for f in vault.glb_accessor(Path(raw), (doc, binary), attrs["TEXCOORD_1"])]
+        assert min(flow) < 0.2 and max(flow) > 0.8, f"gate_membrane's flow v runs {min(flow):.2f} to {max(flow):.2f}, not about 0 to 1"
+        print(f"checked gate_membrane's flow map: v {min(flow):.2f} to {max(flow):.2f}")
+    kit.check_flow = check_flow
     return kit
 
 
