@@ -1,9 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
-// The creator's live preview (tests/e2e/platform-creator-live.spec.ts, platform Task 19b) against a PRODUCTION build, where the template
-// change's 1.5 s bound is asserted (LIVE_PROD=1):
+// The creator's live preview (tests/e2e/platform-creator-live.spec.ts, platform Task 19b) against a PRODUCTION build, where the spec's timing bounds
+// are asserted (against the dev server they are only recorded; PLATFORM_LOOSE_TIMING=1 opts out on a saturated machine):
 //   npx vite build --outDir dist/m19b-prod --emptyOutDir
-//   LIVE_PROD=1 npx playwright test -c playwright.creator-live-prod.config.ts --workers=1
+//   npx playwright test -c playwright.creator-live-prod.config.ts --workers=1
 // Port 5197 is strict (PLATFORM_PREVIEW_PORT moves it when another session holds it).
 const port = Number(process.env.PLATFORM_PREVIEW_PORT ?? 5197);
 const origin = `http://localhost:${port}`;
