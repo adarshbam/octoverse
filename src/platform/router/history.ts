@@ -93,6 +93,8 @@ export interface EntryState {
   /** The address of the page that opened this entry's page, and how many entries of the same path were pushed since (0 on the first). */
   opener?: string;
   depth?: number;
+  /** The address of the entry before this one when it is on the same path (the world's previous view), so an engine step-down can tell whether Back lands where the stage went. */
+  prev?: string;
 }
 
 /** The static pages are each their own scroller (index.html fixes the document at the window's height): see pages.css `.oct-page`. */
@@ -144,7 +146,7 @@ function saveLeaving(from?: Element | null) {
 function newEntry(here: string, to: string): Stored {
   const before = entryState();
   const within = before?.opener !== undefined && pathOf(here) === pathOf(to);
-  return { platform: { scrollY: 0, focusId: null, opener: within ? before.opener : here, depth: within ? (before.depth ?? 0) + 1 : 0 } };
+  return { platform: { scrollY: 0, focusId: null, opener: within ? before.opener : here, depth: within ? (before.depth ?? 0) + 1 : 0, ...(within && { prev: here }) } };
 }
 
 /**

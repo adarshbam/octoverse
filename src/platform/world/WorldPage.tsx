@@ -7,7 +7,7 @@ import { SHOWCASE } from '../fixtures/showcase';
 import { entryState, goBack, insertOpener, navigate } from '../router/history';
 import { type View, parseRoute } from '../router/routes';
 import { loadWorld } from '../worlds/loadWorld';
-import { type EngineSync, type StageId, exitFor, exitMove, reported, requested, viewToRequest, worldHistoryStep } from './worldHistory';
+import { type EngineSync, type StageId, exitFor, exitMove, reported, requested, settleMove, viewToRequest, worldHistoryStep } from './worldHistory';
 import '../ui/glass.css';
 
 type State = { status: 'loading' } | { status: 'ready'; bundle: WorldBundle } | { status: 'failed' };
@@ -80,6 +80,22 @@ export default function WorldPage({ world, view }: { world: WorldId; view: View 
       sync.current = heard.sync;
       if (heard.echo || window.location.pathname !== path) return;
       const step = worldHistoryStep({ view: viewNow.current }, stage);
+      if (step?.settle) {
+        // The engine stepped down itself: the address follows, without a new entry and without leaving the world's page.
+        pushed.current = step.settle;
+        const before = entryState()?.prev;
+        const [prevPath, prevQuery] = (before ?? '').split('?');
+        const previous = before && prevPath === path ? ((parseRoute(prevPath, prevQuery ? `?${prevQuery}` : '').route as { view?: View }).view ?? null) : null;
+        if (settleMove(previous, step.settle) === 'back') goBack();
+        else {
+          const params = new URLSearchParams(window.location.search);
+          if (step.settle === 'intro') params.delete('view');
+          else params.set('view', step.settle);
+          const rest = params.toString();
+          navigate(rest ? `${path}?${rest}` : path, { replace: true });
+        }
+        return;
+      }
       if (!step?.push) return;
       pushed.current = step.push;
       const params = new URLSearchParams(window.location.search);

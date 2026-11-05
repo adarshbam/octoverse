@@ -13,13 +13,24 @@ const DEPTH: Record<View, number> = { intro: 0, overview: 1, detail: 2 };
 
 /**
  * What a stage change does to the history. The overview and the detail are `?view=` entries, each pushed once; the entrance, the
- * intro and a technology focus are never in the address. The engine's own Escape (the detail closing to the overview, the overview
- * to the intro) pushes nothing either: "Escape inside a world is the engine's and never changes the platform route" (spec 7.9).
- * `current` is the view the address shows now. Null: leave the history alone.
+ * intro and a technology focus are never pushed. When the engine itself steps the stage down (Escape, the detail's close control, the
+ * overview's), nothing is pushed and the page stays the world's, but the address must not go on saying the deeper view (a dead Back
+ * step): `settle` is the view the address is to settle on (see `settleMove`; ruling R20). `current` is the view the address shows now.
+ * Null: leave the history alone.
  */
-export function worldHistoryStep(current: { view: View }, next: StageId): { push?: View } | null {
-  if (next !== 'overview' && next !== 'detail') return null;
-  return DEPTH[next] > DEPTH[current.view] ? { push: next } : null;
+export function worldHistoryStep(current: { view: View }, next: StageId): { push?: View; settle?: View } | null {
+  if (next !== 'intro' && next !== 'overview' && next !== 'detail') return null;
+  if (DEPTH[next] > DEPTH[current.view]) return { push: next };
+  return DEPTH[next] < DEPTH[current.view] ? { settle: next } : null;
+}
+
+/**
+ * How the address settles on `view` after an engine step-down, never by a push: a pop (history.back) when the entry before is this
+ * visit's own entry for that very view (`previous`, null when there is none), so Back and the engine agree and no entry is left behind to
+ * walk; otherwise the displayed entry is replaced (a deep link has nothing behind it in the visit, or the entry behind is another view).
+ */
+export function settleMove(previous: View | null, view: View): 'back' | 'replace' {
+  return previous === view ? 'back' : 'replace';
 }
 
 /** A browser Back or Forward landed on this view: the stage request that takes the engine there (a new `id` is a new request). */

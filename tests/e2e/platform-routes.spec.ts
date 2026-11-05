@@ -423,7 +423,9 @@ test.describe('Back and Forward inside a world (spec 7.9)', () => {
     await expect(detailPanel(page)).toBeVisible();
   });
 
-  test('Escape in the detail closes it and does not change the route', async ({ page }) => {
+  // Spec 7.9 (ruling R20): when the ENGINE steps the stage down (Escape, its close controls) the page stays the world's, no entry is added, and
+  // the address agrees with the stage: the matching entry before is popped to when it is this visit's, otherwise the entry is replaced.
+  test('Escape in a deep-linked detail closes it, stays on the world, adds no entry, and the address says overview; one Back goes to the profile', async ({ page }) => {
     await seen(page, 'veyra');
     await page.goto('/@veyra/vault-os?view=detail');
     await worldUp(page, 'veyra');
@@ -432,26 +434,100 @@ test.describe('Back and Forward inside a world (spec 7.9)', () => {
     await page.keyboard.press('Escape');
     await expect(overviewPanel(page)).toBeVisible();
     await expect(detailPanel(page)).toBeHidden();
-    expect(pathNow(page)).toBe('/@veyra/vault-os?view=detail');
-    expect(await historyLength(page)).toBe(before);
-    // Another Escape closes the overview (the intro); the route is still the one it was.
+    await expect(page).toHaveURL(/\/@veyra\/vault-os\?view=overview$/);
+    await expect(page.locator('[data-world="veyra"] .exit-link')).toBeVisible();
+    expect(await historyLength(page)).toBeLessThanOrEqual(before);
+    // Another Escape closes the overview (the intro); the address follows again.
     await page.keyboard.press('Escape');
     await expect(overviewPanel(page)).toBeHidden();
-    expect(pathNow(page)).toBe('/@veyra/vault-os?view=detail');
-    expect(await historyLength(page)).toBe(before);
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    expect(await historyLength(page)).toBeLessThanOrEqual(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
   });
 
-  test('after Escape the next Backs are requests for the views they land on, and the stage follows', async ({ page }) => {
+  test('Escape in a walked detail pops to the overview entry: the address matches, no dead Back step, one Back goes to the intro', async ({ page }) => {
+    await seen(page, 'veyra');
+    await enterFromProfile(page);
+    await openOverview(page);
+    await openDetail(page);
+    await expect(detailPanel(page)).toBeVisible();
+    await expect(page).toHaveURL(/\?view=detail$/);
+    const before = await historyLength(page);
+    await page.keyboard.press('Escape');
+    await expect(overviewPanel(page)).toBeVisible();
+    await expect(detailPanel(page)).toBeHidden();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os\?view=overview$/);
+    expect(await historyLength(page)).toBeLessThanOrEqual(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    await expect(overviewPanel(page)).toBeHidden();
+    await expect(introTitle(page)).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
+  });
+
+  test("the detail's own close control steps down the same way as Escape", async ({ page }) => {
+    await seen(page, 'veyra');
+    await enterFromProfile(page);
+    await openOverview(page);
+    await openDetail(page);
+    await expect(detailPanel(page)).toBeVisible();
+    const before = await historyLength(page);
+    await page.getByRole('button', { name: 'Close project view' }).dispatchEvent('click');
+    await expect(overviewPanel(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os\?view=overview$/);
+    expect(await historyLength(page)).toBeLessThanOrEqual(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    await expect(introTitle(page)).toBeVisible();
+  });
+
+  test('overview to intro by the engine: Escape, and the overview close control on a phone, pop to the intro entry; one Back goes to the profile', async ({ page }) => {
+    await seen(page, 'veyra');
+    await enterFromProfile(page);
+    await openOverview(page);
+    await expect(overviewPanel(page)).toBeVisible();
+    const before = await historyLength(page);
+    await page.keyboard.press('Escape');
+    await expect(overviewPanel(page)).toBeHidden();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    await expect(introTitle(page)).toBeVisible();
+    expect(await historyLength(page)).toBeLessThanOrEqual(before);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
+    // The overview's own close control (a sheet on a phone).
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goForward();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    await worldUp(page, 'veyra');
+    await openOverview(page);
+    await expect(overviewPanel(page)).toBeVisible();
+    const phoneBefore = await historyLength(page);
+    await page.getByRole('button', { name: 'Close overview' }).dispatchEvent('click');
+    await expect(overviewPanel(page)).toBeHidden();
+    await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
+    expect(await historyLength(page)).toBeLessThanOrEqual(phoneBefore);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/@veyra$/);
+    await profileReady(page);
+  });
+
+  test('after an Escape the next Backs and a Forward still land on the views they name, and the stage follows', async ({ page }) => {
     await seen(page, 'veyra');
     await enterFromProfile(page);
     await openOverview(page);
     await openDetail(page);
     await expect(detailPanel(page)).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(overviewPanel(page)).toBeVisible();
+    await expect(page).toHaveURL(/\?view=overview$/);
+    await page.goForward();
+    await expect(page).toHaveURL(/\?view=detail$/);
+    await expect(detailPanel(page)).toBeVisible();
     await page.goBack();
-    await expect(page).toHaveURL(/\/@veyra\/vault-os\?view=overview$/);
-    await expect(overviewPanel(page)).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/\/@veyra\/vault-os$/);
     await expect(overviewPanel(page)).toBeHidden();

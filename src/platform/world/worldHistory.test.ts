@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { profileFor } from '../fixtures/showcase';
 import type { Route } from '../router/routes';
-import { type EngineSync, exitFor, exitMove, reported, requested, routeAfterBack, viewToRequest, worldHistoryStep } from './worldHistory';
+import { type EngineSync, exitFor, exitMove, reported, requested, routeAfterBack, settleMove, viewToRequest, worldHistoryStep } from './worldHistory';
 
 // Spec 7.9, the half of it that is arithmetic: which stage changes make a history entry, what a browser Back or Forward asks
 // the engine for, and where the world's exit control goes. The walk through a real browser is tests/e2e/platform-routes.spec.ts.
@@ -21,17 +21,20 @@ describe('worldHistoryStep: which stage changes push a history entry', () => {
     for (const view of ['intro', 'overview', 'detail'] as const) {
       expect(worldHistoryStep({ view }, 'techFocus'), `techFocus from ${view}`).toBeNull();
       expect(worldHistoryStep({ view }, 'entering'), `entering from ${view}`).toBeNull();
-      expect(worldHistoryStep({ view }, 'intro'), `intro from ${view}`).toBeNull();
+      expect(worldHistoryStep({ view }, 'intro')?.push, `intro from ${view}`).toBeUndefined();
     }
   });
 
   it('pushes nothing for the view the address already shows', () => {
+    expect(worldHistoryStep({ view: 'intro' }, 'intro')).toBeNull();
     expect(worldHistoryStep({ view: 'overview' }, 'overview')).toBeNull();
     expect(worldHistoryStep({ view: 'detail' }, 'detail')).toBeNull();
   });
 
-  it("pushes nothing when the engine's own Escape closes the detail: Escape never changes the platform route", () => {
-    expect(worldHistoryStep({ view: 'detail' }, 'overview')).toBeNull();
+  it("when the engine itself steps down (Escape, its close or back control) the address is to settle on the stage, never to push", () => {
+    expect(worldHistoryStep({ view: 'detail' }, 'overview')).toEqual({ settle: 'overview' });
+    expect(worldHistoryStep({ view: 'overview' }, 'intro')).toEqual({ settle: 'intro' });
+    expect(worldHistoryStep({ view: 'detail' }, 'intro')).toEqual({ settle: 'intro' });
   });
 
   it('a technology focus on the way to the detail is one entry, the detail', () => {
@@ -124,5 +127,20 @@ describe('echoes: the stage the engine reports after a Back or Forward is not a 
     const focus = reported(waiting, 'techFocus');
     expect(focus.echo).toBe(false);
     expect(focus.sync).toEqual(waiting);
+  });
+});
+
+describe('settleMove: how the address follows an engine step-down (spec 7.9, ruling R20)', () => {
+  // Escape (or the engine's own back) closes the detail: Back and the engine must never disagree, so when the entry before is this visit's
+  // entry for that very view the platform pops to it, and otherwise it replaces the displayed entry. It never pushes and never leaves the page.
+  it('pops to the entry before when it is the same visit at the view the stage came down to', () => {
+    expect(settleMove('overview', 'overview')).toBe('back');
+    expect(settleMove('intro', 'intro')).toBe('back');
+  });
+
+  it('replaces the displayed entry when there is none before it in the visit (a deep link) or it is another view', () => {
+    expect(settleMove(null, 'overview')).toBe('replace');
+    expect(settleMove('intro', 'overview')).toBe('replace');
+    expect(settleMove('overview', 'intro')).toBe('replace');
   });
 });

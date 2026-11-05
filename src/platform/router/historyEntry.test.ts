@@ -98,6 +98,15 @@ describe('history entries (spec 7.9)', () => {
     expect(entryState()).toMatchObject({ opener: '/@veyra', depth: 2 });
   });
 
+  it('a push within the same path remembers the address of the entry before it, and the first entry of a visit has none', () => {
+    navigate('/@veyra/vault-os');
+    expect(entryState()?.prev).toBeUndefined();
+    navigate('/@veyra/vault-os?view=overview');
+    expect(entryState()?.prev).toBe('/@veyra/vault-os');
+    navigate('/@veyra/vault-os?view=detail');
+    expect(entryState()?.prev).toBe('/@veyra/vault-os?view=overview');
+  });
+
   it("a push stores the leaving entry's scroll and the control that was used before it moves on", () => {
     const enter = link('/@veyra/vault-os');
     doc.links = [enter];
