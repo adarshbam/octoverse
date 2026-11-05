@@ -309,6 +309,9 @@ test.describe('How It Works alive: desktop', () => {
     await page.waitForTimeout(1500);
     expect(await canvases(page)).toEqual(HOST_ONLY);
     await expect(page.locator('[data-card="yours"] [data-picture="sample"] img')).toBeVisible();
+    // The picture is really there: a 404 still has a box but no pixels.
+    await expect.poll(() => page.locator('[data-card="yours"] [data-picture="sample"] img').evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect(page.locator('[data-card="yours"] [data-picture="sample"] img')).toHaveAttribute('src', '/platform/stills/creator-aether-peach.webp');
     await expect(page.locator('[data-card="yours"] .oct-still-tag')).toHaveText('Sample octopus');
   });
 
@@ -512,10 +515,76 @@ test.describe('Explore tiles come alive like the cards (spec 7.11)', () => {
     await tile(page, 'yours').hover();
     await page.waitForTimeout(1200);
     expect(await canvases(page)).toEqual({ total: 0, previews: [] });
+    // Its picture is a real image (not a 404), and the tile's link is named by the name and the epithet alone: the sample tag is hidden from assistive technology.
+    await expect.poll(() => page.locator('[data-tile="yours"] img').evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect(page.locator('[data-tile="yours"] .oct-still-tag')).toHaveAttribute('aria-hidden', 'true');
+    await expect(tile(page, 'yours')).toHaveAccessibleName('Your Octopus Your Story');
     expect(await maxCanvases(page), 'one context, the preview, on a page with no host').toBe(1);
     await page.setViewportSize({ width: 390, height: 844 });
     await tile(page, 'veyra').hover({ force: true });
     await page.waitForTimeout(1200);
     expect(await canvases(page)).toEqual({ total: 0, previews: [] });
+  });
+});
+
+test.describe('Your Octopus card and the creator database (spec 7.10, J01)', () => {
+  test.use({ viewport: { width: 1536, height: 1024 } });
+  test.setTimeout(180_000);
+
+  const seen = (page: Page) => page.addInitScript(() => sessionStorage.setItem('octoverse.octoverse.entranceSeen', '1'));
+  const databaseNames = (page: Page) => page.evaluate(async () => (await indexedDB.databases()).map(d => d.name));
+
+  test('a clean browser on How It Works shows the sample and never creates the creator database (an empty v1 would break the upgrade)', async ({ page }) => {
+    await seen(page);
+    expect(await databaseNames(page).catch(() => [])).not.toContain('octoverse-creator');
+    await page.goto('/how-it-works');
+    await expect(card(page, 'yours')).toBeVisible({ timeout: 90_000 });
+    // The read has finished once the picture says what it is.
+    await expect(page.locator('[data-card="yours"] [data-picture="sample"]')).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(500);
+    expect(await databaseNames(page)).not.toContain('octoverse-creator');
+  });
+
+  test("a draft saved by the creator shows on the card: its template and palette's still and its name", async ({ page }) => {
+    await seen(page);
+    await page.goto('/create');
+    await page.waitForSelector('#oct-main');
+    const status = page.locator('[data-draft-status]');
+    await expect(status).toHaveAttribute('data-draft-status', 'saved');
+    await page.locator('[data-template="nox"]').click();
+    await page.locator('[data-palette="teal"]').click();
+    await page.getByLabel('Name', { exact: true }).fill('Mira');
+    // Saved in this browser: the words come back after "Saving…", and the database holds the edit.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            new Promise<string>(resolve => {
+              const open = indexedDB.open('octoverse-creator');
+              open.onerror = () => resolve('error');
+              open.onsuccess = () => {
+                const db = open.result;
+                try {
+                  const get = db.transaction('draft').objectStore('draft').get('current');
+                  get.onsuccess = () => (db.close(), resolve(get.result ? `${get.result.octopus.template}/${get.result.octopus.palette}/${get.result.octopus.name}` : 'none'));
+                  get.onerror = () => (db.close(), resolve('error'));
+                } catch {
+                  db.close();
+                  resolve('error');
+                }
+              };
+            }),
+        ),
+      )
+      .toBe('nox/teal/Mira');
+    await expect(status).toHaveText('Saved in this browser');
+    await page.goto('/how-it-works');
+    await expect(card(page, 'yours')).toBeVisible({ timeout: 90_000 });
+    const picture = page.locator('[data-card="yours"] [data-picture="draft"]');
+    await expect(picture).toBeVisible({ timeout: 30_000 });
+    await expect(picture.locator('img')).toHaveAttribute('src', '/platform/stills/creator-nox-teal.webp');
+    await expect.poll(() => picture.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect(picture.locator('.oct-still-tag')).toHaveText('Mira');
+    await expect(page.locator('[data-card="yours"] [data-picture="sample"]')).toHaveCount(0);
   });
 });
