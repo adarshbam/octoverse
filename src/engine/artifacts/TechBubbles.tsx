@@ -7,8 +7,10 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SequenceId } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
+import { liftedReach, liftedScale } from './armLift';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
 import { APPEARS, type AppearModule, SELECTS, holdModule, placementDriver } from './strategies';
+import type { TwinkleState } from './twinkle';
 import type { ArmReader } from './pendant';
 import { TETHER_POINTS, capRadius } from './tether';
 import { type FlightLook, TRAIL_POINTS } from './satellite';
@@ -46,6 +48,18 @@ export interface BubbleState {
   /** Written back each frame for Nox's face: how puffed his cheeks are and how round his mouth, blowing (0 otherwise). */
   puff: number;
   mouthRound: number;
+  /**
+   * Written back each frame for an appear that forms the placement's own drawing (the twinkle, which forms the
+   * satellite's ring): how far it has formed. Absent when the appear forms none, and once it is over, given up or
+   * not wanted (motion off, the bubbles gone): the ring is whole.
+   */
+  twinkle?: TwinkleState;
+  /**
+   * The entrance was skipped (the stage left `entering` before the entrance ran its course), written by the
+   * character. An appear that forms a placement's drawing (the twinkle) is then not played: the ring is whole
+   * as the skip lands in the intro. The blow and the bloom ignore it (they play after a skip as they always did).
+   */
+  skipped?: boolean;
   /** Written back each frame: each bubble's place on its orbit (body space), which the arm holding it turns toward. */
   orbit: THREE.Vector3[];
   /**
@@ -291,9 +305,6 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const select = SELECTS[artifacts.select.kind];
   // The suction hold's module (with the arm lift nothing is held, so it is never used there).
   const holder = holdModule(select);
-  // The arm lift's growth and thread (1 and 0 for a select that does not lift).
-  const liftScale = artifacts.select.kind === 'armLift' ? artifacts.select.scale : 1;
-  const liftShorten = artifacts.select.kind === 'armLift' ? artifacts.select.threadShorten : 0;
   // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).
   const holdCentre = useMemo(() => holder.centre(placementConfig), [holder, placementConfig]);
   const group = useRef<THREE.Group>(null);
@@ -324,7 +335,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
 
   // The placement's run for this many bubbles (the orbit clock and its speed spring, or the pendants' swings), each bubble's current size, and how far all are shown.
   const driver = useMemo(() => placementDriver(placementConfig, bubbles.length, { headCentreX }), [placementConfig, bubbles.length, headCentreX]);
-  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
+  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), twinkle: { line: 0, beads: [] as number[] }, hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
   // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
   const threads = useThreads(placementConfig.kind === 'pendant' || placementConfig.kind === 'satellite' ? placementConfig.tether ?? null : null, bubbles.length);
   // A placement whose artifacts fly between its forms (the satellite) leaves a fading gold trail behind each, from a fixed pool.
@@ -332,7 +343,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   // A world's orb style (artifacts/orbStyle.ts): rim beads and a cap round each orb, in one batch each; none for a world without one.
   const orbStyle = useMemo(() => createOrbStyle(artifacts.orbStyle, bubbles.length), [artifacts.orbStyle, bubbles.length]);
   useEffect(() => () => orbStyle?.dispose(), [orbStyle]);
-  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3(), cap: new THREE.Vector3() }), []);
+  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3(), cap: new THREE.Vector3(), rest: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
@@ -346,9 +357,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     const { blow } = run;
     // One blow's length is the loaded sheet's; with no sheet in, the run does not read it (it waits, or the blow is given up).
     const sheet = s.blow?.sequences;
-    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at });
+    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at, skipped: !!appear.ring && s.skipped });
     const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
     const waiting = !blow.done && !blowing;
+    // The ring forms as the appear says: from the run's clock; waiting for the sheet where the bubbles exist, it is not drawn yet.
+    // (Written into the run's one state: a frame allocates none.)
+    if (appear.ring) s.twinkle = blowing ? appear.ring(blowing, blow.seconds!, artifacts, run.twinkle) : s.show && !blow.done ? appear.ring(null, 0, artifacts, run.twinkle) : undefined;
     // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
     const goal = s.show && !waiting ? 1 : 0;
     run.shown = s.still || blowing ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
@@ -396,21 +410,25 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
       // Lifted by its arm, a pendant grows by the lift's scale (the focus's own growth is the hold's).
       const lifted = s.lift[i] ?? 0;
-      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : 1 + (liftScale - 1) * lifted);
+      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : liftedScale(artifacts.select, lifted));
       // Flying between its placement's forms (the satellite's ring and arms), it is the size and has the logo its flight gives it.
       const look: FlightLook | undefined = driver.flight?.(i);
       if (look) radius *= look.scale;
       // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching (blooming, it grows where it hangs).
       const b = blowing ? appear.frame(blowing, i, blow.seconds!, bubbles.length, artifacts) : null;
       // A pendant hangs its orb a radius past its cap at the size it is now, on a thread drawn down as far as the bloom has it and shortened as far as the lift has it.
-      // The satellite's orbs stay where its driver puts them (on the ring, in flight, or hanging with their bob), as before.
+      // The satellite's orbs stay where its driver puts them (on the ring, in flight, or hanging with their bob), as before;
+      // a landed one its arm lifts (Aether) moves, as far as the lift has gone, to where a pendant's would hang on its shortened thread.
       const pendant = threads && driver.pendants ? driver.pendants[i] : null;
-      const reach = (b?.bloom ? b.bloom.thread : 1) * (1 - liftShorten * lifted);
-      if (placementConfig.kind === 'pendant' && pendant && pendant.points.length > 0) {
-        const [ax, ay, az] = pendant.attach;
-        const end = pendant.points[pendant.points.length - 1];
+      const reach = (b?.bloom ? b.bloom.thread : 1) * liftedReach(artifacts.select, lifted);
+      const hung = pendant && pendant.points.length > 0 ? pendant : null;
+      const liftedSatellite = placementConfig.kind === 'satellite' && lifted > 0 && !!look?.landed;
+      if (hung && (placementConfig.kind === 'pendant' || liftedSatellite)) {
+        const [ax, ay, az] = hung.attach;
+        const end = hung.points[hung.points.length - 1];
         const hang = radius * (b ? b.scale : 1);
-        target.set(ax + (end[0] - ax) * reach + Math.sin(pendant.angle) * hang, ay + (end[1] - ay) * reach - Math.cos(pendant.angle) * hang, az);
+        target.set(ax + (end[0] - ax) * reach + Math.sin(hung.angle) * hang, ay + (end[1] - ay) * reach - Math.cos(hung.angle) * hang, az);
+        if (liftedSatellite) target.lerp(driver.point(s.stage, i, s.swell, scratch.rest), 1 - Math.min(1, lifted));
       } else {
         driver.point(s.stage, i, s.swell, target);
       }

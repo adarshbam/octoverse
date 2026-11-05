@@ -3,7 +3,7 @@ import { ARM_IDS, type SatellitePlacement, type StageId, type SwingLimits } from
 import { SWELL_PUSH_SETTLED } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
 import { type Orbit, orbitPoint } from './bubbleOrbits';
-import { assignPendants, createPendantRun, layoutPendants, resetPendants, stepPendants } from './pendant';
+import { type PendantPlace, assignPendants, createPendantRun, layoutPendants, resetPendants, stepPendants } from './pendant';
 import type { PlacementDriver } from './strategies';
 
 // The `satellite` placement (amendment A1; Aether spec 7.5): at rest, a thin ring round the head,
@@ -109,6 +109,26 @@ const AUTHORED_PX_PER_UNIT = 100;
 /** The ring line's width in pixels where a world unit spans `pxPerUnit` pixels. */
 export function ringLineWidth(ring: Pick<RingStyle, 'line'>, pxPerUnit: number): number {
   return (ring.line.width * pxPerUnit) / AUTHORED_PX_PER_UNIT;
+}
+
+/** Over how much angle the head of the line, drawing round the ring, fades in. */
+const DRAW_HEAD = (24 * Math.PI) / 180;
+
+/**
+ * How much of the ring line shows at `angle` while it forms (the twinkle, spec 7.5), when `drawn` (0 to
+ * 1) of it is drawn: the line draws round the head from one side of the keep-out, the beads' first home
+ * end, through the rear to the other, its leading edge fading in over about 24 degrees. At `drawn` 1 it
+ * is whole (1 everywhere), as the ring was before it formed; this multiplies `ringLineVisible`.
+ */
+export function ringDrawn(angle: number, drawn: number, ring: Pick<RingStyle, 'keepOut'>): number {
+  if (drawn >= 1) return 1;
+  const turn = 2 * Math.PI;
+  const at = ((angle % turn) + turn) % turn;
+  const from = ring.keepOut;
+  // Before the line's start (the keep-out's far side, never shown) nothing is drawn yet.
+  if (at < from) return 0;
+  const head = from + Math.max(0, drawn) * (turn - 2 * ring.keepOut + DRAW_HEAD);
+  return THREE.MathUtils.clamp((head - at) / DRAW_HEAD, 0, 1);
 }
 
 /** The stages the ring is drawn in: the intro, and the detail (the beads are home again). */
@@ -336,6 +356,17 @@ export function satelliteCapacity(config: SatellitePlacement): number {
 }
 
 /**
+ * Where each of `count` technologies hangs in the satellite's active form (its slot and orb radius;
+ * null for one past the slots, the tray's), in slot order, at most two an arm: the same places in
+ * every stage (the active form has one set). Empty without an active form. The driver hangs them
+ * there, and the arm lift (Octopus) names the arm a chosen one hangs from by it.
+ */
+export function satellitePlaces(config: SatellitePlacement, count: number): (PendantPlace | null)[] {
+  const form = activeForm(config);
+  return form ? layoutPendants(count, { slots: { intro: form.slots, overview: form.slots }, sizes: { intro: form.size, overview: form.size } }, 'overview') : [];
+}
+
+/**
  * The satellite's driver for `count` technologies: each placed one (in slot order, at most two an
  * arm) hangs as a pendant from its slot (Veyra's pendant code, with the satellite's swing and a bob),
  * and flies there from the ring bead it is dealt to as the head swells (flightInto), back as it
@@ -345,7 +376,7 @@ export function satelliteCapacity(config: SatellitePlacement): number {
 export function satelliteDriver(config: SatellitePlacement, count: number, { headCentreX = 0 }: { headCentreX?: number } = {}): PlacementDriver {
   const form = activeForm(config);
   if (!form) return { step: () => {}, size: () => null, point: (_stage, _i, _swell, out) => out.set(0, config.ring.centreY, 0) };
-  const places = layoutPendants(count, { slots: { intro: form.slots, overview: form.slots }, sizes: { intro: form.size, overview: form.size } }, 'overview');
+  const places = satellitePlaces(config, count);
   const placed = places.filter(place => place !== null).length;
   // Each placed technology leaves from its dealt bead, at the bead's home (the beads stop swaying as they brighten, before they split).
   const homes = config.ring.homes;
@@ -363,12 +394,13 @@ export function satelliteDriver(config: SatellitePlacement, count: number, { hea
   const arrive = places.map((_, i) => travelWindow(i, placed)[1]);
   let clock = 0;
   return {
-    step({ stage, swell, dt, still, reducedMotion = false, focused = false }, arms) {
+    step({ stage, swell, dt, still, reducedMotion = false, focused = false, hang }, arms) {
       // The overview holds its orbs once they have landed (a technology focus closes the head); the intro lets them follow the swell home.
       const progress = holdProgress(latch, stage !== 'overview' ? 'free' : focused ? 'focus' : 'overview', flightProgress(swell), still);
       if (!still) clock += dt;
       if (arms.length >= ARM_IDS.length) {
-        stepPendants(run, places, { stage: 'overview', swell, dt, reducedMotion: still }, arms, hanging);
+        // A lifted orb hangs where the arm lift has it (under the curl of its arm), as Veyra's pendants do.
+        stepPendants(run, places, { stage: 'overview', swell, dt, reducedMotion: still, hang }, arms, hanging);
         // The float's bob: each orb rises and sinks on its own slow beat, its thread taking up the slack along its length.
         for (let i = 0; i < placed; i++) {
           const lift = still ? 0 : orbBob(i, clock);

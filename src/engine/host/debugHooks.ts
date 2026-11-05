@@ -56,6 +56,8 @@ export interface OctoverseDebug {
   swell?: object;
   /** The suction holds in progress. */
   hold?: HoldDebug[];
+  /** The arm lifts in progress (Veyra, Aether): the technology, its arm, whether it is lowered, and its tip's lift (0..1). */
+  lift?: { techId: string; arm: string; releasing: boolean; tip: number }[];
   /** Forces a quality tier (the frame probe's step, on demand). */
   setTier?: (tier: 'high' | 'medium' | 'low') => void;
   /** Loads the world's sequences (the page's own loader: the capture scripts wait on it). */

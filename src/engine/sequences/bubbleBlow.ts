@@ -131,6 +131,8 @@ export interface BlowStep {
   length: number;
   /** With `still`: the moment of the blow a still shows, in seconds (for review stills). */
   at?: number;
+  /** The entrance was skipped and this appear is not to play after it (only the twinkle asks for it): a run not yet started is over at once. */
+  skipped?: boolean;
 }
 
 /**
@@ -157,7 +159,7 @@ export class BlowRun {
     return this.seconds !== null && !this.done;
   }
 
-  step({ exist, still, ready, failed = false, dt, count, length, at }: BlowStep) {
+  step({ exist, still, ready, failed = false, dt, count, length, at, skipped = false }: BlowStep) {
     if (this.done) return;
     if (still && at !== undefined) {
       if (ready) this.seconds = at;
@@ -165,7 +167,7 @@ export class BlowRun {
     }
     if (this.seconds === null) {
       if (!exist) return;
-      if (still || failed) this.done = true;
+      if (still || failed || skipped) this.done = true;
       else if (ready) this.seconds = 0;
       else if ((this.waited += dt) >= BLOW_SHEET_WAIT - 1e-9) this.done = true;
       return;

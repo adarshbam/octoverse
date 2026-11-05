@@ -30,7 +30,7 @@ function overviewSlots(): PendantSlot[] {
 // edge-on (Task 5). As her head swells into the overview the beads brighten, flare and split into
 // the technology orbs, which fly along gold arcs to their pendant slots and hang there on short
 // gold threads, floating (Task 12). The beads are not choosable: in the intro the way on is Explore,
-// so a technology can be chosen in the overview only (until Task 19's arm lift).
+// so a technology can be chosen in the overview only, where its own arm lifts it (Task 19).
 export const AETHER_ARTIFACTS: ArtifactConfig & { placement: SatellitePlacement } = {
   placement: {
     kind: 'satellite',
@@ -64,8 +64,14 @@ export const AETHER_ARTIFACTS: ArtifactConfig & { placement: SatellitePlacement 
     // Spec 7.5: float, not swing: at most 15 degrees from vertical, settled in about 1.4 s.
     swing: { maxAngle: deg(15), settle: 1.4 },
   },
-  appear: { kind: 'blow' },
-  select: { kind: 'suctionHold' },
+  // Spec 7.5: after the entrance settles the ring forms: the gold line draws round her head (0.6 s), then the five beads light one after another (to 1.4 s).
+  appear: { kind: 'twinkle', duration: 1.4 },
+  // Spec 7.5, "Choosing an orb" (Veyra's arm lift, Aether's tuning): the orb's own arm rises in about
+  // 500 ms, root first and tip last (T1 to her traced P4 lift, its tip curled over the orb); the orb
+  // grows 1.3x and its thread shortens by half, so it sits snug under the curled tip. The lowering's
+  // soft settle is her personality's (character.ts `settle` 0.8); the wonder face is her techFocus
+  // pose's and each usage note's (`curious`); the focused rim is her palette's `orbFocus` (#e4d9f8).
+  select: { kind: 'armLift', ease: 0.5, scale: 1.3, threadShorten: 0.5 },
   choosableIn: ['overview'],
   // Spec 2.3 (P3, P4): every orb has a rim of small glowing lavender-white beads and a small gold cap where its thread attaches.
   orbStyle: { rimBeads: 16, rimColour: '#e4d9f8', cap: { colour: GOLD, size: 0.05 } },

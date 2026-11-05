@@ -229,7 +229,7 @@ const ARRIVAL: SequenceDefaults = {
  * the state JSON the first time; exports from the studio replace that file afterwards.
  * Erasable TypeScript only, and no value imports (the one import is type-only): the seed script runs this file directly under Node.
  */
-export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
+export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom' | 'twinkle'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,

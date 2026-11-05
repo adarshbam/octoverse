@@ -232,6 +232,47 @@ What to check (motion is live only; nothing here was judged from video):
 
 Minor, not a decision: `AETHER_ARM_HALF_SPAN` in `sequences/clearance.ts` is hand-set (open 2.4, closed 1.3). Its comment says the trail's farthest point is 2.72 from her head; that is asserted, not verified. The clearance gaps (0.73 as drawn, 0.41 held open) depend on it.
 
+### Technologies live (Task 19, Milestone 6): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether, Explore (or click her head), then hover, Tab to or tap an orb. Phone: the same at 390 x 844 (the tray). Stills in `docs/superpowers/evidence/aether/m6/`:
+- `t19-techfocus-openai-lift.webp`: `?world=aether&stage=techFocus&tech=openai&freeze`, the lift at rest (T1 curled over OpenAI, the tooltip, the head closed).
+- `t19-lift-200ms.webp`: the same with `&hold=200`, 200 ms into the lift (root ahead of the tip).
+
+What is built: her select is Veyra's arm lift with her tuning (`select: { kind: 'armLift', ease: 0.5, scale: 1.3, threadShorten: 0.5 }`), choosable in the overview only. The orb's own arm lifts it: T1 to her traced P4 lift (`AETHER_POSES.techFocus`), every other arm turned rigidly toward the pointer (straight up and forward by keyboard or touch). The head closes and she wears `curious` (the techFocus pose's face). Each of her ten technologies has 3 or 4 placeholder usage lines (OpenAI's are P4's); the test five have none. The engine needed a small change (the arm lift ran only with the pendant placement); see the Task 19 report.
+
+Verified by test (unit and e2e):
+- the lift is 500 ms, every point of the arm there by 500 ms, the root ahead of the tip at 170 ms; choosing a second orb lowers the first (one at a time); OpenAI lifts on T1, Python on T8;
+- the intro has no orb button, the first stop after the skip link is Explore, and clicking her head opens the overview with ten orb buttons;
+- in the overview Tab reaches the ten orbs in slot order; Enter shows the tooltip with the usage lines; choosing another moves the lift to its arm; Escape hides the tooltip and lowers the arm;
+- on a phone the tray lists the ten, and tapping OpenAI plays the lift on T1 with its tooltip;
+- the frozen tech focus: T1's drawn tip is the tip nearest the OpenAI orb (the old T4 hold bug is gone for her), above the orb's centre and within an orb's width of it. The orb's centre reads at stage (-1.50, 0.39) against `TECH_FOCUS_ORB` (-1.568, 0.387); T1's tip reads about 0.13 from P4_LIFT's tip (Task 13 target 0.04 for the whole arm: not met, not chased).
+- twenty technologies put sixteen on her arms and four in the tray: **model only** (no page address loads a 20-technology test bundle, and a project names at most 15).
+
+Only your eye can judge (nothing here was judged from video):
+1. **The flight and the float** (unchanged from Task 12) now ending in a choice.
+2. **The lift**: does T1 rise root first and the tip curl over the top of the orb and hold it (P4)? The other arms lift rigidly (no traced shape of their own): do they read as reaching, or as stiff?
+3. **The wonder face**: the `curious` face with the head closing as the arm rises.
+4. **The tooltip**: placement beside the orb, the PLACEHOLDER badge, the lines.
+5. **The look of the chosen orb**: it grows 1.3x on a thread half as long. Its rim and halo go to her `orbFocus` lavender-white (#e4d9f8); the spec's soft *cyan* halo is not possible from her config (the halo takes the same focus colour; engine request). The other orbs dim 25% (engine constant), not the spec's about 20%.
+6. **Logos**: five of her orbs are blank (OpenAI, Next.js, PostgreSQL, AWS, Vector DB): the engine has no mark for them and no lettered fallback (an earlier note said there was one: there is not). Redis is red. Both need the engine (request below).
+7. **No arm "catch" dip on landing** (spec 7.5 flight table): still missing; it needs the engine.
+
+### Synapse effect (Task 20, Milestone 7): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether, Explore (or click her head), and watch inside the glass as it swells (and again closing). Stills (the head swell's time in seconds, `?freeze&swell=`, beside P3) in `docs/superpowers/evidence/aether/m7/t20-synapse-stills-vs-p3.webp`: 0.2 s (nothing yet), 0.5 s (progress 0.26: nodes waking), 0.72 s (0.45: lines wiring up from the bottom), 0.9 s (0.61: the wave reaches the crown), 1 s (0.70: the pulse, the whole network lit), and the settled overview (bare `?freeze`: no network, the dome as Task 11 left it).
+
+What is built: the engine's new `synapse` head effect (HEAD_EFFECTS, one points draw of 24 nodes and one line draw, nothing allocated per frame), with her colours (node `#c9d6ff`, line `#d99982`). The sheet's `effect` track is retimed to the flight, 0.2 to 1.35 s (it was Nox's 0.65 to 1.5 s). In effect progress: nodes wake 0 to 0.3, lines wire face to crown 0.3 to 0.65, one pulse peaks at 0.725, lines thin and nodes melt into the glass 0.8 to 1; the network is gone at progress 1, so the settled overview is exactly Task 11's (dome samples 7.1 / 8.2 / 3.9, all within 10). Closing runs at twice the speed.
+
+Verified by test: node and line opacity are 0 at progress 0 and 1; exactly one pulse peak, inside 0.65 to 0.8; a lower edge wires before a higher one; closing is twice as fast (the effect is gone when the swell is half undone) and a jump to a moment lands at once; no Float32Array is made in `update`; `dispose()` is idempotent; reduced motion is a crossfade (no wave, no pulse); Nox's glyphs fixtures are unchanged. Test-verified only, never seen: the closing at twice the speed, and the reduced-motion crossfade. The crossfade cannot show live at all today: with reduced motion the swell run returns the head simply open or closed (`restingSwell`), so the effect's progress is only ever 0 or 1 and nothing is drawn (see Engine follow-ups from Task 20).
+
+Only your eye can judge:
+1. **The nodes waking**: 24 small stars lighting at random through the glass: too many, too few, too small? (The size is `NODE_SIZE` in `synapse.ts`; 12 px at the overview.)
+2. **The gold wave rising**: lines grow from the lower node of each edge and the lower edges wire first. Are the lines thick enough (they are 1 px; WebGL draws no wider) and the colour right on the blue glass (a pink-gold, `#d99982`)?
+3. **The single pulse** just before the dome settles: brighter and bigger for about a tenth of a second at 1.1 s.
+4. **The dissolve into the sheen**: the nodes swell and fade while the lines thin out; does it land as the dome settles, with the project panel to come (Task 21)?
+5. **Early in the swell** (fix round 1): each node and line end now shows only once the dome's glass has formed round it (the glass's reveal), so none stands above the half-shell at 0.5 s. Check that the nodes appear inside the glass as it blooms rather than popping in.
+6. **Frame rate** (round 1: the swell-start stall was not A/B'd; it is left for Task 21's perf pass): settled overview at tier low 46.3 and 56.5 fps median under load; the live opening's window (2.5 s after Explore) read 42.9 and 62.1 fps median, with stalls in the first run (19 frames in 2.5 s). The stalls are not isolated to the effect (not measured with the effect off).
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -297,7 +338,7 @@ Please give the real names.
   - Paler, bluer, nearer and larger bells read further off (14.2 to 28.0). The blue cannot climb.
   - Wanted (optional, absent = today's look): `JellyfishConfig.glow` (a bell strength above 1, drawn with `toneMapped: false` so it can reach the bloom) and `JellyfishConfig.opacity` (today 0.75).
   - Target: P2's jellyfish bell sample (81, 155) within delta E 10, with her face glow still the brightest thing in frame.
-- **Tech focus shows the traced arm (Task 13).** `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
+- **Tech focus shows the traced arm (Task 13).** *Task 19: done by the arm lift with the satellite placement (engine commit `feat(engine): armLift works with the satellite placement (for Aether)`); the focus takes her techFocus head and face, and T1 lifts to the traced arm. T1's tip reads about 0.13 from P4_LIFT's, not 0.04.* `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
   - Wanted: the arm lift select (Veyra's `armLift`, spec 7.5) that blends the chosen arm to `poses.techFocus.arms[arm]` (root first, tip last, about 500 ms) and holds the orb under the curl, and the focus taking `poses.techFocus.headMorph`.
   - Target: on `?freeze&stage=techFocus&tech=openai` her T1 lies within 0.04 of `P4_LIFT` (poses.ts), the orb at `TECH_FOCUS_ORB` (-1.568, 0.387) grown 1.3x, the head closed; the P4 rim sample stays within dE 10.
 - **Open mouth shape and tongue (Task 4, Task 13).** `src/engine/character/mouthShape.ts` keeps the closed smile's curved top line and `FaceCanvas.ts` draws the tongue as an ellipse of 0.32 x the mouth's width in the bottom third of the opening.
@@ -307,7 +348,7 @@ Please give the real names.
   - Wanted: include `pose.body.yaw` in the facing.
 - **Phone composition (Task 13).** Spec 7.11 puts her in the upper screen on a phone; `fovFor` centres the frame, and the detail's sheet (`ProjectDetail`, portrait phone) covers her face (y 380 to 432 of 844).
   - Wanted: a per-stage phone offset (a lens shift that lifts her into the upper screen), and a detail sheet that stops below her face.
-- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
+- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** *Task 19: no longer affects Aether (her select is the arm lift, which lifts the arm the orb hangs from; the e2e test passes and its `test.fail` is gone). The hold's bug itself is still in the engine for worlds that hold (Nox): not fixed here.* `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
   - Wanted: pick the arm once the orbit point is written (or from the bubble's slot point when the orbit is unset), and re-pick if the hold's first pick was made from an unset point.
   - Measured on the real page (fix round 2, `tests/e2e/aether.spec.ts`, 1536 x 1024, frozen): the OpenAI orb button is 49 px from T4's drawn tip and 221 px or more from every other tip (T1's 459 px). The cause (the unset orbit point) is read from the code, not traced frame by frame.
   - Target: the e2e test "Aether tech focus, frozen: OpenAI is held near T1, the arm it hangs from [engine follow-up: ...]" is marked `test.fail` today; once the engine holds OpenAI on T1 it passes, Playwright reports it, and the `test.fail` line comes out. On the frozen still the orb then sits at T1's tip, clear of her face (the intended-pick model says 129 px at 509 x 504; model only).
@@ -364,3 +405,22 @@ Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same qu
 ## More engine follow-ups (from the merge reviews)
 
 - Validation gaps (latent, no world hits them): a `rotateZ`/`emissive` prop that names a placed piece (not an attached node) never moves and validateWorld accepts it; a `bob` prop must name a placed piece and must not also appear in `sequences.kitDrives` (the bob wins over the kit drive). Add both checks with tests.
+
+## Nox still gate residual: bisected, it is capture noise
+
+After the Veyra Task 18/19 merge (`0bf10f8`) one full still-gate run read the Nox `techFocus` face-box mean at 0.0317 (feat/nox-3d reads 0.0164 at Task 19). Bisected afterwards: the same Aether HEAD alone gives 0.0218, 0.0158 and 0.0180 across captures, and the variants with the suspect files (`orbMaterial.ts`, the far fish in `Water.tsx`, then TechBubbles, strategies, Octopus and the other shared Nox engine files) restored from feat/nox-3d give 0.0211 to 0.0213. Two captures of the same code differ as much as any pair of variants. So the 0.0317 was one noisy capture; nothing in Aether's engine work moves Nox pixels. Every run passes the floor (face box 0.05 mean, 0.05% over 8). Details: `.superpowers/sdd/2026-11-03-aether-world/nox-residual-report.md`.
+
+## Engine follow-ups from Task 19 (technologies live)
+
+- **Logo marks and a fallback.** `LOGO_SLUGS` (`src/engine/artifacts/logoTexture.ts`) has no mark for OpenAI, Next.js, PostgreSQL, AWS or Vector DB (React has one), and a missing mark draws nothing: there is no lettered fallback. A world cannot name a slug, a colour or a fallback letter per technology.
+  - Wanted: marks for those five (simple-icons has `siOpenai`, `siNextdotjs`, `siPostgresql`, `siAmazonwebservices`; none for "Vector DB"), a lettered fallback for a key with no mark, and an optional per-technology logo colour override (spec 2.3: Redis's red on her lavender glass; owner's call whether to recolour).
+- **A cyan focus halo.** `createOrbHaloMaterial` takes the palette's `orbFocus` for both the rim and the halo. Spec 7.5 wants a lavender-white rim and a soft cyan halo. Wanted: an optional `palette.orbFocusHalo` (for Aether about `#9ad8ff`).
+- **Dimming of the other orbs.** `TechBubbles.tsx` dims the unchosen orbs by a fixed 25%; spec 7.5 says about 20%. Wanted: an optional `select.dim` (0.2 for Aether), default 0.25.
+- **Arm "catch" on landing (spec 7.5 flight table, assigned to Task 19 by the Task 12 review).** Not doable as Aether data: the arms' rests come from the stage pose; nothing lets a placement nudge an arm when an orb lands. Wanted: the satellite driver reports each orb's landing moment (it already knows `arrive[i]`), and Octopus dips that orb's slot arm by a small amount (about 0.04 down at the slot, 150 ms down, 300 ms back) with the personality's settle.
+- **Twenty-technology e2e.** A project names at most `MAX_PRIMARY_TECHNOLOGIES` (15) and no page address loads a test bundle, so "20 technologies put 4 in the tray" is a model test (`src/worlds/aether/artifacts.test.ts`). Wanted, if the page test matters: a development-only `?testworld=aether-20` (like `nox-b`) with a validated 20-technology project.
+- **Non-traced arms lift rigidly.** Only T1 has a traced lift (P4). The other arms turn rigidly about their root by up to 0.9 rad (`armLiftTarget`), with no tip curl over the orb. Wanted (owner's call after the live look): a generic curl for untraced lifts, or traced lifts for T8, T2, T7.
+
+## Engine follow-ups from Task 20 (synapse effect)
+
+- **Reduced motion never shows the synapse crossfade (review gap A).** The effect's crossfade is built and tested (`createSynapse(..., { reducedMotion: true })`), but under reduced motion `SwellRun` returns `restingSwell(open)`, so `sf.effect` is only 0 or 1 and the effect draws nothing (it is dissolved at 1). Wanted, the engine owner's call: either the swell sheet runs a short ramp of `effect` under reduced motion (a crossfade of about 0.4 s while the dome itself still cuts), or the spec's "the effect becomes a crossfade" is read as "the effect is simply absent" and the crossfade code is dropped. Until then it is test-verified only.
+- **Scrubbing is told from playing by speed.** The 2x closing applies only while the effect's progress moves at a playing pace on the effect's clock (at most 2 a second, the clock advancing under 1 s a frame); a faster change, or a clock held at 0, shows the swell's own progress. A slow hand scrub backwards in the Theatre studio would still read as closing at 2x. Wanted if that matters: the swell run passes the effect a `playing` flag with the frame.

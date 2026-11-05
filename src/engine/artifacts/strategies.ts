@@ -13,6 +13,7 @@ import { type ArmReader, type PendantLive, type PendantPlace, createPendantRun, 
 import { SatelliteRing } from './SatelliteRing';
 import { type FlightLook, layoutSatellite, satelliteCapacity, satelliteDriver, satellitePoint } from './satellite';
 import { HOLD_BEATS, HoldChoreography, nearestArm, pullPosition } from './suctionHold';
+import { type TwinkleState, twinkleFrame, twinkleLength } from './twinkle';
 
 // The artifact strategies (spec 9.2): where a world's artifacts sit (placement), how they appear
 // once the entrance has settled (appear) and how one is chosen (select). Each is a closed table
@@ -37,6 +38,11 @@ export interface PlacementFormFrame {
   still: boolean;
   /** The visitor asked for reduced motion (not only a still): a flight between forms is a crossfade. */
   reducedMotion?: boolean;
+  /**
+   * How far the ring has formed, for an appear that forms it (`twinkle`; see AppearModule.ring), written
+   * by the character each frame; absent, the form is drawn whole, as it always was.
+   */
+  twinkle?: TwinkleState;
 }
 
 /** A placement's own drawing, beside the artifacts: its config, its frame, the orb glass's surroundings and the head it sits round. */
@@ -234,6 +240,12 @@ export interface AppearModule {
   frame(sequences: Sequences, i: number, seconds: number, count: number, config: AppearContext): AppearFrame;
   /** The artifact's place `emerged` (0 to 1) of the way from `origin` to its path point `target`, written into `out`. */
   position(origin: Vec3, target: THREE.Vector3, emerged: number, out: THREE.Vector3): THREE.Vector3;
+  /**
+   * For an appear that forms the placement's own drawing (the twinkle: the satellite's ring), how far it has
+   * formed `seconds` into the appearance (`sequences` null: the sheet is not in yet, so at the start). The
+   * blow and the bloom form no ring and have none: the ring is then drawn whole.
+   */
+  ring?(sequences: Sequences | null, seconds: number, config: AppearContext, out?: TwinkleState): TwinkleState;
 }
 
 /** The blow (design 9.8): the character blows its artifacts from its mouth, one after another. */
@@ -262,7 +274,29 @@ const bloomAppear = {
   position: bloomPosition,
 } as const satisfies AppearModule;
 
-export const APPEARS = { blow: blowAppear, bloom: bloomAppear } as const;
+/** What a twinkle's artifacts do: nothing. They are at their places throughout, as the ring forms (the beads are the ring's). */
+const IN_PLACE: AppearFrame = { puff: 0, mouthRound: 0, emerged: 1, scale: 1, wobble: 0 };
+
+/**
+ * The twinkle (spec 7.5, "The ring forming"; artifacts/twinkle.ts): the satellite's ring forms. The gold
+ * line draws round the head in about 0.6 s, then the five beads light one after another over about 0.8
+ * s, `appear.duration` (1.4 s) in all. It plays the world's `twinkle` sheet (G5); the run lasts the
+ * duration. No artifact moves, grows or puffs a cheek: only the ring's form reads it.
+ */
+const twinkleAppear = {
+  sheet: 'twinkle',
+  createRun: (config?: AppearContext) => {
+    const length = twinkleLength(config?.appear.kind === 'twinkle' ? config.appear.duration : undefined);
+    return new BlowRun(() => length);
+  },
+  origin: (): Vec3 => [0, 0, 0],
+  frame: (_sequences: Sequences, _i: number, _seconds: number, _count: number, _config: AppearContext): AppearFrame => IN_PLACE,
+  position: (_origin: Vec3, target: THREE.Vector3, _emerged: number, out: THREE.Vector3): THREE.Vector3 => out.copy(target),
+  ring: (sequences: Sequences | null, seconds: number, config: AppearContext, out?: TwinkleState): TwinkleState =>
+    twinkleFrame(sequences, seconds, config.placement.kind === 'satellite' ? config.placement.ring.beadCount : 0, config.appear.kind === 'twinkle' ? config.appear.duration : undefined, out),
+} as const satisfies AppearModule;
+
+export const APPEARS = { blow: blowAppear, bloom: bloomAppear, twinkle: twinkleAppear } as const;
 export type AppearId = keyof typeof APPEARS;
 
 // --- Select ----------------------------------------------------------------------------------
@@ -371,6 +405,9 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const kindsMatch: [Same<AppearConfig['kind'], AppearId>, Same<SelectConfig['kind'], SelectId>] = [true, true];
 void kindsMatch;
 
+// An accepted exception to "no module-level state" (Task 19 review): a cache of derived data only,
+// keyed by the world's poses object and held weakly, so it never outlives a bundle and never carries
+// one instance's state into another (the same poses give the same focus pose).
 const focusPoses = new WeakMap<object, Map<ChoosingStage, StagePose>>();
 
 /**

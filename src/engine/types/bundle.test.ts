@@ -412,6 +412,45 @@ test('a bloom needs its sheet, and the bloom and the arm lift need a placement t
   expect('bloom' in NOX_BUNDLE.sequences.defaults).toBe(false);
 });
 
+test("the arm lift works with the satellite's active form (Aether), not with its ring alone", () => {
+  const ring = { radius: 1.25, tilt: 1.36, roll: 0.14, centreY: -0.28, beadCount: 5, beadSize: 0.075, homes: [1.3, 2.2, 3.1, 4.1, 5], sway: { amplitude: 0.21, period: [6, 9] }, keepOut: Math.PI / 4, line: { color: '#d99982', width: 1.4, constellation: '#d99982', flicker: 0.5 }, beads: { glass: '#93699a', rim: '#d99982', lit: [1, 3] } };
+  const slots = ARM_IDS.flatMap((arm, i) => [{ arm, at: 0.9, order: 2 * i }, { arm, at: 0.5, order: 2 * i + 1 }]);
+  const active = { kind: 'satellite', ring, slots: { overview: slots }, sizes: { overview: 0.3 }, tether: { length: 0.16, color: '#d99982', width: 0.012, sag: 0.2, cap: '#d99982' } };
+  const lift = { kind: 'armLift', ease: 0.5, scale: 1.3, threadShorten: 0.5 };
+  const withSatellite = (placement: unknown, select: unknown = lift): WorldBundle => ({ ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, placement, select } as WorldBundle['artifacts'] });
+  expect(() => validateBundle(withSatellite(active))).not.toThrow();
+  expect(refusal(withSatellite({ kind: 'satellite', ring })).field).toBe('artifacts.select.kind');
+  expect(refusal(withSatellite(active, { ...lift, threadShorten: 1 })).field).toBe('artifacts.select.threadShorten');
+  // The orbit placement still has no arm to lift.
+  expect(refusal(withSatellite(NOX_BUNDLE.artifacts.placement)).field).toBe('artifacts.select.kind');
+});
+
+// --- The twinkle (Aether's appear): the ring forms --------------------------------------------
+
+/** Nox's bundle with a ring-only satellite placement, the twinkle and a twinkle sheet; `edit`ed. */
+function withTwinkle(edit: (artifacts: Record<string, any>, defaults: Record<string, unknown>) => void = () => {}): WorldBundle {
+  const ring = { radius: 1.25, tilt: 1.36, roll: 0.14, centreY: -0.28, beadCount: 5, beadSize: 0.075, homes: [1.3, 2.2, 3.1, 4.1, 5], sway: { amplitude: 0.21, period: [6, 9] }, keepOut: Math.PI / 4, line: { color: '#d99982', width: 1.4, constellation: '#d99982', flicker: 0.5 }, beads: { glass: '#93699a', rim: '#d99982', lit: [1, 3] } };
+  const artifacts: Record<string, any> = { ...NOX_BUNDLE.artifacts, placement: { kind: 'satellite', ring }, appear: { kind: 'twinkle', duration: 1.4 } };
+  const defaults: Record<string, unknown> = { ...NOX_BUNDLE.sequences.defaults, twinkle: { length: 1.4, objects: { main: { props: { clock: 0 }, keys: { clock: [[0, 0], [1.4, 1]] } } } } };
+  edit(artifacts, defaults);
+  return { ...NOX_BUNDLE, artifacts: artifacts as never, sequences: { ...NOX_BUNDLE.sequences, defaults: defaults as never } };
+}
+
+test('the twinkle validates with its duration and its sheet, and needs the satellite placement', () => {
+  expect(() => validateBundle(withTwinkle())).not.toThrow();
+  expect(refusal(withTwinkle(a => { a.placement = NOX_BUNDLE.artifacts.placement; })).field).toBe('artifacts.appear.kind');
+  for (const duration of [0, -1, 11, Number.NaN]) expect(refusal(withTwinkle(a => { a.appear.duration = duration; })).field, String(duration)).toBe('artifacts.appear.duration');
+  expect(refusal(withTwinkle(a => { delete a.appear.duration; })).field).toBe('artifacts.appear.duration');
+});
+
+test('a bundle that names the twinkle without a twinkle sheet is refused, naming the sheet', () => {
+  const refused = refusal(withTwinkle((_, d) => { delete d.twinkle; }));
+  expect(refused.field).toBe('sequences.defaults.twinkle');
+  expect(refused.message).toContain('twinkle');
+  // Nox and Veyra's own sets name no twinkle and have none.
+  expect('twinkle' in NOX_BUNDLE.sequences.defaults).toBe(false);
+});
+
 // --- Task 16: the personality's motion variants (engine contract 14.1) -------------------------
 
 /** Nox's bundle with these personality fields. */

@@ -26,13 +26,14 @@ import { type BlowSheet, bubblesExist } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
-import { debugWindow, report, reportObject } from '../host/debugHooks';
+import { debugWindow, report, reportNew, reportObject } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
 import { APPEARS, type PlacementFormFrame, SELECTS, holdModule, placementOf } from '../artifacts/strategies';
 import { type ArmTarget, busyWeight, liftWeightAt } from '../artifacts/armLift';
 import { layoutPendants } from '../artifacts/pendant';
+import { satellitePlaces } from '../artifacts/satellite';
 import { ArmChain, type ArmRest, restFromCurve } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -267,7 +268,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // The arm lift (artifacts/armLift.ts; Veyra): a chosen pendant's own arm lifts it. Which arm that is
   // follows the stage's slots (the same arm in both stages); its lifted shape is worked out once a
   // choice, then the arm's rest is blended toward it joint by joint each frame, root first.
-  const liftSlots = useMemo(() => (artifacts.placement.kind === 'pendant' ? { intro: layoutPendants(orbs.length, artifacts.placement, 'intro'), overview: layoutPendants(orbs.length, artifacts.placement, 'overview') } : null), [artifacts, orbs]);
+  // The satellite (Aether) hangs its technologies in its active form, one set of slots for every stage.
+  const liftSlots = useMemo(() => {
+    const { placement } = artifacts;
+    if (placement.kind === 'pendant') return { intro: layoutPendants(orbs.length, placement, 'intro'), overview: layoutPendants(orbs.length, placement, 'overview') };
+    if (placement.kind !== 'satellite') return null;
+    const places = satellitePlaces(placement, orbs.length);
+    return { intro: places, overview: places };
+  }, [artifacts, orbs]);
   const armLift = useMemo(() => {
     if (select.mode !== 'lift' || artifacts.select.kind !== 'armLift') return null;
     return {
@@ -378,9 +386,10 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // open head the overview shows, not the closed one.
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
-  // The head swell's effect (HEAD_EFFECTS; Nox's: glowing red glyphs over the dome); 'none' draws the
+  // The head swell's effect (HEAD_EFFECTS; Nox's: glowing red glyphs over the dome, Aether's: a synapse
+  // network in the glass, a crossfade with reduced motion); 'none' draws the
   // dome alone, and so does a silhouette capture, where an effect would read as shape.
-  const effect = useMemo(() => (silhouette ? null : HEAD_EFFECTS[config.headEffect ?? 'none'].create(config.dome, config.palette)), [config, silhouette]);
+  const effect = useMemo(() => (silhouette ? null : HEAD_EFFECTS[config.headEffect ?? 'none'].create(config.dome, config.palette, { reducedMotion })), [config, silhouette, reducedMotion]);
   useEffect(() => () => effect?.dispose(), [effect]);
 
   const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
@@ -453,7 +462,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     rest: 0,
     breathPhase: 0,
     // The entrance's clock (seconds of frame time from its first frame; null until the sheet is in) and the wait for its sheet.
-    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
+    entrance: { entered: false, seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
     // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
     glowShown: 1,
     // The micro-animations (motion/micro.ts): seconds since each began (Infinity: not playing), on
@@ -539,6 +548,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     let hidden = false;
     if (stage === 'entering') {
       const e = m.entrance;
+      e.entered = true;
       const sheet = entranceSheet?.sequences ?? null;
       const step = Math.min(delta, ENTRANCE_MAX_STEP);
       if (!sheet) {
@@ -694,7 +704,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
     // Swimming in, Nox looks where he is going.
-    const gaze = (freeze && !fixed && !rest) || stage === 'entering'
+    // Reduced motion holds the idle look-around too (it turns the whole body a little, and a pendant with it), unless the pointer is there to follow.
+    const gazeHeld = freeze || (reducedMotion && !m.pointerInside);
+    const gaze = (gazeHeld && !fixed && !rest) || stage === 'entering'
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined, wanderNdc ? { x: wanderNdc.x, y: wanderNdc.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
@@ -807,10 +819,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
+    // Skipped: it was entered and has not run its course, yet the stage is past it (a still or a return visit never entered).
+    bubbleState.skipped = m.entrance.entered && !m.entrance.done;
     placementFrame.stage = stage;
     placementFrame.swell = sf.push;
     placementFrame.still = freeze || reducedMotion;
     placementFrame.reducedMotion = reducedMotion;
+    // How far the ring has formed, as the bubbles' appear writes it (absent: drawn whole).
+    placementFrame.twinkle = bubbleState.twinkle;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
     // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it
@@ -852,6 +868,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const place = selected >= 0 && liftSlots ? liftSlots[bubbleState.stage][selected] ?? liftSlots.overview[selected] ?? liftSlots.intro[selected] : null;
       armLift.choreography.choose(selected >= 0 ? selected : null, holdStill ? 0 : now, reducedMotion || (freeze && !holdStill), place?.slot.arm);
       const lifts = armLift.choreography.sample(holdStill ? holdAt : now);
+      // The lift as the development build reports it, for the end-to-end tests (`window.__octoverse.lift`): which arm lifts which technology, and how far its tip is.
+      if (probe) reportNew(instance, 'lift', lifts.map(f => ({ techId: orbs[f.bubble].techId, arm: f.arm, releasing: f.releasing, tip: liftWeightAt(f, 1, armLift.easeMs, settleScale(personality)) })));
       forgetTargets(armLift.targets, lifts);
       for (let k = 0; k < lifts.length; k++) {
         const f = lifts[k];
@@ -924,9 +942,13 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const inward = inwardSign(swimPoses.bodyX, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
       chain.solve({
         time: t,
+        // The arm's slow depth wave shifts a pendant on the page by a few pixels: still under reduced motion (the clock of a frozen view).
+        depthTime: reducedMotion ? 0 : t,
         sway: moving * personality.sway * (1 - 0.6 * w),
-        curl: live * personality.curl,
-        droop: drift.vy * live * 2.2 + liftSpeed * 0.4,
+        // The tip curl runs on time, so reduced motion stills it as it does the sway (`moving`; with motion on `moving` is `live`).
+        curl: moving * personality.curl,
+        // The same for the trail against the float's speed: the float is still under reduced motion, so its speed must not drag the arms.
+        droop: drift.vy * moving * 2.2 + liftSpeed * 0.4,
         flare: moving * inward * (flinch.armsIn - wiggle.armWave),
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,

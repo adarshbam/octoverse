@@ -150,9 +150,9 @@ test("the authored tech focus target (Task 19's arm lift, not drawn today): its 
 // from the rig's tips, the bubble's orbit point and her head box), turned toward the orbit by HOLD_ARM
 // and lifted. This is a model of the hold as intended, with the bubble at its true place: at rest (her
 // drawn overview arms), the orb grown 1.3x (spec 7.5) and held offTip radii past the tip along the
-// arm's last segments. Least margin 37.9 px (the phone; model only). It is NOT the frozen render: today
-// the page holds OpenAI on T4, about 10 px off her face at 509 x 504 (an engine bug; the expected
-// failure in tests/e2e/aether.spec.ts drives the real hold path and names the engine follow-up).
+// arm's last segments. Least margin 37.9 px (the phone; model only). Since Task 19 the page does not
+// use the hold: her select is the arm lift (the orb's own arm lifts it; tests/e2e/aether.spec.ts drives
+// it on the page). The model stays as the hold-pick check for any world placing her orbs this way.
 const hold = SELECTS.suctionHold;
 const HEAD_BOX: Box = { x0: AETHER.head.centerX - AETHER.head.halfWidth, y0: AETHER.head.bottom, x1: AETHER.head.centerX + AETHER.head.halfWidth, y1: AETHER.head.top };
 const OVERVIEW_DRAWN = drawnArms(AETHER_POSES.overview);

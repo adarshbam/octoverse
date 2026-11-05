@@ -3,9 +3,9 @@ import { VEYRA } from './character';
 
 // Veyra's artifacts as data for the engine's strategy tables (artifacts/strategies.ts). Her
 // technologies are glass orbs hung as pendants on short glowing threads from her arms (spec 7.5):
-// the engine's `pendant` placement. Until Task 19 gives her the bloom and the arm lift, the engine's
-// `blow` appearance and `suctionHold` choice stand in (a pendant is blown from her mouth to its
-// place, and a chosen one is drawn to the nearest arm's tip).
+// the engine's `pendant` placement. They appear by the engine's `bloom` (each grows out of a cup on
+// its arm, top arms first) and are chosen by its `armLift` (the pendant's own arm lifts it, the orb
+// growing and glowing on a shorter thread; Task 19).
 
 /** Arms from the top of her down, left then right: the order each pass of slots goes in (spec 7.5: the most important technologies sit on the top arms). */
 const TOP_DOWN: readonly ArmId[] = ['T1', 'T8', 'T2', 'T7', 'T3', 'T6', 'T4', 'T5'];
@@ -64,8 +64,9 @@ export const VEYRA_ARTIFACTS: ArtifactConfig & { placement: PendantPlacement } =
     // A short cyan thread (her wet-skin highlight) that bows a little, ending in a cream-gold cap (her cups' cream): 0.03 long, so the orb hangs snug under the arm, and 0.02 wide so it reads.
     tether: { length: 0.03, color: VEYRA.palette.wet, width: 0.02, sag: 0.12, cap: VEYRA.palette.suckerBody },
   },
-  // Until the bloom and the arm lift (Task 19): the blow and the suction hold.
-  appear: { kind: 'blow' },
-  select: { kind: 'suctionHold' },
+  // Spec 7.5: the bloom over about 1.2 s in all (no `reveal`: the bloom's own ripple); the arm lift
+  // over about 450 ms, the chosen orb 1.25x, its thread 30% shorter.
+  appear: { kind: 'bloom', duration: 1.2 },
+  select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 },
   choosableIn: ['intro', 'overview'],
 };

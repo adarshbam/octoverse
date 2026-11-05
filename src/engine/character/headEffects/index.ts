@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { DomeShape, Palette } from '../../config/types';
 import type { HeadDraw } from '../../sequences/headSwell';
 import { glyphsEffect } from './glyphs';
+import { synapseEffect } from './synapse';
 
 // The head effects a character's swell can carry (design 9.9, spec 9.1): a closed table inside the
 // engine. Adding one is a module, an entry below and a test; the id union follows the table, and
@@ -23,9 +24,15 @@ export interface HeadEffectRuntime {
   dispose(): void;
 }
 
+/** What the caller tells an effect when it builds it. */
+export interface HeadEffectOptions {
+  /** Reduced motion: an effect that moves (Aether's synapse wave) becomes a plain crossfade. */
+  reducedMotion?: boolean;
+}
+
 export interface HeadEffectModule {
-  /** Builds the effect's meshes once per character config. */
-  create(dome: DomeShape, palette: Palette): HeadEffectRuntime;
+  /** Builds the effect's meshes once per character config (and per motion setting). */
+  create(dome: DomeShape, palette: Palette, options?: HeadEffectOptions): HeadEffectRuntime;
 }
 
 /** `'none'`: the dome alone, as approved. */
@@ -33,7 +40,7 @@ const noneEffect: HeadEffectModule = {
   create: () => ({ root: null, update() {}, dispose() {} }),
 };
 
-export const HEAD_EFFECTS = { none: noneEffect, glyphs: glyphsEffect } as const;
+export const HEAD_EFFECTS = { none: noneEffect, glyphs: glyphsEffect, synapse: synapseEffect } as const;
 
-/** The head effects a config can name: `'none'` and Nox's `'glyphs'`. */
+/** The head effects a config can name: `'none'`, Nox's `'glyphs'` and Aether's `'synapse'`. */
 export type HeadEffectId = keyof typeof HEAD_EFFECTS;
