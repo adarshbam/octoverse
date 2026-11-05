@@ -691,7 +691,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
     // Swimming in, Nox looks where he is going.
-    const gaze = (freeze && !fixed && !rest) || stage === 'entering'
+    // Reduced motion holds the idle look-around too (it turns the whole body a little, and a pendant with it), unless the pointer is there to follow.
+    const gazeHeld = freeze || (reducedMotion && !m.pointerInside);
+    const gaze = (gazeHeld && !fixed && !rest) || stage === 'entering'
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
       : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
@@ -914,9 +916,13 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const inward = inwardSign(swimPoses.bodyX, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
       chain.solve({
         time: t,
+        // The arm's slow depth wave shifts a pendant on the page by a few pixels: still under reduced motion (the clock of a frozen view).
+        depthTime: reducedMotion ? 0 : t,
         sway: moving * personality.sway * (1 - 0.6 * w),
-        curl: live * personality.curl,
-        droop: drift.vy * live * 2.2 + liftSpeed * 0.4,
+        // The tip curl runs on time, so reduced motion stills it as it does the sway (`moving`; with motion on `moving` is `live`).
+        curl: moving * personality.curl,
+        // The same for the trail against the float's speed: the float is still under reduced motion, so its speed must not drag the arms.
+        droop: drift.vy * moving * 2.2 + liftSpeed * 0.4,
         flare: moving * inward * (flinch.armsIn - wiggle.armWave),
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
