@@ -57,7 +57,7 @@ const worldCode = (module: string, only?: readonly string[]) => {
 describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)', () => {
   beforeAll(() => {
     const vite = join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
-    const run = spawnSync(process.execPath, [vite, 'build', '--outDir', OUT, '--emptyOutDir', '--sourcemap', '--manifest', '--logLevel', 'warn'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const run = spawnSync(process.execPath, [vite, 'build', '--outDir', OUT, '--emptyOutDir', '--sourcemap', '--manifest', '--logLevel', 'warn'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, NODE_ENV: 'production' } });
     if (run.status !== 0) throw new Error(`vite build failed (${run.status}):\n${run.stdout}\n${run.stderr}`);
     expect(existsSync(join(OUT, '.vite', 'manifest.json'))).toBe(true);
     manifest = JSON.parse(readFileSync(join(OUT, '.vite', 'manifest.json'), 'utf8'));
@@ -111,6 +111,19 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
       expect(key, `${src} is a dynamic entry`).toBeDefined();
       expect(landing.has(key!), src).toBe(false);
     }
+  });
+
+  // Vitest runs with NODE_ENV=test, which a child `vite build` would inherit: that makes `import.meta.env.DEV` true and the build a
+  // development one (jsxDEV, the dev-only branches kept). The build above sets NODE_ENV=production, so this proves the real thing.
+  it('the build is a production build: the dev-only branches are gone (the creator review entry, Theatre studio, the world switcher)', () => {
+    const chunks = Object.values(manifest).map(chunk => join(OUT, chunk.file));
+    const text = chunks.filter(file => file.endsWith('.js')).map(file => readFileSync(file, 'utf8'));
+    expect(text.length).toBeGreaterThan(10);
+    expect(text.some(code => code.includes('jsxDEV'))).toBe(false);
+    // Strings survive minification where names do not: the review bundle's id and the review address's parameter value.
+    expect(text.filter(code => code.includes('u-review')), 'the creator review bundle (u-review) is not in any chunk').toEqual([]);
+    expect(text.filter(code => code.includes('creatorReviewBundle')), 'creatorReviewBundle is not in any chunk').toEqual([]);
+    expect(modulesOf(Object.keys(manifest)), 'its module is in no chunk').not.toContain('src/platform/creator/review.ts');
   });
 
   it("a world's chunks hold no other world's code (each world and its kit are separate chunks)", () => {
