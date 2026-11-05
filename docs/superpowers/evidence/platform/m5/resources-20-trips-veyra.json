@@ -26,24 +26,24 @@
       "error": 1,
       "unhandledrejection": 1
     },
-    "perfHeap": 66863425,
-    "cdpHeap": 21763396
+    "perfHeap": 67457561,
+    "cdpHeap": 21813704
   },
   "rows": [
     {
       "trip": 1,
       "world": "veyra",
-      "ms": 15351,
+      "ms": 12674,
       "midAttached": [
         0,
         1,
         1,
-        1
+        0
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 9,
+        "made": 10,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -67,14 +67,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 82735108,
-        "cdpHeap": 26610408
+        "perfHeap": 73119922,
+        "cdpHeap": 25967716
       }
     },
     {
       "trip": 2,
       "world": "veyra",
-      "ms": 5812,
+      "ms": 4663,
       "midAttached": [
         0,
         1,
@@ -84,7 +84,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 17,
+        "made": 18,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -108,24 +108,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 86971842,
-        "cdpHeap": 28454764
+        "perfHeap": 77092566,
+        "cdpHeap": 29348284
       }
     },
     {
       "trip": 3,
       "world": "veyra",
-      "ms": 5845,
+      "ms": 6562,
       "midAttached": [
         0,
         1,
         1,
-        0
+        1
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 25,
+        "made": 26,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -149,24 +149,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 96611354,
-        "cdpHeap": 30934328
+        "perfHeap": 83850014,
+        "cdpHeap": 30412356
       }
     },
     {
       "trip": 4,
       "world": "veyra",
-      "ms": 19327,
+      "ms": 6442,
       "midAttached": [
         0,
         1,
         1,
-        0
+        1
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 33,
+        "made": 34,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -190,24 +190,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 105925767,
-        "cdpHeap": 32376352
+        "perfHeap": 85408910,
+        "cdpHeap": 31449404
       }
     },
     {
       "trip": 5,
       "world": "veyra",
-      "ms": 5920,
+      "ms": 7132,
       "midAttached": [
         0,
         1,
         1,
-        1
+        0
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 41,
+        "made": 42,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -231,24 +231,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 119723169,
-        "cdpHeap": 33576640
+        "perfHeap": 82433517,
+        "cdpHeap": 33062728
       }
     },
     {
       "trip": 6,
       "world": "veyra",
-      "ms": 5214,
+      "ms": 7247,
       "midAttached": [
         0,
         1,
         1,
-        0
+        1
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 49,
+        "made": 50,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -272,14 +272,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 123887671,
-        "cdpHeap": 35651040
+        "perfHeap": 89312607,
+        "cdpHeap": 34291412
       }
     },
     {
       "trip": 7,
       "world": "veyra",
-      "ms": 5967,
+      "ms": 7952,
       "midAttached": [
         0,
         1,
@@ -289,7 +289,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 57,
+        "made": 58,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -313,14 +313,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 132979003,
-        "cdpHeap": 36923064
+        "perfHeap": 86173833,
+        "cdpHeap": 35903948
       }
     },
     {
       "trip": 8,
       "world": "veyra",
-      "ms": 4834,
+      "ms": 6684,
       "midAttached": [
         0,
         1,
@@ -330,7 +330,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 65,
+        "made": 66,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -354,24 +354,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 141942091,
-        "cdpHeap": 38361044
+        "perfHeap": 88030049,
+        "cdpHeap": 37058688
       }
     },
     {
       "trip": 9,
       "world": "veyra",
-      "ms": 5962,
+      "ms": 9655,
       "midAttached": [
         0,
         1,
         1,
-        0
+        1
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 73,
+        "made": 76,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -395,14 +395,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 150939715,
-        "cdpHeap": 39909576
+        "perfHeap": 96277299,
+        "cdpHeap": 39150724
       }
     },
     {
       "trip": 10,
       "world": "veyra",
-      "ms": 4711,
+      "ms": 5141,
       "midAttached": [
         0,
         1,
@@ -412,7 +412,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 81,
+        "made": 86,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -436,14 +436,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 159916155,
-        "cdpHeap": 41391436
+        "perfHeap": 93803389,
+        "cdpHeap": 40069092
       }
     },
     {
       "trip": 11,
       "world": "veyra",
-      "ms": 5661,
+      "ms": 7154,
       "midAttached": [
         0,
         1,
@@ -453,7 +453,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 89,
+        "made": 94,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -477,24 +477,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 168885227,
-        "cdpHeap": 42874144
+        "perfHeap": 95066689,
+        "cdpHeap": 41697732
       }
     },
     {
       "trip": 12,
       "world": "veyra",
-      "ms": 6109,
+      "ms": 34961,
       "midAttached": [
         0,
         1,
         1,
-        0
+        1
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 99,
+        "made": 102,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -518,14 +518,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 178618663,
-        "cdpHeap": 44560256
+        "perfHeap": 101994075,
+        "cdpHeap": 42784008
       }
     },
     {
       "trip": 13,
       "world": "veyra",
-      "ms": 4337,
+      "ms": 7340,
       "midAttached": [
         0,
         1,
@@ -535,7 +535,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 107,
+        "made": 110,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -559,14 +559,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 187582039,
-        "cdpHeap": 46014240
+        "perfHeap": 98412609,
+        "cdpHeap": 43731944
       }
     },
     {
       "trip": 14,
       "world": "veyra",
-      "ms": 4837,
+      "ms": 6412,
       "midAttached": [
         0,
         1,
@@ -576,7 +576,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 115,
+        "made": 118,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -600,24 +600,24 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 196501995,
-        "cdpHeap": 47389976
+        "perfHeap": 100330657,
+        "cdpHeap": 45102828
       }
     },
     {
       "trip": 15,
       "world": "veyra",
-      "ms": 7386,
+      "ms": 8010,
       "midAttached": [
         0,
         1,
         1,
-        1
+        0
       ],
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 123,
+        "made": 128,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -641,137 +641,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 211181889,
-        "cdpHeap": 49453596
+        "perfHeap": 102954561,
+        "cdpHeap": 46921660
       }
     },
     {
       "trip": 16,
       "world": "veyra",
-      "ms": 6250,
-      "midAttached": [
-        0,
-        1,
-        1,
-        0
-      ],
-      "after": {
-        "held": 1,
-        "attached": 1,
-        "made": 131,
-        "listeners": 28,
-        "byType": {
-          "popstate": 1,
-          "__playwright_global_listeners_check__": 1,
-          "mousemove": 1,
-          "pointerdown": 3,
-          "pointerup": 1,
-          "touchstart": 2,
-          "touchend": 1,
-          "touchcancel": 1,
-          "mousedown": 1,
-          "mouseup": 1,
-          "click": 1,
-          "auxclick": 1,
-          "dblclick": 1,
-          "contextmenu": 1,
-          "error": 1,
-          "unhandledrejection": 1,
-          "scroll": 1,
-          "resize": 5,
-          "keydown": 2,
-          "pointermove": 1
-        },
-        "perfHeap": 214471675,
-        "cdpHeap": 50337516
-      }
-    },
-    {
-      "trip": 17,
-      "world": "veyra",
-      "ms": 5755,
-      "midAttached": [
-        0,
-        1,
-        1,
-        0
-      ],
-      "after": {
-        "held": 1,
-        "attached": 1,
-        "made": 139,
-        "listeners": 28,
-        "byType": {
-          "popstate": 1,
-          "__playwright_global_listeners_check__": 1,
-          "mousemove": 1,
-          "pointerdown": 3,
-          "pointerup": 1,
-          "touchstart": 2,
-          "touchend": 1,
-          "touchcancel": 1,
-          "mousedown": 1,
-          "mouseup": 1,
-          "click": 1,
-          "auxclick": 1,
-          "dblclick": 1,
-          "contextmenu": 1,
-          "error": 1,
-          "unhandledrejection": 1,
-          "scroll": 1,
-          "resize": 5,
-          "keydown": 2,
-          "pointermove": 1
-        },
-        "perfHeap": 223344555,
-        "cdpHeap": 51913692
-      }
-    },
-    {
-      "trip": 18,
-      "world": "veyra",
-      "ms": 6406,
-      "midAttached": [
-        0,
-        1,
-        1,
-        0
-      ],
-      "after": {
-        "held": 1,
-        "attached": 1,
-        "made": 147,
-        "listeners": 28,
-        "byType": {
-          "popstate": 1,
-          "__playwright_global_listeners_check__": 1,
-          "mousemove": 1,
-          "pointerdown": 3,
-          "pointerup": 1,
-          "touchstart": 2,
-          "touchend": 1,
-          "touchcancel": 1,
-          "mousedown": 1,
-          "mouseup": 1,
-          "click": 1,
-          "auxclick": 1,
-          "dblclick": 1,
-          "contextmenu": 1,
-          "error": 1,
-          "unhandledrejection": 1,
-          "scroll": 1,
-          "resize": 5,
-          "keydown": 2,
-          "pointermove": 1
-        },
-        "perfHeap": 232272627,
-        "cdpHeap": 53103544
-      }
-    },
-    {
-      "trip": 19,
-      "world": "veyra",
-      "ms": 7903,
+      "ms": 24975,
       "midAttached": [
         0,
         1,
@@ -781,7 +658,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 157,
+        "made": 136,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -805,14 +682,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 247593553,
-        "cdpHeap": 55350520
+        "perfHeap": 109789763,
+        "cdpHeap": 48139144
       }
     },
     {
-      "trip": 20,
+      "trip": 17,
       "world": "veyra",
-      "ms": 4598,
+      "ms": 13469,
       "midAttached": [
         0,
         1,
@@ -822,7 +699,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 165,
+        "made": 144,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -846,8 +723,131 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 250811023,
-        "cdpHeap": 56191320
+        "perfHeap": 106345729,
+        "cdpHeap": 49339192
+      }
+    },
+    {
+      "trip": 18,
+      "world": "veyra",
+      "ms": 10620,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 154,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 114596919,
+        "cdpHeap": 51140896
+      }
+    },
+    {
+      "trip": 19,
+      "world": "veyra",
+      "ms": 7280,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 164,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 111615137,
+        "cdpHeap": 52427780
+      }
+    },
+    {
+      "trip": 20,
+      "world": "veyra",
+      "ms": 8484,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 172,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 118360911,
+        "cdpHeap": 53321232
       }
     }
   ],

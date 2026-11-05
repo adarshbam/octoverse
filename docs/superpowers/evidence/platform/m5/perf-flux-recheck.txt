@@ -1,0 +1,13 @@
+## flux review-first pair 1: review
+stage=intro                              median  35.6 fps  slow10  19.2 fps  mean  20.8 fps  (167 frames)  gpu median 42.14 ms  best10 28.66 ms  (140 timed)
+## flux review-first pair 1: platform
+x=1                                      median  35.0 fps  slow10  20.0 fps  mean  24.6 fps  (197 frames)  gpu median 29.81 ms  best10 26.19 ms  (172 timed)
+## flux review-first pair 2: review
+stage=intro                              median  41.0 fps  slow10  20.1 fps  mean  27.8 fps  (223 frames)  gpu median 22.63 ms  best10 19.15 ms  (203 timed)
+## flux review-first pair 2: platform
+x=1                                      median  44.2 fps  slow10  24.6 fps  mean  30.5 fps  (244 frames)  gpu median 22.14 ms  best10 16.95 ms  (231 timed)
+## flux review-first pair 3: review
+stage=intro                              median  39.5 fps  slow10  15.6 fps  mean  21.5 fps  (173 frames)  gpu median 36.55 ms  best10 15.31 ms  (149 timed)
+## flux review-first pair 3: platform
+x=1                                      median  35.6 fps  slow10  19.6 fps  mean  23.3 fps  (187 frames)  gpu median 30.42 ms  best10 25.55 ms  (160 timed)
+## done

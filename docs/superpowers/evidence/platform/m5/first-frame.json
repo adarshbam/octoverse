@@ -1,25 +1,25 @@
 {
   "runs": [
     {
-      "veilGone": 12331.5,
-      "ready": 34596.30000001192,
-      "firstContentfulPaint": 716,
-      "loadEvent": 2241.399999976158,
-      "spread": 50.15667208796779
+      "veilGone": 2719.100000000093,
+      "ready": 7575.700000000186,
+      "firstContentfulPaint": 184,
+      "loadEvent": 1736.3999999999069,
+      "spread": 50.3300385159571
     },
     {
-      "veilGone": 6181,
-      "ready": 12706.800000011921,
-      "firstContentfulPaint": 156,
-      "loadEvent": 2138.199999988079,
-      "spread": 50.38420412953007
+      "veilGone": 1993.1000000000931,
+      "ready": 5974.4000000003725,
+      "firstContentfulPaint": 100,
+      "loadEvent": 1015.8000000002794,
+      "spread": 50.300670121848235
     },
     {
-      "veilGone": 6040.399999976158,
-      "ready": 12818.099999964237,
-      "firstContentfulPaint": 180,
-      "loadEvent": 4546.199999988079,
-      "spread": 50.24307353632318
+      "veilGone": 1451,
+      "ready": 6918.600000000093,
+      "firstContentfulPaint": 124,
+      "loadEvent": 688.8999999999069,
+      "spread": 50.3900101843685
     }
   ]
 }

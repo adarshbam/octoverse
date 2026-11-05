@@ -22,18 +22,18 @@
       "auxclick": 1,
       "dblclick": 1,
       "contextmenu": 1,
-      "pointermove": 1,
       "error": 1,
-      "unhandledrejection": 1
+      "unhandledrejection": 1,
+      "pointermove": 1
     },
-    "perfHeap": 67443634,
-    "cdpHeap": 21454272
+    "perfHeap": 67855012,
+    "cdpHeap": 22159184
   },
   "rows": [
     {
       "trip": 1,
       "world": "veyra",
-      "ms": 8237,
+      "ms": 5026,
       "midAttached": [
         0,
         1,
@@ -43,7 +43,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 11,
+        "made": 10,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -67,14 +67,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 69094617,
-        "cdpHeap": 26725540
+        "perfHeap": 69263981,
+        "cdpHeap": 25844804
       }
     },
     {
       "trip": 2,
       "world": "flux",
-      "ms": 10199,
+      "ms": 12762,
       "midAttached": [
         0,
         1,
@@ -84,7 +84,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 19,
+        "made": 18,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -108,14 +108,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 92116345,
-        "cdpHeap": 29043116
+        "perfHeap": 84536161,
+        "cdpHeap": 28815960
       }
     },
     {
       "trip": 3,
       "world": "nox",
-      "ms": 7568,
+      "ms": 7921,
       "midAttached": [
         0,
         1,
@@ -125,7 +125,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 26,
+        "made": 25,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -149,14 +149,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 96439239,
-        "cdpHeap": 31008620
+        "perfHeap": 88524499,
+        "cdpHeap": 30730972
       }
     },
     {
       "trip": 4,
       "world": "aether",
-      "ms": 7708,
+      "ms": 10364,
       "midAttached": [
         0,
         1,
@@ -166,7 +166,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 33,
+        "made": 32,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -190,14 +190,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 104639136,
-        "cdpHeap": 32213088
+        "perfHeap": 104431869,
+        "cdpHeap": 32587432
       }
     },
     {
       "trip": 5,
       "world": "veyra",
-      "ms": 4353,
+      "ms": 4767,
       "midAttached": [
         0,
         1,
@@ -207,7 +207,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 41,
+        "made": 40,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -231,14 +231,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 113735282,
-        "cdpHeap": 34021748
+        "perfHeap": 113186637,
+        "cdpHeap": 34038412
       }
     },
     {
       "trip": 6,
       "world": "flux",
-      "ms": 6494,
+      "ms": 7038,
       "midAttached": [
         0,
         1,
@@ -248,7 +248,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 51,
+        "made": 48,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -272,14 +272,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 116189810,
-        "cdpHeap": 35418304
+        "perfHeap": 121914266,
+        "cdpHeap": 35081852
       }
     },
     {
       "trip": 7,
       "world": "nox",
-      "ms": 6913,
+      "ms": 7400,
       "midAttached": [
         0,
         1,
@@ -289,7 +289,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 59,
+        "made": 56,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -313,14 +313,14 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 130065220,
-        "cdpHeap": 36411828
+        "perfHeap": 135976702,
+        "cdpHeap": 36485340
       }
     },
     {
       "trip": 8,
       "world": "aether",
-      "ms": 4346,
+      "ms": 6388,
       "midAttached": [
         0,
         1,
@@ -330,7 +330,7 @@
       "after": {
         "held": 1,
         "attached": 1,
-        "made": 67,
+        "made": 64,
         "listeners": 28,
         "byType": {
           "popstate": 1,
@@ -354,8 +354,8 @@
           "keydown": 2,
           "pointermove": 1
         },
-        "perfHeap": 133531630,
-        "cdpHeap": 37503600
+        "perfHeap": 139417408,
+        "cdpHeap": 37845740
       }
     }
   ],

@@ -202,7 +202,7 @@ test.describe('20 round trips (spec 2.4): contexts, listeners, heap', () => {
   const veyra20 = (page: Page) => cached('veyra20', page, 20, () => WORLDS[0], 1, 'resources-20-trips-veyra.json');
   const cycle8 = (page: Page) => cached('cycle8', page, 8, n => WORLDS[(n - 1) % 4], 4, 'resources-8-trips-all-worlds.json');
 
-  test('20 trips through veyra leave at most two live contexts and the first trip's window listeners', async ({ page }) => {
+  test('20 trips through veyra leave at most two live contexts and the window listeners of the first trip', async ({ page }) => {
     const { rows, base, last, peak } = await veyra20(page);
     for (const r of rows) {
       expect(r.after.held, `trip ${r.trip}: live contexts after a forced collection`).toBeLessThanOrEqual(2);
