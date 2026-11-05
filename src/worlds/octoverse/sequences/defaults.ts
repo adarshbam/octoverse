@@ -52,7 +52,8 @@ const ARRIVAL: SequenceDefaults = {
   objects: { main: { props: { roll: 0, armWave: 0 }, keys: {} } },
 };
 
-export const HOST_SEQUENCE_DEFAULTS: Record<SequenceId, SequenceDefaults> = {
+/** The host has no bloom sheet (the engine's optional fifth sheet: Veyra's pendants), as Nox and Veyra's tables type it. */
+export const HOST_SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,
