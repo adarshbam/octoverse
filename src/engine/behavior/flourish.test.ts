@@ -161,7 +161,10 @@ test("the character wires the flourish, the glide bias and the settle into its f
   expect(octopus).toMatch(/instance\.flourish/);
   // The gate and the yield are the pure functions tested above, not a copy of them.
   expect(octopus).toMatch(/if \(flourishMayPlay\(moving, swim !== null, stage\)\)/);
-  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), m\.holdWeight\[playing\.index\]\)/);
+  // Task 19: a lifting arm is busy as a holding one is (busyWeight, artifacts/armLift.ts): no flourish starts on it, and a playing one yields to it.
+  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), busyWeight\(m\.holdWeight\[playing\.index\], m\.liftWeight\[playing\.index\]\)\)/);
+  expect(octopus).toMatch(/return busyWeight\(motion\.current\.holdWeight\[i\], motion\.current\.liftWeight\[i\]\) > 0;/);
+  expect(octopus).toMatch(/m\.flourish\.step\(m\.flourishClock, armBusy, instance\.flourish\)/);
   expect(ARM_IDS.length).toBe(8);
 });
 

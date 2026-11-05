@@ -2,7 +2,6 @@
 // reads only these values; a new character is a new config, not new code.
 // Units are world units (1 unit = 100 storyboard panel px, +y up).
 
-import type { AppearId, SelectId } from '../artifacts/strategies';
 import type { Shell } from '../artifacts/bubbleOrbits';
 import type { ExpressionId, ExpressionParams } from '../behavior/expressions';
 import type { HeadEffectId } from '../character/headEffects';
@@ -632,6 +631,25 @@ export interface OrbStyle {
 }
 
 /**
+ * How artifacts appear once the entrance has settled: a closed union, one member per entry in the
+ * engine's APPEARS table (the kinds must match it: strategies.ts checks). `blow` (Nox) has no
+ * parameters; `bloom` (Veyra) runs `duration` seconds in all (1.2), unless the pendant placement's
+ * `reveal` sets the timing.
+ */
+export type AppearConfig = { kind: 'blow' } | { kind: 'bloom'; duration: number };
+
+/**
+ * How one artifact is chosen: a closed union, one member per entry in the engine's SELECTS table.
+ * `suctionHold` (Nox) has no parameters. `armLift` (Veyra): the owning arm lifts over `ease` seconds
+ * (0.45), the chosen orb grows to `scale` times its size (1.25) and its thread shortens by
+ * `threadShorten` of its length (0.3).
+ */
+export type SelectConfig = { kind: 'suctionHold' } | { kind: 'armLift'; ease: number; scale: number; threadShorten: number };
+
+/** The arm lift's settings. */
+export type ArmLiftSelect = Extract<SelectConfig, { kind: 'armLift' }>;
+
+/**
  * How a world's artifacts (its technologies' orbs) are placed, appear and are chosen: three
  * independent strategies, each a kind from a closed table in the engine (artifacts/strategies.ts),
  * and the stages in which one can be chosen. `appear` and `select` are objects so a later kind can
@@ -639,8 +657,8 @@ export interface OrbStyle {
  */
 export interface ArtifactConfig {
   placement: PlacementConfig;
-  appear: { kind: AppearId };
-  select: { kind: SelectId };
+  appear: AppearConfig;
+  select: SelectConfig;
   /** The stages in which an artifact can be chosen; the reducer ignores a choice in any other, and the buttons and the tray are not drawn there. */
   choosableIn: readonly ChoosingStage[];
   /** Rim beads and a cap round each orb's glass; absent, the orbs are the glass alone (Nox's and Veyra's). */

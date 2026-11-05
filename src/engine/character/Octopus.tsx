@@ -28,8 +28,10 @@ import { debugWindow, report, reportObject } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
-import { APPEARS, SELECTS } from '../artifacts/strategies';
-import { ArmChain } from './armChain';
+import { APPEARS, SELECTS, holdModule } from '../artifacts/strategies';
+import { type ArmTarget, busyWeight, liftWeightAt } from '../artifacts/armLift';
+import { layoutPendants } from '../artifacts/pendant';
+import { ArmChain, type ArmRest, restFromCurve } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
 import { Aura } from './Aura';
@@ -149,6 +151,8 @@ export interface OctopusProps {
   headOpen?: boolean;
   /** The head swell's sheet; until it is in (or if it fails), the stage blend opens the head as before. Its `seconds` time the swell's clock. */
   swellSheet: SwellSheet;
+  /** The world's stage poses, for the arm lift: the rest an arm lifts from and the world's traced lift (`WorldBundle.poses`). Unread by the suction hold. */
+  poses?: Readonly<Record<StageId, StagePose>>;
 }
 
 /** Seconds for Nox to settle into rest, and to wake from it. */
@@ -157,8 +161,61 @@ const WAKE = 0.5;
 /** The warm glow card before the chin, facing the visitor. */
 const CORE_GLOW = 0.22;
 
+/** `values[i]` raised to at least `value`. */
+function raiseTo(values: Float32Array, i: number, value: number) {
+  if (values[i] < value) values[i] = value;
+}
+
+/** A lifted pendant's target: its arm's lifted rest and pitch. */
+type LiftTarget = { rest: ArmRest; pitch: number; hangAt: number };
+
+/** Pendant `bubble` hangs at `at` along its arm at the full lift. */
+function setHang(values: Float32Array, bubble: number, at: number) {
+  values[bubble] = at;
+}
+
+/** Forgets each target whose pendant is neither lifted nor being lowered (loops, not closures: nothing is allocated per frame). */
+function forgetTargets(targets: (LiftTarget | undefined)[], lifts: readonly { bubble: number }[]) {
+  for (let b = 0; b < targets.length; b++) {
+    if (!targets[b]) continue;
+    let live = false;
+    for (let k = 0; k < lifts.length; k++) live ||= lifts[k].bubble === b;
+    if (!live) targets[b] = undefined;
+  }
+}
+
+/** Keeps pendant `bubble`'s target (made once a choice). */
+function keepTarget(targets: (LiftTarget | undefined)[], bubble: number, target: LiftTarget) {
+  targets[bubble] = target;
+}
+
+/** The arm lift's frame an arm follows this frame, if any. */
+type LiftFrameRef = Parameters<typeof liftWeightAt>[0] | null;
+
+/**
+ * A lifting arm's rest, written into `out`: each joint from `from` (the stage's rest) toward `to`
+ * (the lift's target) by the lift's weight at that joint's place along the arm (root first, the tip
+ * last; below 0 in the settle past rest), the short way round; the root and the segment length by
+ * the root's weight. Allocates nothing.
+ */
+function liftRest(from: ArmRest, to: ArmRest, frame: NonNullable<LiftFrameRef>, easeMs: number, settle: number, out: ArmRest): ArmRest {
+  const n = out.angles.length;
+  // A target made for a rig rebuilt since (another tier's segment count) is not drawn from.
+  if (to.angles.length !== n || from.angles.length !== n) return from;
+  const w0 = liftWeightAt(frame, 0, easeMs, settle);
+  out.rootX = from.rootX + (to.rootX - from.rootX) * w0;
+  out.rootY = from.rootY + (to.rootY - from.rootY) * w0;
+  out.segmentLength = from.segmentLength + (to.segmentLength - from.segmentLength) * w0;
+  for (let k = 0; k < n; k++) {
+    const w = liftWeightAt(frame, (k + 0.5) / n, easeMs, settle);
+    const d = to.angles[k] - from.angles[k];
+    out.angles[k] = from.angles[k] + Math.atan2(Math.sin(d), Math.cos(d)) * w;
+  }
+  return out;
+}
+
 /** A procedural octopus: eight bending arms, a lathed mantle and a canvas-drawn face. */
-export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, hideArtifacts = false, yaw = 0, armDrive, holdAt, pulseAt, headOpen, swellSheet }: OctopusProps) {
+export function Octopus({ config, swimPoses, introPose, artifacts, blender, stage, expression, freeze, reducedMotion = false, panelOpen = false, silhouette = false, quality = TIER_SETTINGS.high, onSelect, orbs = [], focusTechId = null, blowSheet, entranceSheet, entranceHold, entranceSeconds = 0, onEntranceSettling, onEntranceDone, onEntranceUnavailable, onEntranceFrame, accents, solo = false, hideArtifacts = false, yaw = 0, armDrive, holdAt, pulseAt, headOpen, swellSheet, poses }: OctopusProps) {
   const instance = useInstance();
   const extraYaw = THREE.MathUtils.degToRad(yaw);
   const float = useRef<THREE.Group>(null);
@@ -176,6 +233,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // Where the bubbles come out: this character's mouth, worked out once from its head and face.
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
+  // The suction hold's module: the world's select, or (with the arm lift, which holds nothing) the hold that is never given a choice.
+  const holder = holdModule(select);
   const mouth = useMemo(() => appear.origin(config.head, config.face), [appear, config.head, config.face]);
   // The entrance's stroke timing (the arguments entranceFrame takes of the character): its swim, the
   // glide stretched by the personality's glideBias (Nox's own swim object, unchanged, at 1).
@@ -187,13 +246,29 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
     orbit: orbs.map(() => new THREE.Vector3()),
     hold: { pull: new Float32Array(orbs.length), tip: orbs.map(() => new THREE.Vector3()), dir: orbs.map(() => new THREE.Vector3(0, -1, 0)) },
+    lift: new Float32Array(orbs.length),
+    hangAt: new Float32Array(orbs.length).fill(Number.NaN),
     arms: [],
   }), [orbs, blowSheet]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
   // The suction hold: the arm nearest a chosen bubble (not across the face) turns, pulls it to its tip and lifts it.
   const holdArm = useRef<(bubble: number) => number>(() => 0);
-  const hold = useMemo(() => select.choreography(bubble => holdArm.current(bubble)), [select, orbs]);
+  const hold = useMemo(() => holder.choreography(bubble => holdArm.current(bubble)), [holder, orbs]);
+  // The arm lift (artifacts/armLift.ts; Veyra): a chosen pendant's own arm lifts it. Which arm that is
+  // follows the stage's slots (the same arm in both stages); its lifted shape is worked out once a
+  // choice, then the arm's rest is blended toward it joint by joint each frame, root first.
+  const liftSlots = useMemo(() => (artifacts.placement.kind === 'pendant' ? { intro: layoutPendants(orbs.length, artifacts.placement, 'intro'), overview: layoutPendants(orbs.length, artifacts.placement, 'overview') } : null), [artifacts, orbs]);
+  const armLift = useMemo(() => {
+    if (select.mode !== 'lift' || artifacts.select.kind !== 'armLift') return null;
+    return {
+      // The arm is named at each choice (the pendant's slot in the stage it is framed for); T1 only if it has none.
+      choreography: select.choreography(() => ARM_IDS[0]),
+      easeMs: artifacts.select.ease * 1000,
+      // Each lifted pendant's target as an arm rest (and pitch), made when it is chosen.
+      targets: orbs.map(() => undefined as LiftTarget | undefined),
+    };
+  }, [select, artifacts, orbs]);
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
   const restAt = useMemo(() => new THREE.Vector3(), []);
@@ -361,6 +436,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     holdWeight: new Float32Array(config.arms.length),
     holdSum: config.arms.map(() => new THREE.Vector2()),
     holdPoint: new THREE.Vector2(),
+    // The arm lift: each arm's lift this frame (its tip's weight; 0 for none) and the lift frame driving it (null for none).
+    liftWeight: new Float32Array(config.arms.length),
+    liftFrame: config.arms.map(() => null as LiftFrameRef),
     lastInput: performance.now(),
     rest: 0,
     breathPhase: 0,
@@ -390,7 +468,12 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   });
   // The busy-arm hook: no flourish starts on an arm that holds something (the suction hold's turn
   // toward its bubble; Task 19's pendant lift goes through the same hold).
-  const armBusy = useCallback((arm: ArmId) => motion.current.holdWeight[ARM_IDS.indexOf(arm)] > 0, []);
+  const armBusy = useCallback((arm: ArmId) => {
+    const i = ARM_IDS.indexOf(arm);
+    return busyWeight(motion.current.holdWeight[i], motion.current.liftWeight[i]) > 0;
+  }, []);
+  // The rest each lifting arm is drawn from this frame (written in place; one per arm, at the rig's segment count).
+  const liftRests = useMemo(() => rig.arms.map(({ chain }) => ({ rootX: 0, rootY: 0, segmentLength: 0, angles: new Float32Array(chain.segments) }) as ArmRest), [rig]);
   // The idle pulse (Flux; cupPulse.ts subscribeIdlePulse): a share of the flourishes also pulse their arm's
   // cups, alongside the tip unroll. Nothing subscribes at a `flourishPulse` of 0 or unset (Nox, Veyra).
   // The frame loop flushes it with the frame clock the cups are drawn on.
@@ -635,7 +718,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     orbs.forEach((orb, i) => {
       const f = choreography.face(i);
       if (f <= 0) return;
-      activeExpression = blendExpression(activeExpression, faces[orb.reaction ?? 'curious'], f);
+      activeExpression = blendExpression(activeExpression, faces[orb.reaction ?? select.reaction], f);
       if (f > strongest) {
         strongest = f;
         tiltTarget = 0.1 * f * (instance.bubbleLive.sides[i] ?? 1);
@@ -721,10 +804,10 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     const faceBox: Box = { x0: config.head.centerX - config.head.halfWidth, y0: config.head.bottom, x1: config.head.centerX + config.head.halfWidth, y1: config.head.top };
     holdArm.current = bubble => {
       const at = bubbleState.orbit[bubble];
-      return select.nearestArm(rig.arms.map(({ chain }) => [chain.tipX, chain.tipY, chain.pz[chain.segments]] as const), [at.x, at.y, at.z], faceBox);
+      return holder.nearestArm(rig.arms.map(({ chain }) => [chain.tipX, chain.tipY, chain.pz[chain.segments]] as const), [at.x, at.y, at.z], faceBox);
     };
     hold.instant = reducedMotion || (freeze && !holdStill);
-    hold.choose(selected >= 0 ? selected : null, holdStill ? 0 : now);
+    hold.choose(selected >= 0 && !armLift ? selected : null, holdStill ? 0 : now);
     const holds = hold.sample(holdStill ? holdAt : now);
     // The hold as the development build reports it, for the end-to-end tests (`window.__octoverse.hold`; `__noxHold` for Nox).
     if (probe) report(instance, 'hold', holds.map(f => ({ techId: orbs[f.bubble].techId, pull: f.pull, release: f.release })));
@@ -739,10 +822,41 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const dx = orbit.x - from.x;
       const dy = orbit.y - from.y;
       const d = Math.hypot(dx, dy) || 1;
-      const outward = Math.min(select.arm.reach, Math.max(0, d - select.arm.short)) * (1 - select.arm.draw * f.pull);
+      const outward = Math.min(holder.arm.reach, Math.max(0, d - holder.arm.short)) * (1 - holder.arm.draw * f.pull);
       m.holdWeight[f.arm] += f.turn;
       m.holdSum[f.arm].x += (from.x + (dx / d) * outward) * f.turn;
-      m.holdSum[f.arm].y += (from.y + (dy / d) * outward + select.arm.lift * f.lift) * f.turn;
+      m.holdSum[f.arm].y += (from.y + (dy / d) * outward + holder.arm.lift * f.lift) * f.turn;
+    }
+    // The arm lift (Veyra): the chosen pendant's own arm lifts toward its target, root first; letting go lowers it with the personality's settle.
+    m.liftWeight.fill(0);
+    m.liftFrame.fill(null);
+    bubbleState.lift.fill(0);
+    bubbleState.hangAt.fill(Number.NaN);
+    if (armLift) {
+      // The pendant's own arm: its slot in the stage it is framed for (the same arm in both stages).
+      const place = selected >= 0 && liftSlots ? liftSlots[bubbleState.stage][selected] ?? liftSlots.overview[selected] ?? liftSlots.intro[selected] : null;
+      armLift.choreography.choose(selected >= 0 ? selected : null, holdStill ? 0 : now, reducedMotion || (freeze && !holdStill), place?.slot.arm);
+      const lifts = armLift.choreography.sample(holdStill ? holdAt : now);
+      forgetTargets(armLift.targets, lifts);
+      for (let k = 0; k < lifts.length; k++) {
+        const f = lifts[k];
+        const i = ARM_IDS.indexOf(f.arm);
+        if (!armLift.targets[f.bubble] && poses) {
+          // Worked out once a choice: toward the pointer when it is on the pendant, else up and forward (keyboard, touch); the world's traced lift where it has one.
+          const slotAt = liftSlots?.[bubbleState.stage][f.bubble]?.slot.at;
+          const target: ArmTarget = SELECTS.armLift.target({ arm: f.arm, at: slotAt }, instance.hover.bubble && !freeze ? [m.target.x, m.target.y, 0] : null, poses[bubbleState.stage], SELECTS.armLift.traced(poses, bubbleState.stage, f.arm));
+          keepTarget(armLift.targets, f.bubble, { rest: restFromCurve(target.curve, rig.arms[i].chain.segments), pitch: target.pitch, hangAt: target.hangAt ?? Number.NaN });
+        }
+        const w = liftWeightAt(f, 1, armLift.easeMs, settleScale(personality));
+        // Two lifts on one arm (one lowered as the next pendant on it is chosen): the larger drives it.
+        if (Math.abs(w) >= Math.abs(m.liftWeight[i])) {
+          m.liftWeight[i] = w;
+          m.liftFrame[i] = f;
+        }
+        raiseTo(bubbleState.lift, f.bubble, Math.min(1, Math.max(0, w)));
+        const kept = armLift.targets[f.bubble];
+        if (kept) setHang(bubbleState.hangAt, f.bubble, kept.hangAt);
+      }
     }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the
     // face; it never reaches while the pointer is on a bubble.
@@ -773,7 +887,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       if (playing) {
         flourishArm = playing.index;
         // Gives way if its arm starts to hold something mid-flourish (Task 19's lift goes through the hold).
-        unroll = yieldedUnroll(flourishUnroll(m.flourishClock, playing.start), m.holdWeight[playing.index]);
+        unroll = yieldedUnroll(flourishUnroll(m.flourishClock, playing.start), busyWeight(m.holdWeight[playing.index], m.liftWeight[playing.index]));
       }
     }
     let offset = 0;
@@ -786,7 +900,10 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const held = m.holdWeight[i];
       const w = Math.min(1, pointerWeight + held);
       const target = held > 0 ? m.holdPoint.copy(m.reachPoint[i]).multiplyScalar(pointerWeight).add(m.holdSum[i]).divideScalar(pointerWeight + held) : m.reachPoint[i];
-      chain.setRest(rests ? rests[ARM_IDS[i]] : pose.arms[ARM_IDS[i]]);
+      // A lifting arm's rest runs from the stage's toward its lift target, joint by joint, root first.
+      const liftFrame = rests || !armLift ? null : m.liftFrame[i];
+      const liftTarget = liftFrame ? armLift!.targets[liftFrame.bubble] : undefined;
+      chain.setRest(rests ? rests[ARM_IDS[i]] : liftFrame && liftTarget ? liftRest(pose.arms[ARM_IDS[i]], liftTarget.rest, liftFrame, armLift!.easeMs, settleScale(personality), liftRests[i]) : pose.arms[ARM_IDS[i]]);
       // Toward the body: the swing about the root that brings this arm's tip toward the body's middle
       // (from where it was last frame). The startle draws the arms in; the arrival wiggle fans them out and back.
       const inward = inwardSign(swimPoses.bodyX, PIVOT_Y, chain.px[0], chain.py[0], chain.tipX, chain.tipY);
@@ -798,7 +915,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
         flare: moving * inward * (flinch.armsIn - wiggle.armWave),
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
-        pitch,
+        pitch: liftFrame && liftTarget ? (pitch ?? 0) + liftTarget.pitch * m.liftWeight[i] : pitch,
         straighten: i === flourishArm ? Math.max(straighten ?? 0, unroll) : straighten,
       });
       tube.update();
@@ -812,7 +929,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     for (const f of holds) {
       const { px, py, pz, segments: n } = rig.arms[f.arm].chain;
       bubbleState.hold.pull[f.bubble] = f.pull;
-      bubbleState.hold.tip[f.bubble].set(px[n], py[n] + select.arm.bob * f.lift, pz[n]);
+      bubbleState.hold.tip[f.bubble].set(px[n], py[n] + holder.arm.bob * f.lift, pz[n]);
       // Across the view (no depth), so the bubble sits off the tip on the page, never over it.
       bubbleState.hold.dir[f.bubble].set(px[n] - px[n - 4], py[n] - py[n - 4], 0).normalize();
       flare[f.arm] = Math.max(flare[f.arm], f.flare);

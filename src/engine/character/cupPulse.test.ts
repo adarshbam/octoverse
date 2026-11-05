@@ -347,6 +347,6 @@ test('the character wires the idle pulse to the frame clock (Octopus.tsx), with 
   const octopus = readFileSync(new URL('./Octopus.tsx', import.meta.url), 'utf8');
   expect(octopus).toMatch(/subscribeIdlePulse\(instance, config, \{ busy: armBusy \}\)/);
   expect(octopus).toMatch(/\.flush\(state\.clock\.elapsedTime, reducedMotion\)/);
-  // The unroll is not suppressed: the flourish layer's own lines are as they were.
-  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), m\.holdWeight\[playing\.index\]\)/);
+  // The unroll is not suppressed: the flourish layer's own lines are as they were (Task 19 widened the yielded weight to the hold or the lift).
+  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), busyWeight\(m\.holdWeight\[playing\.index\], m\.liftWeight\[playing\.index\]\)\)/);
 });

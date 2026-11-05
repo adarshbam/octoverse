@@ -1330,6 +1330,59 @@
           }
         }
       }
+    },
+    "bloom": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.2,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "bloom-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "bloom",
+                  "main",
+                  "ripple"
+                ],
+                "keyframes": [
+                  {
+                    "id": "bloom-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "bloom-0003",
+                    "position": 1.2,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"ripple\"]": "bloom-0001"
+            }
+          }
+        }
+      }
     }
   },
   "definitionVersion": "0.4.0",

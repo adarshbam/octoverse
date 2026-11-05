@@ -220,7 +220,7 @@ test('the place is the vault: its kit, baked near world and far plate, and a cam
   }
 });
 
-test('her artifacts are pendants on tethers: slots on her arms in both choosing stages, her palette on the thread, the blow and the suction hold until Task 19', () => {
+test('her artifacts are pendants on tethers: slots on her arms in both choosing stages, her palette on the thread, the bloom and the arm lift (Task 19)', () => {
   const { placement, appear, select, choosableIn } = VEYRA_BUNDLE.artifacts;
   expect(placement.kind).toBe('pendant');
   if (placement.kind !== 'pendant') return;
@@ -231,7 +231,10 @@ test('her artifacts are pendants on tethers: slots on her arms in both choosing 
   // No swing and no reveal: the defaults (25 degrees and 1.2 s; the bloom's own timing).
   expect(placement.swing).toBeUndefined();
   expect(placement.reveal).toBeUndefined();
-  expect([appear.kind, select.kind]).toEqual(['blow', 'suctionHold']);
+  expect(appear).toEqual({ kind: 'bloom', duration: 1.2 });
+  expect(select).toEqual({ kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 });
+  // Her set carries the bloom's sheet (G5).
+  expect(VEYRA_BUNDLE.sequences.defaults.bloom?.length).toBe(1.2);
   expect(choosableIn).toEqual(['intro', 'overview']);
 });
 
