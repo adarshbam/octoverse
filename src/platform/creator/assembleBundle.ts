@@ -1,4 +1,5 @@
 import type { WorldBundle } from '../../engine/types/bundle';
+import { HANDLE_RE } from './draft';
 import { applyPalette } from './palettes';
 import { PERSONALITIES } from './personalities';
 import type { CreatorTemplate, PaletteId, PersonalityId, Project, Technology } from './types';
@@ -8,7 +9,6 @@ import type { CreatorTemplate, PaletteId, PersonalityId, Project, Technology } f
 // worlds' own objects, shared (applyPalette('original') returns its argument; a moved palette shares every subtree it did not move),
 // so nothing here assigns into any of them: every change is a spread into a new object.
 
-const HANDLE_RE = /^[a-z][a-z0-9-]{1,23}$/;
 /** The id a bundle gets when the handle is not usable yet (an empty draft still previews): `u-preview`. */
 const FALLBACK_HANDLE = 'preview';
 

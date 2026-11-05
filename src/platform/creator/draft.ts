@@ -19,6 +19,18 @@ export const HANDLE_RE = /^[a-z][a-z0-9-]{1,23}$/;
 /** A project's slug is a route segment (router/routes.ts). */
 export const SLUG_RE = /^[a-z0-9-]{1,40}$/;
 
+/**
+ * Handles the creator may not take because a showcase portfolio (or the host) already answers at them: `/@nox` is the showcase's. Kept
+ * here, not in the router's RESERVED_HANDLES (those are the platform's own paths).
+ */
+export const SHOWCASE_HANDLES: readonly string[] = ['nox', 'veyra', 'flux', 'aether', 'octoverse'];
+
+/** A value as it is echoed in an issue message: never more than 40 characters, however long a damaged draft makes it. */
+const echo = (value: unknown): string => {
+  const text = String(value);
+  return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+};
+
 export interface DraftIssue {
   field: string;
   message: string;
@@ -92,13 +104,13 @@ function checkProject(raw: unknown, i: number, seen: { ids: Set<string>; slugs: 
     if (technologies.length > MAX_TECHNOLOGIES) add('.technologies', `has ${technologies.length}; a project has at most ${MAX_TECHNOLOGIES} technologies`);
     const chosen = new Set<unknown>();
     technologies.forEach((tech: unknown, t) => {
-      if (typeof tech !== 'string' || !CATALOG_IDS.has(tech)) add(`.technologies[${t}]`, `"${String(tech)}" is not in the technology catalog`);
-      else if (chosen.has(tech)) add(`.technologies[${t}]`, `"${tech}" is listed twice`);
+      if (typeof tech !== 'string' || !CATALOG_IDS.has(tech)) add(`.technologies[${t}]`, `"${echo(tech)}" is not in the technology catalog`);
+      else if (chosen.has(tech)) add(`.technologies[${t}]`, `"${echo(tech)}" is listed twice`);
       chosen.add(tech);
     });
   }
   if (!isRecord(usage)) add('.usage', 'needs a usage note per technology');
-  else for (const [tech, note] of Object.entries(usage)) if (typeof note !== 'string') add(`.usage.${tech}`, 'needs text');
+  else for (const [tech, note] of Object.entries(usage)) if (typeof note !== 'string') add(`.usage.${echo(tech)}`, 'needs text');
 
   if (!Array.isArray(media)) add('.media', 'needs a list');
   else {
@@ -126,14 +138,15 @@ export function validateDraft(draft: CreatorDraft): DraftIssue[] {
       if (!(TEMPLATE_IDS as readonly unknown[]).includes(octopus.template)) add('octopus.template', 'needs one of the four templates');
       if (!(PALETTE_IDS as readonly unknown[]).includes(octopus.palette)) add('octopus.palette', 'needs one of the nine palettes');
       if (!(PERSONALITY_IDS as readonly unknown[]).includes(octopus.personality)) add('octopus.personality', 'needs one of the four personalities');
-      if (typeof octopus.name !== 'string' || !NAME_RE.test(octopus.name)) add('octopus.name', 'needs 1 to 24 letters, numbers, spaces, - . or \' (until then it shows as "Your Octopus")');
+      if (typeof octopus.name !== 'string' || !NAME_RE.test(octopus.name) || octopus.name.trim() === '') add('octopus.name', 'needs 1 to 24 letters, numbers, spaces, - . or \' (until then it shows as "Your Octopus")');
     }
 
     if (!isRecord(profile)) add('profile', 'is missing');
     else {
       const { handle } = profile;
       if (typeof handle !== 'string' || !HANDLE_RE.test(handle)) add('profile.handle', 'needs 2 to 24 lower case letters, numbers or hyphens, starting with a letter');
-      else if ((RESERVED_HANDLES as readonly string[]).includes(handle)) add('profile.handle', `"${handle}" is reserved`);
+      else if ((RESERVED_HANDLES as readonly string[]).includes(handle)) add('profile.handle', `"${echo(handle)}" is reserved`);
+      else if (SHOWCASE_HANDLES.includes(handle)) add('profile.handle', 'That handle is used by a showcase portfolio');
       for (const key of ['tagline', 'about'] as const) if (typeof profile[key] !== 'string') add(`profile.${key}`, 'needs text');
       if (profile.location !== undefined && typeof profile.location !== 'string') add('profile.location', 'needs text');
       if (profile.link !== undefined && profile.link !== '' && !isHttpsUrl(profile.link)) add('profile.link', 'needs an https:// address');
@@ -173,8 +186,8 @@ function migrateProject(raw: unknown): DraftProject | null {
     if (typeof raw.links.live === 'string') links.live = raw.links.live;
     if (typeof raw.links.repo === 'string') links.repo = raw.links.repo;
   }
-  const usage: DraftProject['usage'] = {};
-  if (isRecord(raw.usage)) for (const [tech, note] of Object.entries(raw.usage)) if (typeof note === 'string') usage[tech] = note;
+  // fromEntries defines own properties, so a key like "__proto__" in a damaged store stays a plain key and never reaches the prototype.
+  const usage: DraftProject['usage'] = isRecord(raw.usage) ? Object.fromEntries(Object.entries(raw.usage).filter((entry): entry is [string, string] => typeof entry[1] === 'string')) : {};
   return {
     id: raw.id,
     slug: text(raw.slug, raw.id),

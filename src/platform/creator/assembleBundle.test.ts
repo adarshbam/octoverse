@@ -82,6 +82,14 @@ describe('draftToContent', () => {
     expect(draftToContent(draft([project({ media })]), 'p1').project.media?.[0].url).toBe('local-media:m1');
   });
 
+  it('hostile ids (constructor, __proto__, toString) get the placeholder url, never an inherited value', () => {
+    const media = ['constructor', '__proto__', 'toString', 'hasOwnProperty'].map(id => ({ id, name: `${id}.png`, type: 'image/png' as const, size: 4 }));
+    const { project: p } = draftToContent(draft([project({ media, technologies: ['react'], usage: { react: 'ok' } })]), 'p1', { real: 'blob:1' });
+    expect(p.media?.map(m => m.url)).toEqual(media.map(m => `local-media:${m.id}`));
+    const hostileUsage = JSON.parse('{"constructor":"x","__proto__":"y"}') as Record<string, string>;
+    expect(draftToContent(draft([project({ technologies: ['react'], usage: hostileUsage })]), 'p1').project.technologyUsages?.[0]).toEqual({ id: 'usage-react', technologyId: 'react' });
+  });
+
   it('sections with a body become sections with a title from their id', () => {
     const { project: p } = draftToContent(draft([project({ sections: [{ id: 'the-problem', body: 'Text.' }, { id: 'empty', body: '' }] })]), 'p1');
     expect(p.sections?.map(s => [s.id, s.title, s.content])).toEqual([['the-problem', 'The problem', 'Text.']]);

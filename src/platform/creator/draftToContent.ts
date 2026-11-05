@@ -69,9 +69,9 @@ export function draftToContent(draft: CreatorDraft, projectId: string | null, me
     introduction,
     sections: chosen.sections.filter(s => s.body.trim() !== '').map(s => ({ id: s.id, title: titleOf(s.id), content: s.body })),
     links,
-    media: chosen.media.map(m => ({ id: m.id, type: 'screenshot' as const, url: mediaUrls[m.id] ?? `${LOCAL_MEDIA_PREFIX}${m.id}`, alt: m.name })),
+    media: chosen.media.map(m => ({ id: m.id, type: 'screenshot' as const, url: Object.hasOwn(mediaUrls, m.id) ? mediaUrls[m.id] : `${LOCAL_MEDIA_PREFIX}${m.id}`, alt: m.name })),
     technologyUsages: technologies.map(t => {
-      const note = chosen.usage[t.id]?.trim();
+      const note = Object.hasOwn(chosen.usage, t.id) ? chosen.usage[t.id]?.trim() : undefined;
       return { id: `usage-${t.id}`, technologyId: t.id, ...(note ? { summary: note } : {}) };
     }),
     primaryTechnologyIds: technologies.slice(0, MAX_PRIMARY).map(t => t.id),

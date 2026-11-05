@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RESERVED_HANDLES } from '../router/routes';
 import { MAX_MEDIA_BYTES, emptyDraft, migrateDraft, validateDraft } from './draft';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { CreatorDraft, DraftProject } from './types';
@@ -36,11 +37,31 @@ describe('validateDraft', () => {
     expect(name('x'.repeat(24))).toEqual([]);
   });
 
+  it('a name of spaces only is not a name', () => {
+    const name = (n: string) => fields(draftWith({ octopus: { ...SAMPLE_DRAFT.octopus, name: n } }));
+    for (const blank of [' ', '    ', '   ']) expect(name(blank), JSON.stringify(blank)).toContain('octopus.name');
+  });
+
   it('handle rule: pattern and reserved words', () => {
     const handle = (h: string) => fields(draftWith({ profile: { ...SAMPLE_DRAFT.profile, handle: h } }));
     expect(handle('ab')).toEqual([]);
     for (const bad of ['', 'a', '1abc', 'Abc', 'a_b', 'a'.repeat(25), 'ab cd']) expect(handle(bad), bad).toContain('profile.handle');
     for (const reserved of ['explore', 'create', 'how-it-works', 'about', 'pricing', 'signin', 'api', 'assets']) expect(handle(reserved), reserved).toContain('profile.handle');
+  });
+
+  it('the showcase handles are taken, with their own message (RESERVED_HANDLES is not the place for them)', () => {
+    for (const handle of ['nox', 'veyra', 'flux', 'aether', 'octoverse']) {
+      const issues = validateDraft(draftWith({ profile: { ...SAMPLE_DRAFT.profile, handle } }));
+      expect(issues, handle).toEqual([{ field: 'profile.handle', message: 'That handle is used by a showcase portfolio' }]);
+    }
+    expect(RESERVED_HANDLES).not.toContain('nox');
+  });
+
+  it('never echoes more than 40 characters of a value in a message', () => {
+    const long = 'q'.repeat(500);
+    const issues = validateDraft(draftWith({ projects: [project({ technologies: [long, long], usage: { [long]: 3 as never } })] }));
+    expect(issues.length).toBeGreaterThan(1);
+    for (const issue of issues) expect(issue.message.length + issue.field.length).toBeLessThan(200);
   });
 
   it('projects 0 to 8', () => {
@@ -125,6 +146,14 @@ describe('migrateDraft', () => {
   it('migrateDraft(42) is an empty draft', () => {
     const out = migrateDraft(42);
     expect({ ...out, updatedAt: '' }).toEqual({ ...emptyDraft(), updatedAt: '' });
+  });
+
+  it('a hostile usage key (__proto__, constructor) stays a plain key and never reaches the prototype', () => {
+    const raw = JSON.parse('{"version":1,"projects":[{"id":"a","slug":"a","usage":{"__proto__":"x","constructor":"y","react":"z"}}]}');
+    const usage = migrateDraft(raw).projects[0].usage;
+    expect(Object.getPrototypeOf(usage)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+    expect(Object.keys(usage).sort()).toEqual(['__proto__', 'constructor', 'react']);
   });
 
   it('keeps a valid draft exactly (a copy, not the same object)', () => {
