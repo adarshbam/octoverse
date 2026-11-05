@@ -7,7 +7,7 @@ export type Route =
   | { name: 'profile'; handle: string }
   | { name: 'world'; handle: string; project: string; view: View }
   | { name: 'create' }
-  | { name: 'createPreview' }
+  | { name: 'createPreview'; view: View }
   | { name: 'notFound'; path: string }
   | { name: 'review'; search: string };
 
@@ -52,8 +52,16 @@ export function parseRoute(
       return { route: { name: 'explore' } };
     case '/create':
       return { route: { name: 'create' } };
-    case '/create/preview':
-      return { route: { name: 'createPreview' } };
+    case '/create/preview': {
+      // The draft as a full world has views like a world (spec 7.9): `?view=`. `?project=<id>` (the creator's selected project) is not part of the route.
+      const params = new URLSearchParams(search);
+      const raw = params.get('view');
+      if (raw === null) return { route: { name: 'createPreview', view: 'intro' } };
+      if (isView(raw)) return { route: { name: 'createPreview', view: raw } };
+      params.delete('view');
+      const rest = params.toString();
+      return { route: { name: 'createPreview', view: 'intro' }, replace: path + (rest ? `?${rest}` : '') };
+    }
   }
 
   if (!path.startsWith('/@')) return notFound();
@@ -97,7 +105,7 @@ export function buildPath(route: Route): string {
     case 'create':
       return '/create';
     case 'createPreview':
-      return '/create/preview';
+      return route.view === 'intro' ? '/create/preview' : `/create/preview?view=${route.view}`;
     case 'notFound':
       return route.path;
     case 'review':

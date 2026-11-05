@@ -9,12 +9,12 @@ describe('parseRoute', () => {
     expect(parse('/how-it-works').route).toEqual({ name: 'howItWorks' });
     expect(parse('/explore').route).toEqual({ name: 'explore' });
     expect(parse('/create').route).toEqual({ name: 'create' });
-    expect(parse('/create/preview').route).toEqual({ name: 'createPreview' });
+    expect(parse('/create/preview').route).toEqual({ name: 'createPreview', view: 'intro' });
   });
 
   it('tolerates one trailing slash except on root', () => {
     expect(parse('/explore/').route).toEqual({ name: 'explore' });
-    expect(parse('/create/preview/').route).toEqual({ name: 'createPreview' });
+    expect(parse('/create/preview/').route).toEqual({ name: 'createPreview', view: 'intro' });
     expect(parse('/@veyra/').route).toEqual({ name: 'profile', handle: 'veyra' });
     expect(parse('/@veyra/vault-os/').route).toMatchObject({ name: 'world', project: 'vault-os' });
     expect(parse('/').route).toEqual({ name: 'landing' });
@@ -49,6 +49,18 @@ describe('parseRoute', () => {
   it('keeps other search params when canonicalising', () => {
     const r = parse('/@veyra/vault-os', '?view=x&a=1');
     expect(r.replace).toBe('/@veyra/vault-os?a=1');
+  });
+
+  it('the create preview has views like a world, keeps its project parameter, and canonicalises a bad view', () => {
+    expect(parse('/create/preview', '?view=detail').route).toEqual({ name: 'createPreview', view: 'detail' });
+    expect(parse('/create/preview', '?project=beta&view=overview')).toEqual({ route: { name: 'createPreview', view: 'overview' } });
+    expect(parse('/create/preview', '?project=beta').route).toEqual({ name: 'createPreview', view: 'intro' });
+    for (const bad of ['techFocus', 'x', '']) {
+      const r = parse('/create/preview', `?view=${bad}&project=beta`);
+      expect(r.route).toEqual({ name: 'createPreview', view: 'intro' });
+      expect(r.replace).toBe('/create/preview?project=beta');
+    }
+    expect(parse('/create/preview', '?view=x').replace).toBe('/create/preview');
   });
 
   it('rejects bad handles and projects', () => {
@@ -94,7 +106,8 @@ describe('buildPath', () => {
     expect(buildPath({ name: 'world', handle: 'a1', project: 'p', view: 'overview' })).toBe('/@a1/p?view=overview');
     expect(buildPath({ name: 'world', handle: 'a1', project: 'p', view: 'detail' })).toBe('/@a1/p?view=detail');
     expect(buildPath({ name: 'create' })).toBe('/create');
-    expect(buildPath({ name: 'createPreview' })).toBe('/create/preview');
+    expect(buildPath({ name: 'createPreview', view: 'intro' })).toBe('/create/preview');
+    expect(buildPath({ name: 'createPreview', view: 'overview' })).toBe('/create/preview?view=overview');
     expect(buildPath({ name: 'notFound', path: '/x/y' })).toBe('/x/y');
     expect(buildPath({ name: 'review', search: '?world=veyra' })).toBe('/?world=veyra');
   });
@@ -103,7 +116,7 @@ describe('buildPath', () => {
     const cases: Array<[string, string]> = [
       ['/', ''], ['/how-it-works', ''], ['/explore', ''], ['/@nox', ''],
       ['/@veyra/vault-os', ''], ['/@veyra/vault-os', '?view=overview'],
-      ['/@veyra/vault-os', '?view=detail'], ['/create', ''], ['/create/preview', ''],
+      ['/@veyra/vault-os', '?view=detail'], ['/create', ''], ['/create/preview', ''], ['/create/preview', '?view=overview'], ['/create/preview', '?view=detail'],
       ['/nope/else', ''], ['/@Nox', ''], ['/', '?world=veyra&freeze'],
     ];
     for (const [p, s] of cases) {
