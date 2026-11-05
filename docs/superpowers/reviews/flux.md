@@ -451,3 +451,23 @@ Ruled provisionally overnight; motion is checked live (no video).
 - The pulse (0.88 s) outlasts the lift (0.3 s); in a fast sweep later orbs get no pulse while three bands run.
 - Engine-owner items: the lift geometry (above); `placement.reveal` is seconds for the bloom and swell progress for the pulse; sizes.intro 0 is still refused (0.001 used).
 
+## Task 17: orbs in the stages, e2e (PENDING OWNER REVIEW)
+
+Ruled provisionally overnight; motion is checked live (no video). No source or content change: `tests/e2e/flux.spec.ts` only (5 tests). The usage notes were already placeholders (GitHub Actions has P4's four lines; the other eleven read "text to come").
+
+### Check live
+1) the pulses run out along the arms in the intro (no orbs, no caps); 2) the orbs grow at the tips as the head opens; 3) the lift is snappy with a pulse; 4) the face looks eager; 5) the swing is lively but tight (and no orb through an arm when one is chosen: Task 16 item 7).
+
+### What the e2e covers
+- Intro settled: 0 `.orb-button`s. Explore: 12, unique names, all tabbable, no tray on desktop.
+- Tab to GitHub Actions: tooltip with P4's list, `aria-describedby`, the orb moves about 310 px (the arm lifts; idle sway is 46 px at most), Escape clears the tooltip and keeps focus.
+- Hover intent with a moving anchor: a pass chooses none, a rest chooses one, the tooltip is the same for 2 s of sampling (no flicker).
+- Phone 390x844: tray lists 12 (48 px), a tap sets `aria-pressed` and opens the tooltip, a second choice moves the press, a third tap lets go.
+- Reduced motion: 12 live buttons, no skip control, drift bounded (step under 60 px per 0.5 s, widest under 120 px), a choice lifts far beyond that.
+
+### Honest weaknesses
+- "No swing" is indirect: the engine's swing is zero in reduced motion (unit-tested) but the arm tip curl is not gated by reduced motion, so orbs still drift up to about 45 px; the test bounds it, it does not show zero.
+- No lift or swing probe in the engine; the lift is read from the orb button's place and the tray's `aria-pressed`.
+- The phone tooltip covers the tray's first row, so the phone test's second tap is on the second row. The phone test does not check the orbs are uncovered (Task 12 known limit).
+- Nothing in the e2e judges the five looks above.
+- Engine-owner items: gate the arm tip curl with reduced motion (`curl: moving * ...`), a lift/swing probe, the phone tooltip over the tray.
