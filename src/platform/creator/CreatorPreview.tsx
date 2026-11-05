@@ -139,6 +139,7 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
   const [shimmer, setShimmer] = useState(0);
   const [reacting, setReacting] = useState<PresetChange | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const labelTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const nameTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const api = useRef<InstanceApi | null>(null);
   const picture = useRef<HTMLDivElement>(null);
@@ -175,14 +176,16 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
       const r = reactionFor(change);
       if (r === 'remount') return;
       setReacting(change);
-      later(r.holdMs, () => setReacting(now => (now === change ? null : now)));
+      // Its own timer: playing the live part (a new instance has drawn) restarts the others, not the label.
+      clearTimeout(labelTimer.current);
+      labelTimer.current = setTimeout(() => setReacting(null), r.holdMs);
       if (r.shimmer && !reduced) setShimmer(n => n + 1);
       if (!r.wiggle && !r.expression && !r.blink) return;
       // A palette or personality is a new bundle: its instance does not exist yet, so the live part waits for it to have drawn.
       if (change === 'name') playLive(r);
       else pending.current = { reaction: r, at: performance.now() };
     },
-    [later, playLive, reduced],
+    [playLive, reduced],
   );
 
   const previous = useRef(draft.octopus);
@@ -202,6 +205,7 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
     () => () => {
       timers.current.forEach(clearTimeout);
       clearTimeout(nameTimer.current);
+      clearTimeout(labelTimer.current);
     },
     [],
   );
@@ -220,9 +224,9 @@ export function CreatorPreview({ draft, selectedProjectId, active = true }: { dr
     <section className="oct-creator-preview" data-slot="preview" aria-label="Octopus preview">
       <div ref={picture} className="oct-creator-picture" data-state={mounted ? (stale ? 'changing' : 'live') : 'still'} data-template={template} data-palette={palette} data-personality={personality} data-still={still.src} data-reaction={reacting ?? ''}>
         <CreatorStill template={template} palette={palette} alt={`${displayName}, ${TEMPLATE_NAMES[template]} template in ${PALETTE_NAMES[palette]}`} />
-        {mounted && <Layer key={idOf(bundle)} bundle={bundle} size={still} options={hostOptions} request={request} overview={overview} show={!stale} onDrawn={onDrawn} onFail={() => setFailedFor(bundle)} onApi={onApi} />}
+        {mounted && <Layer key={`layer-${idOf(bundle)}`} bundle={bundle} size={still} options={hostOptions} request={request} overview={overview} show={!stale} onDrawn={onDrawn} onFail={() => setFailedFor(bundle)} onApi={onApi} />}
         {shimmer > 0 && (
-          <span key={shimmer} className="oct-shimmer" aria-hidden="true" data-shimmer={shimmer}>
+          <span key={`shimmer-${shimmer}`} className="oct-shimmer" aria-hidden="true" data-shimmer={shimmer}>
             {Array.from({ length: 9 }, (_, i) => (
               <i key={i} style={{ '--i': i } as CSSProperties} />
             ))}
