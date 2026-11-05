@@ -532,3 +532,7 @@ Median fps per run, platform / review (production ignores `stage`, so `?stage=in
 | Aether (`/@aether/ai-playground`) | 45.2, 45.5, 43.5 | 45.5, 44.2, 44.4 | 45.2 / 44.4 | 1.018 | met both |
 
 Worst ratio 0.992 (Veyra): every world is within 3% of its `?world=` number (all four medians are within +2.1% to -0.8%). Run-to-run spread within one path is 0.4 to 4.6% (Aether platform run 3, 43.5, is the widest), so the 3% rule is decidable on this quiet-ish session, unlike Task 16. GPU ms per frame (median) platform / review: Nox 23.3 / 23.3, Veyra 21.0 / 20.9, Flux 23.6 / 23.6, Aether 21.8 / 21.6: no platform penalty on the host-context timer. Mean fps shows stalls in some runs (Veyra platform runs 1 and 2 mean 39.3 and 38.8 against median 47.4, review run 3 mean 38.9), on both paths and not tied to one, so not a platform cost; the owner's live check for stutter on world visits is still the test that matters.
+
+### Creator editor spec after Task 21a's `creator.css` change
+
+`tests/e2e/platform-creator-editor.spec.ts` alone, `--workers=1`, `playwright.nox3d.config.ts` on port 5297 (a dev server the config started and stopped): 29 passed (2.8 min), 0 failed. No test edit.
