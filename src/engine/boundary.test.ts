@@ -293,6 +293,7 @@ const PLATFORM_ENGINE_ALLOWED = [
   'engine/types/bundle', // WorldBundle, faceAnchor, FaceStage
   'engine/world/types', // Vec3
   'engine/ui/useStageBox', // stageBoxFor: landing.test.tsx cross-checks the platform's own projection against it
+  'engine/config/validate', // clampCharacterConfig: the creator's applyPalette is a pure function over it (contract amendment A2, P6; platform Task 17)
 ];
 
 /**
@@ -302,11 +303,20 @@ const PLATFORM_ENGINE_ALLOWED = [
  */
 const WORLD_LOADER_FILE = 'worlds/loadWorld.ts';
 
+/**
+ * The creator templates (platform Task 17, spec 7.13): `creator/templates/<id>.ts` imports its OWN world's bundle, read-only, and no
+ * other. They sit in the lazy creator chunk, never in the landing's (src/platform/shell/payload.test.ts holds that half).
+ */
+const TEMPLATE_FILE = /^creator\/templates\/(nox|veyra|flux|aether)\.ts$/;
+
 /** Where a platform import is out of bounds, or null when it is allowed. `where` is relative to src/, without an extension; `file` is the importing file, relative to src/platform. */
 function platformViolation(where: string, file = ''): string | null {
   const bare = where.replace(/\.(tsx?|css|json)$/, '');
   // TEST-ONLY allowlist entry: the world loader may import each showcase world's bundle (and nothing else of a world's).
   if (file === WORLD_LOADER_FILE && /^worlds\/(nox|veyra|flux|aether)\/bundle$/.test(bare)) return null;
+  // TEST-ONLY allowlist entry: a creator template may import its own world's bundle (and nothing else of a world's).
+  const template = TEMPLATE_FILE.exec(file);
+  if (template && bare === `worlds/${template[1]}/bundle`) return null;
   if (bare.startsWith('engine/')) return PLATFORM_ENGINE_ALLOWED.includes(bare) ? null : 'an engine module outside the allowlist';
   if (bare.startsWith('worlds/')) {
     if (bare === 'worlds/index' || bare.startsWith('worlds/octoverse/')) return null;
@@ -362,6 +372,18 @@ test('the platform rule fails on a deep engine import, a world bundle, multi-lin
   for (const other of ['pages/Landing.tsx', 'worlds/other.ts', 'world/WorldPage.tsx', 'worlds/loadWorld.tsx', 'x/worlds/loadWorld.ts', 'loadWorld.ts']) {
     expect(at("const m = import('../../worlds/nox/bundle');", other), other).toHaveLength(1);
     expect(at("import { NOX_BUNDLE } from '../../worlds/veyra/bundle';", other), other).toHaveLength(1);
+  }
+  // A creator template (creator/templates/<id>.ts) may import its own world's bundle and no other world's, nothing else of its own world's, and only from that exact file.
+  const template = (id: string, code: string) => at(code, `creator/templates/${id}.ts`);
+  for (const id of ['nox', 'veyra', 'flux', 'aether']) expect(template(id, `import { B } from '../../../worlds/${id}/bundle';
+const m = import('../../../worlds/${id}/bundle');`), id).toEqual([null, null]);
+  for (const [id, other] of [['nox', 'veyra'], ['veyra', 'nox'], ['flux', 'aether'], ['aether', 'flux']]) expect(template(id, `import { B } from '../../../worlds/${other}/bundle';`), `${id} -> ${other}`).toHaveLength(1);
+  expect(template('nox', "import { C } from '../../../worlds/nox/character';")).toHaveLength(1);
+  expect(template('nox', "import { C } from '../../../worlds/nox/place/config';")).toHaveLength(1);
+  expect(template('nox', "import { B } from '../../../worlds/octoverse/../nox/bundle.test';")).toHaveLength(1);
+  expect(template('nox', "import { x } from '../../../engine/character/Octopus';")).toEqual(['an engine module outside the allowlist']);
+  for (const other of ['creator/templates/index.ts', 'creator/templates/make.ts', 'creator/templates/nox.tsx', 'creator/templates/octoverse.ts', 'creator/templates/nox/extra.ts', 'creator/nox.ts', 'creator/CreatorPage.tsx', 'x/creator/templates/nox.ts', 'templates/nox.ts']) {
+    expect(at("import { NOX_BUNDLE } from '../../../worlds/nox/bundle';", other), other).toHaveLength(1);
   }
   // What is allowed.
   expect(at("import { HOST_BUNDLE } from '../../worlds/octoverse/bundle';\nimport { nox } from '../../worlds/nox/content/nox';\nimport { noxProject } from '../../worlds/nox/content/noxProject';\nimport { noxTechnologies } from '../../worlds/nox/content/noxTechnologies';\nimport { WORLDS } from '../../worlds';\nimport { WorldHost } from '../../engine/host/WorldHost';")).toEqual([null, null, null, null, null, null]);
