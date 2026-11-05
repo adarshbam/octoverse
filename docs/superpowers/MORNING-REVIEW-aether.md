@@ -56,6 +56,27 @@ What to check:
 4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
 5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
 
+### Overview orbs and the flight (Task 12): PROVISIONAL, not approved
+
+Open the overview live (`?world=aether`, then Explore or click her head) and watch the head swell: the ring's beads brighten, split into orbs, fly to her arms and hang there on gold threads. Then hover an orb. Stills in `docs/superpowers/evidence/aether/m3/`:
+- `t12-p3-vs-overview.webp`: P3 left, the settled overview right (registered pixel for pixel).
+- `t12-flight-0.1-0.75s.webp` and `t12-flight-0.85s-settled.webp`: the opening at 0.1, 0.3, 0.6, 0.75, 0.85, 0.95 and 1.0 s, and settled.
+
+Numbers (all in `docs/superpowers/reviews/aether.md`, Task 12):
+- Orbs 0.6 across, 16 lavender-white rim beads each, a gold cap (0.05) at a gold thread 0.16 long.
+- Her ten technologies hang on the upper slots (T1, T8, T2, T7 both; T3, T6 tips). Up to 16 hang (two an arm); more go to the tray.
+- Flight: beads brighten 0.2 to 0.43 s, split 0.43 to 0.6 s, orbs fly 0.6 to 1.24 s (T1's tip first), settle by 1.35 s. Float: at most 15 degrees, settled in 1.4 s, 0.03 bob over 3 to 5 s.
+- No orb in flight touches her face box, for 10, 15 or 16 technologies (tested). They fly over the dome for about half a second.
+- Reduced motion: a crossfade, no flight.
+
+What to check:
+1. **Orb rim beads and cap**: P3's rims are a solid glowing ring; these are dotted beads. The glass is lighter than P3's dark glass. Close enough?
+2. **The flight**: timing, the arcs (orbs from a bead across her centre line rise over the top), the small stagger (0.06 s first to last), trails, the landing. It has no arm "catch" dip on landing.
+3. **No orb over the face**, in flight or hanging.
+4. **Orbs over the arms**: all ten of her orbs overlap an arm (only four of the 16 slots clear the arm tubes, none of them hers). P3 has some of this too. Acceptable?
+5. **Blank orbs and Redis**: five orbs have no logo (OpenAI, Next.js, PostgreSQL, AWS, Vector DB; engine follow-up "Logo marks"). Redis's mark is red. Keep it or recolour it?
+6. Her ten leave the bottom of the horseshoe empty, where P3 has orbs all round.
+
 ### Observatory world: bake, far plate, membrane and world light (Task 9): PROVISIONAL, not approved
 
 The page now shows `OBSERVATORY_WORLD` (kit, baked `near.glb`, three far-plate layers, sand floor, membrane, glyph pulse, jellyfish, manta fish). Task 10 is the look review. Open `?world=aether` live; stills in `docs/superpowers/evidence/aether/m2/`:

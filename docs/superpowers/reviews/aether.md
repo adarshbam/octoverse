@@ -875,3 +875,55 @@ The relic rule holds for the portal, but world elements near it can outshine her
 **Doc fixes.**
 - The face-trough wording no longer claims that a changing patch size only adds to the dip (both in the script and in fix round 2 above).
 - MORNING-REVIEW no longer calls t 6.5 a bubble: it is her light on the lantern, and it counts.
+
+## Task 12: overview orbs (engine `satellite` active form, the flight, `orbStyle`); owner review PROVISIONAL
+
+Three commits: two engine-only, one Aether.
+- **`orbStyle`** (engine, also for Flux): `ArtifactConfig.orbStyle { rimBeads, rimColour, cap | null }`, validated (`rimBeads` 0 to 64, a colour, `cap.size` > 0). Every orb gets a rim of small additive beads, which brighten with its focus, and a small cap where its thread meets it. Absent, the orb glass is today's exactly: `orbStyle.test.ts` pins the glass shaders' fingerprints, uniforms and flags.
+- **Satellite flight and active form** (engine). Without `slots`, `sizes`, `tether` and `swing` the satellite is ring-only with capacity 0, as before. With them:
+  - the technologies are dealt round the ring's beads;
+  - the beads brighten, flare and split into orbs, which fly to the pendant slots, hang on tethers and float;
+  - Veyra's `assignPendants`, `layoutPendants`, `stepPendants` and `pendantSwing` are reused unchanged (two type widenings only).
+- **Aether** (`src/worlds/aether/artifacts.ts`): 16 overview slots from `OVERVIEW_ROOM`, two per arm, filled a pair of arms at a time from the top down, tips first (T1 tip order 0, T8 tip order 1, then T1 and T8 mid-arm, then T2/T7, and so on). Orbs 0.6 across (`sizes.overview` is the radius, 0.3; the plan's "0.6" is the width, as in `poses.test.ts`). Gold thread 0.16 long, sag 0.2. Swing at most 15 degrees, settled in 1.4 s. `orbStyle { rimBeads: 16, rimColour: '#e4d9f8', cap: { colour: '#d99982', size: 0.05 } }`. Still choosable in the overview only.
+
+**Her ten.** They take both slots on T1, T8, T2 and T7 and the tips of T3 and T6. The lower arms' slots wait for an eleventh to sixteenth technology. A seventeenth and beyond go to the tray (tested for 1, 3, 10, 15, 16 and 20).
+
+**The flight** (swell sheet seconds; the satellite reads the swell's `push` over its settled value as the flight's progress p):
+- Aether's `push` key was Nox's (peak then settle), which gave the flight only 0.3 to about 0.6 s. It now rises once, with no overshoot, from 0.2 s to 1.35 s (`sequences/defaults.ts`; `state.theatre.json` reseeded for `headSwell` only). p = (t - 0.2) / 1.15.
+- Beads brighten, p 0 to 0.2 (0.2 to 0.43 s). They flare and split, p 0.2 to 0.35 (0.43 to 0.6 s).
+- Travel, p 0.35 to 0.9 (0.6 to 1.235 s). Each orb flies for 0.5 of p (0.58 s), T1's tip first and the last orb 0.05 of p (0.06 s) later. The orb grows from 0.3 of its size, and its logo comes up over the last 30% of its own travel. A short gold trail follows it (fixed pool of 7-point tubes). Threads appear on landing.
+- Settle, p 0.9 to 1 (1.235 to 1.35 s). Then each orb floats: `pendantSwing` with the arm, plus a 0.03 bob over 3 to 5 s, each orb out of phase.
+- **The path keeps clear of her face.** It comes down a lane at least the ring's radius (1.25) out from her head's centre line, on the slot's side:
+  - an orb whose bead is across her centre line from its slot rises over the top, higher the further across it is;
+  - an orb whose bead is already out on the slot's side and above it swings outward and down, and comes in low.
+  - Tested: for 10, 15 and 16 technologies no orb in flight touches her face box (eyes, brows, blush, mouth). The first arc tried (a bow outward and up) crossed it for 4 of her ten.
+- **Continuity:** at most 0.148 per 0.01 of swell progress (plan limit 0.15). The plan's limit is why the stagger is small: a longer stagger shortens each orb's travel and speeds it past the limit.
+- **Reduced motion:** a crossfade. The orbs shrink out at the bead before p 0.5 and grow in at the slot after it, never between.
+- **Hold:** once the orbs land in the overview, a technology focus keeps them landed although it closes the head. Leaving the overview flies them home with the swell. A still (`?freeze`, `?swell=`) shows the swell's own moment. A bug found while capturing: a settled frame before the seek latched the orbs as landed, and `?swell=0.3` showed them on the arms.
+
+**Stills** (`docs/superpowers/evidence/aether/m3/`, 509 x 504 at SCALE 2, P3's registration; `kitwait=90000`):
+- `t12-p3-vs-overview.webp`: P3 left, settled overview (bare `?freeze`) right. Also `t12-overview-settled.webp`.
+- `t12-flight-0.1-0.75s.webp`: `?swell=` 0.1 and 0.3 s (ring at rest; the ring line's left half is behind the squeezing head, as before Task 12), 0.6 s (beads bright, splitting), 0.75 s (orbs leaving).
+- `t12-flight-0.85s-settled.webp`: 0.85 s (mid-flight, trails, over the dome), 0.95 s (landing), 1.0 s (landed, logos up), settled.
+- Single stills: `t12-swell-0.1s/0.3s/0.6s/1s.webp`.
+
+**Against P3:**
+- Matches: the horseshoe of orbs round her, gold caps and threads, dotted bright rims, and nothing over the face.
+- P3 shows more orbs (about 15) all round the horseshoe down to the bottom; her shipped ten fill only the upper slots, so the bottom of the horseshoe is empty.
+- P3's orbs are dark glass with a solid glowing rim and large logos. The render's rims read as dotted bead rings, and the glass is lighter.
+- Five of her ten orbs are blank: OpenAI, Next.js, PostgreSQL, AWS and Vector DB have no logo mark (`LOGO_SLUGS`; already an engine follow-up).
+- Redis's mark is red (its brand colour), against spec 7.7's no-red rule. Owner call.
+
+**Clearances** (`artifacts.test.ts`):
+- Attach points: more than 0.05 clear of the other arms and her face (`threadClearance`).
+- Hanging straight down (as every still holds them): threads and orbs more than 0.05 from her face and from the dome's panel.
+- Floating, at the idle sway's few degrees and the 0.03 bob: none reaches the panel. Swung to the full 15 degrees: none reaches the face. T8's mid-arm orb does reach the panel's right edge by about 0.065; only a hard arm sweep swings it that far (tested to stay under 0.1).
+- **Arms:** only four of the 16 slots clear the arm tubes (Task 11: T3/T6@0.6, T4/T5@0.75), and her ten use none of them. All ten of her orbs overlap an arm, from 0.01 (T1/T8 tips against the T2/T7 curls) to 0.35 (T3/T6 tips on their own curl), as several of P3's orbs sit over tentacles.
+- **Mid-flight**, the orbs cross the dome and its panel for about half a second (up to 0.23 inside the panel box). They fly over the glass, as P3's story has them rise out of the head.
+
+**Not done / known:**
+- No arm "catch" dip on landing.
+- In the detail stage the orbs fade out with the overview; they do not fly back to the ring.
+- The beads' `from` points ignore the head's turn.
+- Orbs appear with the overview's blow, then the flight runs.
+- During the flight the ring line, at brow height, crosses the dome's lower edge until it fades.
