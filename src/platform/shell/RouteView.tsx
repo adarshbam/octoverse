@@ -12,7 +12,7 @@ import './shell.css';
 // `loadWorld`, one dynamic import per world), the creator, its preview, and the engine's own page for a review address.
 const WorldPage = lazy(() => import('../world/WorldPage'));
 const CreatorRoute = lazy(() => import('../creator/CreatorRoute'));
-const PreviewPage = lazy(() => import('../creator/PreviewPage'));
+const CreatorPreviewPage = lazy(() => import('../creator/CreatorPreviewPage'));
 const ReviewPage = lazy(() => import('../../app/ReviewPage'));
 
 /**
@@ -57,7 +57,7 @@ export function RouteView({ route }: { route: Route }) {
     case 'createPreview':
       return (
         <Suspense fallback={<Loading />}>
-          <PreviewPage />
+          <CreatorPreviewPage view={route.view} />
         </Suspense>
       );
     case 'review':

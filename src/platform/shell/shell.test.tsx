@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import CreatorRoute from '../creator/CreatorRoute';
-import PreviewPage from '../creator/PreviewPage';
+import PreviewPage from '../creator/CreatorPreviewPage';
 import { profileFor } from '../fixtures/showcase';
 import { Explore } from '../pages/Explore';
 import { NotFound } from '../pages/NotFound';
@@ -38,7 +38,7 @@ describe('the navigation bar (spec 7.8)', () => {
     expect(world).toContain('Loading world');
     expect(renderToStaticMarkup(createElement(PreviewPage))).not.toContain('oct-nav');
     // Through the router's own view, while the lazy chunk is loading: the fallback has none either.
-    for (const route of [{ name: 'world', handle: 'veyra', project: 'vault-os', view: 'detail' }, { name: 'createPreview' }] as Route[]) {
+    for (const route of [{ name: 'world', handle: 'veyra', project: 'vault-os', view: 'detail' }, { name: 'createPreview', view: 'intro' }] as Route[]) {
       expect(renderToStaticMarkup(createElement(RouteView, { route })), JSON.stringify(route)).not.toContain('oct-nav');
     }
   });
@@ -53,7 +53,7 @@ describe('pageKey (what a route fade is between)', () => {
     const routes: Route[] = [
       { name: 'landing' }, { name: 'explore' }, { name: 'profile', handle: 'veyra' }, { name: 'profile', handle: 'flux' },
       { name: 'world', handle: 'veyra', project: 'vault-os', view: 'intro' }, { name: 'world', handle: 'flux', project: 'github-pipeline-engine', view: 'intro' },
-      { name: 'create' }, { name: 'createPreview' }, { name: 'notFound', path: '/x' }, { name: 'review', search: '?world=nox' },
+      { name: 'create' }, { name: 'createPreview', view: 'intro' }, { name: 'notFound', path: '/x' }, { name: 'review', search: '?world=nox' },
     ];
     expect(new Set(routes.map(pageKey)).size).toBe(routes.length);
   });

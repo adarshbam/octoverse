@@ -4,6 +4,7 @@ import { PageFrame } from '../pages/parts';
 import { Tabs } from '../pages/Tabs';
 import { CreatorPreview } from './CreatorPreview';
 import { OctopusPanel } from './OctopusPanel';
+import { previewHref } from './previewDraft';
 import type { MediaApi } from './mediaUrls';
 import { ProjectsPanel } from './ProjectsPanel';
 import type { CreatorDraft } from './types';
@@ -21,11 +22,14 @@ const phoneNow = (): CreatorLayout => (window.matchMedia(PHONE).matches ? 'phone
 /** Phone (under 768 px wide) or wide; the server render and tests are wide. */
 const useLayout = (): CreatorLayout => useSyncExternalStore(subscribe, phoneNow, () => 'wide');
 
-/** The bottom of the screen: See live preview (the selected project in its full world) and Publish, visibly unavailable (spec 2.6). */
-function Actions() {
+/**
+ * The bottom of the screen: See live preview (the selected project in its full world: its id travels as `?project=`, and the link has a
+ * stable focus id so Back from the preview puts focus on it whichever project it named) and Publish, visibly unavailable (spec 2.6).
+ */
+function Actions({ project }: { project: string | null }) {
   return (
     <div className="oct-creator-actions">
-      <Link href="/create/preview" className="oct-button oct-button-primary">
+      <Link href={previewHref(project)} focusId="see-live-preview" className="oct-button oct-button-primary">
         See live preview <span aria-hidden="true">→</span>
       </Link>
       <button type="button" disabled className="oct-button oct-creator-publish">
@@ -63,7 +67,7 @@ export function CreatorPage({ draft, onChange, layout, busy = false, bar, media 
               <OctopusPanel draft={draft} onChange={onChange} />
               {preview}
               {projects}
-              <Actions />
+              <Actions project={selected} />
             </>
           ) : (
             <>
@@ -75,7 +79,7 @@ export function CreatorPage({ draft, onChange, layout, busy = false, bar, media 
                   { id: 'projects', label: 'Projects', panel: projects },
                 ]}
               />
-              <Actions />
+              <Actions project={selected} />
             </>
           )}
         </div>

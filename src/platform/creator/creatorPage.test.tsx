@@ -112,8 +112,9 @@ describe('the creator composition (spec 7.13)', () => {
     expect(details![1]).not.toMatch(/\bopen\b/);
   });
 
-  it('See live preview is a link to the full preview, and Publish is disabled with the exact text', () => {
-    expect(html).toMatch(/<a\b[^>]*href="\/create\/preview"[^>]*>[\s\S]*?See live preview/);
+  it('See live preview is a link to the full preview of the selected project, with a stable focus id, and Publish is disabled with the exact text', () => {
+    expect(html).toMatch(/<a\b[^>]*href="\/create\/preview\?project=sample-project"[^>]*>[\s\S]*?See live preview/);
+    expect(html).toMatch(/<a\b[^>]*data-focus-id="see-live-preview"[^>]*>[\s\S]*?See live preview/);
     const publish = buttonsIn(html).filter(b => b.text === 'Publishing arrives with accounts');
     expect(publish).toHaveLength(1);
     expect(publish[0].attrs).toMatch(/\bdisabled\b/);

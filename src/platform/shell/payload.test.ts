@@ -106,7 +106,7 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
       expect(manifest[loader[0]].dynamicImports, id).toContain(key);
       expect(manifest[loader[0]].imports ?? [], id).not.toContain(key);
     }
-    for (const src of ['src/platform/world/WorldPage.tsx', 'src/platform/creator/CreatorRoute.tsx', 'src/platform/creator/PreviewPage.tsx', 'src/app/ReviewPage.tsx']) {
+    for (const src of ['src/platform/world/WorldPage.tsx', 'src/platform/creator/CreatorRoute.tsx', 'src/platform/creator/CreatorPreviewPage.tsx', 'src/app/ReviewPage.tsx']) {
       const key = named(src);
       expect(key, `${src} is a dynamic entry`).toBeDefined();
       expect(landing.has(key!), src).toBe(false);
@@ -125,8 +125,10 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
     it('the scan reads real chunks (positive controls)', () => {
       expect(jsFiles().length).toBeGreaterThan(10);
       expect(code().every(chunk => chunk.text.length > 0)).toBe(true);
-      // The creator route's chunk holds the database name, so the scan finds a string that is in the build.
-      expect(holding('octoverse-creator').some(file => /CreatorRoute/.test(file)), 'the creator chunk holds the DB name').toBe(true);
+      // The chunk built from the creator's storage (shared by the creator and its full preview, so not named after either) holds the database name, so the scan finds a string that is in the build.
+      const storage = Object.keys(manifest).filter(key => sourcesOf(key).includes('src/platform/creator/storage.ts'));
+      expect(storage.length, 'storage.ts is in the build').toBeGreaterThan(0);
+      expect(holding('octoverse-creator').some(file => storage.some(key => file === join(OUT, manifest[key].file))), 'the creator storage chunk holds the DB name').toBe(true);
       // The source maps are read: the creator's modules, the entry's review-address parser and Theatre's core are all listed.
       expect(modules()).toEqual(expect.arrayContaining(['src/platform/creator/draft.ts', 'src/platform/creator/storage.ts', 'src/platform/creator/reviewParam.ts', 'src/app/Page.tsx']));
       expect(modules().some(m => m.includes('@theatre/core/'))).toBe(true);
