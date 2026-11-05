@@ -245,7 +245,7 @@ export interface AppearModule {
    * formed `seconds` into the appearance (`sequences` null: the sheet is not in yet, so at the start). The
    * blow and the bloom form no ring and have none: the ring is then drawn whole.
    */
-  ring?(sequences: Sequences | null, seconds: number, config: AppearContext): TwinkleState;
+  ring?(sequences: Sequences | null, seconds: number, config: AppearContext, out?: TwinkleState): TwinkleState;
 }
 
 /** The blow (design 9.8): the character blows its artifacts from its mouth, one after another. */
@@ -292,8 +292,8 @@ const twinkleAppear = {
   origin: (): Vec3 => [0, 0, 0],
   frame: (_sequences: Sequences, _i: number, _seconds: number, _count: number, _config: AppearContext): AppearFrame => IN_PLACE,
   position: (_origin: Vec3, target: THREE.Vector3, _emerged: number, out: THREE.Vector3): THREE.Vector3 => out.copy(target),
-  ring: (sequences: Sequences | null, seconds: number, config: AppearContext): TwinkleState =>
-    twinkleFrame(sequences, seconds, config.placement.kind === 'satellite' ? config.placement.ring.beadCount : 0, config.appear.kind === 'twinkle' ? config.appear.duration : undefined),
+  ring: (sequences: Sequences | null, seconds: number, config: AppearContext, out?: TwinkleState): TwinkleState =>
+    twinkleFrame(sequences, seconds, config.placement.kind === 'satellite' ? config.placement.ring.beadCount : 0, config.appear.kind === 'twinkle' ? config.appear.duration : undefined, out),
 } as const satisfies AppearModule;
 
 export const APPEARS = { blow: blowAppear, bloom: bloomAppear, twinkle: twinkleAppear } as const;

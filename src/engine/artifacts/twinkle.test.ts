@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { ringDrawn } from './satellite';
-import { TWINKLE_BEADS_START, TWINKLE_LINE_SECONDS, TWINKLE_SECONDS, twinkleFrame, twinkleLength, twinklePop, twinkleState } from './twinkle';
+import { TWINKLE_BEADS_START, TWINKLE_LINE_SECONDS, TWINKLE_SECONDS, twinkleFrame, twinkleLength, twinklePop, twinkleState, twinkleStateInto } from './twinkle';
 
 const STEPS = 280;
 const times = Array.from({ length: STEPS + 1 }, (_, i) => (i / STEPS) * 1.6);
@@ -117,4 +117,29 @@ test('a bead swells past its size as it lights and settles at exactly its size',
   expect(Math.max(...Array.from({ length: 101 }, (_, i) => twinklePop(i / 100)))).toBeGreaterThan(1);
   expect(twinklePop(-1)).toBe(0);
   expect(twinklePop(2)).toBeCloseTo(1, 12);
+});
+
+test('the per-frame path writes into the state it is given and allocates none: the same state and bead array come back, equal to the pure reference', () => {
+  const out = { line: 0, beads: [] as number[] };
+  const first = twinkleStateInto(out, 0.2, 5, false);
+  const beads = out.beads;
+  expect(first).toBe(out);
+  for (const t of [0, 0.3, 0.7, 1.0, 1.4, 2]) {
+    expect(twinkleStateInto(out, t, 5, false)).toBe(out);
+    expect(out.beads).toBe(beads);
+    expect(out).toEqual(twinkleState(t, 5, false));
+  }
+  // Reduced motion and a changed bead count reuse the same state too (the array is resized in place).
+  expect(twinkleStateInto(out, 0, 5, true)).toBe(out);
+  expect(out.beads).toBe(beads);
+  expect(out).toEqual({ line: 1, beads: [1, 1, 1, 1, 1] });
+  twinkleStateInto(out, 1, 3, false);
+  expect(out.beads).toBe(beads);
+  expect(out.beads).toHaveLength(3);
+  // The frame given an `out` writes there; without one it makes its own.
+  const sheet = { length: () => 1.4, sample: (_id: string, _object: string, seconds: number) => ({ clock: seconds / 1.4 }) };
+  const into = { line: 0, beads: [] as number[] };
+  expect(twinkleFrame(sheet as never, 0.8, 5, 1.4, into)).toBe(into);
+  expect(twinkleFrame(null, 0.8, 5, 1.4, into)).toBe(into);
+  expect(twinkleFrame(sheet as never, 0.8, 5, 1.4)).not.toBe(into);
 });

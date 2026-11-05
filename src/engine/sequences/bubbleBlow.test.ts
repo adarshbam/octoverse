@@ -167,3 +167,16 @@ test("a step must say how long one blow is: leaving it out is a type error (a ru
   while (!run.done && steps++ < 1000) run.step({ ...step, length: LENGTH() });
   expect(run.done).toBe(true);
 });
+
+test('a run told the entrance was skipped is over at once when the bubbles first exist; without the flag a skip changes nothing (the blow plays)', () => {
+  const step = { exist: true, still: false, ready: true, dt: 0.05, count: COUNT, length: LENGTH() };
+  const skipped = new BlowRun();
+  skipped.step({ ...step, exist: false, skipped: true });
+  expect(skipped.done).toBe(false);
+  skipped.step({ ...step, skipped: true });
+  expect(skipped.done).toBe(true);
+  expect(skipped.blowing).toBe(false);
+  const plays = new BlowRun();
+  plays.step(step);
+  expect(plays.blowing).toBe(true);
+});

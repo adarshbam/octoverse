@@ -356,6 +356,11 @@ test('the twinkle runs its duration, holds every artifact at its place, and give
   expect(formed.line).toBe(1);
   expect(formed.beads).toEqual([1, 1, 1, 1, 1]);
   expect(APPEARS.twinkle.ring(sheet as never, 0.3, AETHER_LIKE).line).toBeGreaterThan(0);
+  // Given a state to write into (TechBubbles keeps one), the ring is written there and returned: a frame allocates none.
+  const keep = { line: 0, beads: [] as number[] };
+  expect(APPEARS.twinkle.ring(sheet as never, 0.9, AETHER_LIKE, keep)).toBe(keep);
+  expect(APPEARS.twinkle.ring(null, 0, AETHER_LIKE, keep)).toBe(keep);
+  expect(keep).toEqual({ line: 0, beads: [0, 0, 0, 0, 0] });
   // The blow and the bloom form no ring (it is drawn whole), and their own runs are unchanged by the twinkle.
   expect('ring' in APPEARS.blow).toBe(false);
   expect('ring' in APPEARS.bloom).toBe(false);

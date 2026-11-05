@@ -53,6 +53,12 @@ export interface BubbleState {
    * not wanted (motion off, the bubbles gone): the ring is whole.
    */
   twinkle?: TwinkleState;
+  /**
+   * The entrance was skipped (the stage left `entering` before the entrance ran its course), written by the
+   * character. An appear that forms a placement's drawing (the twinkle) is then not played: the ring is whole
+   * as the skip lands in the intro. The blow and the bloom ignore it (they play after a skip as they always did).
+   */
+  skipped?: boolean;
   /** Written back each frame: each bubble's place on its orbit (body space), which the arm holding it turns toward. */
   orbit: THREE.Vector3[];
   /**
@@ -331,7 +337,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
 
   // The placement's run for this many bubbles (the orbit clock and its speed spring, or the pendants' swings), each bubble's current size, and how far all are shown.
   const driver = useMemo(() => placementDriver(placementConfig, bubbles.length, { headCentreX }), [placementConfig, bubbles.length, headCentreX]);
-  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
+  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), twinkle: { line: 0, beads: [] as number[] }, hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
   // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
   const threads = useThreads(placementConfig.kind === 'pendant' || placementConfig.kind === 'satellite' ? placementConfig.tether ?? null : null, bubbles.length);
   // A placement whose artifacts fly between its forms (the satellite) leaves a fading gold trail behind each, from a fixed pool.
@@ -353,11 +359,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     const { blow } = run;
     // One blow's length is the loaded sheet's; with no sheet in, the run does not read it (it waits, or the blow is given up).
     const sheet = s.blow?.sequences;
-    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at });
+    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at, skipped: !!appear.ring && s.skipped });
     const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
     const waiting = !blow.done && !blowing;
     // The ring forms as the appear says: from the run's clock; waiting for the sheet where the bubbles exist, it is not drawn yet.
-    if (appear.ring) s.twinkle = blowing ? appear.ring(blowing, blow.seconds!, artifacts) : s.show && !blow.done ? appear.ring(null, 0, artifacts) : undefined;
+    // (Written into the run's one state: a frame allocates none.)
+    if (appear.ring) s.twinkle = blowing ? appear.ring(blowing, blow.seconds!, artifacts, run.twinkle) : s.show && !blow.done ? appear.ring(null, 0, artifacts, run.twinkle) : undefined;
     // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
     const goal = s.show && !waiting ? 1 : 0;
     run.shown = s.still || blowing ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);

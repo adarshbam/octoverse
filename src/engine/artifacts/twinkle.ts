@@ -35,16 +35,29 @@ export interface TwinkleState {
  * complete by 1.4 s. With `reducedMotion` it is complete at once.
  */
 export function twinkleState(t: number, beadCount: number, reducedMotion: boolean): TwinkleState {
+  return twinkleStateInto({ line: 0, beads: [] }, t, beadCount, reducedMotion);
+}
+
+/**
+ * `twinkleState` written into `out` (its `beads` resized to `beadCount`, once, then reused), and `out`
+ * returned: the per-frame path, which allocates nothing once `out` has held that many beads.
+ */
+export function twinkleStateInto(out: TwinkleState, t: number, beadCount: number, reducedMotion: boolean): TwinkleState {
   const n = Math.max(0, Math.floor(Number.isFinite(beadCount) ? beadCount : 0));
-  if (reducedMotion) return { line: 1, beads: Array.from({ length: n }, () => 1) };
+  const { beads } = out;
+  beads.length = n;
+  if (reducedMotion) {
+    out.line = 1;
+    for (let i = 0; i < n; i++) beads[i] = 1;
+    return out;
+  }
   const clock = Number.isFinite(t) ? t : 0;
   const window = TWINKLE_SECONDS - TWINKLE_BEADS_START;
   const span = n > 1 ? window * BEAD_SHARE : window;
   const step = n > 1 ? (window - span) / (n - 1) : 0;
-  return {
-    line: smooth(progress(clock / TWINKLE_LINE_SECONDS)),
-    beads: Array.from({ length: n }, (_, i) => smooth(progress((clock - (TWINKLE_BEADS_START + i * step)) / span))),
-  };
+  out.line = smooth(progress(clock / TWINKLE_LINE_SECONDS));
+  for (let i = 0; i < n; i++) beads[i] = smooth(progress((clock - (TWINKLE_BEADS_START + i * step)) / span));
+  return out;
 }
 
 /** Seconds the whole twinkle runs: the appear's `duration` (1.4 by default). */
@@ -56,15 +69,16 @@ export function twinkleLength(duration?: number): number {
  * The twinkle as the appear module plays it (strategies.ts): the world's `twinkle` sheet eases the
  * clock (its `main.clock` runs 0 to 1 over the sheet; keyed straight, the clock is the run's own),
  * `seconds` into a run of `duration`, and `twinkleState` gives the ring at that moment. With no sheet
- * in yet (`sequences` null) the ring is as at the start: nothing drawn.
+ * in yet (`sequences` null) the ring is as at the start: nothing drawn. Given `out`, it is written there
+ * and returned (the per-frame path: nothing is allocated here, the sheet's own sample aside).
  */
-export function twinkleFrame(sequences: Sequences | null, seconds: number, beadCount: number, duration?: number): TwinkleState {
-  if (!sequences) return twinkleState(0, beadCount, false);
+export function twinkleFrame(sequences: Sequences | null, seconds: number, beadCount: number, duration?: number, out: TwinkleState = { line: 0, beads: [] }): TwinkleState {
+  if (!sequences) return twinkleStateInto(out, 0, beadCount, false);
   const total = twinkleLength(duration);
   const sheet = sequences.length('twinkle');
   const at = clamp01((Number.isFinite(seconds) ? seconds : 0) / total) * sheet;
   const clock = clamp01(sequences.sample<{ clock: number }>('twinkle', 'main', at).clock);
-  return twinkleState(clock * TWINKLE_SECONDS, beadCount, false);
+  return twinkleStateInto(out, clock * TWINKLE_SECONDS, beadCount, false);
 }
 
 /** How much a bead overshoots its size as it lights (a fraction of it): the twinkle. */

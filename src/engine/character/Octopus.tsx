@@ -453,7 +453,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     rest: 0,
     breathPhase: 0,
     // The entrance's clock (seconds of frame time from its first frame; null until the sheet is in) and the wait for its sheet.
-    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
+    entrance: { entered: false, seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
     // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
     glowShown: 1,
     // The micro-animations (motion/micro.ts): seconds since each began (Infinity: not playing), on
@@ -539,6 +539,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     let hidden = false;
     if (stage === 'entering') {
       const e = m.entrance;
+      e.entered = true;
       const sheet = entranceSheet?.sequences ?? null;
       const step = Math.min(delta, ENTRANCE_MAX_STEP);
       if (!sheet) {
@@ -807,6 +808,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
+    // Skipped: it was entered and has not run its course, yet the stage is past it (a still or a return visit never entered).
+    bubbleState.skipped = m.entrance.entered && !m.entrance.done;
     placementFrame.stage = stage;
     placementFrame.swell = sf.push;
     placementFrame.still = freeze || reducedMotion;
