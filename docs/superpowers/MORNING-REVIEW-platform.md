@@ -204,7 +204,7 @@ Stills (frozen, `docs/superpowers/evidence/platform/m4/`):
 - `task11-arrival-welcome-0.70-face.png`: the face back at `welcome` after the delighted spell.
 - `task11-arrival-welcome-intro.png` (+ `-mask`): the settled intro. P2 check unchanged: 12 of 17 within delta E 10, every sample identical to `m2/task6-intro.png`, IoU 0.856, crown B - R 140.2.
 
-Numbers: `src/worlds/octoverse/motion.test.ts`, 8 tests (personality values, the flourish mapping, 120 s flourish counts, idle tilt, the two wave peaks, the delighted spell, the sheet in the saved state, the entrance untouched).
+Numbers: `src/worlds/octoverse/motion.test.ts`, 8 tests (personality values, the flourish mapping, 120 s flourish counts, idle tilt, the two wave peaks, the delighted spell, the sheet in the saved state, the entrance's length; Task 12 has since authored the entrance itself).
 
 ## PENDING OWNER REVIEW: M4, the host's entrance with the gate greeting (Task 12)
 
@@ -219,7 +219,7 @@ What is authored (`src/worlds/octoverse/sequences/defaults.ts`, seeded into `sta
 - Skip, the session key `octoverse.octoverse.entranceSeen` and reduced motion (the stage opens on the intro) are the engine's; tested.
 
 What to check live (`/?world=octoverse` in a fresh tab, so the entrance plays):
-1. The glow out of the haze on the left. **Gap:** on a 16:9 desktop the host comes into view at the left edge only at about 1.3 s, and in P1's square crop at about 2 s. The reef's left rocks leave no open water nearer the frame wide enough for its open arms (below), so the path starts far left.
+1. The glow out of the haze on the left. **Gap:** on a 16:9 desktop the host comes into view at the left edge only at about 1.3 s, and in P1's square crop at about 2 s. The binding constraint is the open umbrella at the first recovery (about 1.0 s, arms 3 either side) against the floor boxes of the left rocks, which stand about 1.4 below the arms: an artefact of the engine's floor-plane clearance (every rock counts as infinitely tall), which keeps the start far left.
 2. Two long strokes and glides in profile: do they read as long and graceful? The first power stroke and glide carry it a long way across the reef (the fastest moment is 5.9 units a second, at 2.6 s).
 3. The greeting at about 3 s: does the glyph brightening (+40% on the still) and the membrane pulse read as the gate greeting its keeper? The membrane "ripple" is one emissive pulse, not a travelling ripple (E02b).
 4. The 200 degree turn: the engine's glide-turn turns one way only, so from facing the portal it turns its back to you, then shows its left side, then faces you. Graceful, or should it turn the short way (an engine change)?
@@ -233,9 +233,11 @@ Stills (frozen, `?world=octoverse&stage=entering&t=<s>&freeze`, `docs/superpower
 - `task12-entrance-5.4.png`: the intro pose, settled, all eight arms out, the welcome face.
 - `task12-intro.png` (+ `-mask`): P2 unchanged (12 of 17 within delta E 10, output identical to Task 11's, IoU 0.856).
 
-Clearance (against the reef's gate and four rocks, every one counted as a box on the floor however low): arms drawn in, 0.95 at the closest; as drawn (the umbrella open at each recovery), 0.31; held open as wide as the intro the whole swim, 0.26. Not cleared: the umbrella held open the whole swim (3 either side) overlaps the back-left rock's floor box by 0.29 (it only opens that wide at a recovery, placed in the open water), and at the stage spot itself the intro's arms reach 0.2 over the low front-right rock's floor box (the intro pose's place, Task 4).
+Clearance (against the reef's gate and four rocks, every one counted as a box on the floor however low; fix round 1): three rocks moved so the path clears with the arms open and closed, the back-left rock_d 0.5 back (z -9.5 to -10.0), the front-left rock_d 0.3 forward (z 0.8 to 1.1), rock_b 0.25 right and 0.1 forward (3.1, 2.0 to 3.35, 2.1); near.glb re-baked. Now: arms drawn in, 1.21 at the closest; as drawn (the umbrella at each recovery), 0.50; the umbrella held open (3.0) the whole swim, 0.13; the intro's arms (2.45) held open all the way to the stage spot, 0.06. P2 is unchanged (every sample identical, IoU 0.856). Please check the reef's left and right foreground rocks still frame the intro as you want (`task12-fix1-intro-wide.png`).
 
-Frame rate, entrance at tier low, 1536 x 1024, **dev server, under load**: median 57.1 and 53.2 fps, slow10 22.5 and 21.1, mean 35.7 and 30.0 (2 runs; intro baseline in the same conditions 41.5 median). Not the production build: port 5197 was held by a dev server left running by an earlier session, which I was not allowed to stop. Re-measure on a production build.
+The glyph at its peak (3.5 times its rest, for about half a second) is brighter than the face glow; at rest it stays below it (the rule in 7.7 is the intro's). Judge live whether the greeting is too strong.
+
+Frame rate, **production build** (`vite preview`, port 5297), `/?world=octoverse` fresh (the entrance plays; production ignores the review flags, so the tier is the device's own), 1536 x 1024, **under load** (another session's e2e run in parallel): median 48.3 and 42.7 fps, slow10 24.4 and 22.8, mean 28.1 and 22.7 (2 runs). The median meets 32; the mean does not: there are long frames (the first show of the host and the kit compiling, most likely).
 
 What is a stand-in: the membrane ripple (an emissive pulse); the glyph greeting is brightness only (no colour shift, no light on the host); the turn's direction (the engine's).
 

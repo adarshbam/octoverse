@@ -311,7 +311,7 @@ Verdict: provisional, pending owner.
   - `t1Wave` peaks at 0.38 s and 0.84 s.
   - `delighted` holds from 0.04 to 0.65 s (0.61 s); after that the face is `welcome`.
   - The engine's `roll` and `armWave` play the same two beats, small: the fan peaks at 0.07 rad.
-- The entrance placeholder is untouched (Task 12).
+- The entrance placeholder was untouched by Task 11 (Task 12 has since authored the entrance).
 - P2 regression: `m4/task11-arrival-welcome-intro.png` gives the same `host_delta_e.py` output as `m2/task6-intro.png`, sample for sample: 12 of 17 within delta E 10, IoU 0.856, crown B - R 140.2.
 
 ### Gaps (E02b; `src/engine` not touched)
@@ -456,7 +456,7 @@ Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can
 
 1. **No ripple drive.** The membrane's "ripples once" is one pulse of its emissive (the `'emissive'` drive is a level). A travelling ripple needs a ripple uniform on the membrane material driven by a prop.
 2. **The glide-turn turns one way.** `glideTurnYaw` only rises (-turn to 0): from facing the portal (right and away) the 200 degree turn shows the host's back, then its left side, then its face. A signed glide-turn (also asked for by Aether's review) would let it turn the short way or choose.
-3. **The clearance check is the floor plane only.** Every rock counts as infinitely tall. The reef's left rocks are low (tops 1 to 1.4 below the host), but their floor boxes leave no open water near the left of the frame wide enough for the host's open umbrella (3.0 either side), so the path starts at x -8.4: the glow comes into a 16:9 view only at about 1.3 s and into P1's square crop at about 2 s, not within 0 to 1 s. A height-aware clearance (piece tops against the arms' lowest reach) would let the path pass over the low back-left rock and appear in time; so would moving that rock (a layout and bake change).
+3. **The clearance check is the floor plane only.** Every rock counts as infinitely tall. The binding constraint is the open umbrella (3.0 either side) at the first recovery, about 1.0 s, against the floor boxes of the left rocks, which stand about 1.4 below the arms: a floor-plane artefact of the engine's clearance. It keeps the path's start at x -8.4, so the glow comes into a 16:9 view only at about 1.3 s and into P1's square crop at about 2 s, not within 0 to 1 s. A height-aware clearance (piece tops against the arms' lowest reach) would let the path pass over the low back-left rock and appear in time; so would moving that rock (a layout and bake change).
 
 ### Gaps
 
@@ -464,3 +464,11 @@ Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can
 2. Held open the whole swim (3.0), the arms overlap the back-left rock's floor box by 0.29; at the stage spot the intro's arms (2.45) reach 0.2 over the front-right rock_b's floor box (2.25 away). The test records both; frame (0.31), closed (0.95) and intro-held over the swim (0.26) clear.
 3. Frame rate measured on the dev server (an earlier session's server held 5197; stopping it was refused): entrance tier low median 57.1 / 53.2 fps under load, slow10 22.5 / 21.1, mean 35.7 / 30.0; intro baseline 41.5 median in the same conditions. Production measurement still owed.
 4. The host at 3 s is 3 units in front of the gate (clearance), so it reads larger than P1's and does not pass close by the portal; its trailing arms are straighter and thicker than P1's.
+
+### Task 12 fix round 1 (2026-11-05)
+
+- **The path now clears the reef with the arms open and closed.** Three rocks moved in `layout.json` (platform data): the back-left rock_d 0.5 back, the front-left rock_d 0.3 forward, rock_b 0.25 right and 0.1 forward. `near.glb` re-baked (2.68 MB, as before); `kit.glb` unchanged. Measured: closed 1.21, as drawn 0.50, umbrella (3.0) held open the whole swim 0.13, the intro's arms (2.45) held to the spot 0.06. The entrance test asserts these as real clearances; the known-overlap allowances are gone. P2 unchanged (all 17 samples identical, IoU 0.856).
+- **The reef's bake needed a fix to run:** the vault's bake library (shared) now calls `KIT.check_flow` on the export, which the reef's kit lacked; `blender/reef/bake_world.py` gives it one (the reef membrane's flow v runs 0 to 1 on its second UV set). The coral rest heights are unchanged for the magenta corals (the orange coral on rock_b rests 0.18 lower, computed by the page).
+- **Glyph peak** bounded at 4 in the test (3.5 used): transiently brighter than the face glow at its peak; owner judges live.
+- **Production frame rate** (entrance, `/` fresh, device tier; production ignores the review flags), under load: median 48.3 / 42.7 fps, slow10 24.4 / 22.8, mean 28.1 / 22.7.
+- Gap 2 above is closed. Gap 1 (the 0 to 1 s beat) remains.
