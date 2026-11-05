@@ -541,3 +541,33 @@ Worst ratio 0.992 (Veyra): every world is within 3% of its `?world=` number (all
 
 - `npx vitest run --maxWorkers=2` (no `SKIP_PAYLOAD_BUILD`): 197 files passed, 2024 tests passed, 1 skipped, 0 failed (71 s).
 - `npm run typecheck` (`tsc -p tsconfig.nox3d.json --noEmit`): exit 0, no errors (Task 16's `draft.ts` error is gone).
+
+### World regression: the worlds' own end-to-end specs (`playwright.nox3d.config.ts`, `--workers=1`, one spec at a time, one dev server on 5297; no flux spec exists)
+
+| Spec | Result |
+|---|---|
+| entrance | 5 passed |
+| world | 4 passed |
+| worldSwitch | 4 passed |
+| detail | 3 passed |
+| keyboard | 3 passed |
+| fallback | 3 passed |
+| isolation | 9 passed |
+| embedding | 9 passed |
+| cameraDrift | 1 passed |
+| responsive | first run 5 passed, 1 failed (re-run alone: same failure); after a test-side fix 6 passed |
+| worldTiers | 8 passed |
+| worldMotion | 1 passed |
+| veyra | 5 passed |
+| aether | 7 passed |
+| Total | 68 passed, 0 failed after the fix |
+
+The one failure: `responsive.spec.ts` 'the skip link is the first focusable element and goes to the project details' (`expect(link).toBeFocused()`: received inactive after a single Tab). Cause: the platform, not a world or the engine. The spec opened `/?stage=intro&freeze`, and `/` is now the platform landing (`src/platform`), which loads the world after the page; the Tab was sent before the engine's "Skip to project details" link existed. Fix (test only, platform-owned URL and timing mismatch): open `/?world=nox&stage=intro&freeze` like the other Nox specs and wait for the link to be attached before pressing Tab (`tests/e2e/responsive.spec.ts`). Assertions are unchanged. No engine or world file touched. The other platform e2e specs (`platform-*.spec.ts` except `platform-resources` and `platform-creator-editor`) were not re-run in this task.
+
+### Not measured, and caveats (Task 21b)
+
+1. The entrance row: `scripts/perf.mjs` starts timing 1.5 s after the ready flag, and the entrance is 8.4 s long, so a 3 s window (`--secs=3`) is the tail of the entrance but I did not verify that every sampled frame was inside it; the Task 16 row (8 s windows) was mostly the intro. A frame-by-frame measure from the first frame needs a different driver. The production build ignores `?stage=entering`.
+2. The preview's own GPU cost (How It Works card, creator preview, profile hero): the timer covers one context only; the main-thread cost is not measured.
+3. 'Tier low' is not forced in production (the URL flags are ignored): rows are at the device's own tier on this laptop.
+4. No quiet-machine guarantee: other sessions' dev servers and browsers were alive. The spread between runs was small this time, but the numbers are still 'under load'.
+5. The heap leak is unchanged (see the table above) and not diagnosed.

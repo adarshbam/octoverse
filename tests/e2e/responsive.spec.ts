@@ -93,9 +93,11 @@ test('resize from desktop to phone keeps the focused technology', async ({ page 
 });
 
 test('the skip link is the first focusable element and goes to the project details', async ({ page }) => {
-  await page.goto('/?stage=intro&freeze');
-  await page.keyboard.press('Tab');
+  await page.goto('/?world=nox&stage=intro&freeze');
   const link = page.getByRole('link', { name: 'Skip to project details' });
+  // The platform loads the world's chunk after the page: wait for the instance before the first Tab.
+  await expect(link).toBeAttached();
+  await page.keyboard.press('Tab');
   await expect(link).toBeFocused();
   await expect(link).toBeVisible();
   await page.keyboard.press('Enter');
