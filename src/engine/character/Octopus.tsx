@@ -1,10 +1,11 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
+import { BlinkScheduler, floatOffset, settleScale, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
 import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
+import { FlourishScheduler, flourishRate, flourishUnroll } from '../behavior/flourish';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
@@ -13,7 +14,7 @@ import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type ArmId, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
-import { strokeAt } from '../motion/stroke';
+import { strokeAt, strokeTiming } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
 import { toStage } from '../poses/authoring';
 import type { StagePose, SwimPoseSet } from '../poses/types';
@@ -176,8 +177,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const appear = APPEARS[artifacts.appear.kind];
   const select = SELECTS[artifacts.select.kind];
   const mouth = useMemo(() => appear.origin(config.head, config.face), [appear, config.head, config.face]);
-  // The entrance's stroke timing (the arguments entranceFrame takes of the character).
-  const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
+  // The entrance's stroke timing (the arguments entranceFrame takes of the character): its swim, the
+  // glide stretched by the personality's glideBias (Nox's own swim object, unchanged, at 1).
+  const entranceSwim = useMemo(() => ({ swim: strokeTiming(config.personality) }), [config.personality]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
   const swellSeconds = swellSheet.seconds;
   const swell = useMemo(() => ({ run: new SwellRun(swellSeconds), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), [swellSeconds]);
@@ -381,7 +383,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       dir: { x: 0, y: 0 },
       lift: 0,
     },
+    // The idle flourish (behavior/flourish.ts; none at Nox's rate 0) and its clock: frame time that
+    // runs only while one may play (motion on, the entrance over).
+    flourish: new FlourishScheduler(flourishRate(config.personality)),
+    flourishClock: 0,
   });
+  // The busy-arm hook: no flourish starts on an arm that holds something (the suction hold's turn
+  // toward its bubble; Task 19's pendant lift goes through the same hold).
+  const armBusy = useCallback((arm: ArmId) => motion.current.holdWeight[ARM_IDS.indexOf(arm)] > 0, []);
 
   // The pointer and the keys wake him from rest. Only a page instance listens (a preview shares the window with the page and does not).
   useWindowListeners(instance.mode, {
@@ -463,7 +472,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
     // The drive gives way as the arms swing forward (`forward`), before they spread (`open`).
-    const stroke = swim ? strokeAt(swim.stroke, personality.swim) : null;
+    const stroke = swim ? strokeAt(swim.stroke, entranceSwim.swim) : null;
     const drive = swim && stroke ? entranceDrive(swim, stroke) : null;
     const bodyX = pose.body.x + (swim ? swim.position[0] : 0);
     const bodyY = pose.body.y + (swim ? swim.position[1] : 0);
@@ -499,7 +508,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       if (entranceSheet?.sequences) mc.arrival = 0;
     }
     const flinch = startle(mc.startle, micro);
-    const settle = moving * settleOvershoot(mc.settle, micro);
+    const settle = moving * settleOvershoot(mc.settle, micro, settleScale(personality));
     const wiggle = entranceSheet?.sequences ? arrivalWiggle(entranceSheet.sequences, mc.arrival, micro) : { roll: 0, armWave: 0 };
     const lift = moving * flinch.lift + settle * mc.dir.y;
     // The arms trail against the lift as they do against the float (`droop`), at a gentler gain;
@@ -728,9 +737,22 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
-    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests) : null;
+    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests, settleScale(personality)) : null;
     const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
     const straighten = drive ? drive.straighten : armDrive?.straighten;
+    // The idle flourish: one arm's tip curl unrolls by up to 40% and rolls back, through the chain's
+    // own tip straightening. Never with motion off or frozen, never in the entrance, never on a busy
+    // arm; each start is told to the instance's subscribers (instance.flourish).
+    let flourishArm = -1;
+    let unroll = 0;
+    if (moving > 0 && !swim && stage !== 'entering') {
+      m.flourishClock += dt;
+      const playing = m.flourish.step(m.flourishClock, armBusy, instance.flourish);
+      if (playing) {
+        flourishArm = playing.index;
+        unroll = flourishUnroll(m.flourishClock, playing.start);
+      }
+    }
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
@@ -754,7 +776,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
         pitch,
-        straighten,
+        straighten: i === flourishArm ? Math.max(straighten ?? 0, unroll) : straighten,
       });
       tube.update();
       row.write(rig.suckers, offset, rig.suckerBend);

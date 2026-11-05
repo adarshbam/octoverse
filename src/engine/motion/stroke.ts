@@ -1,4 +1,4 @@
-import type { StrokeTiming } from '../config/types';
+import { PERSONALITY_VARIANT_DEFAULTS, type Personality, type StrokeTiming } from '../config/types';
 
 // One swim stroke, after real octopus arm-swimming (spec 9.5): a slow recovery in which the arms
 // open like an umbrella and the mantle fills, a fast power stroke in which they sweep back and
@@ -40,6 +40,16 @@ const smoothstep = (a: number, b: number, x: number) => {
 
 /** How the push dies away through the glide, 1 to 0: level as it starts, then falling fast, as drag takes the speed. */
 const coast = (g: number) => (Math.exp(-6 * g * g) - Math.exp(-6)) / (1 - Math.exp(-6));
+
+/**
+ * The stroke timing a personality swims with: its `swim`, the glide stretched by `glideBias` (unset:
+ * 1, Nox's), so a calm character coasts longer between strokes. With a bias of 1 it is the
+ * personality's own `swim` object, so Nox's timing (and everything keyed on it) is unchanged.
+ */
+export function strokeTiming(personality: Pick<Personality, 'swim' | 'glideBias'>): StrokeTiming {
+  const bias = personality.glideBias ?? PERSONALITY_VARIANT_DEFAULTS.glideBias;
+  return bias === 1 ? personality.swim : { ...personality.swim, glide: personality.swim.glide * bias };
+}
 
 /**
  * The stroke at `clock`: its integer part is the stroke index, its fraction the progress through

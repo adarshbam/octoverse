@@ -183,6 +183,19 @@ function checkOrbStyle(style: unknown) {
 }
 
 /**
+ * The personality's motion variants (engine contract 14.1), each optional (unset reads Nox's value),
+ * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more.
+ */
+function checkPersonalityVariants(personality: unknown) {
+  if (!record(personality)) return;
+  const at = 'character.personality';
+  const { settle, glideBias, flourishRate } = personality;
+  if (settle !== undefined && !(finite(settle) && settle >= 0 && settle <= 1)) throw new BundleError(`${at}.settle`, `${String(settle)} is not from 0 to 1 (a share of the approved overshoot)`);
+  if (glideBias !== undefined && !(finite(glideBias) && glideBias > 0)) throw new BundleError(`${at}.glideBias`, `${String(glideBias)} is not above 0 (a scale on the glide)`);
+  if (flourishRate !== undefined && !(finite(flourishRate) && flourishRate >= 0)) throw new BundleError(`${at}.flourishRate`, `${String(flourishRate)} is not 0 or more (flourishes per minute)`);
+}
+
+/**
  * Every part of the bundle the checks below (and the host) read is there, and of the form it is read
  * in, or a BundleError names the field: a missing part must not surface later as a TypeError.
  */
@@ -275,6 +288,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (surfaces && !(SKIN_MODES as readonly unknown[]).includes(mode)) throw new BundleError(`character.skin.surfaces.${surface}.mode`, `"${String(mode)}" is not a skin mode the engine has (${SKIN_MODES.join(', ')})`);
   }
   checkLeaves(rest.character, 'character', true);
+  checkPersonalityVariants(bundle.character.personality);
   // The face glow's spread and reach divide in the skin and jelly shaders: each must be above zero.
   for (const key of ['spreadX', 'reachUp', 'reachDown'] as const) {
     const value: unknown = bundle.character.glow?.[key];

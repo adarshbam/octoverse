@@ -733,7 +733,7 @@ Stills (`docs/superpowers/reviews/assets/veyra/`; frozen intro, P2's view box, 9
 ### The four checks, with my verdict
 
 1. **The back is round and glassy: yes.** Seen from behind, the dome is the same round jelly as from the front: a bright cyan rim all round, a lighter crown, a darker middle, and the warm core showing through faintly low in the middle. Its colours match the front within a few points (table below). Nothing of the face leaks through: no near-black pixel on the head at yaw 135 or 180 (5,417 at yaw 0: the eyes and brows).
-2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks keep the same scatter: 27 to 37 on the upper dome at every yaw (10.5 to 17.0 per 10,000 px; 33 on the front, 27 on the back). The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
+2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks continue, but a little sparser behind: 27 on the upper dome from the back (10.5 per 10,000 px) against 33 from the front (12.8), about 18% sparser; 29 to 35 at the yaws between. The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
 3. **The cups read from behind: yes, as an edge.** From behind the frill is on the far side of each arm, so it reads as a thin cream scalloped edge along each arm's underside, with a cup crest here and there; from three-quarters and from below the cups show in full. Cream pixels on the arms: 17% from the front, 13% from behind.
 4. **No seams, no matte patches, no popped geometry: yes after one fix, with one small residue.** Before the fix, the two rear arms' roots (T1 and T8) stood out behind the mantle and met in a hard crease with a dark notch under it, the one clear defect of the orbit (`t15-roots-before-after.png`, left). Now they root inside the neck and pass out under the dome (right). A small pinch remains where the two root caps meet at the body's axis, about 4 x 8 px at scale 2, half hidden under the dome's lower edge (see weaknesses). Nothing else popped, and there is no colour mismatch between front and back.
 
@@ -771,7 +771,14 @@ Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. 
 - Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0, 13/13. The samples are all within 0.1 of HEAD except: arm top 9.4 (HEAD 9.3), arm body 9.2 (9.3), cup rim 6.3 (5.3), chin 9.0 (9.1). Mean (72, 163, 144); saturation 0.657; brightness 0.655 (HEAD 0.659).
 - `veyra_shape.py`: PASS, "her" row unchanged (IoU without the extra arms 0.852, span 3.74).
 - Overview (`check_stage.py --world --stage overview --world-id veyra`): the same misses as HEAD (Task 12's dome glass); one sample moved 0.1 (arm T6, 9.7 to 9.8).
-- `veyra_world.py`: exit 1 on `no red`, 600 pixels, and **HEAD fails the same way (601)**. These pixels are the cream pendant caps (Tasks 13 and 14), which lie outside her silhouette mask, e.g. the cap at T1's tip at (466, 534). Task 12 passed it before the pendants hung in the intro. Not changed here: the fix belongs in the check or the pendant colours.
+- `veyra_world.py`: first exit 1 on `no red`, 600 pixels, and **HEAD failed the same way (601)**. Fix round 1 below corrects the cause and the gate. 599 of the 600 pixels are the technology pendants' brand-logo glass, which lies outside her silhouette mask:
+  - 273 px on the Linux orb (amber), at (529, 805);
+  - 147 px on the Cloudflare orb (orange logo), at (741, 849);
+  - 90 px on the JavaScript orb (yellow), at (400, 690);
+  - 89 px on the Redis orb (truly red, (122, 62, 63)), at (698, 873);
+  - 1 px on React's cream cap, at (466, 534).
+
+  (My first note read only the first printed pixel and called them cream caps; that was wrong.) Task 12 passed this check before the pendants hung in the intro.
 - `npx vitest run src/worlds/veyra` (6 files, 60 tests) and `npx tsc -p tsconfig.nox3d.json --noEmit`, `npx tsc -b`: pass. No engine file touched, so Nox is untouched.
 
 ### Remaining weaknesses (mine)
@@ -780,5 +787,31 @@ Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. 
 - **The side view (yaw 90) is not a design:** the arms are authored flat for the stage camera, so from the side they bunch into a column under the head. It is the same for Nox, and no stage shows her from the side.
 - **The arms read darker from behind** (mean green 158 against 178): the face glow and the cups' cream light fall on their front faces. They still read as jelly, with the rim and the specks, but a little more opaque than from the front.
 - **The warm core from behind** shows as a muted green patch low in the dome, where the front has the bright face glow. I left it: it is what a translucent head with a light inside should show, and spec 7.2 asks for the core inside. If you would rather the back read cleaner teal, that is `coreWarmth`, and changing it moves the front's face glow sample.
+- **The underglow change reaches every stage:** 0.25 is her stage lighting, not an intro value. I rechecked only the intro and the overview; the reviewer's fresh detail and techFocus captures show no defect. I chose 0.25 to hold the intro's saturation floor, not for the look: you confirm the look.
 - **Do not click on her in `?orbit`:** a click on her opens the dome (the head morph shows with the arms frozen in the intro), which looks like a cut head. Drag on the water instead. This is the click's interaction, not a geometry fault.
 - Twinkle, sway and the head turn are motion: check them live.
+
+### Task 15 fix round 1 (review): the no-red gate leaves out the pendants
+
+Controller's ruling: the no-red rule is the world's rule (Task 11). The technology logos are content in brand colours, and P4 itself shows a red Redis orb, so the rule holds for the world, not the pendants. The pendant colours stay.
+
+- **Capture:** `scripts/veyra-world-capture.mjs` now also writes:
+  - `<out>-solo.png`: the same frozen frame with `&solo`, so the pendants, dome glass and ambient bubbles are hidden;
+  - `<out>-pendants.json`: each pendant's centre and size, taken from its orb button (the buttons follow the drawn orbs).
+- **Rule:** `scripts/veyra_world.py` (`red_classes`) leaves a red pixel out as a pendant pixel only when both are true:
+  - it lies within `pendantPx` (30) of a pendant's centre;
+  - the pendants change it (it differs by more than `pendantDiff`, 8, in some channel from the solo frame).
+
+  So world red next to an orb, which both frames show, still counts. 30 px covers each pendant's whole footprint (orb, cap and thread): the pixels the pendants change stop within 26 to 30 px of their centres. The reason is recorded in `world_samples.json` `noRed.rule`.
+- **On the current frame:** `ok no red: 0 pixels ... in the world; left out: 12152 on her, 600 on the 12 technology pendants, 549 on the coral, 58 near-black`. `veyra_world.py` now exits 0. The membrane, padlock, plants, stone and water samples, relic and no clip are unchanged (2.5, 13.0, 10.2, 13.8, 1.7; 0.594 below 0.938; 0 white).
+- **Earlier results stand.** The new rule only removes pixels from the count, and Task 11's frame had no pendants, so its 0 world pixels stay 0.
+- **Negative control (on a copy of the real capture), painted into both frames:**
+  - a 20 x 20 red patch on the left foreground (400 px);
+  - a 4 x 4 red patch 27 px from the Linux orb's centre, inside its 30 px disc (16 px).
+
+  The rule fails with exactly 416 world pixels, and the 600 pendant pixels are still left out. The pendant exclusion does not hide world red near an orb.
+- **Test:** `src/worlds/reviewTooling.test.ts`, "veyra_world.py no-red rule", on synthetic frames:
+  - a red logo on the orb is left out (64 px);
+  - world red far away (25 px) and under the orb in both frames (9 px) still counts;
+  - a changed pixel far from any pendant (4 px) still counts;
+  - with no pendant frame, everything counts (the old rule).

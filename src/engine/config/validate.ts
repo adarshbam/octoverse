@@ -267,6 +267,10 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       float: { amplitude: clamp(p.float.amplitude, 0, 0.08, d.floatAmplitude), period: clamp(p.float.period, 4, 8, d.floatPeriod) },
       breathPeriod: clamp(p.breathPeriod, 3, 6, d.breathPeriod),
       blinkInterval: [low, clamp(blinkMax, low, 10, Math.max(low, d.blinkInterval[1]))],
+      // The motion variants (contract 14.1): absent stays absent (Nox's values); set, kept in range.
+      ...(p.settle !== undefined ? { settle: unit(p.settle, 1) } : {}),
+      ...(p.glideBias !== undefined ? { glideBias: finite(p.glideBias) && p.glideBias > 0 ? p.glideBias : 1 } : {}),
+      ...(p.flourishRate !== undefined ? { flourishRate: clamp(p.flourishRate, 0, Infinity, 0) } : {}),
     },
   };
 }

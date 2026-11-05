@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
-import { BlinkScheduler, floatOffset, spring } from './ambient';
+import { PERSONALITY_VARIANT_DEFAULTS } from '../config/types';
+import { seededRng, settleOvershoot } from '../motion/micro';
+import { settleWeight } from '../motion/swimArms';
+import { BlinkScheduler, breath, floatOffset, settleScale, spring } from './ambient';
 import { Attention, nearFace } from './attention';
 import { SWIM_BLINK } from './expressions';
 
@@ -143,4 +147,40 @@ test('swimming, Nox blinks at a slower rate: the waits between blinks stretch by
   // The same draws, so each wait is SWIM_BLINK times as long (plus the blink itself, 0.17 s).
   swimming.slice(0, 5).forEach((gap, i) => expect(gap - 0.17).toBeCloseTo((usual[i] - 0.17) * SWIM_BLINK, 1));
   expect(swimming.length).toBeLessThan(usual.length);
+});
+
+// --- Task 16: the personality's settle (engine contract 14.1) ----------------------------------
+
+/** Nox's ambient motion and landing overshoots from the code before Task 16 (captured at 4770b01). */
+const NOX_FIXTURE = JSON.parse(readFileSync(new URL('../motion/fixtures/nox-motion.json', import.meta.url), 'utf8')) as Record<'float' | 'breaths' | 'blinks' | 'springs' | 'settle' | 'weight', unknown[]>;
+
+/** Nox's personality as it is (the new fields unset) and with them set to his values. */
+const NOX_BOTH = [NOX.personality, { ...NOX.personality, ...PERSONALITY_VARIANT_DEFAULTS }];
+
+test("with Nox's values the ambient outputs are the pre-change fixtures exactly", () => {
+  for (const p of NOX_BOTH) {
+    expect(NOX_FIXTURE.float.map((_, i) => floatOffset(i * 0.1, p))).toEqual(NOX_FIXTURE.float);
+    expect(NOX_FIXTURE.breaths.map((_, i) => breath(i * 0.1, p.breathPeriod))).toEqual(NOX_FIXTURE.breaths);
+    const blinks = new BlinkScheduler(p.blinkInterval, p.doubleBlinkChance, p.micro.blink, seededRng(11));
+    expect(NOX_FIXTURE.blinks.map((_, i) => blinks.sample(i / 60))).toEqual(NOX_FIXTURE.blinks);
+    const st = { x: 0, v: 0 };
+    expect(NOX_FIXTURE.springs.map(() => (spring(st, 1, p.gazeOmega, 1 / 60), st.x))).toEqual(NOX_FIXTURE.springs);
+    // The landing overshoots the personality's settle scales: the stage move's and the entrance arms'.
+    expect(NOX_FIXTURE.settle.map((_, i) => settleOvershoot(i / 120, p.micro, settleScale(p)))).toEqual(NOX_FIXTURE.settle);
+    expect(NOX_FIXTURE.weight.map((_, i) => settleWeight(i / 100, settleScale(p)))).toEqual(NOX_FIXTURE.weight);
+  }
+});
+
+test('settle 0.6 gives 60% of the overshoot peak, the stage move\'s and the entrance arms\'', () => {
+  const calm = { ...NOX.personality, settle: 0.6 };
+  const peak = (scale: number) => Math.max(...Array.from({ length: 2001 }, (_, i) => Math.abs(settleOvershoot((i / 2000) * NOX.personality.micro.settle.duration, NOX.personality.micro, scale))));
+  expect(peak(settleScale(calm)) / peak(settleScale(NOX.personality))).toBeCloseTo(0.6, 9);
+  expect(peak(settleScale(NOX.personality))).toBeCloseTo(NOX.personality.micro.settle.amount, 9);
+  // The arms' run past the intro pose as the entrance lands: 60% as far past it.
+  const past = (scale: number) => Math.max(...Array.from({ length: 2001 }, (_, i) => settleWeight(i / 2000, scale) - 1));
+  expect(past(settleScale(calm)) / past(settleScale(NOX.personality))).toBeCloseTo(0.6, 3);
+  // It still lands exactly on the pose, and settle 0 lands with no overshoot at all.
+  expect(settleWeight(1, 0.6)).toBe(1);
+  expect(past(0)).toBeLessThanOrEqual(0);
+  expect(settleScale({ ...NOX.personality, settle: 0 })).toBe(0);
 });

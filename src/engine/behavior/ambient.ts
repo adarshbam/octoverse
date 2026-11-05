@@ -1,6 +1,14 @@
-import type { Personality } from '../config/types';
+import { PERSONALITY_VARIANT_DEFAULTS, type Personality } from '../config/types';
 
 const MAX_STEP = 1 / 20;
+
+/**
+ * The personality's scale on its landing overshoots (`Personality.settle`, 0 to 1; unset reads
+ * Nox's 1): motion/micro.ts settleOvershoot and motion/swimArms.ts settleWeight take it.
+ */
+export function settleScale(personality: Pick<Personality, 'settle'>): number {
+  return personality.settle ?? PERSONALITY_VARIANT_DEFAULTS.settle;
+}
 
 const smoothstep = (x: number) => {
   const t = Math.min(1, Math.max(0, x));

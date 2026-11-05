@@ -71,12 +71,14 @@ function settlePeak(cycles: number) {
 /**
  * The overshoot as a move lands, `t` seconds after: past the pose along the move by up to
  * `p.settle.amount` (world units), back a little short of it, and still; 0 outside `p.settle.duration`.
+ * `scale` is the personality's settle (behavior/ambient.ts settleScale, 0 to 1; 1 is Nox's): the
+ * whole swing, so its peak, is that share of the amount.
  */
-export function settleOvershoot(t: number, p: Micro): number {
+export function settleOvershoot(t: number, p: Micro, scale = 1): number {
   const { duration, amount, cycles } = p.settle;
   const u = within(t, duration);
   if (u === null) return 0;
-  return (amount * settleShape(u, cycles)) / settlePeak(cycles);
+  return (amount * scale * settleShape(u, cycles)) / settlePeak(cycles);
 }
 
 /**

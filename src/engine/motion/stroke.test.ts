@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
-import { type StrokeFrame, type StrokePhase, strokeAt, swimDrive } from './stroke';
+import { PERSONALITY_VARIANT_DEFAULTS } from '../config/types';
+import { type StrokeFrame, type StrokePhase, strokeAt, strokeTiming, swimDrive } from './stroke';
 
 const TIMING = NOX.personality.swim;
 /** One stroke's length in seconds: the clock runs one unit per stroke. */
@@ -127,4 +129,39 @@ test('the stroke index is the clock’s whole part: every stroke is the same', (
     expect(later.phase).toBe(first.phase);
     for (const key of ['u', 'spread', 'sweep', 'straighten', 'mantle', 'thrust'] as const) expect(later[key], key).toBeCloseTo(first[key], 9);
   }
+});
+
+// --- Task 16: glide bias (engine contract 14.1, Veyra's calm motion) ---------------------------
+
+/** Nox's stroke and swim drive from the code before Task 16 (captured at 4770b01): fixtures/nox-motion.json. */
+const NOX_FIXTURE = JSON.parse(readFileSync(new URL('./fixtures/nox-motion.json', import.meta.url), 'utf8')) as { stroke: (StrokeFrame & { drive: { pitch: number; straighten: number } })[] };
+
+test("with Nox's values (unset, or set to settle 1, glideBias 1, flourishRate 0) the stroke is the pre-change fixture exactly", () => {
+  for (const personality of [NOX.personality, { ...NOX.personality, ...PERSONALITY_VARIANT_DEFAULTS }]) {
+    const timing = strokeTiming(personality);
+    const frames = NOX_FIXTURE.stroke.map((_, i) => {
+      const f = strokeAt(i / 120, timing);
+      return { ...f, drive: swimDrive(f, (i % 7) / 6) };
+    });
+    // Through JSON as the fixture was (it keeps no -0, which a glide's mantle ends on).
+    expect(JSON.parse(JSON.stringify(frames))).toEqual(NOX_FIXTURE.stroke);
+  }
+  // Unset, the timing is Nox's own object: nothing downstream (the entrance's lead table, a memo) sees a change.
+  expect(strokeTiming(NOX.personality)).toBe(NOX.personality.swim);
+});
+
+test('glideBias scales the glide (and only the glide): 1.6 makes it 1.6 times as long', () => {
+  const biased = strokeTiming({ ...NOX.personality, glideBias: 1.6 });
+  expect(biased.glide).toBeCloseTo(1.6 * TIMING.glide, 12);
+  expect([biased.recovery, biased.power, biased.fill, biased.squeeze]).toEqual([TIMING.recovery, TIMING.power, TIMING.fill, TIMING.squeeze]);
+  // Measured on the stroke itself, in seconds, at one stroke per (recovery + power + glide) seconds.
+  const glideSeconds = (timing: typeof TIMING) => {
+    const total = timing.recovery + timing.power + timing.glide;
+    let n = 0;
+    for (let i = 0; i < STEPS; i++) if (strokeAt(i / STEPS, timing).phase === 'glide') n++;
+    return (n / STEPS) * total;
+  };
+  expect(glideSeconds(biased) / glideSeconds(TIMING)).toBeCloseTo(1.6, 2);
+  // The original timing object is untouched.
+  expect(NOX.personality.swim.glide).toBe(0.6);
 });

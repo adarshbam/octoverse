@@ -276,9 +276,11 @@
     "deltaEReason": "Set after tuning (round 6), not before, from the spread of P1's own pixels: inside each P1 box, the median pixel lies delta E 4.8 (mid water), 5.8 (padlock), 12.4 (portal stone), 15.4 (membrane body) and 22.2 (plants, brightest quarter) from that box's median (p75 8.1 to 28.5). These are painterly regions, not the flat-shaded character samples Task 7 holds at 10. At 10, three held samples would miss (padlock 13.0, plants 10.2, portal stone 13.8 on the round 6 frame): veyra_world.py prints them, for the owner to rule on.",
     "tighterLimit": 10,
     "noRed": {
-      "rule": "Outside her silhouette (<capture>-mask.png dilated by herPx), the coral boxes and near-black pixels (every channel below darkBelow, dither), no pixel has R > G and R > B. All counts are printed.",
+      "rule": "Outside her silhouette (<capture>-mask.png dilated by herPx), the coral boxes, near-black pixels (every channel below darkBelow, dither) and the technology pendants, no pixel has R > G and R > B. All counts are printed. The pendants are left out (Task 15 fix round 1): technology logos are content in brand colours, P4 shows a red Redis orb; the rule holds for the world, not the pendants. A pixel is on a pendant when it lies within pendantPx of a pendant's centre (<capture>-pendants.json, the orb buttons' centres) and differs by more than pendantDiff in some channel from <capture>-solo.png (the same frozen frame with the pendants hidden), so world red near an orb, which both frames show, still counts.",
       "herPx": 4,
       "darkBelow": 16,
+      "pendantPx": 30,
+      "pendantDiff": 8,
       "coral": [
         [
           1300,
