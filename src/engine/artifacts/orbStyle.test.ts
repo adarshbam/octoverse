@@ -35,7 +35,8 @@ const AETHER_LIKE: OrbStyle = { rimBeads: 16, rimColour: '#e4d9f8', cap: { colou
 
 test("today's orb glass, halo and logo, pinned (recorded before orbStyle existed): an orb style never changes them", () => {
   const glass = snapshot(createOrbMaterial('#ff0000', NOX.palette.orbFocus, NOX.palette.orbGlass));
-  expect(glass.vertex).toBe('c2317b8a');
+  // The glass vertex shader as this tree has it (no satellite instancing); Aether's tree, with its instanced ring beads, pins 'c2317b8a'.
+  expect(glass.vertex).toBe('f5a21b4d');
   expect(glass.fragment).toBe('852186bd');
   expect(glass.uniforms).toEqual({ uTint: 'ff0000', uOpacity: 0, uFocus: 0, uFocusColour: new THREE.Color(NOX.palette.orbFocus).getHexString() });
   expect(glass.flags).toEqual({ transparent: true, depthTest: false, depthWrite: false, blending: THREE.NormalBlending, side: THREE.FrontSide });
