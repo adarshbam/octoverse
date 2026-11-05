@@ -117,4 +117,27 @@ describe('createAutosaver', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(order).toEqual(['start a', 'end a', 'start b', 'end b']);
   });
+
+  it('a save that is waiting its turn behind one in flight is skipped when cancel() comes first (a discard: the old draft is not written after the clear)', async () => {
+    const written: string[] = [];
+    let release: () => void = () => undefined;
+    let first = true;
+    const { saver } = setup({
+      save: d => {
+        written.push(d.octopus.name);
+        const gate = first ? new Promise<void>(resolve => (release = resolve)) : Promise.resolve();
+        first = false;
+        return gate;
+      },
+    });
+    saver.schedule(draftNamed('a'));
+    await vi.advanceTimersByTimeAsync(800);
+    saver.schedule(draftNamed('b'));
+    await vi.advanceTimersByTimeAsync(800);
+    expect(written).toEqual(['a']);
+    saver.cancel();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(written).toEqual(['a']);
+  });
 });
