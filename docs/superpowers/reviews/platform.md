@@ -536,3 +536,8 @@ Worst ratio 0.992 (Veyra): every world is within 3% of its `?world=` number (all
 ### Creator editor spec after Task 21a's `creator.css` change
 
 `tests/e2e/platform-creator-editor.spec.ts` alone, `--workers=1`, `playwright.nox3d.config.ts` on port 5297 (a dev server the config started and stopped): 29 passed (2.8 min), 0 failed. No test edit.
+
+### World regression: vitest and typecheck (this branch: merged engine, four worlds, platform)
+
+- `npx vitest run --maxWorkers=2` (no `SKIP_PAYLOAD_BUILD`): 197 files passed, 2024 tests passed, 1 skipped, 0 failed (71 s).
+- `npm run typecheck` (`tsc -p tsconfig.nox3d.json --noEmit`): exit 0, no errors (Task 16's `draft.ts` error is gone).
