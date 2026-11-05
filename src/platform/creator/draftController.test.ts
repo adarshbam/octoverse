@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DISCARD_ERROR, INITIAL_VIEW, announcement, createDraftController, resolveLoaded, statusLabel } from './draftController';
-import { withOctopus } from './draftEdits';
+import { DISCARD_ERROR, INITIAL_VIEW, MEDIA_GRACE_MS, announcement, createDraftController, resolveLoaded, statusLabel } from './draftController';
+import { addMedia, deleteProject, undoDelete, withOctopus } from './draftEdits';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { DraftStore } from './storage';
 import type { CreatorDraft } from './types';
@@ -12,10 +12,13 @@ interface Fake {
   store: DraftStore;
   saves: CreatorDraft[];
   discards: () => number;
+  /** The ids deleteMedia was asked to remove, in order. */
+  deleted: string[];
 }
 
 function fakeStore(over: { stored?: unknown; persistent?: boolean; discard?: () => Promise<{ cleared: boolean }> } = {}): Fake {
   const saves: CreatorDraft[] = [];
+  const deleted: string[] = [];
   let discards = 0;
   const store: DraftStore = {
     persistent: over.persistent ?? true,
@@ -23,12 +26,13 @@ function fakeStore(over: { stored?: unknown; persistent?: boolean; discard?: () 
     save: async draft => void saves.push(draft),
     putMedia: async () => 'id',
     getMedia: async () => null,
+    deleteMedia: async id => void deleted.push(id),
     discard: async () => {
       discards += 1;
       return over.discard ? over.discard() : { cleared: true };
     },
   };
-  return { store, saves, discards: () => discards };
+  return { store, saves, discards: () => discards, deleted };
 }
 
 const settle = () => vi.advanceTimersByTimeAsync(0);
@@ -439,5 +443,104 @@ describe('images through the store', () => {
     const c = createDraftController({ createStore: async () => fakeStore().store });
     await expect(c.putMedia(new Blob(['x']))).rejects.toThrow();
     expect(await c.getMedia('x')).toBeNull();
+  });
+});
+
+
+describe('images nobody refers to are removed from the browser after a grace period', () => {
+  const ref = (id: string) => ({ id, name: `${id}.png`, type: 'image/png' as const, size: 10 });
+  const withImage = (id: string) => (d: CreatorDraft) => addMedia(d, d.projects[0].id, ref(id));
+  const STORED_WITH = (...ids: string[]): CreatorDraft => ids.reduce((d, id) => addMedia(d, d.projects[0].id, ref(id)), STORED);
+
+  async function started(over: Parameters<typeof fakeStore>[0] = {}) {
+    const fake = fakeStore(over);
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    return { fake, c };
+  }
+
+  it('an image taken out of the draft is deleted once the grace period has passed, not before', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('keep', 'gone') });
+    c.update(d => ({ ...d, projects: d.projects.map(p => ({ ...p, media: p.media.filter(m => m.id !== 'gone') })) }));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS - 100);
+    expect(fake.deleted).toEqual([]);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fake.deleted).toEqual(['gone']);
+  });
+
+  it('a project deleted and brought back inside the window keeps its images', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('a', 'b') });
+    const out = deleteProject(c.getView().draft, c.getView().draft.projects[0].id)!;
+    c.update(() => out.draft);
+    await vi.advanceTimersByTimeAsync(4000);
+    c.update(d => undoDelete(d, out.project, out.index));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 3);
+    expect(fake.deleted).toEqual([]);
+  });
+
+  it('a project deleted for good loses its images after the grace period (longer than the five second undo)', async () => {
+    expect(MEDIA_GRACE_MS).toBeGreaterThan(5000);
+    const { fake, c } = await started({ stored: STORED_WITH('a', 'b') });
+    c.update(d => deleteProject(d, d.projects[0].id)!.draft);
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS + 100);
+    expect([...fake.deleted].sort()).toEqual(['a', 'b']);
+  });
+
+  it('an upload that is never listed in the draft (its project was deleted meanwhile) is deleted too', async () => {
+    const { fake, c } = await started();
+    fake.store.putMedia = async () => 'late';
+    expect(await c.putMedia(new Blob(['x']))).toBe('late');
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS + 100);
+    expect(fake.deleted).toEqual(['late']);
+  });
+
+  it('an upload that the draft lists in time is kept', async () => {
+    const { fake, c } = await started();
+    fake.store.putMedia = async () => 'fresh';
+    const id = await c.putMedia(new Blob(['x']));
+    c.update(withImage(id));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 3);
+    expect(fake.deleted).toEqual([]);
+  });
+
+  it('an image deleted twice is asked once, and an image listed again is not deleted', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('x') });
+    const strip = (d: CreatorDraft) => ({ ...d, projects: d.projects.map(p => ({ ...p, media: [] })) });
+    c.update(strip);
+    await vi.advanceTimersByTimeAsync(3000);
+    c.update(withImage('x'));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 2);
+    expect(fake.deleted).toEqual([]);
+    c.update(strip);
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS + 100);
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 2);
+    expect(fake.deleted).toEqual(['x']);
+  });
+
+  it('a successful discard forgets what it was tracking (the store is already empty)', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('a') });
+    c.update(d => ({ ...d, projects: d.projects.map(p => ({ ...p, media: [] })) }));
+    await c.discard();
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 2);
+    expect(fake.deleted).toEqual([]);
+  });
+
+  it('a store that refuses the delete is not an error (nothing throws, nothing unhandled)', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('a') });
+    fake.store.deleteMedia = async () => {
+      throw new Error('refused');
+    };
+    c.update(d => ({ ...d, projects: d.projects.map(p => ({ ...p, media: [] })) }));
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS + 100);
+    expect(c.getView().ready).toBe(true);
+  });
+
+  it('after dispose nothing is deleted', async () => {
+    const { fake, c } = await started({ stored: STORED_WITH('a') });
+    c.update(d => ({ ...d, projects: d.projects.map(p => ({ ...p, media: [] })) }));
+    c.dispose();
+    await vi.advanceTimersByTimeAsync(MEDIA_GRACE_MS * 2);
+    expect(fake.deleted).toEqual([]);
   });
 });

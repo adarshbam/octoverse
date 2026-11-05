@@ -559,3 +559,54 @@ describe('a database that never answers does not hold the creator for ever', () 
     expect(await store.getMedia('x')).toBeNull();
   });
 });
+
+describe('deleteMedia (one blob, never throws)', () => {
+  it('removes one image from the browser and keeps the others and the draft', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    const a = await store.putMedia(blobOf(PNG, 50));
+    const b = await store.putMedia(blobOf(JPEG, 60));
+    await store.deleteMedia(a);
+    expect(idb.stores.media.size).toBe(1);
+    expect(await store.getMedia(a)).toBeNull();
+    expect((await store.getMedia(b))?.size).toBe(60);
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+  });
+
+  it('an unknown id is nothing to do', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await expect(store.deleteMedia('nope')).resolves.toBeUndefined();
+  });
+
+  it('removes an image held in memory (IndexedDB blocked)', async () => {
+    const store = await createDraftStore({ factory: null });
+    const id = await store.putMedia(blobOf(PNG, 40));
+    expect(await store.getMedia(id)).not.toBeNull();
+    await store.deleteMedia(id);
+    expect(await store.getMedia(id)).toBeNull();
+  });
+
+  it('a delete the browser refuses does not throw, and does not make the store give up writing', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    const id = await store.putMedia(blobOf(PNG, 50));
+    idb.failWrites = true;
+    await expect(store.deleteMedia(id)).resolves.toBeUndefined();
+    idb.failWrites = false;
+    expect(store.persistent).toBe(true);
+    await store.discard();
+    expect(idb.stores.media.size).toBe(0);
+  });
+
+  it('runs in order with the writes before it: an image put before the delete is gone after it', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    const put = store.putMedia(blobOf(PNG, 50));
+    const gone = put.then(id => store.deleteMedia(id).then(() => id));
+    const id = await gone;
+    expect(await store.getMedia(id)).toBeNull();
+    expect(idb.stores.media.size).toBe(0);
+  });
+});

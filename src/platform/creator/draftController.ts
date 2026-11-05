@@ -12,6 +12,12 @@ export type SaveStatus = 'saved' | 'saving' | 'memory';
 /** An edit autosaves this long after the last change (spec 7.13). */
 export const AUTOSAVE_MS = 800;
 
+/**
+ * An image no draft lists is deleted from the browser this long after it was last listed. Longer than the five second undo of a
+ * deleted project (a project that comes back must find its images), long enough that an upload finishing late is cleaned up.
+ */
+export const MEDIA_GRACE_MS = 8000;
+
 /** What the screen says when Discard could not clear the browser's copy (the draft is still on screen). */
 export const DISCARD_ERROR = "Could not clear this browser's copy. Your draft is still here. Try again.";
 
@@ -149,6 +155,45 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
   let disposed = false;
   let discarding = false;
 
+  // Images of this session that the draft no longer lists (removed, their project deleted, or an upload nobody listed): deleted from
+  // the store after MEDIA_GRACE_MS. `known` is every image id seen in a draft or returned by putMedia; `orphanSince` those not listed now.
+  const known = new Set<string>();
+  const orphanSince = new Map<string, number>();
+  let sweepTimer: ReturnType<typeof setTimeout> | undefined;
+  const listed = (draft: CreatorDraft) => new Set(draft.projects.flatMap(p => p.media.map(m => m.id)));
+  const scheduleSweep = () => {
+    if (disposed || sweepTimer !== undefined || orphanSince.size === 0) return;
+    const oldest = Math.min(...orphanSince.values());
+    sweepTimer = setTimeout(sweep, Math.max(0, oldest + MEDIA_GRACE_MS - Date.now()));
+  };
+  function sweep() {
+    sweepTimer = undefined;
+    if (disposed || store === null) return;
+    if (!discarding) {
+      const now = Date.now();
+      const inUse = listed(view.draft);
+      for (const [id, since] of [...orphanSince]) {
+        if (now - since < MEDIA_GRACE_MS) continue;
+        orphanSince.delete(id);
+        if (inUse.has(id)) continue;
+        known.delete(id);
+        void store.then(opened => opened.deleteMedia(id)).catch(() => undefined);
+      }
+    }
+    scheduleSweep();
+  }
+  /** Notes which images the draft lists now: a listed one is safe, one that stopped being listed starts its grace period. */
+  const trackMedia = (draft: CreatorDraft) => {
+    const used = listed(draft);
+    const now = Date.now();
+    for (const id of used) {
+      known.add(id);
+      orphanSince.delete(id);
+    }
+    for (const id of known) if (!used.has(id) && !orphanSince.has(id)) orphanSince.set(id, now);
+    scheduleSweep();
+  };
+
   const set = (patch: Partial<DraftView>) => {
     view = { ...view, ...patch };
     if (!disposed) for (const listener of [...listeners]) listener();
@@ -182,6 +227,7 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
         }
         saver = createAutosaver({ save: d => opened.save(d), persistent: () => opened.persistent, onStatus: status => set({ status }), delayMs: options.delayMs });
         set({ draft: next, status: opened.persistent ? 'saved' : 'memory', ready: true });
+        trackMedia(next);
         if (edits.length > 0) saver.schedule(next);
         return opened;
       });
@@ -194,6 +240,7 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
       if (saver) saver.schedule(next);
       else queued.push(fn);
       set({ draft: next, discardError: null });
+      trackMedia(next);
     },
 
     async discard() {
@@ -220,6 +267,11 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
           return { cleared: false };
         }
         queued = [];
+        // The store is empty now: nothing it held is left to delete.
+        known.clear();
+        orphanSince.clear();
+        clearTimeout(sweepTimer);
+        sweepTimer = undefined;
         set({ draft: SAMPLE_DRAFT, discardError: null, status: opened.persistent ? 'saved' : 'memory' });
         return { cleared: true };
       } finally {
@@ -230,7 +282,14 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
 
     async putMedia(blob) {
       if (disposed || store === null) throw new MediaError('unreadable', 'The draft is not open.');
-      return (await store).putMedia(blob);
+      const id = await (await store).putMedia(blob);
+      // Not listed in any draft yet: if nobody lists it within the grace period (its project was deleted meanwhile) it is deleted.
+      if (!disposed) {
+        known.add(id);
+        if (!listed(view.draft).has(id)) orphanSince.set(id, Date.now());
+        scheduleSweep();
+      }
+      return id;
     },
 
     async getMedia(id) {
@@ -248,6 +307,8 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
 
     dispose() {
       if (disposed) return;
+      clearTimeout(sweepTimer);
+      sweepTimer = undefined;
       void saver?.flush();
       disposed = true;
       listeners.clear();

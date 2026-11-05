@@ -27,6 +27,8 @@ export interface DraftStore {
   /** Keeps an image (at most 2 MB; PNG, JPEG or WebP by its first bytes) and returns its id. Rejects with a MediaError for an image it must refuse. */
   putMedia(blob: Blob): Promise<string>;
   getMedia(id: string): Promise<Blob | null>;
+  /** Removes one stored image (in memory and in the browser), after any write already asked for. Never rejects: a refused delete leaves the image until the next Discard. */
+  deleteMedia(id: string): Promise<void>;
   /**
    * Clears the draft and the images, in memory and in the browser (after any save already asked for). `cleared` is false when the
    * browser holds a copy it would neither clear nor delete: the caller keeps the draft on screen and lets the user try again.
@@ -365,6 +367,18 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
         giveUp();
         return null;
       }
+    },
+
+    deleteMedia(id) {
+      return inOrder(async () => {
+        memory.media.delete(id);
+        if (!db || !writable) return;
+        try {
+          await exec(db, [MEDIA_STORE], 'readwrite', store => store(MEDIA_STORE).delete(id));
+        } catch {
+          // The image stays in the browser until Discard; a failed delete is no reason to stop saving.
+        }
+      });
     },
 
     discard() {
