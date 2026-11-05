@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { parseUrlState } from '../engine/behavior/urlState';
 import { PlatformApp } from '../platform/App';
+import { parseCreatorParam } from '../platform/creator/reviewParam';
 import { parseRoute } from '../platform/router/routes';
 
 /**
@@ -31,7 +32,17 @@ if (import.meta.env.DEV && options.studio) {
   });
 }
 
-if (isWorldReview(window.location.pathname, window.location.search)) {
+// The creator's dev-only review address, `?creator=<template>.<palette>` (platform spec 7.14): the engine's review page over a creator
+// bundle, which the stills script photographs. The literal DEV check (here and in the parse) makes a production build ignore the
+// parameter and lets the bundler drop the import; the templates load only in this branch (reviewParam.ts imports no template).
+const creator = parseCreatorParam(window.location.search, import.meta.env.DEV);
+
+if (import.meta.env.DEV && creator) {
+  const root = createRoot(document.getElementById('root')!);
+  void Promise.all([import('./ReviewPage'), import('../platform/creator/review')]).then(([{ default: ReviewPage }, { creatorReviewBundle }]) =>
+    root.render(<ReviewPage search={window.location.search} bundle={creatorReviewBundle(creator)} />),
+  );
+} else if (isWorldReview(window.location.pathname, window.location.search)) {
   // `?world=<id>` picks the world (an unknown id shows Nox, with a warning, not a blank page). The registry that names every
   // world is a chunk of its own (ReviewPage), so the platform's landing never loads it (platform spec 2.4).
   const root = createRoot(document.getElementById('root')!);
