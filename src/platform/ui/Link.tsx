@@ -7,7 +7,8 @@ export function Link({ href, className, children, onNavigate }: { href: string; 
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     onNavigate?.();
-    navigate(href);
+    // The link is the control Back puts focus on when it returns to this page (a click does not focus a link in every browser).
+    navigate(href, { from: event.currentTarget });
   };
   return (
     <a href={href} className={className} onClick={go}>
