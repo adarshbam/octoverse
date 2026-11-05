@@ -17,8 +17,10 @@ import { expect, test, type CDPSession, type Page } from '@playwright/test';
 // through a WeakRef, read after a forced collection). Two counts are kept: `held` (not lost, not collected: a canvas that was removed but
 // whose context was never lost still counts until it is collected, so a leak shows) and `attached` (not lost, and its canvas is in the
 // document: what the visitor's GPU is really holding). The throwaway canvas of the engine's WebGL 2 probe is never in the document and is
-// collected, so it is in neither at rest. The trip assertion is on `held` after the forced collection; `attached` is also sampled every
-// 50 ms through the whole run (its peak is asserted too).
+// collected, so it is in neither at rest. The trip assertion is on `held` after the forced collection. The PEAK of both counts is exact, not
+// polled: it is taken inside the `getContext` wrapper (a context was just made), inside a wrapped `WEBGL_lose_context.loseContext()`, on
+// every `webglcontextlost` event and after every DOM mutation (a canvas going in or out of the document). A context the browser itself
+// evicts without an event is caught at the next of those moments.
 // Metrics measured under a GPU shared by several sessions are reported in full; what is asserted is said at each test.
 
 test.beforeEach(({}, info) => {
@@ -37,12 +39,6 @@ const WORLDS = [
 /** Wraps `getContext` (WebGL kinds), the window's add/removeEventListener (one entry per type, listener, capture, as the DOM keeps them) and samples the counts. Installed before any page script. */
 const COUNTERS = `(() => {
   const records = [];
-  const getContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
-    const context = getContext.call(this, type, ...rest);
-    if (context && /webgl/.test(String(type)) && !records.some(r => r.deref() === context)) records.push(new WeakRef(context));
-    return context;
-  };
   const count = () => {
     let held = 0, attached = 0, made = records.length;
     for (const r of records) {
@@ -54,7 +50,28 @@ const COUNTERS = `(() => {
     return { held, attached, made };
   };
   const peak = { held: 0, attached: 0 };
-  setInterval(() => { const c = count(); peak.held = Math.max(peak.held, c.held); peak.attached = Math.max(peak.attached, c.attached); }, 50);
+  const sample = () => { const c = count(); if (c.held > peak.held) peak.held = c.held; if (c.attached > peak.attached) peak.attached = c.attached; };
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+    const context = getContext.call(this, type, ...rest);
+    if (context && /webgl/.test(String(type)) && !records.some(r => r.deref() === context)) {
+      records.push(new WeakRef(context));
+      const getExtension = context.getExtension;
+      context.getExtension = function (name) {
+        const ext = getExtension.call(this, name);
+        if (ext && name === 'WEBGL_lose_context' && !ext.__wrapped) {
+          ext.__wrapped = true;
+          const lose = ext.loseContext;
+          ext.loseContext = function () { const out = lose.call(this); sample(); return out; };
+        }
+        return ext;
+      };
+      sample();
+    }
+    return context;
+  };
+  EventTarget.prototype.addEventListener.call(window, 'webglcontextlost', sample, true);
+  new MutationObserver(sample).observe(document, { childList: true, subtree: true });
   window.__contexts = { count, peak, resetPeak: () => { peak.held = 0; peak.attached = 0; } };
 
   const ids = new WeakMap(); const live = new Set(); let next = 0;
@@ -208,20 +225,26 @@ test.describe('20 round trips (spec 2.4): contexts, listeners, heap', () => {
       expect(r.after.held, `trip ${r.trip}: live contexts after a forced collection`).toBeLessThanOrEqual(2);
       expect(Math.max(...r.midAttached), `trip ${r.trip}: contexts attached to the page mid-trip (${r.midAttached.join(', ')})`).toBeLessThanOrEqual(2);
     }
-    expect(peak.attached, 'peak attached contexts, sampled every 50 ms through the run').toBeLessThanOrEqual(2);
-    // The window's listeners, as after the first trip (the known one-time Theatre `error` / `unhandledrejection` listeners arrive at the first world import, inside trip 1).
+    expect(peak.held, 'peak held contexts (exact: taken at every creation, loss, context-lost event and DOM change)').toBeLessThanOrEqual(2);
+    expect(peak.attached, 'peak attached contexts (exact, as above)').toBeLessThanOrEqual(2);
+    // The window's listeners, as after the first trip, as the spec says. Theatre's one-time `error` and `unhandledrejection` listeners are already in
+    // the snapshot taken at the landing before trip 1 (28 there too), so the count is also equal to the state before any trip.
     for (const r of rows) expect(r.after.byType, `trip ${r.trip}: window listeners by type`).toEqual(base.byType);
     expect(last.listeners).toBe(base.listeners);
   });
 
   test('20 trips through veyra leave the JS heap within 15% of its size after the first trip', async ({ page }) => {
-    // KNOWN MISS (platform Task 16, measured at f54c3cc): the heap grows about 8 MB (performance.memory) and 1.4 MB (CDP) per trip, almost all of it
-    // in the world visit (see 'where the heap grows'): +203% after 20 trips. `test.fail()` keeps the suite green and makes this test go red
-    // the day the leak is fixed, so the expectation is then flipped back to a plain test. The limit below is the spec's, not loosened.
-    test.fail(true, 'known miss: a world visit retains heap (engine or world code; the platform pages leak far less)');
+    // KNOWN MISS (platform Task 16, measured at f54c3cc, production build, under load). The assertion is on the CDP heap (Runtime.getHeapUsage after
+    // forced collections), which is steady: about +1.3 MB per trip, 24.8 -> 50.9 MB (+105%) over 20 trips. performance.memory is reported beside it
+    // and is noisier (+62% in the last run, +203% in an earlier one). All three segments of a trip leak (see 'where the heap grows', CDP MB per
+    // cycle: landing<->Explore 0.82, Explore<->profile 0.44, profile<->world 1.08); their sum (2.3 MB) does not add up to the 1.3 MB per
+    // whole trip, which is unexplained. `test.fail()` keeps the suite green and makes this test go red the day the heap is fixed, so the
+    // expectation is then turned back into a plain test. The limit is the spec's 15%, not loosened.
+    test.fail(true, 'known miss: the CDP heap grows about 1.3 MB per trip (engine mounts and unmounts; cause open, see the review log: Open issue: heap growth)');
     const { rows, base, last } = await veyra20(page);
-    expect(Math.abs(last.perfHeap - base.perfHeap) / base.perfHeap, 'heap after trip 20 against trip 1').toBeLessThanOrEqual(0.15);
-    for (const r of rows) expect(r.after.perfHeap / base.perfHeap, `trip ${r.trip}: heap against trip 1`).toBeLessThanOrEqual(1.15);
+    console.log(`heap after trip 20 against trip 1: CDP ${(((last.cdpHeap - base.cdpHeap) / base.cdpHeap) * 100).toFixed(1)}%, performance.memory ${(((last.perfHeap - base.perfHeap) / base.perfHeap) * 100).toFixed(1)}%`);
+    expect(Math.abs(last.cdpHeap - base.cdpHeap) / base.cdpHeap, 'CDP heap after trip 20 against trip 1').toBeLessThanOrEqual(0.15);
+    for (const r of rows) expect(r.after.cdpHeap / base.cdpHeap, `trip ${r.trip}: CDP heap against trip 1`).toBeLessThanOrEqual(1.15);
   });
 
   test('8 trips cycling the four worlds hold the context and listener limits, measured against the end of the first cycle', async ({ page }) => {
@@ -231,14 +254,16 @@ test.describe('20 round trips (spec 2.4): contexts, listeners, heap', () => {
       expect(r.after.held, `trip ${r.trip} (${r.world})`).toBeLessThanOrEqual(2);
       expect(Math.max(...r.midAttached), `trip ${r.trip} (${r.world}) mid-trip`).toBeLessThanOrEqual(2);
     }
+    expect(peak.held).toBeLessThanOrEqual(2);
     expect(peak.attached).toBeLessThanOrEqual(2);
     for (const r of rows.slice(3)) expect(r.after.byType, `trip ${r.trip}: window listeners by type`).toEqual(base.byType);
   });
 
   test('8 trips cycling the four worlds leave the heap within 15% of its size after the first cycle', async ({ page }) => {
-    test.fail(true, 'known miss: the same world-visit retention as the 20-trip run');
+    test.fail(true, 'known miss: the same heap growth as the 20-trip run');
     const { base, last } = await cycle8(page);
-    expect(Math.abs(last.perfHeap - base.perfHeap) / base.perfHeap, 'heap after trip 8 against trip 4').toBeLessThanOrEqual(0.15);
+    console.log(`heap after trip 8 against trip 4: CDP ${(((last.cdpHeap - base.cdpHeap) / base.cdpHeap) * 100).toFixed(1)}%, performance.memory ${(((last.perfHeap - base.perfHeap) / base.perfHeap) * 100).toFixed(1)}%`);
+    expect(Math.abs(last.cdpHeap - base.cdpHeap) / base.cdpHeap, 'CDP heap after trip 8 against trip 4').toBeLessThanOrEqual(0.15);
   });
 });
 
@@ -345,6 +370,7 @@ test.describe('payload (spec 2.4): a world loads only when its route is entered'
     // Positive control: the log sees requests, and it sees the host's own (the reef is the landing's).
     expect(onLanding).toBeGreaterThan(5);
     expect(urls.some(u => u.includes('/octoverse/world/'))).toBe(true);
+    save('payload.json', { requests: urls.length, onLanding, worldChecks: Object.fromEntries(WORLDS.map(w => [w.handle, hits(urls, files[w.handle])])), forbidden: files, hostFiles: urls.filter(u => u.includes('/octoverse/world/')), allRequests: urls });
     console.log(`landing + How It Works: ${urls.length} requests, none for a showcase world's chunk, state or kit`);
   });
 
@@ -372,6 +398,7 @@ test.describe('first intro frame (spec 2.4)', () => {
     //  ready     the engine's ready flag (40 frames after the world loaded): a settled scene, later than the first frame.
     // A screenshot of the canvas region after the veil is gone checks it is not blank (the picture varies: standard deviation of the pixels).
     const runs: { veilGone: number; ready: number; spread: number; firstContentfulPaint: number; loadEvent: number }[] = [];
+    mkdirSync(EVIDENCE, { recursive: true });
     for (let i = 0; i < 3; i++) {
       const context = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1536, height: 1024 } }); // a new context: empty storage and an empty cache
       const page = await context.newPage();
@@ -422,6 +449,7 @@ test.describe('first intro frame (spec 2.4)', () => {
         }
         return Math.sqrt(sq / n - (sum / n) ** 2);
       }, shot.toString('base64'));
+      writeFileSync(join(EVIDENCE, `first-frame-run${i + 1}.png`), shot);
       runs.push({ ...times, spread });
       await context.close();
     }
@@ -429,14 +457,16 @@ test.describe('first intro frame (spec 2.4)', () => {
     info.annotations.push({ type: 'first frame ms (veil gone)', description: runs.map(r => Math.round(r.veilGone)).join(', ') });
     save('first-frame.json', { runs });
     const sorted = runs.map(r => r.veilGone).sort((a, b) => a - b);
-    // Always asserted: every run's picture is not blank, and the first frame comes before the ready flag. The 3.0 s limit itself is asserted
-    // (median of the three runs) when PLATFORM_STRICT_TIMING=1: on a machine whose CPU and GPU are shared with other sessions the
-    // time is dominated by the load (see the evidence file), so a plain run reports it and does not fail on it.
+    // Asserted by default: every run's picture is not blank, the first frame comes before the ready flag, and the median of the three first
+    // frames is inside 3.0 s. PLATFORM_LOOSE_TIMING=1 is the explicit opt-out for a machine whose CPU and GPU are shared and saturated (a
+    // loaded attempt gave 6986, 9912 and 15526 ms): the times are still recorded, the 3.0 s limit is NOT asserted, and the run carries the
+    // annotation 'UNASSERTED (loose timing)' so that no one reads it as a pass.
     for (const r of runs) {
       expect(r.spread, 'the canvas shows a picture, not a flat colour').toBeGreaterThan(5);
       expect(r.veilGone, 'the first frame is before the ready flag').toBeLessThanOrEqual(r.ready);
     }
-    if (process.env.PLATFORM_STRICT_TIMING === '1') expect(sorted[1], `first frame times ${sorted.map(Math.round).join(', ')} ms`).toBeLessThan(3000);
+    if (process.env.PLATFORM_LOOSE_TIMING === '1') info.annotations.push({ type: 'UNASSERTED (loose timing)', description: `first frame median ${Math.round(sorted[1])} ms against the 3000 ms limit was not asserted` });
+    else expect(sorted[1], `first frame times ${sorted.map(Math.round).join(', ')} ms`).toBeLessThan(3000);
   });
 });
 
@@ -457,15 +487,15 @@ test.describe('route change (spec 2.4)', () => {
     await profileReady(page);
     await page.getByRole('link', { name: 'Explore', exact: true }).click();
     await expect(page.locator('[data-tile]')).toHaveCount(5);
-    const time = (selector: string, ready: string) =>
+    const time = (selector: string, ready: string, path: string) =>
       page.evaluate(
-        ({ selector, ready }) =>
+        ({ selector, ready, path }) =>
           new Promise<number>(resolve => {
             const t0 = performance.now();
             document.querySelector<HTMLAnchorElement>(selector)!.click();
             const poll = () => {
               const el = document.querySelector<HTMLElement>(ready);
-              if (el && el.getBoundingClientRect().height > 0 && !document.querySelector('.oct-route-fade[data-phase="in"]')) {
+              if (location.pathname === path && el && el.getBoundingClientRect().height > 0 && !document.querySelector('.oct-route-fade[data-phase="in"]')) {
                 el.focus();
                 if (document.activeElement === el) return resolve(performance.now() - t0);
               }
@@ -473,16 +503,16 @@ test.describe('route change (spec 2.4)', () => {
             };
             poll();
           }),
-        { selector, ready },
+        { selector, ready, path },
       );
     const toCreator: number[] = [];
     const toProfile: number[] = [];
     for (let i = 0; i < 3; i++) {
-      toCreator.push(await time('.oct-nav-link[href="/create"]', '[role="tab"], .oct-creator button, .oct-creator summary'));
+      toCreator.push(await time('.oct-nav-link[href="/create"]', '[role="tab"], .oct-creator button, .oct-creator summary', '/create'));
       await page.getByRole('link', { name: 'Explore', exact: true }).click();
       await expect(page.locator('[data-tile]')).toHaveCount(5);
       await page.waitForTimeout(400);
-      toProfile.push(await time('[data-tile="flux"] a[href="/@flux"]', '[role="tab"]'));
+      toProfile.push(await time('[data-tile="flux"] a[href="/@flux"]', '[role="tab"]', '/@flux'));
       await page.getByRole('link', { name: 'Explore', exact: true }).click();
       await expect(page.locator('[data-tile]')).toHaveCount(5);
       await page.waitForTimeout(400);
