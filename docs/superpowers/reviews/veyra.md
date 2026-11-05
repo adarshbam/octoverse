@@ -815,3 +815,50 @@ Controller's ruling: the no-red rule is the world's rule (Task 11). The technolo
   - world red far away (25 px) and under the orb in both frames (9 px) still counts;
   - a changed pixel far from any pendant (4 px) still counts;
   - with no pendant frame, everything counts (the old rule).
+
+## Task 16 engine variants: PENDING OWNER REVIEW (engine owner to confirm)
+
+Contract 14.1 deferred the personality fields `settle`, `glideBias` and `flourishRate`; gap G4 accepted a shared idle-flourish layer, built in F01. The brief says to raise this with the engine owner before starting. The owner was asleep, so the controller ruled provisionally: proceed, log it here and in the morning list, and add the contract row (engine design section 18, "G4 and 14.1 build").
+
+### What the engine gained (commit `a1fa799`, `feat(engine): settle, glide bias and flourish (for Veyra)`)
+- **`Personality.settle`** (0 to 1; unset is Nox's 1). It scales the landing overshoots:
+  - the settle of a stage move (`settleOvershoot(t, micro, scale)`);
+  - the entrance arms' run past the intro pose (`settleWeight(s, overshoot)`).
+
+  The arms' curve keeps its shape. Its coefficient is solved so the run past the pose is exactly that share of Nox's (scaling the coefficient directly gives only 6% at 0.6).
+- **`Personality.glideBias`** (above 0; unset is 1). `strokeTiming(personality)` stretches `swim.glide` by it. At 1 it returns Nox's own `swim` object. Octopus and the entrance read it.
+- **`Personality.flourishRate`** (flourishes per minute; unset is 0, none). It drives `engine/behavior/flourish.ts`:
+  - **Timing.** The wait between starts is 0.8 to 4/3 of 60 / rate s: 12 to 20 s at 4, as in spec 7.8. A wait is never shorter than one flourish, and the same arm never flourishes twice in a row.
+  - **The motion.** `flourishCurve(t, start)` runs 0 to 1 to 0 over 3 s, with a smootherstep up and down. `flourishUnroll` is 0.4 times the curve, applied to one arm through the chain's own tip straightening (`ArmDrive.straighten`, the max with any drive). It creates no material and changes no draw order.
+  - **When it never plays:** with reduced motion, with `freeze`, and in the entrance.
+- **Events (A2 X1).** `instance.flourish.subscribe(cb: (e: { arm, start }) => void)` returns the unsubscribe function. There is one emitter per instance. Veyra subscribes to nothing; Flux's pulse will.
+- **Busy-arm hook (for Task 19).** `FlourishScheduler.step(t, busy, events)` starts a flourish only on an arm for which `busy` is false. Octopus passes `armBusy`, the suction hold's `holdWeight[arm] > 0`. Task 19's pendant lift must make the lifting arm busy, either through that hold or by extending `armBusy`.
+- **Validation.** `validateBundle` refuses each field out of range, by name (one test each). `clampCharacterConfig` keeps the fields when they are set.
+
+### Veyra's values (`feat(veyra): motion personality`)
+She now sets `settle: 0.6`, `glideBias: 1.6` and `flourishRate: 4`. Two base values were restated so that spec 7.8's effective values are unchanged and nothing is applied twice:
+- `micro.settle.amount` goes from 0.018 back to Nox's approved 0.03, so 0.6 of it is still 0.018.
+- `swim.glide` goes from 1.0 to 0.625, so 1.6 times it is still the spec's 1.0 s.
+
+### Numbers (no video: `.tmp/t16/numbers.json`, from the engine functions)
+| Measure | Veyra | Nox | Ratio |
+|---|---|---|---|
+| Stage-move overshoot peak (units) | 0.0180 | 0.0300 | 0.600 |
+| Entrance arms' run past the intro pose (weight) | 0.0275 | 0.0458 | 0.600 |
+| Glide (s) | 1.000 | 0.600 | 1.667 (the bias alone: 1.6) |
+
+- **Flourishes per 60 s at rate 4** (1000 seeds, 60 frames a second): 3 in 79% of runs and 4 in 21%, mean 3.21. None ever overlap.
+- **Largest unroll:** 0.400 of the tip curl. On her intro arms, the outer arm's turn at the peak is 40.0% less on all eight arms.
+- **Tip excursion at a flourish's peak** (intro pose, body scale 1, the largest of three moments): T1 0.25, T2 0.18, T3 0.20, T4 0.28, T5 0.11, T6 0.16, T7 0.21, T8 0.26 units. The largest is 0.28 (T4).
+
+### What to look at (live, `?world=veyra&stage=intro`, wait 12 to 20 s)
+1. **The flourish.** Does one arm unroll slowly and roll back, calm and not twitchy? A 0.28-unit tip move on T4 is about a fifth of the head's width; if it reads large, lower `FLOURISH_UNROLL` or her rate.
+2. **The landing** reads cleaner than Nox's. This shows in the entrance once Task 17 authors it.
+3. **The long glide.** It is only visible in the entrance (Task 17); her placeholder entrance has no strokes.
+
+There is no still of a flourish: no URL parameter freezes one, and adding one was out of scope.
+
+### Nox regression
+- Nox sets none of the new fields.
+- His stroke, swim drive, float, breath, blinks, springs and both overshoots equal fixtures captured from the code before the change (`src/engine/motion/fixtures/nox-motion.json`, at `4770b01`). They are tested with the fields unset and with them set to his values.
+- The still gate passes. Everything is 0.0000 except techFocus (0.0119, its known residual). The set's `intro.png` showed a one-off 15-pixel transient (max 29); two recaptures of it were bit-identical to the baseline.

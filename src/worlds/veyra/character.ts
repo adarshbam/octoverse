@@ -248,16 +248,24 @@ export const VEYRA: CharacterConfig = {
     curl: 1.4,
     float: { amplitude: 0.06, period: 7.5 },
     breathPeriod: 5.4,
-    swim: { recovery: 0.65, power: 0.26, glide: 1.0, fill: 0.04, squeeze: 0.06 },
+    // The glide is 0.625 s here: glideBias 1.6 (below) stretches it to the spec's 1.0 s.
+    swim: { recovery: 0.65, power: 0.26, glide: 0.625, fill: 0.04, squeeze: 0.06 },
     micro: {
       blink: { seconds: 0.17, doubleGap: 0.12 },
       tracking: 3.5,
       glance: { first: 2, wait: [2.0, 4.5], x: 0.45, y: 0.3, lift: 0.05 },
       saccade: { first: 0.4, wait: [0.35, 1.25], x: 0.07, y: 0.05 },
       startle: { duration: 0.6, lift: 0.05, armsIn: 0.12, eyes: 0.5, speed: 3.5, near: 0.55, cooldown: 3 },
-      // Settles at 60% of Nox's overshoot (spec 7.8) and arrives with a smaller, slower wiggle.
-      settle: { duration: 0.9, amount: 0.018, cycles: 1.5 },
+      // Nox's approved overshoot: `settle` 0.6 (below) lands her at 60% of it, 0.018 (spec 7.8).
+      // She arrives with a smaller, slower wiggle.
+      settle: { duration: 0.9, amount: 0.03, cycles: 1.5 },
       arrival: { duration: 2.0, roll: 0.06, armWave: 0.1 },
     },
+    // Her motion personality (spec 7.8, engine contract 14.1): she lands at 60% of the approved
+    // overshoot, glides 1.6 times as long, and about four times a minute (every 12 to 20 s) one arm
+    // slowly unrolls its spiral and rolls it back (engine/behavior/flourish.ts).
+    settle: 0.6,
+    glideBias: 1.6,
+    flourishRate: 4,
   },
 };

@@ -3,8 +3,11 @@ import { join } from 'node:path';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { LOGO_SLUGS, logoIcon } from '../../engine/artifacts/logoTexture';
+import { settleScale } from '../../engine/behavior/ambient';
 import { EXPRESSIONS, EXPRESSION_IDS, resolveExpressions } from '../../engine/behavior/expressions';
+import { flourishRate } from '../../engine/behavior/flourish';
 import { ARM_IDS } from '../../engine/config/types';
+import { strokeTiming } from '../../engine/motion/stroke';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { type WorldBundle, faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { stageBoxFor } from '../../engine/ui/useStageBox';
@@ -307,4 +310,15 @@ test("the overview's place and size are P3's: the eyes' midpoint and the dome as
   expect(Math.abs((rect[1] + rect[3]) / 2 - 0.655)).toBeLessThanOrEqual(0.03);
   expect(Math.abs((rect[2] - rect[0]) / 2 - 1.44)).toBeLessThanOrEqual(0.03);
   expect(Math.abs((rect[1] - rect[3]) / 2 - 0.98)).toBeLessThanOrEqual(0.03);
+});
+
+test('her motion personality is set (spec 7.8, Task 16): settle 0.6, glideBias 1.6, flourishRate 4, with the spec\'s effective values', () => {
+  const p = VEYRA.personality;
+  expect([p.settle, p.glideBias, p.flourishRate]).toEqual([0.6, 1.6, 4]);
+  // The bases are restated so nothing is applied twice: 60% of Nox's 0.03 overshoot, and a 1.0 s glide.
+  expect(p.micro.settle.amount * settleScale(p)).toBeCloseTo(0.018, 12);
+  expect(strokeTiming(p).glide).toBeCloseTo(1.0, 12);
+  // At the low end of one every 12 to 20 s, and she validates with them.
+  expect(60 / flourishRate(p)).toBe(15);
+  expect(validateBundle(VEYRA_BUNDLE).character.personality).toMatchObject({ settle: 0.6, glideBias: 1.6, flourishRate: 4 });
 });
