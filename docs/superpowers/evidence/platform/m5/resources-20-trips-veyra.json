@@ -1,0 +1,859 @@
+{
+  "start": {
+    "held": 1,
+    "attached": 1,
+    "made": 2,
+    "listeners": 28,
+    "byType": {
+      "scroll": 1,
+      "resize": 5,
+      "keydown": 2,
+      "pointerdown": 3,
+      "popstate": 1,
+      "__playwright_global_listeners_check__": 1,
+      "mousemove": 1,
+      "pointerup": 1,
+      "touchstart": 2,
+      "touchend": 1,
+      "touchcancel": 1,
+      "mousedown": 1,
+      "mouseup": 1,
+      "click": 1,
+      "auxclick": 1,
+      "dblclick": 1,
+      "contextmenu": 1,
+      "pointermove": 1,
+      "error": 1,
+      "unhandledrejection": 1
+    },
+    "perfHeap": 66863425,
+    "cdpHeap": 21763396
+  },
+  "rows": [
+    {
+      "trip": 1,
+      "world": "veyra",
+      "ms": 15351,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 9,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 82735108,
+        "cdpHeap": 26610408
+      }
+    },
+    {
+      "trip": 2,
+      "world": "veyra",
+      "ms": 5812,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 17,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 86971842,
+        "cdpHeap": 28454764
+      }
+    },
+    {
+      "trip": 3,
+      "world": "veyra",
+      "ms": 5845,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 25,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 96611354,
+        "cdpHeap": 30934328
+      }
+    },
+    {
+      "trip": 4,
+      "world": "veyra",
+      "ms": 19327,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 33,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 105925767,
+        "cdpHeap": 32376352
+      }
+    },
+    {
+      "trip": 5,
+      "world": "veyra",
+      "ms": 5920,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 41,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 119723169,
+        "cdpHeap": 33576640
+      }
+    },
+    {
+      "trip": 6,
+      "world": "veyra",
+      "ms": 5214,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 49,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 123887671,
+        "cdpHeap": 35651040
+      }
+    },
+    {
+      "trip": 7,
+      "world": "veyra",
+      "ms": 5967,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 57,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 132979003,
+        "cdpHeap": 36923064
+      }
+    },
+    {
+      "trip": 8,
+      "world": "veyra",
+      "ms": 4834,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 65,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 141942091,
+        "cdpHeap": 38361044
+      }
+    },
+    {
+      "trip": 9,
+      "world": "veyra",
+      "ms": 5962,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 73,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 150939715,
+        "cdpHeap": 39909576
+      }
+    },
+    {
+      "trip": 10,
+      "world": "veyra",
+      "ms": 4711,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 81,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 159916155,
+        "cdpHeap": 41391436
+      }
+    },
+    {
+      "trip": 11,
+      "world": "veyra",
+      "ms": 5661,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 89,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 168885227,
+        "cdpHeap": 42874144
+      }
+    },
+    {
+      "trip": 12,
+      "world": "veyra",
+      "ms": 6109,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 99,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 178618663,
+        "cdpHeap": 44560256
+      }
+    },
+    {
+      "trip": 13,
+      "world": "veyra",
+      "ms": 4337,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 107,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 187582039,
+        "cdpHeap": 46014240
+      }
+    },
+    {
+      "trip": 14,
+      "world": "veyra",
+      "ms": 4837,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 115,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 196501995,
+        "cdpHeap": 47389976
+      }
+    },
+    {
+      "trip": 15,
+      "world": "veyra",
+      "ms": 7386,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 123,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 211181889,
+        "cdpHeap": 49453596
+      }
+    },
+    {
+      "trip": 16,
+      "world": "veyra",
+      "ms": 6250,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 131,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 214471675,
+        "cdpHeap": 50337516
+      }
+    },
+    {
+      "trip": 17,
+      "world": "veyra",
+      "ms": 5755,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 139,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 223344555,
+        "cdpHeap": 51913692
+      }
+    },
+    {
+      "trip": 18,
+      "world": "veyra",
+      "ms": 6406,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 147,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 232272627,
+        "cdpHeap": 53103544
+      }
+    },
+    {
+      "trip": 19,
+      "world": "veyra",
+      "ms": 7903,
+      "midAttached": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 157,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 247593553,
+        "cdpHeap": 55350520
+      }
+    },
+    {
+      "trip": 20,
+      "world": "veyra",
+      "ms": 4598,
+      "midAttached": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "after": {
+        "held": 1,
+        "attached": 1,
+        "made": 165,
+        "listeners": 28,
+        "byType": {
+          "popstate": 1,
+          "__playwright_global_listeners_check__": 1,
+          "mousemove": 1,
+          "pointerdown": 3,
+          "pointerup": 1,
+          "touchstart": 2,
+          "touchend": 1,
+          "touchcancel": 1,
+          "mousedown": 1,
+          "mouseup": 1,
+          "click": 1,
+          "auxclick": 1,
+          "dblclick": 1,
+          "contextmenu": 1,
+          "error": 1,
+          "unhandledrejection": 1,
+          "scroll": 1,
+          "resize": 5,
+          "keydown": 2,
+          "pointermove": 1
+        },
+        "perfHeap": 250811023,
+        "cdpHeap": 56191320
+      }
+    }
+  ],
+  "peak": {
+    "held": 1,
+    "attached": 1
+  },
+  "pageErrors": []
+}

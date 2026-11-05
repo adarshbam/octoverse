@@ -9,6 +9,8 @@
 // PATHNAME=<path> picks the route (default `/`): the page opened is `<NOX_URL><PATHNAME>?<query>` (platform pages, e.g. /how-it-works, /@veyra).
 // HOVER=<css selector> hovers that element once the page is ready and waits for its live preview (a `.oct-live-layer.is-on`) before measuring.
 // READY=<css selector> waits for that element instead of the host's ready flag (a platform page with no host instance, such as a profile, never sets it).
+// SEEN=<id,id,...|all> marks those entrances as seen for the session (sessionStorage), so the page opens on the intro and not on the entrance: `all` is octoverse (the host) and the four showcase worlds.
+//   A platform page other than `/` counts the host's entrance as seen already; `/` plays it unless SEEN lists octoverse.
 // NOX_URL picks the server (default http://localhost:5191). Derived from spike-env/perf.mjs.
 import { chromium } from '@playwright/test';
 
@@ -22,6 +24,7 @@ const worldId = process.env.OCTO_WORLD || process.env.WORLD || '';
 const pathname = process.env.PATHNAME || '/';
 const hoverSelector = process.env.HOVER || '';
 const readySelector = process.env.READY || '';
+const seenEnv = process.env.SEEN || '';
 const world = worldId ? `&world=${encodeURIComponent(worldId)}` : '';
 const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
@@ -62,8 +65,10 @@ try {
     const query = raw + world;
     const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: dpr });
     if (gpu) await page.addInitScript(TIMER);
-    // A platform page counts the entrance as seen (the session has been through it), as the end-to-end specs do.
-    if (pathname !== '/') await page.addInitScript(() => { try { sessionStorage.setItem('octoverse.octoverse.entranceSeen', '1'); } catch { /* no storage */ } });
+    // A platform page counts the entrance as seen (the session has been through it), as the end-to-end specs do; SEEN adds more.
+    const seen = seenEnv === 'all' ? ['octoverse', 'veyra', 'flux', 'nox', 'aether'] : seenEnv ? seenEnv.split(',') : [];
+    if (pathname !== '/' && !seen.includes('octoverse')) seen.push('octoverse');
+    if (seen.length) await page.addInitScript(ids => { try { for (const id of ids) sessionStorage.setItem(`octoverse.${id}.entranceSeen`, '1'); } catch { /* no storage */ } }, seen);
     await page.goto(`${base}${pathname}?${query}`, { waitUntil: 'load' });
     if (readySelector) await page.waitForSelector(readySelector, { timeout: 180000 });
     else await page.waitForFunction(() => window.__octoverse?.ready === true || window.__noxReady === true, null, { timeout: 180000, polling: 250 });
