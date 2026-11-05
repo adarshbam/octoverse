@@ -227,9 +227,12 @@ export function entranceDrive(frame: EntranceFrame, stroke: StrokeFrame) {
   return swimDrive(stroke, frame.forward);
 }
 
-/** The arm rests the stage draws in `frame`, written into `out`: the stroke's, carried to the intro pose as the arms spread (`open`). */
-export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes: SwimShapes, out: Record<ArmId, ArmRest>) {
-  return swimRests(shapes, stroke, frame.open, out);
+/**
+ * The arm rests the stage draws in `frame`, written into `out`: the stroke's, carried to the intro
+ * pose as the arms spread (`open`), running past it by the personality's settle (`overshoot`, 1 Nox's).
+ */
+export function entranceRests(frame: EntranceFrame, stroke: StrokeFrame, shapes: SwimShapes, out: Record<ArmId, ArmRest>, overshoot = 1) {
+  return swimRests(shapes, stroke, frame.open, out, overshoot);
 }
 
 /**

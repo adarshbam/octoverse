@@ -1,4 +1,5 @@
 import { BubbleLive } from '../artifacts/bubbleLive';
+import { FlourishEvents } from '../behavior/flourish';
 import { LiveAnchors } from '../stage/liveAnchors';
 import type { WorldBundle } from '../types/bundle';
 
@@ -30,6 +31,12 @@ export interface InstanceState {
    * `reach` the arm whose tip is nearest it reaches too.
    */
   attend: Attend;
+  /**
+   * The character's idle flourishes as they start (behavior/flourish.ts, amendment A2 X1):
+   * `flourish.subscribe(cb: (e: { arm, start }) => void)` returns the unsubscribe function. Nothing
+   * is told while the personality's `flourishRate` is 0 (Nox).
+   */
+  flourish: FlourishEvents;
 }
 
 /** The host's request to look at a point (`useInstanceApi().attend`): `set` replaces it, `set(null)` lets it go. */
@@ -51,5 +58,5 @@ function createAttend(): Attend {
 }
 
 export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
-  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend() };
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), flourish: new FlourishEvents() };
 }
