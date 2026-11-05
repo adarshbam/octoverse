@@ -64,7 +64,8 @@ export const AETHER_ARTIFACTS: ArtifactConfig & { placement: SatellitePlacement 
     // Spec 7.5: float, not swing: at most 15 degrees from vertical, settled in about 1.4 s.
     swing: { maxAngle: deg(15), settle: 1.4 },
   },
-  appear: { kind: 'blow' },
+  // Spec 7.5: after the entrance settles the ring forms: the gold line draws round her head (0.6 s), then the five beads light one after another (to 1.4 s).
+  appear: { kind: 'twinkle', duration: 1.4 },
   select: { kind: 'suctionHold' },
   choosableIn: ['overview'],
   // Spec 2.3 (P3, P4): every orb has a rim of small glowing lavender-white beads and a small gold cap where its thread attaches.

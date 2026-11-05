@@ -191,6 +191,26 @@ const BUBBLE_BLOW: SequenceDefaults = {
   },
 };
 
+// --- The ring forming (spec 7.5; Task 18) -----------------------------------------------------
+
+/**
+ * The twinkle's clock: the ring forms 1.4 s after the entrance has settled (the engine starts the appear
+ * where the entrance sheet ends, 6.3 s, the same trigger as Nox's blow and Veyra's bloom). `clock` runs 0
+ * to 1 over the sheet and the engine's twinkle reads the moment from it (artifacts/twinkle.ts): the gold
+ * line draws round her head over the first 0.6 s (clock 0 to 0.43), then the five beads light one after
+ * another to 1.4 s. Keyed straight, the clock is the run's own; bend its keys in the studio to re-time the whole.
+ * The bubble blow above is no longer played by her appear (the twinkle is), and stays as the engine's default sheet.
+ */
+const TWINKLE: SequenceDefaults = {
+  length: 1.4,
+  objects: {
+    main: {
+      props: { clock: 0 },
+      keys: { clock: [[0, 0, LINEAR], [1.4, 1, LINEAR]] },
+    },
+  },
+};
+
 // --- The head swell (design 9.9) -------------------------------------------------------------
 
 /**
@@ -248,9 +268,10 @@ const ARRIVAL: SequenceDefaults = {
  * the state JSON the first time; exports from the studio replace that file afterwards.
  * Erasable TypeScript only, and no value imports (the one import is type-only): the seed script runs this file directly under Node.
  */
-export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom' | 'twinkle'>, SequenceDefaults> = {
+export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
   headSwell: HEAD_SWELL,
   arrival: ARRIVAL,
+  twinkle: TWINKLE,
 };

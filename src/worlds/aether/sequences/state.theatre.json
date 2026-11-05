@@ -1448,6 +1448,59 @@
           }
         }
       }
+    },
+    "twinkle": {
+      "staticOverrides": {
+        "byObject": {}
+      },
+      "sequence": {
+        "subUnitsPerUnit": 30,
+        "length": 1.4,
+        "type": "PositionalSequence",
+        "tracksByObject": {
+          "main": {
+            "trackData": {
+              "twinkle-0001": {
+                "type": "BasicKeyframedTrack",
+                "__debug_objectPath": [
+                  "twinkle",
+                  "main",
+                  "clock"
+                ],
+                "keyframes": [
+                  {
+                    "id": "twinkle-0002",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 0
+                  },
+                  {
+                    "id": "twinkle-0003",
+                    "position": 1.4,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"clock\"]": "twinkle-0001"
+            }
+          }
+        }
+      }
     }
   },
   "definitionVersion": "0.4.0",
