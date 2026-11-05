@@ -7,19 +7,30 @@ import { MediaError, createDraftStore, sniffImageType } from './storage';
 // (onsuccess, onerror, ...), requests settle on a timer, a transaction completes after its last request. `mode` makes `open` fail
 // the four ways a browser can (it throws, it errors, it is blocked, it never answers); `failWrites` makes every write fail the way
 // a full disk does.
-type Mode = 'ok' | 'throw' | 'error' | 'blocked' | 'never';
+type Mode = 'ok' | 'throw' | 'error' | 'blocked' | 'blocked-then-ok' | 'never';
 interface Stub {
   factory: IDBFactory;
   stores: { draft: Map<unknown, unknown>; media: Map<unknown, unknown> };
   opens: () => number;
   closed: () => number;
+  /** Every write fails with a request error (a full disk). */
   failWrites: boolean;
+  /** Only `clear` fails (the writes before it work). */
+  failClear: boolean;
+  /** Writes succeed and the transaction aborts at commit (the common quota case: no request error, `onabort` only). */
+  abortOnCommit: boolean;
+  /** `db.transaction()` itself throws. */
+  throwTransaction: boolean;
+  /** `deleteDatabase` fails with an error event. */
+  failDelete: boolean;
+  deletes: () => number;
+  fireVersionChange: () => void;
 }
 
 function makeIdb(mode: Mode = 'ok'): Stub {
   const stores = { draft: new Map<unknown, unknown>(), media: new Map<unknown, unknown>() };
-  const state = { opens: 0, closed: 0, created: false };
-  const stub: Stub = { factory: undefined as never, stores, opens: () => state.opens, closed: () => state.closed, failWrites: false };
+  const state = { opens: 0, closed: 0, created: false, deletes: 0 };
+  const stub: Stub = { factory: undefined as never, stores, opens: () => state.opens, closed: () => state.closed, failWrites: false, failClear: false, abortOnCommit: false, throwTransaction: false, failDelete: false, deletes: () => state.deletes, fireVersionChange: () => db.onversionchange?.() };
 
   const db = {
     objectStoreNames: { contains: (name: string) => state.created && name in stores },
@@ -32,13 +43,14 @@ function makeIdb(mode: Mode = 'ok'): Stub {
     },
     onversionchange: null as null | (() => void),
     transaction(names: string | string[], _mode: string) {
+      if (stub.throwTransaction) throw new Error('InvalidStateError: the connection is closing');
       const list = Array.isArray(names) ? names : [names];
       const tx: Record<string, unknown> = { oncomplete: null, onerror: null, onabort: null, error: null };
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const request = (write: boolean, run: () => unknown) => {
+      const request = (write: boolean, run: () => unknown, fails = false) => {
         const req: Record<string, unknown> = { result: undefined, error: null, onsuccess: null, onerror: null };
         setTimeout(() => {
-          if (write && stub.failWrites) {
+          if (write && (stub.failWrites || fails)) {
             const error = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
             req.error = error;
             tx.error = error;
@@ -52,17 +64,22 @@ function makeIdb(mode: Mode = 'ok'): Stub {
           (req.onsuccess as null | (() => void))?.();
         }, 0);
         clearTimeout(timer);
-        timer = setTimeout(() => (tx.oncomplete as null | (() => void))?.(), 0);
+        timer = setTimeout(() => {
+          if (write && stub.abortOnCommit) {
+            tx.error = Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
+            (tx.onabort as null | (() => void))?.();
+          } else (tx.oncomplete as null | (() => void))?.();
+        }, 0);
         return req;
       };
       tx.objectStore = (name: string) => {
         if (!list.includes(name) || !(name in stores)) throw new Error(`store ${name} is not in this transaction`);
         const map = stores[name as 'draft' | 'media'];
         return {
-          put: (value: unknown, key: unknown) => request(true, () => map.set(key, value) && key),
+          put: (value: unknown, key: unknown) => request(true, () => (stub.abortOnCommit ? key : map.set(key, structuredClone(value)) && key)),
           get: (key: unknown) => request(false, () => map.get(key)),
           delete: (key: unknown) => request(true, () => map.delete(key)),
-          clear: () => request(true, () => map.clear()),
+          clear: () => request(true, () => map.clear(), stub.failClear),
         };
       };
       return tx;
@@ -78,8 +95,15 @@ function makeIdb(mode: Mode = 'ok'): Stub {
         if (mode === 'error') {
           req.error = new Error('UnknownError');
           (req.onerror as null | (() => void))?.();
-        } else if (mode === 'blocked') {
+        } else if (mode === 'blocked' || mode === 'blocked-then-ok') {
           (req.onblocked as null | (() => void))?.();
+          if (mode === 'blocked-then-ok') {
+            setTimeout(() => {
+              (req.onupgradeneeded as null | (() => void))?.();
+              state.created = true;
+              (req.onsuccess as null | (() => void))?.();
+            }, 30);
+          }
         } else if (mode === 'ok') {
           if (!state.created) {
             (req.onupgradeneeded as null | (() => void))?.();
@@ -87,6 +111,22 @@ function makeIdb(mode: Mode = 'ok'): Stub {
           }
           (req.onsuccess as null | (() => void))?.();
         }
+      }, 0);
+      return req as unknown as IDBOpenDBRequest;
+    },
+    deleteDatabase(_name: string) {
+      const req: Record<string, unknown> = { error: null, onsuccess: null, onerror: null, onblocked: null };
+      setTimeout(() => {
+        if (stub.failDelete) {
+          req.error = new Error('UnknownError');
+          (req.onerror as null | (() => void))?.();
+          return;
+        }
+        state.deletes += 1;
+        stores.draft.clear();
+        stores.media.clear();
+        state.created = false;
+        (req.onsuccess as null | (() => void))?.();
       }, 0);
       return req as unknown as IDBOpenDBRequest;
     },
@@ -171,7 +211,7 @@ describe('when IndexedDB is not available the creator works in memory and never 
     expect(await store.load()).toEqual(SAMPLE_DRAFT);
     const id = await store.putMedia(blobOf(WEBP));
     expect((await store.getMedia(id))?.size).toBe(64);
-    await expect(store.discard()).resolves.toBeUndefined();
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
     expect(await store.load()).toBeNull();
     expect(await store.getMedia(id)).toBeNull();
     expect(store.persistent).toBe(false);
@@ -280,5 +320,164 @@ describe('media is checked by its first bytes, at most 2 MB', () => {
     expect(sniffImageType(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x41, 0x56, 0x49, 0x20]))).toBeNull();
     expect(sniffImageType(new Uint8Array([]))).toBeNull();
     expect(sniffImageType(new Uint8Array([0x89, 0x50]))).toBeNull();
+  });
+});
+
+describe('the browser refuses in other ways', () => {
+  it('a commit-time abort after the put (no request error: the common quota case) is memory, not a crash', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    idb.abortOnCommit = true;
+    await expect(store.save(SAMPLE_DRAFT)).resolves.toBeUndefined();
+    expect(store.persistent).toBe(false);
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+    expect(idb.stores.draft.size).toBe(0);
+  });
+
+  it('db.transaction() throwing is memory, not a crash, for save, media and reads', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    idb.throwTransaction = true;
+    await expect(store.save(SAMPLE_DRAFT)).resolves.toBeUndefined();
+    expect(store.persistent).toBe(false);
+    const id = await store.putMedia(blobOf(PNG));
+    expect((await store.getMedia(id))?.size).toBe(64);
+    expect(await store.getMedia('other')).toBeNull();
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+  });
+
+  it('a versionchange (another tab upgrading) closes the connection and the store carries on in memory', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    expect(idb.closed()).toBe(0);
+    idb.fireVersionChange();
+    expect(idb.closed()).toBe(1);
+    expect(store.persistent).toBe(false);
+    await expect(store.save(SAMPLE_DRAFT)).resolves.toBeUndefined();
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+    expect(idb.stores.draft.size).toBe(0);
+  });
+
+  it('a blocked open that succeeds later is closed, not used (the store already went to memory)', async () => {
+    const idb = makeIdb('blocked-then-ok');
+    const store = await createDraftStore({ factory: idb.factory });
+    expect(store.persistent).toBe(false);
+    expect(idb.closed()).toBe(0);
+    await new Promise(resolve => setTimeout(resolve, 80));
+    expect(idb.closed()).toBe(1);
+    expect(store.persistent).toBe(false);
+  });
+
+  it('an open that answers after the timeout is closed too', async () => {
+    const idb = makeIdb('blocked-then-ok');
+    const store = await createDraftStore({ factory: idb.factory, openTimeoutMs: 5 });
+    expect(store.persistent).toBe(false);
+    await new Promise(resolve => setTimeout(resolve, 80));
+    expect(idb.closed()).toBe(1);
+  });
+
+  it('images already stored can still be read after a write failed', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    const id = await store.putMedia(blobOf(JPEG, 90));
+    idb.failWrites = true;
+    await store.save(SAMPLE_DRAFT);
+    expect(store.persistent).toBe(false);
+    expect((await store.getMedia(id))?.size).toBe(90);
+  });
+
+  it('a draft changed after save() does not change what was saved (IndexedDB or memory)', async () => {
+    for (const factory of [makeIdb().factory, null]) {
+      const store = await createDraftStore({ factory });
+      const draft = structuredClone(SAMPLE_DRAFT);
+      await store.save(draft);
+      draft.octopus.name = 'changed after saving';
+      draft.projects.length = 0;
+      expect((await store.load())?.octopus.name).toBe(SAMPLE_DRAFT.octopus.name);
+      expect((await store.load())?.projects).toHaveLength(1);
+    }
+  });
+});
+
+describe('discard never claims what it did not do', () => {
+  it('a failing clear (transaction error) falls back to deleting the database, and the store works again', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    await store.putMedia(blobOf(PNG));
+    idb.failClear = true;
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(idb.deletes()).toBe(1);
+    expect(idb.stores.draft.size).toBe(0);
+    expect(idb.stores.media.size).toBe(0);
+    expect(store.persistent).toBe(true);
+    await store.save(SAMPLE_DRAFT);
+    expect(idb.stores.draft.size).toBe(1);
+  });
+
+  it('a failing clear and a failing deleteDatabase report cleared:false, keep the stored copy readable, and a retry succeeds', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    idb.failClear = true;
+    idb.failDelete = true;
+    await expect(store.discard()).resolves.toEqual({ cleared: false });
+    expect(idb.stores.draft.size).toBe(1);
+    expect(await store.load()).toEqual(SAMPLE_DRAFT);
+    idb.failClear = false;
+    idb.failDelete = false;
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(idb.stores.draft.size).toBe(0);
+    expect(await store.load()).toBeNull();
+  });
+
+  it('after the connection was given up (memory mode) it reopens, clears the browser copy and reports cleared', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    idb.fireVersionChange();
+    expect(store.persistent).toBe(false);
+    await store.save({ ...SAMPLE_DRAFT, updatedAt: 'memory only' });
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(idb.stores.draft.size).toBe(0);
+    expect(await store.load()).toBeNull();
+    expect(store.persistent).toBe(true);
+  });
+
+  it('a memory-only store (no IndexedDB, or one that never opens) clears its memory and reports cleared', async () => {
+    for (const factory of [null, makeIdb('throw').factory, makeIdb('error').factory]) {
+      const store = await createDraftStore({ factory });
+      await store.save(SAMPLE_DRAFT);
+      const id = await store.putMedia(blobOf(PNG));
+      await expect(store.discard()).resolves.toEqual({ cleared: true });
+      expect(await store.load()).toBeNull();
+      expect(await store.getMedia(id)).toBeNull();
+    }
+  });
+
+  it('a save asked before the discard finishes first, so the old draft is not rewritten after the clear', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    const saving = store.save(SAMPLE_DRAFT);
+    const media = store.putMedia(blobOf(PNG));
+    const discarding = store.discard();
+    await Promise.all([saving, media]);
+    await expect(discarding).resolves.toEqual({ cleared: true });
+    expect(idb.stores.draft.size).toBe(0);
+    expect(idb.stores.media.size).toBe(0);
+    expect(await store.load()).toBeNull();
+  });
+
+  it('a discard whose database is full still clears (a clear is a write: the fallback deletes the database)', async () => {
+    const idb = makeIdb();
+    const store = await createDraftStore({ factory: idb.factory });
+    await store.save(SAMPLE_DRAFT);
+    idb.failWrites = true;
+    await store.save({ ...SAMPLE_DRAFT, updatedAt: 'x' });
+    expect(store.persistent).toBe(false);
+    idb.failWrites = false;
+    await expect(store.discard()).resolves.toEqual({ cleared: true });
+    expect(idb.stores.draft.size).toBe(0);
+    expect(await store.load()).toBeNull();
   });
 });

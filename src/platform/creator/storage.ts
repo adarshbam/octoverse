@@ -15,6 +15,10 @@ const DRAFT_KEY = 'current';
 /** How long `indexedDB.open` may take before the store goes to memory (a private window can leave it pending forever). */
 const OPEN_TIMEOUT_MS = 4000;
 
+export interface DiscardResult {
+  cleared: boolean;
+}
+
 export interface DraftStore {
   /** The stored draft as it was saved (migrate it with migrateDraft), or null when there is none. */
   load(): Promise<CreatorDraft | null>;
@@ -23,8 +27,11 @@ export interface DraftStore {
   /** Keeps an image (at most 2 MB; PNG, JPEG or WebP by its first bytes) and returns its id. Rejects with a MediaError for an image it must refuse. */
   putMedia(blob: Blob): Promise<string>;
   getMedia(id: string): Promise<Blob | null>;
-  /** Clears the draft and the images, in memory and in the browser. */
-  discard(): Promise<void>;
+  /**
+   * Clears the draft and the images, in memory and in the browser (after any save already asked for). `cleared` is false when the
+   * browser holds a copy it would neither clear nor delete: the caller keeps the draft on screen and lets the user try again.
+   */
+  discard(): Promise<DiscardResult>;
   /** Whether the browser is keeping what is saved. False means "in this tab only": the status says it cannot save. */
   readonly persistent: boolean;
 }
@@ -160,6 +167,28 @@ function run<T>(db: IDBDatabase, names: string[], mode: IDBTransactionMode, work
   });
 }
 
+/** Deletes the whole database: true when the browser says it is gone, false when it errors, is blocked, throws or is too slow. */
+function deleteDb(factory: IDBFactory, timeoutMs: number): Promise<boolean> {
+  return new Promise(resolve => {
+    let settled = false;
+    const settle = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => settle(false), timeoutMs);
+    try {
+      const request = factory.deleteDatabase(DB_NAME);
+      request.onsuccess = () => settle(true);
+      request.onerror = () => settle(false);
+      request.onblocked = () => settle(false);
+    } catch {
+      settle(false);
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // The store
 // ---------------------------------------------------------------------------------------------
@@ -167,20 +196,26 @@ function run<T>(db: IDBDatabase, names: string[], mode: IDBTransactionMode, work
 export interface StoreOptions {
   /** The IndexedDB factory (default: the global one); null for none. For tests. */
   factory?: IDBFactory | null;
-  /** How long `open` may take before the store goes to memory. */
+  /** How long `open` and `deleteDatabase` may take before the store goes on without them. */
   openTimeoutMs?: number;
 }
 
 /**
  * The draft store. IndexedDB when the browser gives it, memory when it does not (`persistent: false`); a write the browser refuses
- * later (a full disk) switches the store to memory from then on, keeping what it was asked to keep. Never throws.
+ * later (a full disk) makes the store memory-only for writes from then on, keeping what it was asked to keep, while reads of what
+ * the browser already holds still work. Writes (save, putMedia, discard) run one at a time in the order called, so a discard is
+ * never overtaken by a save that was asked before it. Nothing throws except putMedia refusing an image.
  */
 export async function createDraftStore(options: StoreOptions = {}): Promise<DraftStore> {
   const factory = pickFactory(options);
-  let db = factory ? await openDb(factory, options.openTimeoutMs ?? OPEN_TIMEOUT_MS) : null;
+  const timeoutMs = options.openTimeoutMs ?? OPEN_TIMEOUT_MS;
+  let db: IDBDatabase | null = factory ? await openDb(factory, timeoutMs) : null;
+  /** Whether writes still reach the browser (false after a refused write or a lost connection). */
+  let writable = db !== null;
   // What the browser has not got: the latest draft, and the images saved after it stopped keeping them.
   const memory: { draft: CreatorDraft | null; media: Map<string, Blob> } = { draft: null, media: new Map() };
 
+  /** Drops the connection (another tab upgrading, a failed read, the browser closing it): memory from here on. */
   const giveUp = () => {
     try {
       db?.close();
@@ -188,19 +223,71 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
       // already closed
     }
     db = null;
+    writable = false;
   };
-  if (db) {
+  /** Takes a connection as the store's own. */
+  const adopt = (opened: IDBDatabase) => {
+    db = opened;
+    writable = true;
     // Another tab upgrading the database must not be blocked by this one: step aside and carry on in memory.
-    db.onversionchange = giveUp;
-    db.onclose = giveUp;
+    opened.onversionchange = giveUp;
+    opened.onclose = giveUp;
+  };
+  if (db) adopt(db);
+
+  let queue: Promise<unknown> = Promise.resolve();
+  /** Runs `work` after every earlier write has finished (whether it worked or not). */
+  const inOrder = <T>(work: () => Promise<T>): Promise<T> => {
+    const result = queue.then(work);
+    queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  };
+
+  /**
+   * Clears both stores. Through the open connection first; if that fails, by deleting the database (this tab's connection closed so
+   * it does not block it) and opening a fresh one. `cleared` is false only when the browser holds a database it would neither clear
+   * nor delete. A browser that will not even open one holds nothing this tab can reach: that counts as cleared.
+   */
+  async function clearBrowser(): Promise<{ cleared: boolean }> {
+    if (!factory) return { cleared: true };
+    const connection = db ?? (await openDb(factory, timeoutMs));
+    if (connection) {
+      try {
+        await run(connection, [DRAFT_STORE, MEDIA_STORE], 'readwrite', store => {
+          store(MEDIA_STORE).clear();
+          return store(DRAFT_STORE).clear();
+        });
+        if (connection !== db) adopt(connection);
+        writable = true;
+        return { cleared: true };
+      } catch {
+        // fall through to deleting the database
+      }
+      try {
+        connection.close();
+      } catch {
+        // already closed
+      }
+      if (connection === db) db = null;
+    }
+    const deleted = await deleteDb(factory, timeoutMs);
+    const fresh = await openDb(factory, timeoutMs);
+    if (fresh) adopt(fresh);
+    if (deleted) return { cleared: true };
+    return { cleared: connection === null };
   }
 
   return {
     get persistent() {
-      return db !== null;
+      return db !== null && writable;
     },
 
     async load() {
+      // A draft the browser refused to keep is newer than anything it holds.
+      if (memory.draft) return structuredClone(memory.draft);
       if (db) {
         try {
           const stored = await run<CreatorDraft>(db, [DRAFT_STORE], 'readonly', store => store(DRAFT_STORE).get(DRAFT_KEY));
@@ -209,39 +296,50 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
           giveUp();
         }
       }
-      return memory.draft;
+      return null;
     },
 
-    async save(draft) {
-      memory.draft = draft;
-      if (!db) return;
-      try {
-        await run(db, [DRAFT_STORE], 'readwrite', store => store(DRAFT_STORE).put(draft, DRAFT_KEY));
-        memory.draft = null;
-      } catch {
-        giveUp();
-      }
-    },
-
-    async putMedia(blob) {
-      await checkMedia(blob);
-      const id = newMediaId();
-      if (db) {
-        try {
-          await run(db, [MEDIA_STORE], 'readwrite', store => store(MEDIA_STORE).put(blob, id));
-          return id;
-        } catch {
-          giveUp();
+    save(draft) {
+      // A copy, so a later edit of the caller's object can never change what was saved.
+      const copy = structuredClone(draft);
+      return inOrder(async () => {
+        if (!db || !writable) {
+          memory.draft = copy;
+          return;
         }
-      }
-      memory.media.set(id, blob);
-      return id;
+        try {
+          await run(db, [DRAFT_STORE], 'readwrite', store => store(DRAFT_STORE).put(copy, DRAFT_KEY));
+          memory.draft = null;
+        } catch {
+          memory.draft = copy;
+          writable = false;
+        }
+      });
+    },
+
+    putMedia(blob) {
+      // The check is inside the queue: an image asked for before a discard is never stored after it.
+      return inOrder(async () => {
+        await checkMedia(blob);
+        const id = newMediaId();
+        if (db && writable) {
+          try {
+            await run(db, [MEDIA_STORE], 'readwrite', store => store(MEDIA_STORE).put(blob, id));
+            return id;
+          } catch {
+            writable = false;
+          }
+        }
+        memory.media.set(id, blob);
+        return id;
+      });
     },
 
     async getMedia(id) {
       const held = memory.media.get(id);
       if (held) return held;
       if (!db) return null;
+      // Reads can still work after writes stopped (a full disk): images already stored stay visible.
       try {
         const stored = await run<unknown>(db, [MEDIA_STORE], 'readonly', store => store(MEDIA_STORE).get(id));
         return stored instanceof Blob ? stored : null;
@@ -251,18 +349,16 @@ export async function createDraftStore(options: StoreOptions = {}): Promise<Draf
       }
     },
 
-    async discard() {
-      memory.draft = null;
-      memory.media.clear();
-      if (!db) return;
-      try {
-        await run(db, [DRAFT_STORE, MEDIA_STORE], 'readwrite', store => {
-          store(MEDIA_STORE).clear();
-          return store(DRAFT_STORE).clear();
-        });
-      } catch {
-        giveUp();
-      }
+    discard() {
+      return inOrder(async () => {
+        memory.draft = null;
+        memory.media.clear();
+        try {
+          return await clearBrowser();
+        } catch {
+          return { cleared: false };
+        }
+      });
     },
   };
 }
