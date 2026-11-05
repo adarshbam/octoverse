@@ -811,6 +811,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     placementFrame.swell = sf.push;
     placementFrame.still = freeze || reducedMotion;
     placementFrame.reducedMotion = reducedMotion;
+    // How far the ring has formed, as the bubbles' appear writes it (absent: drawn whole).
+    placementFrame.twinkle = bubbleState.twinkle;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
     // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it

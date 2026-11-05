@@ -111,6 +111,26 @@ export function ringLineWidth(ring: Pick<RingStyle, 'line'>, pxPerUnit: number):
   return (ring.line.width * pxPerUnit) / AUTHORED_PX_PER_UNIT;
 }
 
+/** Over how much angle the head of the line, drawing round the ring, fades in. */
+const DRAW_HEAD = (24 * Math.PI) / 180;
+
+/**
+ * How much of the ring line shows at `angle` while it forms (the twinkle, spec 7.5), when `drawn` (0 to
+ * 1) of it is drawn: the line draws round the head from one side of the keep-out, the beads' first home
+ * end, through the rear to the other, its leading edge fading in over about 24 degrees. At `drawn` 1 it
+ * is whole (1 everywhere), as the ring was before it formed; this multiplies `ringLineVisible`.
+ */
+export function ringDrawn(angle: number, drawn: number, ring: Pick<RingStyle, 'keepOut'>): number {
+  if (drawn >= 1) return 1;
+  const turn = 2 * Math.PI;
+  const at = ((angle % turn) + turn) % turn;
+  const from = ring.keepOut;
+  // Before the line's start (the keep-out's far side, never shown) nothing is drawn yet.
+  if (at < from) return 0;
+  const head = from + Math.max(0, drawn) * (turn - 2 * ring.keepOut + DRAW_HEAD);
+  return THREE.MathUtils.clamp((head - at) / DRAW_HEAD, 0, 1);
+}
+
 /** The stages the ring is drawn in: the intro, and the detail (the beads are home again). */
 export function ringShown(stage: StageId): boolean {
   return stage === 'intro' || stage === 'detail';

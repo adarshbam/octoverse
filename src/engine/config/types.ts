@@ -653,9 +653,10 @@ export interface OrbStyle {
  * How artifacts appear once the entrance has settled: a closed union, one member per entry in the
  * engine's APPEARS table (the kinds must match it: strategies.ts checks). `blow` (Nox) has no
  * parameters; `bloom` (Veyra) runs `duration` seconds in all (1.2), unless the pendant placement's
- * `reveal` sets the timing.
+ * `reveal` sets the timing; `twinkle` (Aether) forms the satellite's ring, the line then the beads,
+ * `duration` seconds in all (1.4).
  */
-export type AppearConfig = { kind: 'blow' } | { kind: 'bloom'; duration: number };
+export type AppearConfig = { kind: 'blow' } | { kind: 'bloom'; duration: number } | { kind: 'twinkle'; duration: number };
 
 /**
  * How one artifact is chosen: a closed union, one member per entry in the engine's SELECTS table.

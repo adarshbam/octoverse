@@ -6,8 +6,9 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import type { SatellitePlacement } from '../config/types';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbMaterial } from './orbMaterial';
-import { beadAnglesInto, beadPeriod, flightProgress, holdProgress, ringFlight, ringLineVisible, ringLineWidth, ringPointInto, ringShown } from './satellite';
+import { beadAnglesInto, beadPeriod, flightProgress, holdProgress, ringDrawn, ringFlight, ringLineVisible, ringLineWidth, ringPointInto, ringShown } from './satellite';
 import type { PlacementFormProps } from './strategies';
+import { twinklePop } from './twinkle';
 
 /** Straight pieces the ring line is drawn in. */
 const RING_SEGMENTS = 128;
@@ -78,12 +79,17 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
     const colours = new Float32Array((RING_SEGMENTS + links) * 6);
     const colour = new THREE.Color(ring.line.color);
     const p = new THREE.Vector3();
+    // Each ring vertex's angle and how much of the line shows there (the keep-out), kept for the line drawing round while the ring forms.
+    const vertexAngle = new Float32Array(RING_SEGMENTS * 2);
+    const vertexSeen = new Float32Array(RING_SEGMENTS * 2);
     for (let k = 0; k < RING_SEGMENTS; k++) {
       for (let end = 0; end < 2; end++) {
         const angle = (2 * Math.PI * (k + end)) / RING_SEGMENTS;
         const at = k * 6 + end * 3;
         ringPointInto(p, angle, ring).toArray(positions, at);
         const seen = ringLineVisible(angle, ring);
+        vertexAngle[k * 2 + end] = angle;
+        vertexSeen[k * 2 + end] = seen;
         colours.set([colour.r * seen, colour.g * seen, colour.b * seen], at);
       }
     }
@@ -100,7 +106,7 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
     for (const mesh of [glassBeads, litBeads, litHalos]) mesh.frustumCulled = false;
     const buffer = (name: string) => (geometry.getAttribute(name) as THREE.InterleavedBufferAttribute).data;
     return {
-      sphere, beadGlass, litGlass, litHalo, glassBeads, litBeads, litHalos, geometry, material, line, slots, positions, colours,
+      sphere, beadGlass, litGlass, litHalo, glassBeads, litBeads, litHalos, geometry, material, line, slots, positions, colours, colour, vertexAngle, vertexSeen,
       constellation: new THREE.Color(ring.line.constellation),
       positionBuffer: buffer('instanceStart'),
       colourBuffer: buffer('instanceColorStart'),
@@ -112,7 +118,7 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
   }, [parts]);
 
   // The sway clock, how far the ring is shown, and the scratch a frame writes into.
-  const run = useMemo(() => ({ clock: 0, shown: Number.NaN, angles: new Array<number>(ring.beadCount).fill(0), bead: new THREE.Vector3(), next: new THREE.Vector3(), matrix: new THREE.Matrix4(), centre: new THREE.Vector3(), latch: { landed: false } }), [ring.beadCount]);
+  const run = useMemo(() => ({ clock: 0, shown: Number.NaN, angles: new Array<number>(ring.beadCount).fill(0), bead: new THREE.Vector3(), next: new THREE.Vector3(), matrix: new THREE.Matrix4(), centre: new THREE.Vector3(), latch: { landed: false }, drawn: 1 }), [ring.beadCount]);
 
   useFrame((state, delta) => {
     const f = frame();
@@ -121,7 +127,8 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
     // The flight (satellite.ts): the overview, and a focus from it, hold the orbs once they have landed.
     const flight = ringFlight(holdProgress(run.latch, f.stage === 'techFocus' ? 'focus' : f.stage === 'overview' ? 'overview' : 'free', flightProgress(f.swell), f.still), f.reducedMotion ?? false);
     const goal = ringShown(f.stage) || f.stage === 'overview' ? 1 : 0;
-    run.shown = f.still || Number.isNaN(run.shown) ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
+    // Forming (the twinkle), the ring is there at once, its line drawing in; else it fades in with the stage.
+    run.shown = f.still || f.twinkle || Number.isNaN(run.shown) ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
     root.visible = run.shown > 0.001 && (flight.line > 0 || flight.bead > 0);
     if (!root.visible) return;
     if (!f.still) run.clock += dt;
@@ -132,9 +139,12 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
     // The beads, each at its angle on the ring (drawn home as they brighten for the flight), growing as they brighten and flare.
     beadAnglesInto(angles, run.clock, ring, f.still);
     if (flight.sway < 1) for (let i = 0; i < angles.length; i++) angles[i] = ring.homes[i] + (angles[i] - ring.homes[i]) * flight.sway;
-    const size = ring.beadSize * (1 + GROW.bright * flight.bright + GROW.flare * flight.flare);
+    const grown = ring.beadSize * (1 + GROW.bright * flight.bright + GROW.flare * flight.flare);
+    const { twinkle } = f;
     for (let i = 0; i < slots.length; i++) {
       ringPointInto(bead, angles[i], ring);
+      // A bead not yet lit (the ring forming) is not there; it swells past its size as it lights and settles.
+      const size = twinkle ? grown * twinklePop(twinkle.beads[i] ?? 1) : grown;
       matrix.makeScale(size, size, size).setPosition(bead);
       const slot = slots[i];
       if (slot.lit) {
@@ -151,12 +161,27 @@ export function SatelliteRing({ config, frame, glass, head }: PlacementFormProps
       ringPointInto(bead, angles[k], ring).toArray(positions, at);
       ringPointInto(next, angles[k + 1], ring).toArray(positions, at + 3);
       const flicker = f.still ? 0 : 0.5 + 0.5 * Math.sin((2 * Math.PI * run.clock) / beadPeriod(k, ring) + k * 1.7);
-      const level = CONSTELLATION_LEVEL * (1 - ring.line.flicker * flicker) * flight.line;
+      // Forming, a link shows as the later of its two beads lights.
+      const formed = twinkle ? Math.min(twinkle.beads[k] ?? 1, twinkle.beads[k + 1] ?? 1) : 1;
+      const level = CONSTELLATION_LEVEL * (1 - ring.line.flicker * flicker) * flight.line * formed;
       for (let end = 0; end < 2; end++) {
         colours[at + end * 3] = constellation.r * level;
         colours[at + end * 3 + 1] = constellation.g * level;
         colours[at + end * 3 + 2] = constellation.b * level;
       }
+    }
+    // The ring line drawing round while the ring forms: each vertex's colour is its keep-out fade times how far the line has got there (written only while it changes).
+    const drawn = twinkle ? twinkle.line : 1;
+    if (drawn !== run.drawn) {
+      const { colour, vertexAngle, vertexSeen } = parts;
+      for (let v = 0; v < vertexAngle.length; v++) {
+        const level = vertexSeen[v] * ringDrawn(vertexAngle[v], drawn, ring);
+        const at = (v >> 1) * 6 + (v & 1) * 3;
+        colours[at] = colour.r * level;
+        colours[at + 1] = colour.g * level;
+        colours[at + 2] = colour.b * level;
+      }
+      run.drawn = drawn;
     }
     parts.positionBuffer.needsUpdate = parts.colourBuffer.needsUpdate = true;
 

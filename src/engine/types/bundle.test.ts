@@ -412,6 +412,32 @@ test('a bloom needs its sheet, and the bloom and the arm lift need a placement t
   expect('bloom' in NOX_BUNDLE.sequences.defaults).toBe(false);
 });
 
+// --- The twinkle (Aether's appear): the ring forms --------------------------------------------
+
+/** Nox's bundle with a ring-only satellite placement, the twinkle and a twinkle sheet; `edit`ed. */
+function withTwinkle(edit: (artifacts: Record<string, any>, defaults: Record<string, unknown>) => void = () => {}): WorldBundle {
+  const ring = { radius: 1.25, tilt: 1.36, roll: 0.14, centreY: -0.28, beadCount: 5, beadSize: 0.075, homes: [1.3, 2.2, 3.1, 4.1, 5], sway: { amplitude: 0.21, period: [6, 9] }, keepOut: Math.PI / 4, line: { color: '#d99982', width: 1.4, constellation: '#d99982', flicker: 0.5 }, beads: { glass: '#93699a', rim: '#d99982', lit: [1, 3] } };
+  const artifacts: Record<string, any> = { ...NOX_BUNDLE.artifacts, placement: { kind: 'satellite', ring }, appear: { kind: 'twinkle', duration: 1.4 } };
+  const defaults: Record<string, unknown> = { ...NOX_BUNDLE.sequences.defaults, twinkle: { length: 1.4, objects: { main: { props: { clock: 0 }, keys: { clock: [[0, 0], [1.4, 1]] } } } } };
+  edit(artifacts, defaults);
+  return { ...NOX_BUNDLE, artifacts: artifacts as never, sequences: { ...NOX_BUNDLE.sequences, defaults: defaults as never } };
+}
+
+test('the twinkle validates with its duration and its sheet, and needs the satellite placement', () => {
+  expect(() => validateBundle(withTwinkle())).not.toThrow();
+  expect(refusal(withTwinkle(a => { a.placement = NOX_BUNDLE.artifacts.placement; })).field).toBe('artifacts.appear.kind');
+  for (const duration of [0, -1, 11, Number.NaN]) expect(refusal(withTwinkle(a => { a.appear.duration = duration; })).field, String(duration)).toBe('artifacts.appear.duration');
+  expect(refusal(withTwinkle(a => { delete a.appear.duration; })).field).toBe('artifacts.appear.duration');
+});
+
+test('a bundle that names the twinkle without a twinkle sheet is refused, naming the sheet', () => {
+  const refused = refusal(withTwinkle((_, d) => { delete d.twinkle; }));
+  expect(refused.field).toBe('sequences.defaults.twinkle');
+  expect(refused.message).toContain('twinkle');
+  // Nox and Veyra's own sets name no twinkle and have none.
+  expect('twinkle' in NOX_BUNDLE.sequences.defaults).toBe(false);
+});
+
 // --- Task 16: the personality's motion variants (engine contract 14.1) -------------------------
 
 /** Nox's bundle with these personality fields. */

@@ -210,7 +210,8 @@ function checkOrbStyle(style: unknown) {
  * The appear's and the select's own parameters, by field name (Task 19): the bloom's `duration`
  * (seconds, above 0, at most 10) and the arm lift's `ease` (seconds, above 0, at most 2), `scale`
  * (1 to 2) and `threadShorten` (0 to under 1). Both grow out of and lift a pendant, so both need a
- * placement that hangs pendants (refused at the kind otherwise).
+ * placement that hangs pendants (refused at the kind otherwise). The twinkle's `duration` has the same
+ * range, and it forms the satellite's ring, so it needs the satellite placement.
  */
 function checkAppearSelect(artifacts: ArtifactConfig) {
   const { placement, appear, select } = artifacts;
@@ -218,6 +219,11 @@ function checkAppearSelect(artifacts: ArtifactConfig) {
     if (placement.kind !== 'pendant') throw new BundleError('artifacts.appear.kind', `"bloom" grows each artifact out of a cup on its arm: it needs the pendant placement, not "${placement.kind}"`);
     const { duration } = appear as { duration?: unknown };
     if (!(finite(duration) && duration > 0 && duration <= 10)) throw new BundleError('artifacts.appear.duration', `${String(duration)} is not above 0 and at most 10 (seconds the bloom takes in all)`);
+  }
+  if (appear.kind === 'twinkle') {
+    if (placement.kind !== 'satellite') throw new BundleError('artifacts.appear.kind', `"twinkle" forms the satellite's ring: it needs the satellite placement, not "${placement.kind}"`);
+    const { duration } = appear as { duration?: unknown };
+    if (!(finite(duration) && duration > 0 && duration <= 10)) throw new BundleError('artifacts.appear.duration', `${String(duration)} is not above 0 and at most 10 (seconds the twinkle takes in all)`);
   }
   if (select.kind === 'armLift') {
     if (placement.kind !== 'pendant') throw new BundleError('artifacts.select.kind', `"armLift" lifts the arm an artifact hangs from: it needs the pendant placement, not "${placement.kind}"`);

@@ -14,7 +14,7 @@ import { HOLD_BEATS } from './suctionHold';
 
 test("each table holds Nox's entries, Veyra's and (the placements) Aether's satellite, and the id unions follow the tables", () => {
   expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'pendant', 'satellite']);
-  expect(Object.keys(APPEARS)).toEqual(['blow', 'bloom']);
+  expect(Object.keys(APPEARS)).toEqual(['blow', 'bloom', 'twinkle']);
   expect(Object.keys(SELECTS)).toEqual(['suctionHold', 'armLift']);
   expect(NOX_ARTIFACTS.placement.kind in PLACEMENTS).toBe(true);
   expect(NOX_ARTIFACTS.appear.kind in APPEARS).toBe(true);
@@ -46,10 +46,11 @@ test("a kind that is not in a table is a type error, and a kind's parameters are
 test('the appear table says which sheet each kind plays, and the sequence ids follow it (G5)', () => {
   expect(APPEARS.blow.sheet).toBe('bubbleBlow');
   expect(APPEARS.bloom.sheet).toBe('bloom');
-  // AppearSheet is derived from the table: 'bubbleBlow' and 'bloom' are, 'entrance' is not (the engine's own sheet).
-  const sheets: AppearSheet[] = [APPEARS.blow.sheet, APPEARS.bloom.sheet];
+  expect(APPEARS.twinkle.sheet).toBe('twinkle');
+  // AppearSheet is derived from the table: 'bubbleBlow', 'bloom' and 'twinkle' are, 'entrance' is not (the engine's own sheet).
+  const sheets: AppearSheet[] = [APPEARS.blow.sheet, APPEARS.bloom.sheet, APPEARS.twinkle.sheet];
   const ids: SequenceId[] = [...sheets, 'entrance', 'headSwell', 'arrival'];
-  expect(ids).toHaveLength(5);
+  expect(ids).toHaveLength(6);
   // @ts-expect-error 'pulse' has no sheet until Flux builds it
   const unknown: AppearSheet = 'pulse';
   expect(unknown).toBe('pulse');
@@ -316,6 +317,48 @@ test('the bloom plays its own sheet over the appear\'s duration, or the reveal\'
   blow.step(ready);
   for (let k = 0; k < 12; k++) blow.step(ready);
   expect(blow.done).toBe(false);
+});
+
+const AETHER_LIKE: ArtifactConfig = {
+  placement: { kind: 'satellite', ring: { beadCount: 5 } as never },
+  appear: { kind: 'twinkle', duration: 1.4 },
+  select: { kind: 'suctionHold' },
+  choosableIn: ['overview'],
+};
+
+test('the twinkle runs its duration, holds every artifact at its place, and gives the ring its own state (the blow and the bloom give none)', () => {
+  const run = APPEARS.twinkle.createRun(AETHER_LIKE);
+  const ready = { exist: true, still: false, ready: true, dt: 0.1, count: 10, length: 1.4 };
+  run.step(ready);
+  expect(run.blowing).toBe(true);
+  for (let k = 0; k < 12; k++) run.step(ready);
+  expect(run.done).toBe(false);
+  run.step(ready);
+  run.step(ready);
+  expect(run.done).toBe(true);
+  // Motion off: no twinkle, the ring is simply whole.
+  const still = APPEARS.twinkle.createRun(AETHER_LIKE);
+  still.step({ ...ready, still: true });
+  expect(still.done).toBe(true);
+  // A longer duration runs longer.
+  const slow = APPEARS.twinkle.createRun({ ...AETHER_LIKE, appear: { kind: 'twinkle', duration: 2.8 } });
+  slow.step(ready);
+  for (let k = 0; k < 20; k++) slow.step(ready);
+  expect(slow.done).toBe(false);
+  // The artifacts do not blow, puff or grow: they are at their places.
+  const target = new THREE.Vector3(1, 2, 3);
+  expect(APPEARS.twinkle.frame(null as never, 2, 3, 10, AETHER_LIKE)).toEqual({ puff: 0, mouthRound: 0, emerged: 1, scale: 1, wobble: 0 });
+  expect(APPEARS.twinkle.position([0, 0, 0], target, 1, new THREE.Vector3()).toArray()).toEqual([1, 2, 3]);
+  // The ring forms: nothing before the sheet is in, then its own state at its five beads.
+  expect(APPEARS.twinkle.ring(null, 0.9, AETHER_LIKE)).toEqual({ line: 0, beads: [0, 0, 0, 0, 0] });
+  const sheet = { length: () => 1.4, sample: (_id: string, _object: string, seconds: number) => ({ clock: seconds / 1.4 }) };
+  const formed = APPEARS.twinkle.ring(sheet as never, 1.4, AETHER_LIKE);
+  expect(formed.line).toBe(1);
+  expect(formed.beads).toEqual([1, 1, 1, 1, 1]);
+  expect(APPEARS.twinkle.ring(sheet as never, 0.3, AETHER_LIKE).line).toBeGreaterThan(0);
+  // The blow and the bloom form no ring (it is drawn whole), and their own runs are unchanged by the twinkle.
+  expect('ring' in APPEARS.blow).toBe(false);
+  expect('ring' in APPEARS.bloom).toBe(false);
 });
 
 test('a lifted pendant hangs along its arm toward the lift\'s hang point by the lift\'s weight (none without one)', () => {

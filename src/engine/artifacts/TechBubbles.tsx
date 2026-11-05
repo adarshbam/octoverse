@@ -9,6 +9,7 @@ import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
 import { APPEARS, type AppearModule, SELECTS, holdModule, placementDriver } from './strategies';
+import type { TwinkleState } from './twinkle';
 import type { ArmReader } from './pendant';
 import { TETHER_POINTS, capRadius } from './tether';
 import { type FlightLook, TRAIL_POINTS } from './satellite';
@@ -46,6 +47,12 @@ export interface BubbleState {
   /** Written back each frame for Nox's face: how puffed his cheeks are and how round his mouth, blowing (0 otherwise). */
   puff: number;
   mouthRound: number;
+  /**
+   * Written back each frame for an appear that forms the placement's own drawing (the twinkle, which forms the
+   * satellite's ring): how far it has formed. Absent when the appear forms none, and once it is over, given up or
+   * not wanted (motion off, the bubbles gone): the ring is whole.
+   */
+  twinkle?: TwinkleState;
   /** Written back each frame: each bubble's place on its orbit (body space), which the arm holding it turns toward. */
   orbit: THREE.Vector3[];
   /**
@@ -349,6 +356,8 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at });
     const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
     const waiting = !blow.done && !blowing;
+    // The ring forms as the appear says: from the run's clock; waiting for the sheet where the bubbles exist, it is not drawn yet.
+    if (appear.ring) s.twinkle = blowing ? appear.ring(blowing, blow.seconds!, artifacts) : s.show && !blow.done ? appear.ring(null, 0, artifacts) : undefined;
     // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
     const goal = s.show && !waiting ? 1 : 0;
     run.shown = s.still || blowing ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
