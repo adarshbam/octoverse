@@ -1,6 +1,6 @@
 import { VEYRA } from './character';
 import { ARM_IDS, type ArmId, type ArmSpec, type Point2, type StageId } from '../../engine/config/types';
-import { flattenForDepth, withRoot as withRootAt } from '../../engine/poses/authoring';
+import { flattenForDepth, toContent, withRoot as withRootAt } from '../../engine/poses/authoring';
 import type { StagePose } from '../../engine/poses/types';
 
 /** Centre the hidden arm roots gather around (the neck, under the chin), and where the roots sit. */
@@ -41,12 +41,81 @@ const INTRO_ARMS = Object.fromEntries(ARM_IDS.map(id => [id, flattenForDepth(INT
  */
 const INTRO: StagePose = { arms: INTRO_ARMS, body: { x: 0, y: 0, scale: 1, yaw: 0 }, tilt: 0.18, expression: 'gentle', headMorph: 0, orbs: 0 };
 
-// The other four stages reuse the intro until Milestone 3 traces P1, P3, P4 and P5 (spec 7.4); each
-// is its own object so a later trace replaces it alone.
+// P3 (the overview), traced in world units from the 3x panel (docs/design/references/Veyra/03 - ...): world (x, y) ->
+// 3x px (802.5 + 300 x, 742.5 - 300 y), 100 native px a unit from the panel's centre (the overview frame is
+// exactly the panel). Measured first, then traced: the eyes (the dark pixels in each eye box) at (-0.49, -0.33)
+// and (0.47, -0.32), their outer corners 1.35 apart; the dome's rim (the greenest pixel along profiles across it)
+// fits a superellipse centred (0, 0.655), half-width 1.44, half-height 0.98, power 2.2 (character.ts `dome`).
+// The face is painted wider than P2's: the eyes 0.96 apart (P2 0.75) at P2's eye size, so no one scale matches
+// both; at 1.18 the eyes' outer corners land on P3's, at 1 the eyes are P2's size. The scale is 1.1 between them
+// (the eyes 0.83 apart, 10% larger than P3's), which also keeps the arms near P3's thickness. Each curve is an
+// arm's visible centre line, root end first, read at 0.1-unit grid lines on 2x zooms of the 3x panel (the trace
+// method is in the Task 12 report). The painting shows about eleven arms (six on the left, five on the right)
+// carrying twelve orbs; Veyra keeps eight: the top pair rising beside the dome and hooking over (T1, T8), the
+// upper side pair reaching out at shoulder height under the React and Cloudflare orbs (T2, T7), the middle side
+// pair out level and curling down at the tips (T3 under JS, T6 over AWS and Linux), and the lower pair down and
+// out to the Express and Docker orbs (T4, T5). The two thin centre arms (MongoDB, Redis) and the node arm are
+// not traced: their orbs move to the eight (Task 14's slots).
+const OVERVIEW_BODY = { x: -0.34, y: 0.225, scale: 1.1, yaw: 0 };
+
+export const OVERVIEW_TRACED: Record<ArmId, Point2[]> = {
+  T1: [[-1.15, -0.22], [-1.35, -0.1], [-1.48, 0.1], [-1.53, 0.35], [-1.55, 0.6], [-1.58, 0.8], [-1.66, 0.95], [-1.78, 1.04], [-1.88, 1.05], [-1.95, 1], [-1.95, 0.92], [-1.89, 0.88], [-1.85, 0.92]],
+  T2: [[-0.85, -0.45], [-1.05, -0.4], [-1.25, -0.33], [-1.45, -0.21], [-1.62, -0.05], [-1.76, 0.1], [-1.9, 0.17], [-2.03, 0.14], [-2.11, 0.05], [-2.12, -0.05], [-2.06, -0.1], [-2.01, -0.06]],
+  T3: [[-0.75, -0.7], [-0.95, -0.71], [-1.15, -0.69], [-1.35, -0.62], [-1.55, -0.56], [-1.75, -0.55], [-1.92, -0.6], [-2.02, -0.7], [-2.03, -0.82], [-1.97, -0.88], [-1.91, -0.84], [-1.92, -0.78]],
+  T4: [[-0.4, -0.85], [-0.55, -1], [-0.68, -1.15], [-0.8, -1.28], [-0.9, -1.4], [-0.96, -1.52], [-0.95, -1.63], [-0.88, -1.67], [-0.83, -1.62], [-0.86, -1.57]],
+  T5: [[0.6, -0.85], [0.8, -0.95], [1, -1.07], [1.18, -1.2], [1.32, -1.3], [1.44, -1.4], [1.5, -1.52], [1.47, -1.62], [1.4, -1.64], [1.37, -1.58], [1.41, -1.55]],
+  T6: [[0.75, -0.6], [0.95, -0.64], [1.17, -0.66], [1.38, -0.6], [1.58, -0.56], [1.76, -0.57], [1.92, -0.66], [2.01, -0.8], [2.02, -0.96], [1.96, -1.06], [1.89, -1.03], [1.88, -0.96], [1.93, -0.93]],
+  T7: [[0.85, -0.43], [1.05, -0.4], [1.25, -0.36], [1.48, -0.29], [1.7, -0.16], [1.88, -0.03], [2.05, 0.05], [2.17, 0.04], [2.22, -0.04], [2.18, -0.11], [2.11, -0.1], [2.11, -0.04]],
+  T8: [[1.1, -0.4], [1.3, -0.22], [1.42, 0], [1.47, 0.25], [1.51, 0.48], [1.58, 0.64], [1.7, 0.73], [1.83, 0.76], [1.94, 0.71], [1.97, 0.62], [1.92, 0.56], [1.86, 0.6]],
+};
+
+const OVERVIEW_ARMS = Object.fromEntries(
+  ARM_IDS.map(id => [id, flattenForDepth(withRoot(spec(id), toContent(OVERVIEW_TRACED[id], OVERVIEW_BODY)), spec(id))]),
+) as Record<ArmId, Point2[]>;
+
+/**
+ * The overview: the head opens into the dome with the project panel inside, the face at the dome's
+ * bottom with the happy open smile, upright (the dome rides the head's tilt), the arms spread wide.
+ */
+const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, tilt: 0, expression: 'happy', headMorph: 1, orbs: 1 };
+
+// P4 (the tech focus), traced from the 3x panel (docs/design/references/Veyra/04 - ...; native 667 x 528, world (x, y)
+// -> 3x px (1000.5 + 300 x, 792 - 300 y)): the head is closed, the other arms keep floating where they were, and the
+// arm that holds React rises from under the face beside the head and curls over the orb, which it holds up beside the
+// eyes (the orb at (0.77, 0.99), the eyes at (-0.735, 0.573) and (0.05, 0.79)). P4 paints React on her right; React is
+// her first technology, so it hangs from T1 (her left, as in P3, artifacts.ts), and the lift is P4's mirrored. The arm's
+// centre line was read on a 0.1-unit grid relative to the head's near edge (P4: 0.57 right of the eyes' midpoint) and the
+// eyes' midpoint (height), then placed on the overview: the closed head's left edge at x -1.10 on the stage (and 0.1 further
+// out, so the arm clears Veyra's rounder head: 0.1 rounder at the side than P4's), the eyes'
+// midpoint at y -0.325, P4 to the overview 1.02 (eyes 0.81 apart in P4, 0.83 in the overview). The engine shows a focus
+// in the pose of the stage it came from and moves the chosen arm by the select strategy (the suction hold until Task 19's
+// arm lift, whose target this is); this pose is that target as data.
+const P4_LIFT: Point2[] = [[-0.863, -1.08], [-1.032, -0.876], [-1.2, -0.672], [-1.287, -0.437], [-1.302, -0.192], [-1.322, 0.042], [-1.389, 0.277], [-1.542, 0.42], [-1.745, 0.45], [-1.944, 0.369], [-2.066, 0.205]];
+
+/** Where the held orb sits in the tech focus (P4's React, mirrored to T1), on the stage: under the curl, beside the eyes. */
+export const TECH_FOCUS_ORB: Point2 = [-1.745, -0.009];
+
+const TECH_FOCUS: StagePose = {
+  ...OVERVIEW,
+  arms: { ...OVERVIEW_ARMS, T1: flattenForDepth(withRoot(spec('T1'), toContent(P4_LIFT, OVERVIEW_BODY)), spec('T1')) },
+  headMorph: 0,
+  expression: 'focused',
+};
+
+// P5 (the detail), traced from the 3x panel (docs/design/references/Veyra/05 - ...; native 867 x 528, the detail frame
+// 8.67 x 5.28: world (x, y) -> 3x px (1300.5 + 300 x, 792 - 300 y)). She moves to the left edge, partly cropped, turned
+// three-quarters toward the panel with her head leaning: the eyes at (-3.175, 0.013) and (-2.518, 0.29) (0.71 apart, the
+// line rising 23 degrees to the right), the head from x -3.79 to -2.32 and its top at 0.89, the open smile at (-2.77,
+// -0.08). The body lands her eyes there at the intro's size (P5's near eye is P2's, 0.38 tall), yawed toward the panel
+// and leaning. The arms keep the intro's spread, as Nox's detail does: the left ones run off the frame's edge and the
+// right ones under the panel, as P5's do; P5's own arms are not traced.
+const DETAIL: StagePose = { ...INTRO, body: { x: -3.05, y: 0.6, scale: 0.88, yaw: 0.45 }, tilt: 0.38, look: [0.3, 0.2], expression: 'attentive' };
+
+// The entrance reuses the intro until Milestone 4/5 traces P1 (spec 7.4).
 export const VEYRA_POSES: Record<StageId, StagePose> = {
   entering: { ...INTRO },
   intro: INTRO,
-  overview: { ...INTRO },
-  techFocus: { ...INTRO },
-  detail: { ...INTRO },
+  overview: OVERVIEW,
+  techFocus: TECH_FOCUS,
+  detail: DETAIL,
 };

@@ -288,5 +288,161 @@
         ]
       ]
     }
+  },
+  "p3": {
+    "note": "Task 12: the overview (pose, dome, face) against P3 (native panel, colour truth). Capture: WORLD=veyra node scripts/world-capture.mjs overview <out.png> tier=high&kitwait=90000 (the plain page at 1605 x 1485, 3x the panel, a desktop layout with the HTML panel in). Check: python scripts/check_stage.py <out.png> --world --stage overview --world-id veyra. Boxes are world units [x0, y0, x1, y1] (1 unit = 100 native px from the panel's centre; the overview frame is exactly the panel), read in the panel and in the capture brought down to the panel's size; stat top25 is the median of the brightest quarter (a thin bright rim line).",
+    "deltaE": 10,
+    "deltaEReason": "Set before tuning: Task 7's limit for the character's flat-shaded samples. P3's own spread inside each box (std of its channels) is printed by the report, not used to widen it.",
+    "samples": {
+      "dome crown": {
+        "box": [
+          -0.6,
+          1.5,
+          0.6,
+          1.4
+        ]
+      },
+      "dome rim top": {
+        "box": [
+          -0.4,
+          1.7,
+          0.4,
+          1.57
+        ],
+        "stat": "top25"
+      },
+      "dome glass left": {
+        "box": [
+          -1.36,
+          1.0,
+          -1.24,
+          0.6
+        ]
+      },
+      "dome glass right": {
+        "box": [
+          1.22,
+          1.0,
+          1.32,
+          0.6
+        ]
+      },
+      "dome below panel": {
+        "box": [
+          -0.95,
+          0.0,
+          -0.7,
+          -0.08
+        ]
+      },
+      "face glow": {
+        "box": [
+          -0.15,
+          -0.3,
+          0.15,
+          -0.42
+        ],
+        "held": false,
+        "reason": "the face's colours belong to the intro's gate (P2, Milestone 1): P3 paints the same face warmer and wider-set, and one face cannot match both; printed for the owner's ruling (Task 12, decided after the first capture)"
+      },
+      "chin": {
+        "box": [
+          -0.1,
+          -0.72,
+          0.1,
+          -0.8
+        ],
+        "held": false,
+        "reason": "the face's colours belong to the intro's gate (P2, Milestone 1): P3 paints the same face warmer and wider-set, and one face cannot match both; printed for the owner's ruling (Task 12, decided after the first capture)"
+      },
+      "blush": {
+        "box": [
+          -0.74,
+          -0.46,
+          -0.6,
+          -0.54
+        ],
+        "held": false,
+        "reason": "the face's colours belong to the intro's gate (P2, Milestone 1): P3 paints the same face warmer and wider-set, and one face cannot match both; printed for the owner's ruling (Task 12, decided after the first capture)"
+      },
+      "arm (T6)": {
+        "box": [
+          1.2,
+          -0.58,
+          1.4,
+          -0.66
+        ]
+      }
+    },
+    "composition": {
+      "note": "rim: the greenest pixel along a profile ['y', x, y0, y1] (across the top) or ['x', y, x0, x1] (across a side), the same recipe on both images; P3's measured dome fits a superellipse centre (0, 0.655), half-width 1.44, half-height 0.98, power 2.2 (RMS 0.014 of the radius over 16 rim points: Task 12's report). eyes: the centroid of the pixels darker than eyeDarkBelow (every channel) in each eye's box (pupil, iris and lid line). box: the silhouette's extent from <capture>-mask.png (the dome glass and the orbs are not in it) against the arms' extent read by hand on P3's gridded 3x panel, orbs and cords left out.",
+      "tolerance": 0.06,
+      "rim": {
+        "top at x -0.3": [
+          "y",
+          -0.3,
+          1.3,
+          1.9
+        ],
+        "top at x 0": [
+          "y",
+          0.0,
+          1.3,
+          1.9
+        ],
+        "top at x 0.3": [
+          "y",
+          0.3,
+          1.3,
+          1.9
+        ],
+        "left side at y 1.0": [
+          "x",
+          1.0,
+          -1.55,
+          -1.15
+        ],
+        "left side at y 0.8": [
+          "x",
+          0.8,
+          -1.55,
+          -1.2
+        ],
+        "right side at y 1.0": [
+          "x",
+          1.0,
+          1.15,
+          1.55
+        ],
+        "right side at y 0.8": [
+          "x",
+          0.8,
+          1.2,
+          1.55
+        ]
+      },
+      "eyeDarkBelow": 40,
+      "eyes": {
+        "left": [
+          -0.75,
+          -0.1,
+          -0.2,
+          -0.56
+        ],
+        "right": [
+          0.2,
+          -0.1,
+          0.75,
+          -0.56
+        ]
+      },
+      "box": [
+        -2.13,
+        1.07,
+        2.24,
+        -1.68
+      ],
+      "boxTolerance": 0.1
+    }
   }
 }

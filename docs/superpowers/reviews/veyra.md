@@ -452,6 +452,333 @@ Tuned in 6 rounds (the stop rule's limit). Round 1: the fog share, colours, kelp
 - **The P1 boxes are pixel boxes** on the 1536 x 1024 frozen intro. A layout or camera change needs them redrawn.
 - **The vignette and the grade radius are Veyra's levers used to fit the world** (both in her config, both commented). Nox is unchanged.
 
-## Task 12: notes carried in
+## Task 12: overview pose and dome - PENDING OWNER REVIEW
 
-- The overview's opened dome (Task 3 review, minor 2): `jellyLook` runs after the HEAD shader's `capped` darkening and ignores `uMorph`, so in the overview the sunk mantle top still gets the full crown band and rim. Check it there and fix it if it shows.
+Open http://localhost:5191/?world=veyra&stage=overview (and `&freeze` for the frame the numbers use; the stills are 1605 x 1485, three times P3's native 535 x 495, which the overview stage frames exactly).
+
+Stills: `docs/superpowers/reviews/assets/veyra/t12-overview-vs-p3.png` (P3 at 3x beside the render), `t12-overview.png`, `t12-overlay-on-p3.png` (on P3: her silhouette from the render's mask in red, the traced arm centre lines in orange, the dome fitted to P3's rim in yellow and her configured dome in cyan (they coincide), the HTML panel box in white, the face anchor and P3's eye centres in magenta), `t12-seat-cap.png` (the dome's seat: P3, then the render without and with the engine fix below).
+
+### What I measured on P3 before tracing (native panel = colour truth; 100 px a unit from its centre)
+
+- **Dome:** the greenest pixel along 16 profiles across its rim (top at x -0.8 to 0.8, sides at y 0.4 to 1.2, the bottom corners at x -1.0 and 0.9, where its bottom line shows beside the head). A superellipse fits them with an RMS of 0.014 of the radius: centre (0, 0.655), half-width 1.44, half-height 0.98, power 2.2 (power 2.4: 0.018; Nox's 3.2: 0.039). Its bottom (-0.325) is P3's eye line: the dome's lower edge is hidden behind the face, and its visible bottom line at x +-1.0 (y -0.12) is where the round bottom rises.
+- **Face:** the eye outlines on the gridded 3x panel: centres (-0.49, -0.33) and (0.47, -0.32), 0.96 apart; the outer corners 1.35 apart; each eye about 0.41 wide and 0.38 tall. P2 has the same eye size with the eyes 0.75 apart: P3's face is wider-set, not larger.
+- **Panel:** the screenshot's left and top edges (-1.156, 1.13), the summary's right edge 1.148, the buttons' bottom 0.011.
+
+### What changed
+
+- `poses.ts`: the overview, traced from P3. **Trace method:** P3's 3x panel with a 0.1-unit grid drawn on it (world (x, y) to 3x px (802.5 + 300 x, 742.5 - 300 y)), read on 2x and 1.5x zooms of four regions (top left, lower left, low centre, right); each arm's visible centre line read point by point at the grid lines, root end first, ending in its tip's hook or coil; overlaid on P3 to check (`t12-overlay-on-p3.png`), then through the engine's own path (`toContent` under the pose's body, `withRoot`, `flattenForDepth`), as Nox's overview is. P3 paints about eleven arms (six left, five right) with twelve orbs; Veyra keeps eight: T1 and T8 rise beside the dome and hook over (T8 over the GitHub orb), T2 and T7 reach out at shoulder height under React and Cloudflare, T3 and T6 go out level and curl down at the tips (JS; AWS and Linux), T4 and T5 go down and out to Express and Docker. Not traced: the two thin centre arms (MongoDB, Redis) and the Node arm; their orbs move to the eight in Task 14. Body: x -0.34, y 0.225, **scale 1.1**, upright (tilt 0: the dome rides the head's tilt, and P3's dome is level), the happy face, the head open. The tech focus is now the overview with its head closed (Nox's rule) until Task 14 lifts the arm.
+- **Scale 1.1, a compromise.** No one scale matches P3's face: at 1.18 the eyes' outer corners land on P3's but the eyes are 18% too large; at 1.0 the eyes are P3's size but 0.75 apart (P3 0.96). At 1.1 the eyes are 0.83 apart and 10% larger than P3's, and the arms stay near P3's thickness. You see her grow 10% as the head opens.
+- `character.ts`: the dome from the fit, in the head's units through the overview's body: centre (0.309, 0.391), half-width 1.309, half-height 0.891, power 2.2 (depth 0.6 and mantleTop -0.32 kept: the sunk top lands at -0.127 on the stage, P3's seat at -0.12). Dome colours: tint `#033a40`, rim `#2affd6`, rim top `#40ffd8`, sheen `#5af0dc`.
+- `bundle.ts`: the overview panel box [-1.31, 1.17, 1.19, -0.03]: across, the engine's panel layout (`ui/overview.css`, Nox's) lands its preview's left edge, the copy's right edge and the buttons' bottom on P3's. Height 1.2, not P3's 1.36: the layout sizes its type by the box's height and its copy column is 40% of the width, so at 1.36 the summary wrapped to five lines and ran into the buttons (round 1); at 1.2 it takes four.
+- **Engine (two separate commits, the Nox gate after each, below):** (1) `b2944d4` the face anchor follows the stage pose's body scale (it added the head's face origin unscaled; Octopus draws body + scale x content; at scale 1 the sums are bit for bit the old ones); (2) `cebb468`, the note carried in from Task 3: **fixed, because it showed.** `jellyLook` ran after the HEAD `capped` darkening and ignores `uMorph`; in the opened dome the sunk mantle top took the full crown and rim, a bright cyan ledge under the dome (`t12-seat-cap.png`, middle). The head's jelly call is now followed by the same darkening, inside the JELLY branch only (Nox's program text and its sha256 pins unchanged; a test holds the order). Measured: the band above her face (x -0.3 to 0.3, y -0.10 to -0.16) from (40, 199, 212) to (20, 118, 125); P3 there is the dark-to-warm start of the face glow, (35, 70, 72) to (71, 106, 100).
+- Review tooling: `scripts/world-capture.mjs` reads an optional per-stage framing (`world_reference.json` `stages.overview`: the plain page at 1605 x 1485, no view box, so the HTML panel and the camera lean are in); Nox has no `stages` entry and its query is byte-identical. `scripts/check_stage.py --world --stage overview` (a new branch; Nox never reaches it) holds `world_samples.json` `p3`. `public/veyra/ref/p3.png` is the native P3 (a copy).
+
+### Numbers (`WORLD=veyra node scripts/world-capture.mjs overview .tmp/t12/r4.png "tier=high&kitwait=90000"`, then `python scripts/check_stage.py .tmp/t12/r4.png --world --stage overview --world-id veyra`: exit 1, five dome-glass misses)
+
+| Check | P3 | Render | Limit | |
+|---|---|---|---|---|
+| dome rim top at x -0.3 / 0 / 0.3 | 1.615 / 1.635 / 1.625 | 1.618 / 1.635 / 1.618 | 0.06 | ok |
+| dome rim left at y 1.0 / 0.8 | -1.395 / -1.445 | -1.372 / -1.428 | 0.06 | ok |
+| dome rim right at y 1.0 / 0.8 | 1.355 / 1.395 | 1.365 / 1.422 | 0.06 | ok |
+| left eye (dark-pixel centroid) | (-0.455, -0.293) | (-0.416, -0.319) | 0.06 | ok |
+| right eye | (0.427, -0.280) | (0.411, -0.319) | 0.06 | ok |
+| silhouette box (mask; P3 by hand, orbs out) | [-2.13, 1.07, 2.24, -1.68] | [-2.15, 1.14, 2.27, -1.72] | 0.1 | ok |
+| arm (T6) colour, delta E | #16c7be | #18b09f | 10 | ok 9.7 |
+| dome rim top (brightest quarter) | #46f6e4 | #38dacf | 10 | MISS 10.8 |
+| dome crown | #019e97 | #156472 | 10 | MISS 28.2 |
+| dome glass left / right | #028075 / #028178 | #084a52 / #074650 | 10 | MISS 26.7 / 28.6 |
+| dome glass below the panel | #023240 | #08494b | 10 | MISS 14.3 |
+| face glow / chin / blush (printed, not held) | #fcc998 / #d8b08e / #f8c49c | #99a06e / #88ca96 / #777e71 | | 31.0 / 41.6 / 42.0 |
+
+Composition from the config (bundle.test.ts): the dome's rectangle on the stage [-1.44, 1.635, 1.44, -0.325] holds the panel box with 0.13 left, 0.465 top, 0.25 right and 0.295 bottom to spare (the test asks 0.04, on the stage and through `stageBoxFor` at 1605 x 1485 and 1536 x 1024); the face anchor's y (-0.325) is the dome's bottom (0.000 apart; the test asks within 0.1, in the head's units and on the stage); the eyes' midpoint (-0.01, -0.325) against P3's (-0.01, -0.325).
+
+The delta E limit 10 was set before tuning (Task 7's limit for the character's flat samples). The three face samples were made "not held" **after the first capture**: the face's colours are the intro gate's (P2, Milestone 1), P3 paints the same face warmer and peach, and one face cannot match both. Your ruling.
+
+Tuning rounds (the stop rule's four): r1 the pose, dome and panel box (every composition check passed first time; the summary overran the buttons); r2 the box's height from 1.36 to 1.2 and the dome's colours from the start values toward P3; r3 and r4 the dome's colours. The dome glass cannot reach P3 by colour alone: the engine's dome shader (Nox's dark glass) has a fixed narrow fresnel (pow 4) over one tint at alpha 0.55, so a brighter tint lifts the dark middle with the walls, while P3's glass is dark in the middle and bright teal across a wide band at the walls. r4 is the least-bad balance (middle 14.3, walls 26.7 to 28.6). Reaching P3 needs a dome variant in the engine (a wider fresnel and spec 7.2's "faint inner gradient"): not done here; your call.
+
+### Gates kept
+
+- Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0 (13 of 13); `veyra_shape.py` PASS; `veyra_world.py` PASS (relic, no clip, no red).
+- Nox gate after each engine commit: vitest 107 files, 766 passed and 1 skipped; tsc both configs clean; lint 0 errors, 50 warnings (the baseline); build ok; the boundary test and the hue-debt pin unchanged (neither engine change holds a colour); still gate exit 0 (everything 0.0000 but techFocus's residual); Nox e2e 54 of 56: isolation (f) fails alone too (the known pre-existing failure, Task 2's notes), the phone tooltip tap failed under load and passes alone.
+
+### The five things to look at, with my verdict
+
+1. **Place:** the dome where P3's is, the face at its bottom (yes: every rim and eye check within 0.06; the face sits under the dome's lower edge as in P3).
+2. **Size:** she fills the frame as P3 does (yes for the silhouette box, within 0.07; the face is a compromise: eyes 10% larger and set 14% closer than P3's).
+3. **Pose:** the arms spread wide and high round the dome (mostly: T1 and T8 rise and hook as painted and the side arms reach the frame's edges; but eight arms leave the space under her chin empty where P3 hangs two thin arms, and the tips are Veyra's hooks, not every one of P3's curls).
+4. **The dome reads as jelly glass with a bright rim** (partly: the rim and shape are P3's; the glass is too dark at the walls and flat; see the misses).
+5. **The panel sits inside the dome** (yes, with room on every side; but it is the engine's Nox layout: no screenshot yet (the content has none until the detail view's task), "View Project" where P3 says "Live Demo", the buttons narrower than P3's).
+
+### Remaining weaknesses (mine)
+
+- The dome glass (above): five colour misses, a shader limit, not a value one.
+- The face: P2's colours under P3's dome (a greener glow; P3's is peach); the scale compromise.
+- The head under the dome reads as a rounded teal bowl with a bright rim down its sides (the sunk mantle and the cheek lobes); in P3 the arm roots cover the head's sides.
+- The panel's layout is Nox's (`ui/overview.css`): its copy column is 40% of the box and its type is sized by the box's height, so Veyra's box is 0.16 shorter than P3's panel to keep the summary off the buttons. A per-world layout would be an engine change.
+- `faceSpot` (the tooltip's keep-clear box round the face, ui/OrbButtons.tsx) still uses fixed offsets (1.05 across, 0.45 up, 0.55 down), not scaled with the pose: 10% small for Veyra's overview. Not changed (it is Nox's output too; the pendants task meets it).
+- Motion not judged (no videos): the blend from the intro (tilt 0.18, scale 1) into the overview (tilt 0, scale 1.1) and the dome's reveal should be checked live.
+- The background is the vault (Task 11), not P3's dark plant-lit water: no world change here.
+
+## Task 13: pendant placement and tethers (engine variant; no owner gate)
+
+What landed. The engine's `PLACEMENTS` table has a second entry, `pendant` (`src/engine/artifacts/pendant.ts`, `tether.ts`, wired through `strategies.ts` and `TechBubbles.tsx`). Veyra's `artifacts.ts` now hangs her technologies as pendants: 13 slots in the intro, 12 in the overview, at most two an arm, her cyan wet-skin highlight on the thread and her cups' cream on the cap. `swing` and `reveal` are absent (defaults: 25 degrees and 1.2 s; the bloom's own timing). The appear and the select are still `blow` and `suctionHold` until Task 19, and `choosableIn` is now `['intro', 'overview']`, so the buttons, the tooltip and the tray run on the pendants' `bubbleLive` places unchanged. Stills: `assets/veyra/t13-pendants-overview.png`, `t13-pendants-intro.png`, `t13-pendants-zoom.png` (frozen: pendants hang straight down).
+
+Numbers (`threadClearance`, thread 0.08 long and 0.014 wide, orbs 0.12 intro and 0.15 overview, her arms' own thickness taken off; the arms as the rig draws them with the rest bend, and on the pose's rest curves):
+
+| Measure | Intro | Overview |
+|---|---|---|
+| Least distance from any thread or orb to another arm or the face, hanging straight down, arms as drawn | 0.067 | 0.066 |
+| The same on the pose's own rest curves | 0.083 | 0.072 |
+| Swung to plus and minus 2 degrees (the idle sway) | 0.062 | 0.062 |
+| Swung to plus and minus 10 degrees | 0.038 | 0.048 |
+| Swung to plus and minus 25 degrees | -0.008 | 0.038 |
+| Gap between any two orbs at rest | held above 0.02 by a test | held above 0.02 by a test |
+
+The test holds the first two rows (above 0.05) and the idle sway; it does not promise the full swing: a thread at plus or minus 25 degrees in the intro touches a neighbouring arm. Swing: a step of 3 units a second for 0.6 s stays within 25 degrees (18 with Flux's limits) and is within 1 degree of the idle sway 1.2 s (0.8 s) after the arm stops.
+
+What the owner will see later, and what I could not fit:
+
+- **The orbs are small.** P3's orbs are about 0.28 on the stage (radius); twelve at that size with a thread under each do not fit under the curled upper arms without touching them. Mine are 0.12 and 0.15 (0.165 on the stage in the overview). The intro has no pendant on T8 (it hooks over T7 with 0.2 between them), so a technology's arm differs a little between the two stages. Task 14 re-places the slots against P3 and decides the size.
+- **The thread is barely there.** 0.08 long: the cap bead reads, the cyan thread is a few pixels. Longer needs fewer slots.
+- **A mid-arm slot can hang over its own arm** (T4's second slot in the overview: the Cloudflare orb sits on the arm). `threadClearance` counts other arms and the face only, as the contract says.
+- **Suction-hold flare (carried note).** Choosing a pendant still runs Nox's suction hold: the nearest arm pulls the orb off its thread to its tip and flares its cups. Not judged here (no live review of the hold on pendants); Task 14 / 19 replace it with the arm lift.
+- Carried minor M1 (Task 12): `Octopus` gaze centre and `nearFace` used the unscaled face origin; now `toStage(faceOrigin, body)` (Veyra's overview 1.1; Nox's scale is 1 and its stills are bit-identical). M2 (`faceSpot` offsets in `OrbButtons.tsx`) is left for Task 14.
+
+### Task 13 fix round 1: items for Task 14's slot criteria and Task 19
+
+Code fixed: the pendant capacity is the smaller stage's slot count (a technology past it goes to the tray in every stage; Veyra's capacity is now 12), and the pendants forget their last attach points while hidden (no kick on reappearing). The rest are recorded, not changed:
+
+- (a) **Title and nameplate boxes.** Two intro orbs (Mongo and Rive, on T4 and T5, `artifacts.ts` intro slots) sit under the HTML nameplate (`t13-pendants-intro.png`, about x 760-830, y 900-930). Add the intro title and nameplate boxes to the slot criteria.
+- (b) **Same arm in both stages.** Going from the intro to the overview, 11 of 12 orbs jump arms (the intro has no T8 slot, so every technology after the first sits one arm along). Task 14 keeps each technology on the same arm in both stages.
+- (c) **Clearance across the swing envelope.** Test at plus and minus `maxAngle`, not only at rest and plus or minus 2 degrees; the intro is -0.008 at 25 degrees.
+- (d) **What drives the swing (note for Task 19).** The swing reads the content-space, arm-local motion of the attach point only: the body's float, the startle and a stage move never swing a pendant.
+- (e) **Own-arm overlap is unmeasured.** The second T4 slot in the overview hangs over its own arm, and the Rive orb sits under T5's curl. Task 14.
+
+## Task 14 - P3 to P5 statics: PENDING OWNER REVIEW
+
+Open http://localhost:5191/?world=veyra&stage=overview, `&stage=techFocus&tech=react`, `&stage=detail` (add `&freeze` for the frames the numbers use), and the same at a 390 x 844 window. Stills, each beside its panel: `docs/superpowers/reviews/assets/veyra/t14-overview-vs-p3.png` (the real twelve technologies), `t14-overview16-vs-p3.png` (all sixteen slots filled, from a temporary content edit that was reverted: four extra technologies, the sixteenth not primary because the content allows fifteen), `t14-techfocus-vs-p4.png`, `t14-techfocus-hold-zoom.png` (React's arm in the overview, then during the hold), `t14-detail-vs-p5.png`, `t14-phone-390x844.png` (intro, then overview), `t14-intro.png`. Review crops of the panels: `src/worlds/veyra/review/p4-focus-crop.png` and `p5-character-crop.png` (native pixels).
+
+### The trade, measured before choosing (Task 13's criteria (a) to (d))
+
+The slot criteria are one measure now, `src/worlds/veyra/slotCriteria.ts`, which the tests use:
+
+- every thread and orb more than 0.05 clear of the other arms, of the face (the head in the intro, the dome in the overview), and of the HTML. The HTML is the intro's title block and nameplate, from `ui/intro.css`'s percentages on the square stage; on a phone it also includes the tray, and in the overview the bottom sheet with the tray riding on it;
+- checked at the review desktop (1536 x 1024) and at 390 x 844, with the number of technologies shown: the first n slots hang an orb, and the phone's tray is sized for n (it lists every technology in rows of six, so 13 or more make three rows);
+- checked across the whole swing: -25, -12.5, 0, 12.5 and 25 degrees;
+- no orb on its own arm more than 0.3 of arc from where it hangs (the frill is counted as the arm's tube only);
+- no two orbs touching at rest.
+
+I swept every arc fraction from 0.2 to 1 at 0.01 on the arms as drawn, took the best two slots an arm, then checked the gaps across arms. The reviewer then measured the largest passing orb at the committed fractions, filling the first n slots (fix round 1 corrected this table from that measure; thread 0.03):
+
+| Slots filled | Intro: largest orb that passes | Overview: largest orb that passes |
+|---|---|---|
+| 1 an arm (8) | 0.075 | 0.095 |
+| P3's twelve (2 on T3 to T6, 1 on the rest) | 0.075 | 0.095 |
+| 2 an arm (16, the spec) | 0.075 | 0.085 |
+
+The slot count does not decide the size. The swing envelope and her own arms do:
+
+- At 0.12 in the intro, T4, T5 and T8 have no place at all. The centre arms hang onto each other and onto the nameplate, and T8 hooks over T7.
+- In the overview, a midway slot on a rising or reaching arm hangs on that arm's own lower part.
+- For the real twelve technologies the overview could take 0.095 (about 12% larger). The 16th slot costs 0.01 of overview orb size.
+- **Owner item (a spec inconsistency):** the spec asks for 16 slots, but content caps primary technologies at 15 (`MAX_PRIMARY_TECHNOLOGIES`, `src/engine/content/projectTypes.ts:127`). The 16th slot is never filled.
+
+Reconsidered in fix round 1: 0.095 in the overview passes with twelve shown (0.067 desktop, 0.058 phone, own arm 0.003), but a thirteenth technology then fails even at the desktop (0.048, and -0.010 on its own arm). At 0.085 the desktop holds through sixteen. So 0.085 stays; the tests stay as they are.
+
+**So: sixteen slots in both stages, with orbs 0.075 in the intro and 0.085 in the overview (0.094 on the stage). The thread is 0.03 long and 0.02 wide (it was 0.08 and 0.014; Veyra config only).**
+
+P3's orbs are about 0.28 on the stage, so ours are a third of that. Bigger orbs need one of these:
+
+- fewer arms carrying them;
+- a smaller swing limit;
+- new arm poses that leave room under each arm.
+
+The intro is the Milestone 1 trace and its shape gate has 0.005 to spare, so I did not touch it.
+
+### What changed
+
+- **`artifacts.ts`:**
+  - 16 slots in each stage, two an arm, as [tip, midway] arc fractions.
+  - Order: every tip top-down (T1, T8, T2, T7, T3, T6, T4, T5). Then the midways: first T3, T6, T4, T5 (P3's four extra), then T1, T8, T2, T7.
+  - **Both stages use the same arm order, so every technology hangs from the same arm in the intro and the overview** (criterion (b), tested for all 16). It only slides along its arm.
+  - With twelve technologies the overview fills P3's twelve places: a tip under each arm's hook or curl, and a midway on T3, T6, T4 and T5.
+  - P3's four middle orbs (Node, MongoDB, Redis, AWS) hang from arms Veyra does not have (P3 paints eleven), so her midways sit higher along those arms.
+  - Which technology hangs where follows the project's order (top arms first), not P3's labels: React T1, TypeScript T8, JavaScript T2, Node T7, Express T3, MongoDB T6, Redis T4, Docker T5, then Linux, AWS, Cloudflare and GitHub on the midways.
+- **`slotCriteria.ts`** (test support; nothing at runtime imports it): the criteria above.
+- **`poses.ts`:**
+  - **techFocus** is the overview with T1 (React's arm) lifted as P4 paints it, mirrored to her left. P4 paints React on her right; P3 and our slots have it on the left.
+  - The lifted arm was traced on P4's 3x panel with a 0.1 grid, relative to the head's near edge and the eyes' midpoint. It was placed on the overview against the closed head's edge, the eyes' line, and 1.02 for P4's eye spacing, then moved 0.1 further out because her head is rounder at the side.
+  - In techFocus the head is closed and the face is the interested one.
+  - **detail**, traced from P5: body (-3.05, 0.6), scale 0.88, yaw 0.45, tilt 0.38, looking right toward the panel, `attentive`. The arms keep the intro's, as Nox's detail does.
+- **Engine (separate commit, Nox gate below):** `faceSpot`'s keep-clear offsets (1.05 across, 0.45 up, 0.55 down, 0.1 to the eyes) now scale with the stage pose's body scale (Task 12's minor M2). At scale 1 the products are the same numbers, so Nox's are unchanged. A test holds bit equality at scale 1 and the 1.5x growth.
+
+### Numbers
+
+Slots (`artifacts.test.ts`, all held). Re-measured in fix round 1 with the count shown: desktop with all 16 slots filled (the desktop has no tray, so the count changes nothing but which slots hang), phone with her 12 technologies and a two-row tray:
+
+| Measure | Intro | Overview |
+|---|---|---|
+| Clearance hanging straight down, desktop (16) / phone (12) | 0.060 / 0.058 | 0.110 / 0.078 |
+| at +-2 degrees (idle sway) | 0.060 / 0.058 | 0.107 / 0.078 |
+| at +-10 degrees | 0.060 / 0.060 | 0.091 / 0.079 |
+| at +-25 degrees (the limit) | 0.060 / 0.060 | 0.062 / 0.072 |
+| whole envelope (the test asks > 0.05) | 0.058 | 0.062 |
+| on the pose's rest curves (no rest bend) | 0.061 | 0.075 |
+| attach points alone | 0.196 | 0.160 |
+| own arm (the test asks > 0; least over the swing) | 0.0089 | 0.0099 |
+| least gap between orbs (the test asks > 0.02) | 0.021 | 0.095 |
+
+**The phone limit (fix round 1).** The tray lists every technology in rows of six. On the phone overview the clearance with the first n slots and a tray sized for n is 0.072 at n = 12 and -0.085 at n = 13 to 15: a thirteenth technology wraps the tray to a third row whose top reaches her lowest pendants. So "clear of the tray and the sheet on the phone" holds for 12 or fewer technologies; it breaks from 13 (content allows up to 15 primaries). The intro on the phone holds with 16 (0.058). A test pins the limit (13 and 15 fail the criterion on the phone overview); **Task 20 carries threshold 13**: hide the hanging pendants when the tray lists everything (`trayAll`, the three-row tray), or change the tray, and that test flips.
+
+The intro's title block and nameplate are also held on their own. Task 13's overlap of two intro orbs with the nameplate is gone: the lowest intro orb's bottom is more than 0.05 above the nameplate's top at both sizes. Task 13's intro measured -0.008 at 25 degrees.
+
+Overview still (`check_stage.py --world --stage overview --world-id veyra` on the frozen capture): every composition check is identical to Task 12 (rims, eyes, silhouette box [-2.15, 1.14, 2.27, -1.72]), with the same five dome-glass colour misses. `bundle.test.ts` (dome rect, panel box, face anchor at the dome's bottom) passes unchanged.
+
+Poses (`poses.test.ts`):
+
+- **techFocus:**
+  - differs from the overview in T1 only;
+  - T1's curl tops out 0.82 above the eyes' line;
+  - the held orb (P4's place, mirrored) sits at the eyes' height (0.32 above), 0.59 outside the head's box;
+  - T1 is 0.041 clear of the head's box above the waist (tube radius taken off).
+- **detail:**
+  - the face anchor is at (-2.786, 0.160), against P5's eyes' midpoint (-2.85, 0.15);
+  - it is on screen at 2601 x 1584, 1536 x 1024 and 390 x 844, and 0.57 left of the panel;
+  - on the still the eyes land at (-3.185, 0.023) and (-2.552, 0.307), against P5's (-3.175, 0.013) and (-2.518, 0.29).
+
+### Perf and gates
+
+- **Perf:** `WORLD=veyra node scripts/perf.mjs "stage=overview&tier=low"` (headless Edge, 1536 x 1024; CPU is the machine's 5 s average before and after each run), interleaved with a Nox control:
+
+| Run | CPU before / after | Median | Slowest 10% | Mean |
+|---|---|---|---|---|
+| Veyra overview 1 | 27.0% / 28.8% | 69.0 | 38.9 | 63.6 |
+| Nox overview 1 | 22.6% / 13.6% | 63.7 | 30.3 | 57.4 |
+| Veyra overview 2 | 25.7% / 27.7% | 69.0 | 57.1 | 65.2 |
+| Nox overview 2 | 72.8% / 47.5% | 47.4 | 27.5 | 43.4 |
+
+  Veyra's overview with twelve pendants is above 36 fps in both runs.
+- **Nox gate** (after the engine change; the run included Veyra's files, which Nox does not reach):
+  - full vitest (`--testTimeout=120000`): 112 files, 816 passed and 1 skipped;
+  - tsc, both configs: clean;
+  - oxlint: 0 errors and 50 warnings (the baseline). Exporting a second helper from `OrbButtons.tsx` first made 51 (only-export-components), so the helper stays private and the test goes through `faceSpot`;
+  - build: ok;
+  - boundary test: passes, with no hue literal added;
+  - still gate (`.tmp/capture-set-wrapped.sh`, kitwait 90000) then `still_compare.py`: PASS. Everything is 0.0000 except techFocus's residual (mean 0.0077);
+  - Nox e2e `--workers=1`: 54 of 56. The skip link failed in the run and once more alone, then passed alone twice in a row: the known load flake. `embedding.spec.ts:163` ("a new bundle object of the same world replaces the instance") fails alone too, and fails again with my three changed source files put back to HEAD 6ad2578, so it fails without this change. I did not investigate it further.
+- **Veyra:** `artifacts.test.ts` 8 of 8 (10 of 10 after fix round 1), `poses.test.ts` 3 of 3, `bundle.test.ts` unchanged and passing. The overview still's composition checks are unchanged from Task 12 (above).
+
+### The five things to look at, with my verdict
+
+1. **The pendants against P3** (`t14-overview-vs-p3.png`): partly.
+   - The places are P3's ring: a lantern under every hook and curl, four more midway. Nothing touches across the full swing.
+   - The orbs are a third of P3's size.
+   - The thread reads as a short bead and cord, not P3's visible cord.
+   - The trade table above is the reason. Your call: give up the full 25-degree swing, or the second slot on the upper arms, to get bigger orbs.
+2. **The intro with pendants** (`t14-intro.png`): yes for clearance. The title and nameplate are clear and nothing is on the face. The beads are small (0.075), and the four on the centre arms sit close to the frill.
+3. **The tech focus against P4** (`t14-techfocus-vs-p4.png`): no, and Veyra's data cannot fix it.
+   - The host shows a focus in the overview pose and moves an arm by the select strategy, which is still Nox's suction hold. It pulls React from T1 to the nearest arm's tip (T2), where React lands on JavaScript's pendant. The dome stays up, empty.
+   - The traced `techFocus` pose (T1 lifted, React beside her eyes) is data for Task 19's arm lift. The engine does not read `poses.techFocus` today.
+   - The cup flare (criterion (g)): on the frozen still the holding tip's cups sit under the tooltip and show no flare against the overview's (`t14-techfocus-hold-zoom.png`). Not judged live.
+4. **The detail against P5** (`t14-detail-vs-p5.png`): mostly. Her eyes land within 0.04 of P5's, she is turned and leaning toward the panel, and the panel's edge is where P5's is. The misses:
+   - her head is 10% larger than P5's around the same eyes (the Task 12 compromise again: P5 paints bigger eyes on a smaller head);
+   - her arms are the intro's spread, while P5's hang lower and curl under;
+   - the face is `attentive` (the spec) where P5 paints the open smile;
+   - a kelp stalk of the vault stands in front of her.
+5. **The phone** (`t14-phone-390x844.png`): yes.
+   - She sits in the upper screen, the twelve technologies are in the tray (two rows of six), and the sheet is below.
+   - No pendant is under the tray or the sheet with her twelve (0.078 at rest, 0.072 across the swing).
+   - This holds for 12 or fewer technologies only. From 13 (content allows 15) the tray takes three rows and its top reaches stage y -1.15, over her lowest pendants (-0.085). Task 20 carries threshold 13: hide the hanging pendants when the tray lists everything, or change the tray.
+
+### Remaining weaknesses (mine)
+
+- Orb size against P3 (the trade above).
+- The frill's cups stand proud of the arm's tube, and the criteria count only the tube. A few beads sit within a cup's width of the frill: the intro's T4 and T5 midways, and the overview's T1 midway.
+- The four midway slots P3 has no orb for (T1, T8, T2, T7) are legal but tight: 0.06 to 0.15 at rest.
+- The tech focus shows Nox's hold (above), and its React lands on JavaScript: Task 19.
+- The detail's arms are not P5's, and the detail face is not P5's open smile.
+- AWS still has no logo. The content note says the pendants task decides; I did not decide it here.
+- `primaryTechnologyIds` allows 15 (content validation), so a sixteenth technology never hangs: the sixteenth slot is reachable only if that limit rises.
+
+### Ruling: P4 static deferred to Task 19 (controller, fix round 1)
+
+The `techFocus` pose stays data only. The engine does not render `poses.techFocus`: doing so would move Nox's frozen techFocus, and one static pose cannot be "the chosen arm" for every technology. So the P4 tech-focus still is **not yet reviewable**: `t14-techfocus-vs-p4.png` shows Nox's suction hold, which drops React onto JavaScript's pendant (T2's tip) with the dome up and empty.
+
+Task 19's arm lift delivers the P4 static. Its criterion:
+
+- the lift uses the traced `P4_LIFT` shape, with `TECH_FOCUS_ORB` as the target, for T1; or it derives an equivalent lift for each arm;
+- it closes the head;
+- it shows the `focused` face;
+- the techFocus-vs-P4 still is taken again there, and the cup flare (g) is judged then.
+
+### Fix round 1 (review)
+
+- **Count-aware criteria.** `stageClearance` takes the number of technologies shown: the first n slots hang an orb and the phone's tray is sized for n. Before, the 16-slot phone test measured against a two-row tray, which cannot occur with 16 pendants. Tests: 12 shown pass at desktop and phone; all 16 pass at the desktop and in the intro on the phone; the known limit (13 and 15 shown fail on the phone overview) is pinned for Task 20.
+- **Trade table** corrected to the reviewer's measure at the committed fractions (above). The overview orb stays 0.085 (reason above).
+- **Own arm** reported as the least over the swing: 0.0089 intro, 0.0099 overview (the test's five angles give 0.0096 / 0.0100).
+- **Envelope** taken from the placement's own swing limits (`swingLimits`), not the engine default.
+- Optional M3 (sparkle under the capped band): left. It is not a two-line change, because the `capped` term exists only in the head's program, so the sparkle line needs a HEAD branch.
+
+## Task 15 - back view: PENDING OWNER REVIEW
+
+Look at it live: http://localhost:5191/?world=veyra&stage=intro&freeze&yaw=180 (and `yaw=45`, `90`, `135`); add `&orbit` and drag on the water (not on her) to look from above or below. `yaw` turns her body about its upright axis; the stage camera stays put.
+
+Stills (`docs/superpowers/reviews/assets/veyra/`; frozen intro, P2's view box, 976 x 990 at scale 2, 200 px a unit):
+- `t15-orbit-yaws.png`: yaw 0, 45, 90, 135, 180 side by side (half size).
+- `t15-back.png`: yaw 180 at full size.
+- `t15-dome-front-vs-back.png`: the dome from the front and from behind, the same crop size.
+- `t15-roots-before-after.png`: the rear arm roots seen from behind, before and after the one fix (2x crop of the scale-2 still).
+- `t15-orbit-high-low.png`: the orbit camera about 25 degrees above (yaw 45, 135, 180) and about 17 degrees below (yaw 135).
+
+### The four checks, with my verdict
+
+1. **The back is round and glassy: yes.** Seen from behind, the dome is the same round jelly as from the front: a bright cyan rim all round, a lighter crown, a darker middle, and the warm core showing through faintly low in the middle. Its colours match the front within a few points (table below). Nothing of the face leaks through: no near-black pixel on the head at yaw 135 or 180 (5,417 at yaw 0: the eyes and brows).
+2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks keep the same scatter: 27 to 37 on the upper dome at every yaw (10.5 to 17.0 per 10,000 px; 33 on the front, 27 on the back). The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
+3. **The cups read from behind: yes, as an edge.** From behind the frill is on the far side of each arm, so it reads as a thin cream scalloped edge along each arm's underside, with a cup crest here and there; from three-quarters and from below the cups show in full. Cream pixels on the arms: 17% from the front, 13% from behind.
+4. **No seams, no matte patches, no popped geometry: yes after one fix, with one small residue.** Before the fix, the two rear arms' roots (T1 and T8) stood out behind the mantle and met in a hard crease with a dark notch under it, the one clear defect of the orbit (`t15-roots-before-after.png`, left). Now they root inside the neck and pass out under the dome (right). A small pinch remains where the two root caps meet at the body's axis, about 4 x 8 px at scale 2, half hidden under the dome's lower edge (see weaknesses). Nothing else popped, and there is no colour mismatch between front and back.
+
+### What changed (`src/worlds/veyra/character.ts` only)
+
+- **Rear roots:** `rear()` arm spec `z` from `[-0.3, -0.62]` (Nox's values) to `[0, -0.62]`. Each arm's root cap reaches in to the body's axis (engine, `armTube.ts`). At z -0.3 with T1's thick root (0.22) the two caps stood behind the mantle's back surface and met in the open. At z 0 they sit inside the neck. The tips still pass behind the head at -0.62, and the stage camera still sees the traced curve (`flattenForDepth`).
+- **Underglow:** `VEYRA_LIGHTING.underglow.intensity` from 0.4 to 0.25. The roots' move changes the rear arms' depth along their whole length, and that cost the intro's silhouette saturation 0.0020 (0.6561 to 0.6541, against the floor 0.655: a miss). Less cream fill from below brings it back to 0.6569, and moves saturation and brightness toward P2's (0.710 and 0.626).
+
+Tuning rounds (4, the rule's limit), each measured on the back still and the intro gate:
+
+| Round | Change | Back roots | Intro silhouette saturation | Gate |
+|---|---|---|---|---|
+| 0 | HEAD | hard crease and notch | 0.6561 | 13/13 |
+| 1 | rear z -0.12 | crease shorter, still up to the dome | 0.6547 | miss (saturation) |
+| 2 | rear z 0 | small pinch only | 0.6541 | miss (saturation) |
+| 3 | + underglow 0.3 | the same | 0.6558 | 13/13 |
+| 4 | + underglow 0.25 | the same | 0.6569 | 13/13 (kept) |
+
+### Numbers (`.tmp/t15/measure.py`, on the frozen intro at each yaw; the dome is her silhouette's run through the head's axis down to world y -0.2, eroded 10 px)
+
+| Yaw | Crown (top quarter) | Middle (centre third, lower half) | Sides | Specks (per 10k px) | Rim luminance | Arms mean | Cream on arms | Dark px on head |
+|---|---|---|---|---|---|---|---|---|
+| 0 | (12, 172, 191) | (16, 108, 116) | (11, 117, 133) | 33 (12.8) | 218 | (77, 178, 151) | 17.1% | 5,417 (face) |
+| 45 | (13, 177, 197) | (11, 105, 116) | (15, 124, 138) | 29 (12.3) | 219 | (85, 181, 153) | 19.3% | 2,614 (face) |
+| 90 | (17, 185, 205) | (14, 111, 123) | (51, 147, 148) | 35 (16.1) | 213 | (67, 174, 157) | 12.9% | 130 (face edge-on) |
+| 135 | (15, 179, 198) | (16, 109, 119) | (28, 141, 145) | 33 (13.8) | 215 | (56, 160, 138) | 12.8% | 0 |
+| 180 | (11, 173, 192) | (14, 107, 117) | (10, 117, 136) | 27 (10.5) | 220 | (53, 158, 134) | 12.9% | 0 |
+
+The P2 sample points mirrored to the back (x to -x): crown (13, 172, 193) against the front's (7, 159, 178); middle (13, 104, 114) against (15, 104, 110); side (5, 101, 116) against (9, 118, 137). The back's side is darker because the key light comes from above left, and that side faces away from it at yaw 180. Task 3 found the back's middle red about 10 against the front's 25 (the grey cast from bloom). Now both read 13 to 16: Task 7's bloom cut closed that gap. Through the back, the warm core reads (42, 124, 117) low in the middle, against (24, 126, 126) at the side.
+
+Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. The method is new: Task 3's count of 85 and Task 7's 48 were made another way, so these numbers compare yaws with each other, not with those counts.
+
+### Gates kept (final values)
+
+- Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0, 13/13. The samples are all within 0.1 of HEAD except: arm top 9.4 (HEAD 9.3), arm body 9.2 (9.3), cup rim 6.3 (5.3), chin 9.0 (9.1). Mean (72, 163, 144); saturation 0.657; brightness 0.655 (HEAD 0.659).
+- `veyra_shape.py`: PASS, "her" row unchanged (IoU without the extra arms 0.852, span 3.74).
+- Overview (`check_stage.py --world --stage overview --world-id veyra`): the same misses as HEAD (Task 12's dome glass); one sample moved 0.1 (arm T6, 9.7 to 9.8).
+- `veyra_world.py`: exit 1 on `no red`, 600 pixels, and **HEAD fails the same way (601)**. These pixels are the cream pendant caps (Tasks 13 and 14), which lie outside her silhouette mask, e.g. the cap at T1's tip at (466, 534). Task 12 passed it before the pendants hung in the intro. Not changed here: the fix belongs in the check or the pendant colours.
+- `npx vitest run src/worlds/veyra` (6 files, 60 tests) and `npx tsc -p tsconfig.nox3d.json --noEmit`, `npx tsc -b`: pass. No engine file touched, so Nox is untouched.
+
+### Remaining weaknesses (mine)
+
+- **Root pinch:** the two rear root caps still close to one point on the body's axis, so a small pinch shows under the dome from straight behind. Hiding it fully needs either the roots to overlap (a pose change: `withRoot`'s spread puts T1's and T8's roots 0.26 apart) or root caps that blend (engine, `armTube.ts`). Nox has the same construction (his rear arms are at z -0.3, with thinner roots).
+- **The side view (yaw 90) is not a design:** the arms are authored flat for the stage camera, so from the side they bunch into a column under the head. It is the same for Nox, and no stage shows her from the side.
+- **The arms read darker from behind** (mean green 158 against 178): the face glow and the cups' cream light fall on their front faces. They still read as jelly, with the rim and the specks, but a little more opaque than from the front.
+- **The warm core from behind** shows as a muted green patch low in the dome, where the front has the bright face glow. I left it: it is what a translucent head with a light inside should show, and spec 7.2 asks for the core inside. If you would rather the back read cleaner teal, that is `coreWarmth`, and changing it moves the front's face glow sample.
+- **Do not click on her in `?orbit`:** a click on her opens the dome (the head morph shows with the arms frozen in the intro), which looks like a cut head. Drag on the water instead. This is the click's interaction, not a geometry fault.
+- Twinkle, sway and the head turn are motion: check them live.

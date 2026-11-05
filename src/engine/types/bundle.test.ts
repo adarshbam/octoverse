@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX_BUNDLE } from '../../worlds/nox/bundle';
+import { pendantFixture } from '../artifacts/fixtures/pendant';
 import { ARM_IDS, STAGE_IDS } from '../config/types';
 import { dummyCharacter } from '../config/fixtures/dummy.character';
 import { clampCharacterConfig } from '../config/validate';
@@ -285,4 +286,49 @@ test('a bundle whose world runs packets on a path validates: the path name is no
   expect(validateBundle({ ...NOX_BUNDLE, place }).place.live.elements?.packets?.path).toBe('bridge');
   const typo = { ...place, live: { ...place.live, elements: { packets: { ...place.live.elements.packets, colours: ['#4aa6d0', 'bluish'] as const } } } };
   expect(refusal({ ...NOX_BUNDLE, place: typo }).field).toBe('place.live.elements.packets.colours[1]');
+});
+
+// --- The pendant placement (Veyra's) ------------------------------------------------------------
+
+/** Nox's bundle with a pendant placement (the engine's fixture), `edit`ed. */
+function withPendants(edit: (placement: Record<string, any>) => void = () => {}): WorldBundle {
+  const placement = pendantFixture() as unknown as Record<string, any>;
+  edit(placement);
+  return { ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, placement: placement as never } };
+}
+
+test('a pendant placement validates, and each part of it is refused by name when wrong', () => {
+  expect(() => validateBundle(withPendants())).not.toThrow();
+  const field = (edit: (p: Record<string, any>) => void) => refusal(withPendants(edit)).field;
+  expect(field(p => { p.slots.intro[0].arm = 'T9'; })).toBe('artifacts.placement.slots.intro[0].arm');
+  expect(field(p => { p.slots.overview[2].at = 1.2; })).toBe('artifacts.placement.slots.overview[2].at');
+  expect(field(p => { p.slots.overview[2].order = 0.5; })).toBe('artifacts.placement.slots.overview[2].order');
+  expect(field(p => { p.slots.overview[3].order = p.slots.overview[0].order; })).toBe('artifacts.placement.slots.overview[3].order');
+  expect(field(p => { delete p.slots.intro; })).toBe('artifacts.placement.slots.intro');
+  expect(field(p => { p.sizes.overview = 0; })).toBe('artifacts.placement.sizes.overview');
+  expect(field(p => { p.maxPerArm = 3; })).toBe('artifacts.placement.maxPerArm');
+  expect(field(p => { p.tether.length = -0.1; })).toBe('artifacts.placement.tether.length');
+  expect(field(p => { p.tether.width = 0; })).toBe('artifacts.placement.tether.width');
+  expect(field(p => { p.tether.sag = 2; })).toBe('artifacts.placement.tether.sag');
+  expect(field(p => { p.tether.color = 'cyanish'; })).toBe('artifacts.placement.tether.color');
+  expect(field(p => { p.tether.cap = 3; })).toBe('artifacts.placement.tether.cap');
+  expect(field(p => { p.swing = { maxAngle: 0, settle: 1 }; })).toBe('artifacts.placement.swing.maxAngle');
+  expect(field(p => { p.swing = { maxAngle: 0.3, settle: 0 }; })).toBe('artifacts.placement.swing.settle');
+  expect(field(p => { p.reveal = { start: -1, span: 1, step: 0.1 }; })).toBe('artifacts.placement.reveal.start');
+  expect(field(p => { p.reveal = { start: 0, span: 0, step: 0.1 }; })).toBe('artifacts.placement.reveal.span');
+  expect(field(p => { p.reveal = { start: 0, span: 1, step: -0.1 }; })).toBe('artifacts.placement.reveal.step');
+});
+
+test('a third pendant on one arm is refused', () => {
+  const crowded = withPendants(p => {
+    const arm = p.slots.overview[0].arm;
+    p.slots.overview.push({ arm, at: 0.3, order: 40 }, { arm, at: 0.2, order: 41 });
+  });
+  expect(refusal(crowded).field).toMatch(/^artifacts\.placement\.slots\.overview\[\d+\]\.arm$/);
+});
+
+test('a swing and a reveal in range, a tether of length 0 and a slot table with no slots validate', () => {
+  expect(() => validateBundle(withPendants(p => { p.swing = { maxAngle: (18 * Math.PI) / 180, settle: 0.8 }; p.reveal = { start: 0.2, span: 0.9, step: 0.1 }; }))).not.toThrow();
+  expect(() => validateBundle(withPendants(p => { p.tether.length = 0; }))).not.toThrow();
+  expect(() => validateBundle(withPendants(p => { p.slots.intro = []; }))).not.toThrow();
 });

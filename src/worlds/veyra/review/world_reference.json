@@ -9,5 +9,21 @@
     488,
     495
   ],
-  "view": "-2.44,2.475,2.44,-2.475"
+  "view": "-2.44,2.475,2.44,-2.475",
+  "stages": {
+    "overview": {
+      "note": "Panel 3 (the overview), native 535 x 495, framed by the overview stage (5.35 x 4.95 units) at 3x: the plain page (no view box, so the HTML panel and the camera lean are in) at 1605 x 1485, a desktop layout; a capture is read at 300 px a unit and compared with the native panel at 100.",
+      "image": "public/veyra/ref/p3.png",
+      "origin": [
+        267.5,
+        247.5
+      ],
+      "pxPerUnit": 100,
+      "size": [
+        1605,
+        1485
+      ],
+      "scale": 3
+    }
+  }
 }

@@ -15,6 +15,7 @@ import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
 import { strokeAt } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
+import { toStage } from '../poses/authoring';
 import type { StagePose, SwimPoseSet } from '../poses/types';
 import { type EntranceFrame, entranceDrive, entranceFrame, entranceRests, revealParts } from '../sequences/entrance';
 import type { Sequences } from '../sequences/theatre';
@@ -184,6 +185,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
     orbit: orbs.map(() => new THREE.Vector3()),
     hold: { pull: new Float32Array(orbs.length), tip: orbs.map(() => new THREE.Vector3()), dir: orbs.map(() => new THREE.Vector3(0, -1, 0)) },
+    arms: [],
   }), [orbs, blowSheet]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
   const choreography = useMemo(() => new FocusChoreography(orbs.length), [orbs]);
@@ -565,7 +567,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       fixed = m.attendAt;
     }
 
-    faceAt.set(config.head.faceOrigin[0] + bodyX, config.head.faceOrigin[1] + bodyY, 0).project(state.camera);
+    // The gaze's centre is the face as drawn: the head's face origin scaled with the body (Veyra's overview is 1.1; every Nox stage is 1, where the sums are the same bits).
+    const [faceX0, faceY0] = toStage(config.head.faceOrigin, { x: bodyX, y: bodyY, scale: pose.body.scale });
+    faceAt.set(faceX0, faceY0, 0).project(state.camera);
 
     // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
     const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
@@ -669,6 +673,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // The bubbles: shown in the intro and the overview once the entrance has settled (never in it),
     // hidden beside the detail panel. Their orbits ease to still while one is hovered, held or in
     // focus, and stand still with motion off.
+    // The live arms, for a placement that hangs its artifacts from them (read again only when the rig is new).
+    if (bubbleState.arms[0] !== rig.arms[0].chain) bubbleState.arms = rig.arms.map(({ chain }) => chain);
     bubbleState.show = !silhouette && !solo && !hideArtifacts && bubblesExist(stage);
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = instance.hover.bubble || selected >= 0;

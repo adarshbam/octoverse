@@ -1,5 +1,5 @@
 import { APPEARS, PLACEMENTS, SELECTS } from '../artifacts/strategies';
-import { ARM_IDS, type ArtifactConfig, type CharacterConfig, SKIN_MODES, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
+import { ARM_IDS, type ArtifactConfig, CHOOSING_STAGES, type CharacterConfig, type PendantPlacement, SKIN_MODES, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
 import { clampCharacterConfig } from '../config/validate';
 import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
@@ -122,6 +122,51 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
 }
 
 /**
+ * A pendant placement's slots, sizes, tether and optional swing and reveal are what the engine reads
+ * each frame, so each is checked by name: a slot on an arm the character lacks, a ninth number, a
+ * colour three would draw black, or a swing that never settles must not surface as a bad frame.
+ */
+function checkPendants(placement: PendantPlacement) {
+  const at = 'artifacts.placement';
+  if (placement.maxPerArm !== 2) throw new BundleError(`${at}.maxPerArm`, `${String(placement.maxPerArm)} is not 2 (an arm carries at most two pendants)`);
+  for (const stage of CHOOSING_STAGES) {
+    const slots: unknown = placement.slots?.[stage];
+    if (!Array.isArray(slots)) throw new BundleError(`${at}.slots.${stage}`, 'is missing (the slots a pendant can hang from in this stage, as a list)');
+    const onArm = new Map<string, number>();
+    const orders = new Set<number>();
+    slots.forEach((slot: { arm?: unknown; at?: unknown; order?: unknown }, i) => {
+      const field = `${at}.slots.${stage}[${i}]`;
+      if (!record(slot)) throw new BundleError(field, 'is not a slot ({ arm, at, order })');
+      if (!ARM_IDS.includes(slot.arm as never)) throw new BundleError(`${field}.arm`, `"${String(slot.arm)}" is not one of the arms ${ARM_IDS.join(', ')}`);
+      if (!(finite(slot.at) && slot.at >= 0 && slot.at <= 1)) throw new BundleError(`${field}.at`, `${String(slot.at)} is not an arc fraction from 0 (the root) to 1 (the tip)`);
+      if (!(finite(slot.order) && Number.isInteger(slot.order) && slot.order >= 0)) throw new BundleError(`${field}.order`, `${String(slot.order)} is not a whole number from 0 (the technology's rank for the slot)`);
+      if (orders.has(slot.order)) throw new BundleError(`${field}.order`, `${slot.order} is the order of another slot in this stage (each technology has one place)`);
+      orders.add(slot.order);
+      const taken = (onArm.get(slot.arm as string) ?? 0) + 1;
+      onArm.set(slot.arm as string, taken);
+      if (taken > placement.maxPerArm) throw new BundleError(`${field}.arm`, `${String(slot.arm)} carries more than ${placement.maxPerArm} pendants in the ${stage} (never more than two to an arm)`);
+    });
+    if (!(finite(placement.sizes?.[stage]) && placement.sizes[stage] > 0)) throw new BundleError(`${at}.sizes.${stage}`, `${String(placement.sizes?.[stage])} is not above 0 (the orb's radius)`);
+  }
+  const { tether } = placement;
+  if (!record(tether)) throw new BundleError(`${at}.tether`, 'is missing (the thread each pendant hangs on)');
+  if (!(finite(tether.length) && tether.length >= 0)) throw new BundleError(`${at}.tether.length`, `${String(tether.length)} is not 0 or more (0 is a cap only)`);
+  if (!(finite(tether.width) && tether.width > 0)) throw new BundleError(`${at}.tether.width`, `${String(tether.width)} is not above 0`);
+  if (!(finite(tether.sag) && tether.sag >= 0 && tether.sag <= 1)) throw new BundleError(`${at}.tether.sag`, `${String(tether.sag)} is not from 0 to 1 (a fraction of the thread's length)`);
+  for (const key of ['color', 'cap'] as const) if (!isColour(tether[key])) throw new BundleError(`${at}.tether.${key}`, `"${String(tether[key])}" is not a colour`);
+  const { swing, reveal } = placement;
+  if (swing !== undefined) {
+    if (!(finite(swing?.maxAngle) && swing.maxAngle > 0 && swing.maxAngle <= Math.PI / 2)) throw new BundleError(`${at}.swing.maxAngle`, `${String(swing?.maxAngle)} is not above 0 and at most a quarter turn (radians)`);
+    if (!(finite(swing.settle) && swing.settle > 0)) throw new BundleError(`${at}.swing.settle`, `${String(swing.settle)} is not above 0 (seconds)`);
+  }
+  if (reveal !== undefined) {
+    if (!(finite(reveal?.start) && reveal.start >= 0)) throw new BundleError(`${at}.reveal.start`, `${String(reveal?.start)} is not 0 or more (seconds)`);
+    if (!(finite(reveal.span) && reveal.span > 0)) throw new BundleError(`${at}.reveal.span`, `${String(reveal.span)} is not above 0 (seconds)`);
+    if (!(finite(reveal.step) && reveal.step >= 0)) throw new BundleError(`${at}.reveal.step`, `${String(reveal.step)} is not 0 or more (seconds)`);
+  }
+}
+
+/**
  * Every part of the bundle the checks below (and the host) read is there, and of the form it is read
  * in, or a BundleError names the field: a missing part must not surface later as a TypeError.
  */
@@ -239,6 +284,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
 
   const { placement, appear, select, choosableIn } = bundle.artifacts;
   if (!Object.hasOwn(PLACEMENTS, placement.kind)) throw new BundleError('artifacts.placement.kind', `"${placement.kind}" is not a placement the engine has (${Object.keys(PLACEMENTS).join(', ')})`);
+  if (placement.kind === 'pendant') checkPendants(placement);
   if (!Object.hasOwn(APPEARS, appear.kind)) throw new BundleError('artifacts.appear.kind', `"${appear.kind}" is not an appear the engine has (${Object.keys(APPEARS).join(', ')})`);
   if (!Object.hasOwn(SELECTS, select.kind)) throw new BundleError('artifacts.select.kind', `"${select.kind}" is not a select the engine has (${Object.keys(SELECTS).join(', ')})`);
   for (const stage of choosableIn) if (!isChoosingStage(stage)) throw new BundleError('artifacts.choosableIn', `"${stage}" is not a stage a technology can be chosen in`);

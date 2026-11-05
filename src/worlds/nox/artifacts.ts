@@ -1,4 +1,4 @@
-import type { ArtifactConfig } from '../../engine/config/types';
+import type { ArtifactConfig, OrbitPlacement } from '../../engine/config/types';
 
 // Nox's artifacts as data for the engine's strategy tables (artifacts/strategies.ts): his
 // technology bubbles orbit on three shells, are blown from his mouth, and are pulled to an arm's
@@ -12,7 +12,7 @@ import type { ArtifactConfig } from '../../engine/config/types';
  * bubbles of one shell clear of the next; all three circle at one pace, so a bubble keeps its
  * distance from the rest.
  */
-export const NOX_ARTIFACTS: ArtifactConfig = {
+export const NOX_ARTIFACTS: ArtifactConfig & { placement: OrbitPlacement } = {
   placement: {
     kind: 'orbit',
     shells: [

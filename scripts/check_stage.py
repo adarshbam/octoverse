@@ -24,7 +24,15 @@ mask is used exactly as captured, because the view box registers it to the paint
 Registered, panel 2 reads (118, 26, 89), saturation 0.867, brightness 0.538. The spec's (119, 23, 79) came
 from a mask misregistered by (16, -14) px; the targets are kept as approved and panel 2 passes them.
 With --stage intro it also compares 7 x 7 px patches at the named world points with panel 2 by
-CIE76 delta E."""
+CIE76 delta E.
+--world --stage overview (a world whose world_reference.json has `stages.overview` and whose world_samples.json
+has `p3`; Veyra): the capture comes from `WORLD=<id> node scripts/world-capture.mjs overview <out.png>`, the plain
+page framed on panel 3 at `scale` times the native panel. Colour: the median (or the brightest quarter's median,
+stat top25) of world-unit boxes in the native panel (colour truth) and in the capture brought down to the panel's
+size, by CIE76 delta E against `p3.deltaE` (a sample with `held: false` is printed with its `reason`, not counted). Composition, measured the same way on the panel and on the capture: the
+dome's rim (the greenest pixel along short profiles across it) and the eyes (the centroid of the dark pixels in each
+eye's box), within `composition.tolerance` world units; and the silhouette's box from <capture>-mask.png against
+`composition.box`, measured by hand on the panel. Nox has no `stages` entry and never reaches this branch."""
 import json, os, sys, pathlib
 import numpy as np
 from PIL import Image
@@ -109,7 +117,104 @@ def world_patch(img, ref, wx, wy, r=WORLD_PATCH):
     cx, cy = round(ox + ref['pxPerUnit'] * wx), round(oy - ref['pxPerUnit'] * wy)
     return np.asarray(img.crop((cx - r, cy - r, cx + r + 1, cy + r + 1)), dtype=float).reshape(-1, 3).mean(0)
 
+def box_pixels(img, unit, box):
+    """The pixels of a world box [x0, y0, x1, y1] in an image framing the panel centred at `unit` px a unit."""
+    h, w = img.shape[:2]
+    x0, y0, x1, y1 = box
+    return img[int(round(h / 2 - y0 * unit)):int(round(h / 2 - y1 * unit)), int(round(w / 2 + x0 * unit)):int(round(w / 2 + x1 * unit))].reshape(-1, 3).astype(float)
+
+def box_stat(img, unit, sample):
+    p = box_pixels(img, unit, sample['box'])
+    if sample.get('stat') == 'top25':
+        lum = p @ [0.2126, 0.7152, 0.0722]
+        p = p[lum >= np.percentile(lum, 75)]
+    return np.median(p, 0)
+
+def rim_at(img, unit, profile):
+    """The world position of the greenest pixel along a short profile: ['x', y, x0, x1] across a side, ['y', x, y0, y1] across the top or bottom."""
+    h, w = img.shape[:2]
+    axis, at, a, b = profile
+    g = img[..., 1].astype(float)
+    if axis == 'y':
+        c = int(round(w / 2 + at * unit))
+        rows = np.arange(int(round(h / 2 - b * unit)), int(round(h / 2 - a * unit)) + 1)
+        line = g[rows, c - 1:c + 2].mean(1)
+        return float((h / 2 - rows[int(line.argmax())]) / unit)
+    r = int(round(h / 2 - at * unit))
+    cols = np.arange(int(round(w / 2 + a * unit)), int(round(w / 2 + b * unit)) + 1)
+    line = g[r - 1:r + 2, cols].mean(0)
+    return float((cols[int(line.argmax())] - w / 2) / unit)
+
+def dark_centroid(img, unit, box, below):
+    h, w = img.shape[:2]
+    x0, y0, x1, y1 = box
+    r0, r1 = int(round(h / 2 - y0 * unit)), int(round(h / 2 - y1 * unit))
+    c0, c1 = int(round(w / 2 + x0 * unit)), int(round(w / 2 + x1 * unit))
+    ys, xs = np.nonzero(img[r0:r1, c0:c1].max(2) < below)
+    if len(xs) == 0: return None
+    return [float((xs.mean() + c0 - w / 2) / unit), float((h / 2 - (ys.mean() + r0)) / unit)]
+
+def overview():
+    """Panel 3 (the overview) against a capture of the plain page framed on it (see the module's notes)."""
+    ref = world_reference().get('stages', {}).get('overview')
+    spec = json.loads(samples_path('world_samples.json').read_text()).get('p3')
+    if not ref or not spec:
+        print(f'world {world_id()!r} has no overview reference (world_reference.json stages.overview) or no p3 samples (world_samples.json)')
+        sys.exit(2)
+    render_path = sys.argv[1]
+    panel = np.asarray(Image.open(ref['image']).convert('RGB'))
+    ren_img = Image.open(render_path).convert('RGB')
+    if list(ren_img.size) != list(ref['size']):
+        print(f"size mismatch: capture {ren_img.size}, expected {tuple(ref['size'])} (world-capture.mjs overview)")
+        sys.exit(1)
+    k = ref['scale']
+    full = np.asarray(ren_img)
+    small = np.asarray(ren_img.resize((ren_img.width // k, ren_img.height // k), Image.BOX))
+    unit, full_unit = ref['pxPerUnit'], ref['pxPerUnit'] * k
+    hx = lambda c: '#%02x%02x%02x' % tuple(int(round(v)) for v in c)
+    misses = 0
+    for name, sample in spec['samples'].items():
+        a, b = box_stat(panel, unit, sample), box_stat(small, unit, sample)
+        de = float(np.linalg.norm(srgb_to_lab(a) - srgb_to_lab(b)))
+        limit = sample.get('deltaE', spec['deltaE'])
+        ok = de <= limit
+        if sample.get('held') is False:
+            print(f"{'ok ' if ok else 'note'} colour {name:20} panel 3 {hx(a)} capture {hx(b)} deltaE {de:5.1f}  (not held: {sample['reason']})")
+            continue
+        misses += not ok
+        print(f"{'ok ' if ok else 'MISS'} colour {name:20} panel 3 {hx(a)} capture {hx(b)} deltaE {de:5.1f}  (max {limit})")
+    comp = spec['composition']
+    tol = comp['tolerance']
+    for name, profile in comp['rim'].items():
+        a, b = rim_at(panel, unit, profile), rim_at(full, full_unit, profile)
+        ok = abs(a - b) <= tol
+        misses += not ok
+        print(f"{'ok ' if ok else 'MISS'} rim    {name:20} panel 3 {a:6.3f} capture {b:6.3f}  (+-{tol})")
+    for name, box in comp['eyes'].items():
+        a, b = dark_centroid(panel, unit, box, comp['eyeDarkBelow']), dark_centroid(full, full_unit, box, comp['eyeDarkBelow'])
+        ok = a is not None and b is not None and max(abs(a[0] - b[0]), abs(a[1] - b[1])) <= tol
+        misses += not ok
+        fmt = lambda p: 'none' if p is None else f'({p[0]:.3f}, {p[1]:.3f})'
+        print(f"{'ok ' if ok else 'MISS'} eye    {name:20} panel 3 {fmt(a)} capture {fmt(b)}  (+-{tol})")
+    mask_path = pathlib.Path(render_path.replace('.png', '-mask.png'))
+    if not mask_path.exists():
+        print(f'MISS no silhouette mask at {mask_path}')
+        misses += 1
+    else:
+        mask = np.asarray(Image.open(mask_path).convert('L')) > 127
+        h, w = mask.shape
+        ys, xs = np.nonzero(mask)
+        got = [(xs.min() - w / 2) / full_unit, (h / 2 - ys.min()) / full_unit, (xs.max() - w / 2) / full_unit, (h / 2 - ys.max()) / full_unit]
+        want = comp['box']
+        ok = all(abs(g - t) <= comp['boxTolerance'] for g, t in zip(got, want))
+        misses += not ok
+        print(f"{'ok ' if ok else 'MISS'} silhouette box     panel 3 {want} capture {[round(float(v), 2) for v in got]}  (+-{comp['boxTolerance']})")
+    print('PASS' if misses == 0 else f'FAIL ({misses} misses)')
+    sys.exit(1 if misses else 0)
+
 def world():
+    if option('--stage') == 'overview':
+        overview()
     spec = json.loads(samples_path('world_samples.json').read_text())
     ref = world_reference()
     target = spec['target']

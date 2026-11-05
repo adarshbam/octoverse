@@ -10,11 +10,13 @@ import type { ArmSpec, CharacterConfig } from '../../engine/config/types';
 /**
  * How the stage lights her: a cool white key from above left, a soft cream glow from below (the
  * cups and the face glow, not Nox's red underglow), teal bounce from the water, and a teal-green
- * haze that blends her far parts into the water.
+ * haze that blends her far parts into the water. The cream underglow is 0.25 (was 0.4, Task 15):
+ * the rear roots' move cost the intro's silhouette saturation 0.002 against a floor it sat 0.001
+ * above; less cream fill restores it, and moves saturation and brightness toward P2's.
  */
 export const VEYRA_LIGHTING: StageLighting = {
   key: { direction: [-0.3, 0.95, 0.1], color: '#e6fff8', intensity: 0.85, wrap: 0.2 },
-  underglow: { color: '#f2eaa0', intensity: 0.4, wrap: 0.6 },
+  underglow: { color: '#f2eaa0', intensity: 0.25, wrap: 0.6 },
   ambient: { sky: '#1a9ab8', ground: '#0e5a58', intensity: 0.25 },
   haze: { color: '#06303c', near: 0.15, far: 0.9, strength: 0.4 },
 };
@@ -25,7 +27,9 @@ export const VEYRA_LIGHTING: StageLighting = {
 // little to the viewer's right, so its left arms (T1, T2) read thick, cone-like from the body, and
 // its right arms (T6, T7) slimmer. Spec 7.1 asks for roots slightly slimmer than Nox's (0.165 to
 // 0.18): the painting wins where they differ (T1, T2, T5 are thicker).
-const rear = (id: 'T1' | 'T8', rootRadius: number): ArmSpec => ({ id, depth: 'rear', rootRadius, z: [-0.3, -0.62] });
+// The rear pair root at z 0, inside the neck (Nox's -0.3, Task 15): with T1's thick root, at -0.3 the
+// two root caps stood out behind the mantle and met in a hard crease seen from the back (yaw 180).
+const rear = (id: 'T1' | 'T8', rootRadius: number): ArmSpec => ({ id, depth: 'rear', rootRadius, z: [0, -0.62] });
 const middle = (id: 'T2' | 'T7', rootRadius: number): ArmSpec => ({ id, depth: 'middle', rootRadius, z: [0.05, -0.32] });
 const side = (id: 'T3' | 'T6', rootRadius: number): ArmSpec => ({ id, depth: 'front', rootRadius, z: [0.0, 0.3] });
 // The two arms that hang down the centre (P2): their cups show along the outer edge of their curls.
@@ -86,10 +90,11 @@ export const VEYRA: CharacterConfig = {
     suckerHot: '#fff4c4',
     suckerHollow: '#8cc8a0',
     suckerShadow: '#0a3a38',
-    domeTint: '#1a9eb4',
-    domeRim: '#5af0ff',
-    domeRimTop: '#a8fcff',
-    domeSheen: '#8af4ff',
+    // The overview's dome (P3): dark teal glass face-on, an aqua-green rim, whiter over the crown.
+    domeTint: '#033a40',
+    domeRim: '#2affd6',
+    domeRimTop: '#40ffd8',
+    domeSheen: '#5af0dc',
     orbFocus: '#3fe0c5',
     effect: { halo: 'rgba(63,224,197,0.5)', stroke: '#3fe0c5', core: '#d8fff4' },
     // The tints the shaders compile in, as linear light: a white-cyan rim line, the dome's reveal
@@ -192,8 +197,12 @@ export const VEYRA: CharacterConfig = {
     size: 0.34, sizePower: 0.7, spacing: 1.85, elongation: 1.18, tilt: 12, curlTilt: 64, twist: 18, rowAngle: 36, rowRadius: 0.08, shadow: 0.3,
     style: { rimWidth: 0.22, scallop: 0.6, edge: '#ece4a4', rim: '#fcf4c4', hollow: '#5e8a6c', glow: 1.5 },
   },
-  // The overview's wide translucent capsule (P3): a start from the same shape as Nox's, wider than the head.
-  dome: { center: [0.05, 0.3], halfWidth: 1.5, halfHeight: 0.65, depth: 0.6, power: 3.2, mantleTop: -0.32 },
+  // The overview's wide translucent capsule, traced from P3 (Task 12): its rim, measured as the
+  // greenest pixel along profiles across it, fits a superellipse centred (0, 0.655), half-width 1.44,
+  // half-height 0.98, power 2.2 on the stage. Here in the head's own units, through the overview's
+  // body (x -0.34, y 0.225, scale 1.1: poses.ts): its bottom (y -0.5) is the eye line, so the face
+  // sits at the dome's bottom, and the mantle's top sinks to P3's dome seat (-0.32 here, -0.127 on the stage).
+  dome: { center: [0.309, 0.391], halfWidth: 1.309, halfHeight: 0.891, depth: 0.6, power: 2.2, mantleTop: -0.32 },
   // The head swell's effect: none until the vault dial (spec 7.6).
   headEffect: 'none',
   // Jelly glass on the mantle and the arms (spec 7.2), with fine bright sparkles over both and no

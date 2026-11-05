@@ -45,6 +45,13 @@ export function flattenForDepth(curve: readonly Point2[], arm: ArmSpec): Point2[
 /** A world-unit trace moved into the space the arms are authored in, under the stage's body placement. */
 export const toContent = (points: readonly Point2[], body: StagePose['body']) => points.map(([x, y]) => [(x - body.x) / body.scale, (y - body.y) / body.scale] as Point2);
 
+/**
+ * A point of the content space (the arms' and the head's own units) on the stage plane, under the
+ * body placement: the body plus `scale` times the point, as the float group draws it. `toContent`'s
+ * inverse; at scale 1 the sums are exactly the unscaled ones.
+ */
+export const toStage = (point: Point2, body: Pick<StagePose['body'], 'x' | 'y' | 'scale'>): Point2 => [body.x + body.scale * point[0], body.y + body.scale * point[1]];
+
 /** The length of the curve an arm is resampled into. */
 export const armLength = (curve: readonly Point2[]) => {
   const rest = restFromCurve(curve);

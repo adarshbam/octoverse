@@ -64,6 +64,20 @@ test('a jelly surface compiles the JELLY branch, its colours and shape read from
   expect(u.uJellyCorePos.value.toArray()).toEqual([gx + cx, gy + cy, gz + cz]);
 });
 
+test("opened into the dome, a jelly mantle's sunk top is capped after the jelly look too (its crown and rim do not undo the darkening); the arms are not", () => {
+  // The skin darkens the sunk top (`capped`, from uMorph) before the look is applied; jellyLook then
+  // mixes in its crown and rim, so the head's jelly call is followed by the same darkening (Task 12).
+  const { head, arm } = materials(withSurfaces(jelly(), jelly()));
+  const call = head.fragmentShader.indexOf('col = jellyLook(col, N, V, ndv, faceGlow, join);');
+  const recap = head.fragmentShader.indexOf('col = mix(col, col * 0.4, capped);', call);
+  expect(call).toBeGreaterThan(0);
+  expect(recap).toBeGreaterThan(call);
+  // Inside HEAD only: the arm program has no `capped` and still compiles the look.
+  const after = head.fragmentShader.slice(call, recap);
+  expect(after).toContain('#ifdef HEAD');
+  expect(arm.defines).toEqual({ ARM: '', JELLY: '' });
+});
+
 test('neither the jelly nor the sparkle code holds a colour of its own: no vec3 constant, no hex', () => {
   const source = materials(withSurfaces(jelly(80), jelly(40))).head.fragmentShader;
   const branches = { JELLY: branchOf(source, 'JELLY'), SPARKLE: branchOf(source, 'SPARKLE') };

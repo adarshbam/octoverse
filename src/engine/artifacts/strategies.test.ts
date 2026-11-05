@@ -2,15 +2,18 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { NOX_ARTIFACTS } from '../../worlds/nox/artifacts';
 import { NOX } from '../../worlds/nox/character';
+import { ARM_IDS } from '../config/types';
 import type { ArtifactConfig } from '../config/types';
 import { blowMouth } from '../sequences/bubbleBlow';
 import type { AppearSheet, SequenceId } from '../sequences/keys';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
-import { APPEARS, PLACEMENTS, SELECTS, choiceRemoved, choosableNow } from './strategies';
+import { pendantFixture } from './fixtures/pendant';
+import { layoutPendants } from './pendant';
+import { APPEARS, ORBIT_CAPACITY, PLACEMENTS, SELECTS, choiceRemoved, choosableNow, placementCapacity, placementDriver } from './strategies';
 import { HOLD_BEATS } from './suctionHold';
 
 test("each table holds Nox's one entry, and the id unions follow the tables", () => {
-  expect(Object.keys(PLACEMENTS)).toEqual(['orbit']);
+  expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'pendant']);
   expect(Object.keys(APPEARS)).toEqual(['blow']);
   expect(Object.keys(SELECTS)).toEqual(['suctionHold']);
   expect(NOX_ARTIFACTS.placement.kind in PLACEMENTS).toBe(true);
@@ -20,12 +23,6 @@ test("each table holds Nox's one entry, and the id unions follow the tables", ()
 
 test('a kind that is not in a table is a type error (they arrive in F01)', () => {
   const nox = NOX_ARTIFACTS;
-  const pendant: ArtifactConfig = {
-    ...nox,
-    // Every field the orbit placement needs, so the kind alone is the error.
-    // @ts-expect-error placement.kind 'pendant' is built in F01 with Veyra
-    placement: { ...nox.placement, kind: 'pendant' },
-  };
   const bloom: ArtifactConfig = {
     ...nox,
     // @ts-expect-error appear.kind 'bloom' is built in F01 with Veyra
@@ -36,7 +33,12 @@ test('a kind that is not in a table is a type error (they arrive in F01)', () =>
     // @ts-expect-error select.kind 'armLift' is built in F01 with Veyra
     select: { kind: 'armLift' },
   };
-  expect([pendant.placement.kind, bloom.appear.kind, armLift.select.kind]).toEqual(['pendant', 'bloom', 'armLift']);
+  const satellite: ArtifactConfig = {
+    ...nox,
+    // @ts-expect-error placement.kind 'satellite' is Aether's, built with it
+    placement: { kind: 'satellite' },
+  };
+  expect([bloom.appear.kind, armLift.select.kind, satellite.placement.kind]).toEqual(['bloom', 'armLift', 'satellite']);
 });
 
 test('the appear table says which sheet each kind plays, and the sequence ids follow it', () => {
@@ -159,4 +161,96 @@ test('a stage is choosable only where the world lists it; the buttons and the tr
   // A world that lists none offers none, in either stage.
   expect(choiceRemoved('intro', { choosableIn: [] })).toBe(true);
   expect(choiceRemoved('overview', { choosableIn: [] })).toBe(true);
+});
+
+// --- The pendant placement (Task 13) -----------------------------------------------------------
+
+const PENDANT = pendantFixture();
+
+/** Stand-in arms: arm k is a straight line from (k, 0) down to (k, -2), moved sideways by `move` of the clock, so a pendant's attach point is (k, -2 u). */
+const clock = { t: 0 };
+const armsAt = (move: (t: number) => number): { pointAt(u: number, out: { x: number; y: number; z: number }): void }[] =>
+  ARM_IDS.map((_, k) => ({ pointAt: (u, out) => { out.x = k + move(clock.t); out.y = -2 * u; out.z = 0.1 * k; } }));
+
+test("the pendant placement's capacity is its slots, the orbit's is 15, and a world's model takes it", () => {
+  expect(placementCapacity(PENDANT)).toBe(Math.min(PENDANT.slots.intro.length, PENDANT.slots.overview.length));
+  // Unequal stages: the smaller one sets it, so a technology past it is in the tray everywhere.
+  expect(placementCapacity({ ...PENDANT, slots: { ...PENDANT.slots, intro: PENDANT.slots.intro.slice(0, 9) } })).toBe(9);
+  expect(placementCapacity(PENDANT)).toBeGreaterThanOrEqual(12);
+  expect(placementCapacity(NOX_ARTIFACTS.placement)).toBe(15);
+  expect(PLACEMENTS.orbit.capacity()).toBe(ORBIT_CAPACITY);
+});
+
+test('a pendant driver sizes each artifact by its stage, and has no place for one the stage has no slot for', () => {
+  const count = PENDANT.slots.overview.length;
+  const driver = placementDriver(PENDANT, count);
+  expect(driver.size('overview', 0)).toBe(PENDANT.sizes.overview);
+  expect(driver.size('intro', 0)).toBe(PENDANT.sizes.intro);
+  expect(driver.size('overview', count)).toBeNull();
+  expect(driver.pendants).toHaveLength(count);
+  // A stage with fewer slots than there are artifacts leaves the later ones without a place there.
+  const fewer = placementDriver({ ...PENDANT, slots: { ...PENDANT.slots, intro: PENDANT.slots.intro.slice(0, 5) } }, count);
+  expect(fewer.size('intro', 4)).toBe(PENDANT.sizes.intro);
+  expect(fewer.size('intro', 5)).toBeNull();
+  expect(fewer.size('overview', 5)).toBe(PENDANT.sizes.overview);
+});
+
+test('a pendant driver hangs each orb below its arm and swings it as the arm moves, and settles', () => {
+  const driver = placementDriver(PENDANT, 5);
+  const out = new THREE.Vector3();
+  clock.t = 0;
+  const arms = armsAt(t => (t < 1 ? Math.sin(t * Math.PI) * 0.5 : 0));
+  const frame = { stage: 'overview' as const, swell: 0, dt: 1 / 60, hot: false, still: false };
+  let widest = 0;
+  for (let k = 0; k < 60 * 4; k++) {
+    clock.t = k / 60;
+    driver.step(frame, arms);
+    if (k < 60) widest = Math.max(widest, Math.abs(driver.pendants![0].angle));
+  }
+  // It swung while the arm moved (within the 25 degrees), and is at the idle sway after.
+  expect(widest).toBeGreaterThan(2 * (Math.PI / 180));
+  expect(widest).toBeLessThanOrEqual(25 * (Math.PI / 180));
+  expect(Math.abs(driver.pendants![0].angle)).toBeLessThan(4 * (Math.PI / 180));
+  // Its orb hangs below its slot's attach point by the thread and the orb's radius, and is the point it is asked for.
+  const slot = layoutPendants(5, PENDANT, 'overview')[0]!.slot;
+  const live = driver.pendants![0];
+  expect(driver.point('overview', 0, 0, out).toArray()).toEqual(live.orbCentre);
+  expect(live.orbCentre[1]).toBeCloseTo(live.attach[1] - Math.cos(live.angle) * (PENDANT.tether.length + PENDANT.sizes.overview), 9);
+  expect(live.attach[1]).toBeCloseTo(-2 * slot.at, 9);
+});
+
+test('with motion off the pendants hang straight down, and the head swell does not move them', () => {
+  const driver = placementDriver(PENDANT, 3);
+  const arms = armsAt(t => Math.sin(t * 9));
+  for (let k = 0; k < 90; k++) {
+    clock.t = k / 60;
+    driver.step({ stage: 'overview', swell: k % 2, dt: 1 / 60, hot: false, still: true }, arms);
+  }
+  for (const live of driver.pendants!) expect(live.angle).toBe(0);
+  const a = driver.point('overview', 1, 0, new THREE.Vector3()).toArray();
+  expect(driver.point('overview', 1, 1, new THREE.Vector3()).toArray()).toEqual(a);
+});
+
+test('a pendant whose new stage puts it on the same arm slides there, and one on another arm jumps with no kick', () => {
+  const driver = placementDriver(PENDANT, 2);
+  const arms = armsAt(() => 0);
+  const base = { swell: 0, dt: 1 / 60, hot: false, still: false };
+  for (let k = 0; k < 10; k++) driver.step({ stage: 'overview', ...base }, arms);
+  const first = driver.pendants![0].at;
+  const overview = layoutPendants(2, PENDANT, 'overview')[0]!.slot;
+  expect(first).toBe(overview.at);
+  driver.step({ stage: 'intro', ...base }, arms);
+  const intro = layoutPendants(2, PENDANT, 'intro')[0]!.slot;
+  if (intro.arm === overview.arm && intro.at !== overview.at) {
+    // Sliding: it has moved toward the intro's slot, not all the way.
+    expect(Math.abs(driver.pendants![0].at - intro.at)).toBeLessThan(Math.abs(first - intro.at));
+    expect(driver.pendants![0].at).not.toBe(intro.at);
+  } else {
+    expect(driver.pendants![0].at).toBe(intro.at);
+  }
+  expect(Math.abs(driver.pendants![0].angle)).toBeLessThan(5 * (Math.PI / 180));
+});
+
+test('a pendant placement gives the suction hold the body middle to swing about, not a ring centre', () => {
+  expect(SELECTS.suctionHold.centre(PENDANT)).toEqual({ x: 0, y: 0 });
 });
