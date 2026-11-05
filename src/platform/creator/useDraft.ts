@@ -3,7 +3,7 @@ import { INITIAL_VIEW, createDraftController, type DraftController, type DraftVi
 import type { DraftStore } from './storage';
 import type { CreatorDraft } from './types';
 
-export { AUTOSAVE_MS, DISCARD_ERROR, announcement, createAutosaver, type Autosaver, type SaveStatus } from './draftController';
+export { AUTOSAVE_MS, DISCARD_ERROR, announcement, createAutosaver, statusLabel, type Autosaver, type SaveStatus } from './draftController';
 
 export interface UseDraft extends DraftView {
   /** Changes the draft with a pure function (the helpers of draftEdits.ts); it autosaves 800 ms after the last change. */
@@ -13,6 +13,10 @@ export interface UseDraft extends DraftView {
    * the draft stays and `discardError` says so (the caller retries). The caller asks for confirmation first.
    */
   discard(): Promise<{ cleared: boolean }>;
+  /** Keeps an image in this browser (the media store) and returns its id; rejects with a MediaError for a file it must refuse. */
+  putMedia(blob: Blob): Promise<string>;
+  /** The stored image with this id, or null. */
+  getMedia(id: string): Promise<Blob | null>;
 }
 
 /**
@@ -46,5 +50,7 @@ export function useDraft(createStore?: () => Promise<DraftStore>): UseDraft {
 
   const update = useCallback((fn: (draft: CreatorDraft) => CreatorDraft) => controller.current?.update(fn), []);
   const discard = useCallback(() => controller.current?.discard() ?? Promise.resolve({ cleared: false }), []);
-  return { ...view, update, discard };
+  const putMedia = useCallback((blob: Blob) => controller.current?.putMedia(blob) ?? Promise.reject(new Error('The draft is not open.')), []);
+  const getMedia = useCallback((id: string) => controller.current?.getMedia(id) ?? Promise.resolve(null), []);
+  return { ...view, update, discard, putMedia, getMedia };
 }

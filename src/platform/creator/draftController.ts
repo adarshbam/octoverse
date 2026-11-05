@@ -1,6 +1,6 @@
 import { migrateDraft } from './draft';
 import { SAMPLE_DRAFT } from './sampleDraft';
-import { createDraftStore, type DraftStore } from './storage';
+import { MediaError, createDraftStore, type DraftStore } from './storage';
 import type { CreatorDraft } from './types';
 
 // The logic of useDraft without React (so it is tested without a DOM): the debounce, the loading of the stored draft, edits made
@@ -99,9 +99,22 @@ export interface DraftView {
 
 export const INITIAL_VIEW: DraftView = { draft: SAMPLE_DRAFT, status: 'saved', ready: false, discardError: null, discarding: false };
 
+/**
+ * The visible status line (spec 7.13): what the creator says about the draft. Unlike `announcement` it follows "Saving…" while a
+ * change waits to be saved; the screen reader's version does not (it would speak on every keystroke's save).
+ */
+export function statusLabel(view: Pick<DraftView, 'ready' | 'status' | 'discardError' | 'discarding'>): string {
+  if (!view.ready) return 'Loading…';
+  if (view.discarding) return 'Discarding…';
+  if (view.status === 'saving') return 'Saving…';
+  if (view.status === 'memory') return "Can't save in this browser";
+  return 'Saved in this browser';
+}
+
 /** The words a screen reader hears: they change only between loading, saved, cannot-save and a failed discard (saving reads as saved). */
-export function announcement(view: Pick<DraftView, 'ready' | 'status' | 'discardError'>): string {
+export function announcement(view: Pick<DraftView, 'ready' | 'status' | 'discardError'> & { discarding?: boolean }): string {
   if (!view.ready) return 'Loading your draft';
+  if (view.discarding) return 'Discarding your draft';
   if (view.discardError !== null) return view.discardError;
   if (view.status === 'memory') return 'Cannot save in this browser; your changes stay in this tab only';
   return 'Saved in this browser';
@@ -116,6 +129,10 @@ export interface DraftController {
   update(fn: (draft: CreatorDraft) => CreatorDraft): void;
   /** Waits for the store, then clears it; the draft goes back to the sample only when `cleared` is true. */
   discard(): Promise<{ cleared: boolean }>;
+  /** Keeps an image in the browser's media store and returns its id; rejects with the store's MediaError for an image it must refuse (no store yet: rejects too). */
+  putMedia(blob: Blob): Promise<string>;
+  /** The blob of a stored image, or null. */
+  getMedia(id: string): Promise<Blob | null>;
   /** Saves a pending change now. */
   flush(): void;
   /** Stops: a pending change is saved, and nothing is emitted again. */
@@ -180,7 +197,9 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
     },
 
     async discard() {
-      if (disposed || store === null) return { cleared: false };
+      // A second call while one is under way (a double click, a retry pressed too soon) is refused: it must not end the first one's
+      // "discarding" state or ask the store twice.
+      if (disposed || store === null || discarding) return { cleared: false };
       discarding = true;
       set({ discarding: true });
       try {
@@ -206,6 +225,20 @@ export function createDraftController(options: { createStore?: () => Promise<Dra
       } finally {
         discarding = false;
         set({ discarding: false });
+      }
+    },
+
+    async putMedia(blob) {
+      if (disposed || store === null) throw new MediaError('unreadable', 'The draft is not open.');
+      return (await store).putMedia(blob);
+    },
+
+    async getMedia(id) {
+      if (disposed || store === null) return null;
+      try {
+        return await (await store).getMedia(id);
+      } catch {
+        return null;
       }
     },
 

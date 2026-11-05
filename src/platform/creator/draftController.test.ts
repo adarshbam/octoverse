@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DISCARD_ERROR, INITIAL_VIEW, announcement, createDraftController, resolveLoaded } from './draftController';
+import { DISCARD_ERROR, INITIAL_VIEW, announcement, createDraftController, resolveLoaded, statusLabel } from './draftController';
 import { withOctopus } from './draftEdits';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { DraftStore } from './storage';
@@ -261,6 +261,37 @@ describe('discard', () => {
     expect(c.getView().status).toBe('memory');
   });
 
+  it('a second discard while one is under way does nothing: not cleared, the store is asked once, the first still finishes it', async () => {
+    let release: (r: { cleared: boolean }) => void = () => undefined;
+    const fake = fakeStore({ stored: STORED, discard: () => new Promise(resolve => (release = resolve)) });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    const first = c.discard();
+    await settle();
+    expect(await c.discard()).toEqual({ cleared: false });
+    // The refused call must not end the first one's "discarding" state or touch the view.
+    expect(c.getView().discarding).toBe(true);
+    expect(fake.discards()).toBe(1);
+    release({ cleared: true });
+    expect(await first).toEqual({ cleared: true });
+    expect(c.getView()).toMatchObject({ discarding: false, discardError: null });
+    expect(c.getView().draft).toBe(SAMPLE_DRAFT);
+    expect(fake.discards()).toBe(1);
+  });
+
+  it('a discard after a failed one is allowed (Retry)', async () => {
+    let tries = 0;
+    const fake = fakeStore({ stored: STORED, discard: async () => ({ cleared: ++tries > 1 }) });
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    expect(await c.discard()).toEqual({ cleared: false });
+    expect(c.getView().discardError).toBe(DISCARD_ERROR);
+    expect(await c.discard()).toEqual({ cleared: true });
+    expect(c.getView().discardError).toBeNull();
+  });
+
   it('after dispose a discard does nothing', async () => {
     const fake = fakeStore();
     const c = createDraftController({ createStore: async () => fake.store });
@@ -354,5 +385,59 @@ describe('what a screen reader hears', () => {
     expect(announcement({ ...base, status: 'memory' })).toMatch(/Cannot save/);
     expect(announcement({ ...base, discardError: DISCARD_ERROR })).toBe(DISCARD_ERROR);
     expect(announcement({ ready: false, status: 'memory', discardError: DISCARD_ERROR })).toBe('Loading your draft');
+  });
+});
+
+describe('the visible status line', () => {
+  const base = { ready: true, status: 'saved' as const, discardError: null, discarding: false };
+  it('says Loading, Saving, Saved in this browser, Cannot save in this browser, Discarding', () => {
+    expect(statusLabel({ ...base, ready: false })).toBe('Loading…');
+    expect(statusLabel(base)).toBe('Saved in this browser');
+    expect(statusLabel({ ...base, status: 'saving' })).toBe('Saving…');
+    expect(statusLabel({ ...base, status: 'memory' })).toBe("Can't save in this browser");
+    expect(statusLabel({ ...base, discarding: true })).toBe('Discarding…');
+    expect(statusLabel({ ...base, ready: false, discarding: true })).toBe('Loading…');
+  });
+
+  it('a failed discard leaves the status of the store (the message is its own line)', () => {
+    expect(statusLabel({ ...base, discardError: DISCARD_ERROR })).toBe('Saved in this browser');
+  });
+
+  it('the announcement says a discard is under way, and still reads saving as saved', () => {
+    expect(announcement({ ...base, discarding: true })).toBe('Discarding your draft');
+    expect(announcement({ ...base, status: 'saving', discarding: false })).toBe('Saved in this browser');
+  });
+});
+
+describe('images through the store', () => {
+  it('putMedia waits for the store and returns its id; getMedia returns the blob', async () => {
+    const blob = new Blob(['x']);
+    const fake = fakeStore();
+    fake.store.putMedia = async () => 'media-7';
+    fake.store.getMedia = async id => (id === 'media-7' ? blob : null);
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    const early = c.putMedia(blob);
+    await settle();
+    expect(await early).toBe('media-7');
+    expect(await c.getMedia('media-7')).toBe(blob);
+    expect(await c.getMedia('other')).toBeNull();
+  });
+
+  it('a refused image rejects with the store error', async () => {
+    const fake = fakeStore();
+    fake.store.putMedia = async () => {
+      throw new Error('refused');
+    };
+    const c = createDraftController({ createStore: async () => fake.store });
+    c.start();
+    await settle();
+    await expect(c.putMedia(new Blob(['x']))).rejects.toThrow('refused');
+  });
+
+  it('before start or after dispose there is no store: putMedia rejects, getMedia gives null', async () => {
+    const c = createDraftController({ createStore: async () => fakeStore().store });
+    await expect(c.putMedia(new Blob(['x']))).rejects.toThrow();
+    expect(await c.getMedia('x')).toBeNull();
   });
 });
