@@ -1056,3 +1056,37 @@ Your call: keep it as now, or add hover with a dwell.
   - lint 0 errors, 50 warnings
   - boundary test passes
   - Nox still gate: PASS (everything 0.0000 except techFocus 0.0082, face box 0.0140, mask 0.0025; check_stage.txt identical to the baseline).
+
+## Task 20 - pendants: PENDING OWNER REVIEW
+
+The pendants' config (`appear: bloom`, `select: armLift`, the `bloom` sheet) landed in Task 19 and is unchanged; this task is the end-to-end proof, `tests/e2e/veyra.spec.ts` (commit `c8603e8`, then a robustness fix to the reduced-motion check). No source change, so the gate is the Nox e2e plus the unit gates below. The spec needs no registration: the Nox config runs every file under `tests/e2e`.
+
+### What the five checks assert (all on `?world=veyra`, the entrance skipped with `octoverse.veyra.entranceSeen`)
+1. **Twelve `.orb-button`s, unique.** The buttons have no HTML `id`s, so uniqueness is of the `aria-label`s (each technology's name); all twelve sit inside the viewport after the bloom.
+2. **Tab, tooltip, Escape.** Tab to the first pendant, the tooltip's heading names it, Escape hides the tooltip and focus stays on the button.
+3. **Hover intent with a moving anchor.** The page samples the tooltip's name every 50 ms (a page-side timer, so a busy test runner cannot hide a flicker). The pointer glides left to right across three pendants (24 steps): no tooltip appears. It then rests on the last one for 1.6 s: the tooltip names that pendant, and the run of names has one name and at most one change (nothing, then the name). The pendant's button travelled 30.8 to 57.8 px while the pointer rested (the choice lifts its arm, so the anchor does move).
+4. **Phone (390 x 844), the tray.** Twelve tray items, unique, none pressed. Tapping React sets `aria-pressed` on that item only and opens its tooltip. The arm lift is read from `window.__octoverse.attention.tips`: with nothing chosen the tips drift 0.06 to 0.14 (arm units) in 0.9 s; after the tap one tip moves 0.585 to 0.668, and it is arm 0 (T1, which hangs React). A second tap lets go (`aria-pressed` false).
+5. **Reduced motion.** See the next section.
+
+### What reduced motion showed (a finding, not a pass to hide)
+The arms still move under reduced motion: the buttons travel up to about 60 px over 8 s, and the arm tips in arm space move 0.1. The cause is in the engine: `chain.solve` takes `curl: live * personality.curl` (Octopus.tsx, about line 898), and `live` is zeroed only by `freeze`, not by reduced motion (`moving` is); the tip curl in `armChain.ts` runs on time. Sway, the float, the lift and the swing are all scaled by `moving`. Nox has the same behaviour (his `curl` is the same code), so I did not change it: it would alter Nox's reduced-motion output. **Decide:** make `curl` `moving * personality.curl` (one line, an engine commit with the Nox gate), or leave the slow tip curl as accepted ambient motion.
+
+So "the pendants do not move" cannot be the assertion. The test asserts what is true and stable: each button's path, less its slow drift (a 6 frame, about 125 ms, high-pass) and less what all twelve do together that frame (a slow frame), stays within 0.5 px on at least 95% of frames. Measured with reduced motion on: worst 0.10 to 0.50 px, 0 frames over 0.5 in 300 to 362. **It has weak teeth:** with motion on, an idle pendant does not visibly swing either (0.3 to 0.6 px at the same bound), so this is a smoothness bound, not a contrast. The no-wobble claim itself is pinned by unit tests (`bloomState` with `reducedMotion` is complete at t 0 with wobble 0; `pendantSwing` returns angle 0 always). A first version asserted a flat worst case of 0.6 px, then 0.8 px; it failed once under load on one button (2.8 px, a slow frame) and now counts frames.
+
+### Evidence
+- Spec: each test run singly, then together: all pass (the reduced-motion check 3 of 3 after the fix).
+- Full Nox e2e (`--workers=1`, 61 tests, machine at 55 to 82% CPU from other sessions, 25.6 min): 58 passed, 3 failed. isolation (f) is the known intermittent (90 s page load timeout); `responsive.spec.ts:51` (touch tap, a 5 s poll) passed 3 of 3 alone, a load flake; the third was my reduced-motion check before the fix above. The spec touches no source, shared state or config, so it cannot disturb the others.
+- vitest `src/worlds/veyra`: 8 files, 78 passed. tsc both configs clean. Lint 0 errors, 50 warnings in tracked source (75 counted overall because untracked `.tmp/` copies of engine files are scanned too).
+
+### Things I noticed, for the owner
+- **AWS has no logo.** `src/engine/artifacts/logoTexture.ts` has no AWS entry and the installed `simple-icons` has no AWS export, so the tray's tenth button (second row, fourth) is an empty circle and its pendant has no mark (`t20-phone-tray-lift.png`). Not a Veyra data fix: it needs an engine logo table entry and an asset or another icon source.
+- **The pendants are small on the phone.** In `t20-phone-tray-lift.png` the baubles are a few pixels and their logos cannot be read; the tray is the way to choose, which is the design, but the pendants read as beads.
+- Hover still does not lift (the owner decision in Task 19); the e2e confirms the hover path chooses (tooltip) and the tap path lifts.
+
+### The four things to look at (live: `?world=veyra&stage=intro`, then click, Tab plus Enter and tap on a pendant)
+1. **Bloom from the cups.** Top arms first, about 1.2 s; the e2e proves only that the buttons are live from ready on, not the look.
+2. **The swing feels like water, not a rope.** Not testable here: I saw no visible swing at rest; the pendants hang and follow their arms. Judge live.
+3. **The lift is smooth.** The tip travels 0.6 to 0.7 arm units in about 450 ms; judge the ease and the settle live.
+4. **The face looks interested.** The focus face is `focused` (Task 19); judge live.
+
+**Verdict (mine, from numbers and one still):** the behaviour holds, the five checks pass against the real page, and nothing was bent to make them. I cannot judge feel from e2e: items 1 to 4 are yours. Still: `docs/superpowers/reviews/assets/veyra/t20-phone-tray-lift.png` (390 x 844, overview, React chosen from the tray after 1.5 s).
