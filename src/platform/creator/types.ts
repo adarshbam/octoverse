@@ -1,5 +1,16 @@
-// The creator's data (platform spec 7.13), types and the presets' names only. Task 17 owns the palettes' maths and Task 18 the
-// validation and the draft's storage; here the creator composition (Task 10) needs the shapes and the words on screen.
+// The creator's data (platform spec 7.13), types and the presets' names only. Task 17 owns the palettes' maths (palettes.ts), the
+// templates, personalities and technology catalogue; Task 18 the validation and the draft's storage. This file is the ONE
+// definition of TemplateId, PaletteId and PersonalityId (stills.ts and the creator import them from here).
+import type { WorldBundle } from '../../engine/types/bundle';
+
+// The platform reaches the engine's contract types through the one module its boundary allows (engine/types/bundle), so these are
+// read off WorldBundle, never imported from a deeper engine module.
+/** A world's character configuration (the engine's `CharacterConfig`). */
+export type CharacterConfig = WorldBundle['character'];
+/** A personality block: the motion of blink, gaze, sway, float, breath, stroke and the micro-animations (the engine's `Personality`). */
+export type Personality = CharacterConfig['personality'];
+/** A technology of a catalogue or a project (the engine's `Technology`: id, name, category, iconKey). */
+export type Technology = WorldBundle['content']['technologies'][number];
 
 /** One of the four worlds' octopus templates. The listed order is the house order of Explore and the landing (Veyra, Flux, Nox, Aether). */
 export type TemplateId = 'nox' | 'veyra' | 'flux' | 'aether';
@@ -20,6 +31,30 @@ export const PALETTE_NAMES: Readonly<Record<PaletteId, string>> = {
   violet: 'Violet',
   lilacGrey: 'Lilac grey',
 };
+
+/**
+ * A colour field of a CharacterConfig, named by a dotted path (`'skin.surfaces.mantle.jelly.crown'`, `'glow.halo.color'`, a
+ * list index is a number: `'glow.ramp.9.1'`). A palette moves the colour at each slot of a template; nothing else.
+ */
+export type ColourSlot = string;
+
+/**
+ * One of the four worlds' octopuses as a creator template (spec 7.13): its world's bundle without the id and the content
+ * (read from the bundle, never copied), the colour slots a palette may move, the face glow's reference colour and the path of the
+ * upper-head colour the face rule measures against.
+ */
+export interface CreatorTemplate {
+  id: TemplateId;
+  bundle: Omit<WorldBundle, 'id' | 'content'>;
+  /** Crown, depth, rim, arm top and halo colours only (never the face, the cups or the lighting). */
+  slots: readonly ColourSlot[];
+  /** The template's approved face glow, `#rrggbb`, read from its bundle (the colour at `faceGlowAt`): never moved by a palette. */
+  faceGlow: string;
+  /** The path of the face glow in the character (a glow ramp's last stop, or the glow card's core, whichever the world approved as its face). */
+  faceGlowAt: ColourSlot;
+  /** The path of the upper-head colour (one of `slots`, so a palette moves it); the face glow must stand out from it. */
+  upperHead: ColourSlot;
+}
 
 /** Calm is Veyra's personality, Energetic Flux's, Mysterious Nox's, Playful Aether's (spec 7.13). */
 export type PersonalityId = 'calm' | 'energetic' | 'mysterious' | 'playful';

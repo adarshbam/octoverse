@@ -1,15 +1,13 @@
+import type { PaletteId, TemplateId } from '../creator/types';
 import manifest from './manifest.json';
 
 // Engine-rendered stills (scripts/platform-stills.mjs, spec 7.14). Never hand-edited; reference art is never a still.
-// TemplateId and PaletteId are defined by platform Task 17; until it lands the creator half of StillKey
-// repeats their literals, and Task 18 fills the creator set.
+// TemplateId and PaletteId are the creator's own (creator/types.ts, platform Task 17); Task 18 fills the creator set.
 export type StillWorld = 'nox' | 'veyra' | 'flux' | 'aether';
-export type StillTemplate = 'nox' | 'veyra' | 'flux' | 'aether';
-export type StillPalette = 'original' | 'lavender' | 'teal' | 'mauve' | 'rose' | 'coral' | 'peach' | 'violet' | 'lilacGrey';
 
 export type StillKey =
   | { kind: 'world'; world: StillWorld }
-  | { kind: 'creator'; template: StillTemplate; palette: StillPalette };
+  | { kind: 'creator'; template: TemplateId; palette: PaletteId };
 
 export interface Still {
   src: string;
