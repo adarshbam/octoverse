@@ -79,12 +79,43 @@ const OVERVIEW_ARMS = Object.fromEntries(
  */
 const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, tilt: 0, expression: 'happy', headMorph: 1, orbs: 1 };
 
-// The tech focus (P4) is the overview with its head closed, as Nox's is, until Task 14 lifts the
-// chosen arm; the entrance and the detail reuse the intro until Milestone 3 traces P1 and P5 (spec 7.4).
+// P4 (the tech focus), traced from the 3x panel (docs/design/references/Veyra/04 - ...; native 667 x 528, world (x, y)
+// -> 3x px (1000.5 + 300 x, 792 - 300 y)): the head is closed, the other arms keep floating where they were, and the
+// arm that holds React rises from under the face beside the head and curls over the orb, which it holds up beside the
+// eyes (the orb at (0.77, 0.99), the eyes at (-0.735, 0.573) and (0.05, 0.79)). P4 paints React on her right; React is
+// her first technology, so it hangs from T1 (her left, as in P3, artifacts.ts), and the lift is P4's mirrored. The arm's
+// centre line was read on a 0.1-unit grid relative to the head's near edge (P4: 0.57 right of the eyes' midpoint) and the
+// eyes' midpoint (height), then placed on the overview: the closed head's left edge at x -1.10 on the stage (and 0.1 further
+// out, so the arm clears Veyra's rounder head: 0.1 rounder at the side than P4's), the eyes'
+// midpoint at y -0.325, P4 to the overview 1.02 (eyes 0.81 apart in P4, 0.83 in the overview). The engine shows a focus
+// in the pose of the stage it came from and moves the chosen arm by the select strategy (the suction hold until Task 19's
+// arm lift, whose target this is); this pose is that target as data.
+const P4_LIFT: Point2[] = [[-0.863, -1.08], [-1.032, -0.876], [-1.2, -0.672], [-1.287, -0.437], [-1.302, -0.192], [-1.322, 0.042], [-1.389, 0.277], [-1.542, 0.42], [-1.745, 0.45], [-1.944, 0.369], [-2.066, 0.205]];
+
+/** Where the held orb sits in the tech focus (P4's React, mirrored to T1), on the stage: under the curl, beside the eyes. */
+export const TECH_FOCUS_ORB: Point2 = [-1.745, -0.009];
+
+const TECH_FOCUS: StagePose = {
+  ...OVERVIEW,
+  arms: { ...OVERVIEW_ARMS, T1: flattenForDepth(withRoot(spec('T1'), toContent(P4_LIFT, OVERVIEW_BODY)), spec('T1')) },
+  headMorph: 0,
+  expression: 'focused',
+};
+
+// P5 (the detail), traced from the 3x panel (docs/design/references/Veyra/05 - ...; native 867 x 528, the detail frame
+// 8.67 x 5.28: world (x, y) -> 3x px (1300.5 + 300 x, 792 - 300 y)). She moves to the left edge, partly cropped, turned
+// three-quarters toward the panel with her head leaning: the eyes at (-3.175, 0.013) and (-2.518, 0.29) (0.71 apart, the
+// line rising 23 degrees to the right), the head from x -3.79 to -2.32 and its top at 0.89, the open smile at (-2.77,
+// -0.08). The body lands her eyes there at the intro's size (P5's near eye is P2's, 0.38 tall), yawed toward the panel
+// and leaning. The arms keep the intro's spread, as Nox's detail does: the left ones run off the frame's edge and the
+// right ones under the panel, as P5's do; P5's own arms are not traced.
+const DETAIL: StagePose = { ...INTRO, body: { x: -3.05, y: 0.6, scale: 0.88, yaw: 0.45 }, tilt: 0.38, look: [0.3, 0.2], expression: 'attentive' };
+
+// The entrance reuses the intro until Milestone 4/5 traces P1 (spec 7.4).
 export const VEYRA_POSES: Record<StageId, StagePose> = {
   entering: { ...INTRO },
   intro: INTRO,
   overview: OVERVIEW,
-  techFocus: { ...OVERVIEW, headMorph: 0 },
-  detail: { ...INTRO },
+  techFocus: TECH_FOCUS,
+  detail: DETAIL,
 };
