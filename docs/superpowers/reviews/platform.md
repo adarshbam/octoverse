@@ -362,3 +362,19 @@ Each world through the platform against the same world at `?world=<id>` (SEEN=al
 | Aether (`/@aether/ai-playground`) | 46.3, 51.5 | 41.8, 36.8 | 1.24 | 25.8, 20.0 / 23.8, 28.8 |
 
 The 3% rule cannot be settled on this machine: one page's run-to-run spread is 20 to 30%, far above the limit, and the ratios fall on both sides of 1.0 (0.75 to 1.24) with no world consistently behind. Pooled over all 11 pairs (8 in the table, 3 more Flux): platform mean 40.7 fps, median 39.7; `?world=` mean 41.8, median 41.0; ratio 0.97 on both (2.6% and 3.2% lower): on the edge of the 3% rule, inside the noise, so neither a pass nor a miss. GPU time per frame is not a usable second opinion here: it is the host's context only and under load it swings too, and for Flux the medians of the five pairs are platform 29.8 ms against review 22.6 ms (+32%, with means skewed by outliers such as 42.1 ms); whether the platform path costs Flux GPU time is undecided. A verdict at 3% needs a quiet GPU. Against the intro floor of 40 fps (the worlds' own specs; Aether's is read, the others assumed equal), 5 of 11 platform runs and 7 of 11 `?world=` runs reached it (platform medians of two runs: Nox 39.3, Veyra 41.5, Flux 36.7, Aether 48.9): the floor is not reliably met under load by either path.
+
+## Task 19a: the creator's editor (2026-11-05)
+
+**Provisional, pending owner.** The editor half of Task 19 (the live preview and the reactions are 19b). Pure helpers in `draftEdits.ts` (add, update, reorder, delete with the removed project and index for undo, undoDelete, technologies from the catalog only, usage notes, links as typed with `linkIssues` and `safeHref`, the overview section, media metadata, `mediaErrorMessage`), `techSearch.ts` for the picker, `ProjectsPanel`, `TechnologyPicker`, `LinkField`, `ProjectImages`, `mediaUrls.ts` (object urls made once, revoked when an image leaves the list and on unmount), `DraftBar` (visible status and Discard draft). The route keeps the one polite live region; the visible status line is aria-hidden so nothing is read twice. The inert part is now the editing grid only; the bar sits outside it so a discard stays visible and retryable.
+
+R23 as built: Discard asks first; a clear that fails leaves the draft on screen, shows the controller's `discardError`, offers Retry (no second question), and any later edit clears the message. `draftController.discard()` returns `{ cleared: false }` at once if one is already under way (a refused call never ends the first one's discarding state), with a test. The controller also exposes `putMedia` and `getMedia` for the editor.
+
+Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can't save in this browser", that edits, images and Discard still work in memory. Review Focus 5 (zero projects): deleting every project leaves a calm empty state with the Add button focused.
+
+### Gaps
+
+1. The blob of a removed image stays in the media store until Discard (no single-image delete in `storage.ts`). Orphans are bounded by 4 per project and 2 MB each but do exist.
+2. An upload that finishes after its project was deleted leaves an orphan blob too.
+3. Only one free-text section ("Description", section id `overview`); no section titles.
+4. The technology picker shows 8 matches at a time (keyboard trip length); the full catalog is reachable only by typing.
+5. The status line is the 800 ms autosave state; it is not a promise about other tabs (two tabs editing one draft overwrite each other, as in Task 18).
