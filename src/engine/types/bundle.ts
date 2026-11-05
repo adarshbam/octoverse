@@ -230,6 +230,22 @@ function checkPresent(bundle: WorldBundle) {
   if (!Array.isArray(bundle.content.technologies)) throw new BundleError('content.technologies', 'is missing (the technologies, as a list)');
 }
 
+/**
+ * The entrance's shape (`sequences.entrance`, EntranceShape), by field: a turn above 0 and at most
+ * a full turn; `spiral` a boolean; on the spiral, an arc with a finite `r0` above 0 and a finite `phase`.
+ */
+function checkEntranceShape(shape: unknown) {
+  if (!record(shape)) throw new BundleError('sequences.entrance', 'is missing (the entrance\'s turn and path: { turn, spiral })');
+  const { turn, spiral } = shape;
+  if (!(finite(turn) && turn > 0 && turn <= 2 * Math.PI)) throw new BundleError('sequences.entrance.turn', `${String(turn)} is not a turn above 0 and at most 2 pi (radians)`);
+  if (typeof spiral !== 'boolean') throw new BundleError('sequences.entrance.spiral', `${String(spiral)} is not true or false (whether the entrance ends on the golden-spiral arc)`);
+  if (!spiral) return;
+  const arc = shape.arc;
+  if (!record(arc)) throw new BundleError('sequences.entrance.arc', 'is missing (the spiral needs its start: { r0, phase })');
+  if (!(finite(arc.r0) && arc.r0 > 0)) throw new BundleError('sequences.entrance.arc.r0', `${String(arc.r0)} is not above 0 (stage units from the stage spot)`);
+  if (!finite(arc.phase)) throw new BundleError('sequences.entrance.arc.phase', `${String(arc.phase)} is not a finite angle (radians)`);
+}
+
 /** Each stage has a pose, and each pose has exactly the eight arms, T1..T8. */
 function checkPoses(poses: unknown) {
   if (!record(poses)) throw new BundleError('poses', 'is not an object');
@@ -322,6 +338,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   for (const sheet of ['entrance', 'headSwell', 'arrival', APPEARS[appear.kind].sheet] as const) {
     if (!sequences.defaults[sheet]) throw new BundleError(`sequences.defaults.${sheet}`, 'is missing (the engine plays this sheet)');
   }
+  checkEntranceShape(sequences.entrance);
 
   const world = validateWorld(bundle.place);
   if (world.length > 0) throw new BundleError('place', world.join('; '));

@@ -381,8 +381,9 @@ export interface Personality {
   /** Above 0: a scale on the stroke's glide (`swim.glide`), motion/stroke.ts strokeTiming. Unset: 1, Nox's. */
   glideBias?: number;
   /**
-   * 0 or more: idle flourishes per minute (behavior/flourish.ts, gap G4): one arm slowly unrolls
-   * its tip curl and rolls it back. Unset: 0, none (Nox).
+   * 0 or more: idle flourishes per minute, nominal (behavior/flourish.ts, gap G4; the waits are
+   * drawn from 0.8 to 4/3 of 60 / rate s, so about 0.94 of it plays): one arm slowly unrolls its tip
+   * curl and rolls it back. Unset: 0, none (Nox).
    */
   flourishRate?: number;
 }

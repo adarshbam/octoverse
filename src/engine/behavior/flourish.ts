@@ -1,4 +1,4 @@
-import { ARM_IDS, type ArmId, PERSONALITY_VARIANT_DEFAULTS, type Personality } from '../config/types';
+import { ARM_IDS, type ArmId, PERSONALITY_VARIANT_DEFAULTS, type Personality, type StageId } from '../config/types';
 
 // The idle flourish (gap G4, Veyra spec 7.8): every so often one arm slowly unrolls its tip curl
 // toward straight and rolls it back. A shared ambient layer driven by `Personality.flourishRate`
@@ -39,7 +39,28 @@ export function flourishUnroll(t: number, start: number): number {
   return FLOURISH_UNROLL * flourishCurve(t, start);
 }
 
-/** The personality's flourishes per minute (unset: 0, Nox's: none). */
+/**
+ * Whether a flourish may play this frame: with motion on (`moving` above 0: neither reduced motion
+ * nor `freeze`), out of the swim and out of the entrance. Octopus runs the flourish clock only then.
+ */
+export function flourishMayPlay(moving: number, swimming: boolean, stage: StageId): boolean {
+  return moving > 0 && !swimming && stage !== 'entering';
+}
+
+/**
+ * A playing flourish's unroll as its arm becomes busy: scaled by 1 - `busy` (the hold's turn toward
+ * what it holds, 0 to 1), so it gives way as the hold comes in and is gone once the arm holds. A
+ * flourish never moves the tip of an arm that is lifting or holding something.
+ */
+export function yieldedUnroll(unroll: number, busy: number): number {
+  return unroll * (1 - Math.min(1, Math.max(0, busy)));
+}
+
+/**
+ * The personality's nominal flourishes per minute (unset: 0, Nox's: none). The scheduler draws each
+ * wait from 0.8 to 4/3 of 60 / rate s, whose mean is about 1.07 times 60 / rate, so the rate it
+ * actually plays is about 0.94 of this (3.75 a minute, a 16 s mean wait, at 4).
+ */
 export function flourishRate(personality: Pick<Personality, 'flourishRate'>): number {
   return personality.flourishRate ?? PERSONALITY_VARIANT_DEFAULTS.flourishRate;
 }

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeAll, expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
 import { ArmChain } from '../character/armChain';
@@ -7,10 +8,11 @@ import { createSwimRests, swimShapes as shapesFor } from '../motion/swimArms';
 import { NOX_POSES } from '../../worlds/nox/poses';
 import { SWIM_POSES } from '../../worlds/nox/swim';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
-import { ARM_HALF_SPAN, type EntranceFrame, armHalfSpan, entranceDrive, entranceFrame, entranceRests, pathClearance, revealParts, spiralOffset } from './entrance';
+import { ARM_HALF_SPAN, type EntranceFrame, armHalfSpan, entranceClearance, entranceDrive, entranceFrame, entranceRests, glideTurnYaw, layoutClearance, pathClearance, revealParts, spiralOffset } from './entrance';
 import { ENTRANCE_FORWARD, ENTRANCE_HOLD, ENTRANCE_OPEN, ENTRANCE_SPREAD_FROM, ENTRANCE_SPIRAL, NOX_STROKE_SECONDS, SEQUENCE_DEFAULTS } from '../../worlds/nox/sequences/defaults';
-import { NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
+import { NOX_BUNDLE, NOX_ENTRANCE_FOOTPRINTS, NOX_ENTRANCE_GEOMETRY } from '../../worlds/nox/bundle';
 import { loadNoxSequences } from '../../worlds/nox/sequences/index';
+import type { WorldLayout } from '../world/types';
 import type { Sequences } from './theatre';
 
 /** Nox's swim shapes at `segments`. */
@@ -319,4 +321,126 @@ test("the entrance ends where the world's sheet set says (Sequences.length), not
   expect(entranceFrame(shorter, 4, NOX_ENTRANCE_GEOMETRY)).not.toEqual(entranceFrame(seq, 6, NOX_ENTRANCE_GEOMETRY));
   // Past the end of Nox's own sheet he stays at the intro spot.
   expect(entranceFrame(seq, ENTRANCE_SECONDS + 5, NOX_ENTRANCE_GEOMETRY)).toEqual(entranceFrame(seq, ENTRANCE_SECONDS, NOX_ENTRANCE_GEOMETRY));
+});
+
+// --- Task 17 (gap G2): the entrance's turn and path as data -------------------------------------
+
+/**
+ * Nox's entrance outputs captured from the code before the shape became data (fixtures/nox-entrance.json:
+ * every 0.05 s of the sheet, and the swim's clearance); the frame as JSON, so each number is compared
+ * exactly. Nox is frozen: the spiral path stays bit-identical.
+ */
+const FIXTURE = JSON.parse(readFileSync(new URL('./fixtures/nox-entrance.json', import.meta.url), 'utf8')) as {
+  clearance: number;
+  frames: ({ t: number } & Record<string, unknown>)[];
+};
+
+test('Nox, on the spiral with a full turn (his data states both), equals the captured frames exactly', () => {
+  expect(seq.entrance).toEqual({ turn: 2 * Math.PI, spiral: true, arc: ENTRANCE_SPIRAL });
+  const asked = new Set([0, 2, 4, 5, 5.5, 6.5]);
+  expect(FIXTURE.frames.filter(f => asked.has(f.t)).map(f => f.t)).toEqual([0, 2, 4, 5, 5.5, 6.5]);
+  for (const { t, ...captured } of FIXTURE.frames) expect(JSON.parse(JSON.stringify(at(t))), `${t} s`).toEqual(captured);
+  expect(pathClearance(at, SECURITY_WORLD.layout, NOX_ENTRANCE_GEOMETRY, 651, 4.5 + ENTRANCE_HOLD)).toBe(FIXTURE.clearance);
+});
+
+/** Nox's sheet with the shape swapped: the keys are his, the turn and the path the test's. */
+const glide = (turn: number): Sequences => ({ ...seq, entrance: { turn, spiral: false } });
+const TWO_HUNDRED = (200 * Math.PI) / 180;
+
+test('without the spiral (200 degrees) the yaw ends at exactly 0, rises monotonically and swings through the turn', () => {
+  const g = glide(TWO_HUNDRED);
+  const yawAt = (s: number) => entranceFrame(g, s, NOX_ENTRANCE_GEOMETRY).yaw;
+  expect(yawAt(ENTRANCE_SECONDS)).toBe(0);
+  expect(yawAt(99)).toBe(0);
+  // Ruling: she starts turned by the shortfall, so the body swings through the turn, monotonically, to 0.
+  expect(yawAt(0)).toBeCloseTo(-TWO_HUNDRED, 12);
+  let last = -Infinity;
+  let swing = 0;
+  let before = yawAt(0);
+  for (const s of times(0, ENTRANCE_SECONDS, 0.001)) {
+    const yaw = yawAt(s);
+    expect(yaw, `${s} s`).toBeGreaterThanOrEqual(last);
+    last = yaw;
+    swing += yaw - before;
+    before = yaw;
+    expect(yaw).toBeLessThanOrEqual(0);
+  }
+  expect(swing).toBeCloseTo(TWO_HUNDRED, 12);
+  expect(yawAt(ENTRANCE_SECONDS) - yawAt(0)).toBeCloseTo(TWO_HUNDRED, 12);
+  // It turns while the sheet's spin runs (6.4 to 7.4 s), not before or after, and never jumps.
+  expect(yawAt(6.4)).toBeCloseTo(-TWO_HUNDRED, 12);
+  expect(yawAt(7.4)).toBe(0);
+  for (const s of times(6.4, 7.4, 0.001)) expect(Math.abs(yawAt(s + 0.001) - yawAt(s))).toBeLessThan(0.03);
+  // Half way through the spin it is not yet round: the turn is the data, whatever the sheet's spin does.
+  expect(yawAt(6.9)).toBeGreaterThan(-TWO_HUNDRED);
+  expect(yawAt(6.9)).toBeLessThan(0);
+});
+
+test('without the spiral there is no arc: the position is the keyed path, which the spiral adds its arc to', () => {
+  const g = glide(TWO_HUNDRED);
+  for (const s of [0, 2, 4, 5, 6.4, 7, 7.4, 8.4]) {
+    const f = entranceFrame(g, s, NOX_ENTRANCE_GEOMETRY);
+    const spiral = at(s);
+    const arc = spiralOffset(spiral.spin, ENTRANCE_SPIRAL);
+    const start = spiralOffset(0, ENTRANCE_SPIRAL);
+    expect(f.position[0], `${s} s`).toBeCloseTo(spiral.position[0] - (arc[0] - start[0]), 12);
+    expect(f.position[2], `${s} s`).toBeCloseTo(spiral.position[2] - (arc[2] - start[2]), 12);
+    expect(f.position[1]).toBe(spiral.position[1]);
+    // Everything but the yaw and the position is the sheet's, the same on both paths.
+    expect({ ...f, yaw: 0, position: [0, 0, 0] }).toEqual({ ...spiral, yaw: 0, position: [0, 0, 0] });
+  }
+});
+
+test('glideTurnYaw: -turn at the start of the spin, 0 at its end, linear, held outside it', () => {
+  expect(glideTurnYaw(0, TWO_HUNDRED)).toBe(-TWO_HUNDRED);
+  expect(glideTurnYaw(1, TWO_HUNDRED)).toBe(0);
+  expect(glideTurnYaw(0.5, TWO_HUNDRED)).toBeCloseTo(-TWO_HUNDRED / 2, 12);
+  expect(glideTurnYaw(-3, TWO_HUNDRED)).toBe(glideTurnYaw(0, TWO_HUNDRED));
+  expect(glideTurnYaw(7, TWO_HUNDRED)).toBe(0);
+  expect(glideTurnYaw(0, 2 * Math.PI)).toBeCloseTo(-2 * Math.PI, 12);
+});
+
+// The clearance check against a bundle's own layout (arch, walls and blocks for a world that has
+// them): the pieces it counts are the footprints the world gives, by kit name.
+test("the clearance check runs against the world's own layout, arms as drawn, open and closed (Nox: regression)", () => {
+  const layout = NOX_BUNDLE.place.layout;
+  expect(layout).toBe(SECURITY_WORLD.layout);
+  const gaps = entranceClearance(seq, NOX_ENTRANCE_GEOMETRY, layout, NOX_ENTRANCE_FOOTPRINTS, { until: 4.5 + ENTRANCE_HOLD });
+  // As drawn, with his pillars as the only footprints, it is pathClearance.
+  expect(gaps.frame.gap).toBe(pathClearance(at, layout, NOX_ENTRANCE_GEOMETRY, 651, 4.5 + ENTRANCE_HOLD));
+  expect(gaps.frame.gap).toBeGreaterThan(0.1);
+  expect(gaps.frame.piece).toMatch(/^pillars\[\d+\] pillar_[a-d]$/);
+  // Held closed the whole way he clears them too; held open the gap is the arms' extra reach smaller.
+  expect(gaps.closed.gap).toBeGreaterThan(0.1);
+  expect(gaps.open.gap).toBeLessThan(gaps.closed.gap);
+  expect(gaps.closed.gap - gaps.open.gap).toBeCloseTo(NOX_ENTRANCE_GEOMETRY.armHalfSpan.open - NOX_ENTRANCE_GEOMETRY.armHalfSpan.closed, 6);
+});
+
+test('a layout clearance counts only the pieces with a footprint, in every group, and finds the nearest', () => {
+  const layout: WorldLayout = {
+    floorY: 0,
+    chains: [],
+    coralLights: [],
+    groups: {
+      arch: [{ piece: 'arch', position: [0, 0, 10] }],
+      blocks: [
+        { piece: 'block', position: [4, 0, 0], rotY: Math.PI / 2 },
+        { piece: 'weed', position: [0, 0, 0] },
+      ],
+    },
+  } as WorldLayout;
+  const footprints = { arch: { x: 3, z: 1 }, block: { x: 2, z: 0.5 } };
+  const through = (s: number) => ({ position: [0, 0, s * 10], stroke: 0, open: 0 }) as unknown as EntranceFrame;
+  const geometry = { swim: timing, armHalfSpan: { open: 2, closed: 1 } };
+  const closed = layoutClearance(through, layout, geometry, footprints, 11, 1, 'closed');
+  // The weed has no footprint, though the path runs through it. The path enters the arch's footprint
+  // (1 deep either side of z 10) at z 9, the first sample inside it: a gap of minus the reach.
+  expect(closed.piece).toBe('arch[0] arch');
+  expect(closed.gap).toBeCloseTo(-1, 12);
+  expect(closed.seconds).toBeCloseTo(0.9, 12);
+  const open = layoutClearance(through, layout, geometry, footprints, 11, 1, 'open');
+  expect(open.gap).toBeCloseTo(-2, 12);
+  const onlyBlock = layoutClearance(through, layout, geometry, { block: footprints.block }, 11, 0.5, 'closed');
+  expect(onlyBlock.piece).toBe('blocks[0] block');
+  expect(layoutClearance(through, layout, geometry, {}, 11, 1)).toEqual({ gap: Infinity, seconds: 0, piece: '' });
 });

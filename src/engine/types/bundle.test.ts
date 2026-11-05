@@ -374,3 +374,40 @@ test('glideBias at or below 0, or not a finite number, is refused by name', () =
 test('flourishRate below 0, or not a finite number, is refused by name', () => {
   for (const flourishRate of [-1, -0.001, Number.NaN, Infinity, '4']) expect(refusal(withPersonality({ flourishRate })).field, String(flourishRate)).toBe('character.personality.flourishRate');
 });
+
+// --- The entrance's shape (Task 17, gap G2): one test per field, by name ---------------------------
+
+/** Nox with his entrance shape replaced (cast: the point is what the type does not stop). */
+const withEntrance = (entrance: unknown): WorldBundle => ({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, entrance: entrance as WorldBundle['sequences']['entrance'] } });
+const NOX_SHAPE = NOX_BUNDLE.sequences.entrance;
+
+test('the entrance shape: Nox states a full turn on the spiral, and a glide-turn of 200 degrees is a shape too', () => {
+  expect(NOX_SHAPE).toMatchObject({ turn: 2 * Math.PI, spiral: true });
+  expect(() => validateBundle(NOX_BUNDLE)).not.toThrow();
+  expect(() => validateBundle(withEntrance({ turn: (200 * Math.PI) / 180, spiral: false }))).not.toThrow();
+  // The smallest turn above 0 and the full turn both pass.
+  expect(() => validateBundle(withEntrance({ turn: 1e-6, spiral: false }))).not.toThrow();
+  expect(() => validateBundle(withEntrance({ turn: 2 * Math.PI, spiral: false }))).not.toThrow();
+});
+
+test('sequences.entrance missing is refused by name', () => {
+  for (const entrance of [undefined, null, 5]) expect(refusal(withEntrance(entrance)).field, String(entrance)).toBe('sequences.entrance');
+});
+
+test('sequences.entrance.turn must be finite, above 0 and at most a full turn', () => {
+  for (const turn of [0, -1, -0.001, 2 * Math.PI + 0.001, 7, Number.NaN, Infinity, -Infinity, '3', undefined]) {
+    expect(refusal(withEntrance({ ...NOX_SHAPE, turn })).field, String(turn)).toBe('sequences.entrance.turn');
+    expect(refusal(withEntrance({ turn, spiral: false })).field, String(turn)).toBe('sequences.entrance.turn');
+  }
+});
+
+test('sequences.entrance.spiral must be a boolean', () => {
+  for (const spiral of [undefined, null, 1, 0, 'true', 'false']) expect(refusal(withEntrance({ ...NOX_SHAPE, spiral })).field, String(spiral)).toBe('sequences.entrance.spiral');
+});
+
+test('sequences.entrance.arc: a spiral needs its start (r0 above 0, a finite phase); a glide-turn needs none', () => {
+  expect(refusal(withEntrance({ turn: 2 * Math.PI, spiral: true })).field).toBe('sequences.entrance.arc');
+  for (const r0 of [0, -1, Number.NaN, Infinity, '1']) expect(refusal(withEntrance({ ...NOX_SHAPE, arc: { r0, phase: 0 } })).field, String(r0)).toBe('sequences.entrance.arc.r0');
+  for (const phase of [Number.NaN, Infinity, '0']) expect(refusal(withEntrance({ ...NOX_SHAPE, arc: { r0: 1, phase } })).field, String(phase)).toBe('sequences.entrance.arc.phase');
+  expect(() => validateBundle(withEntrance({ turn: Math.PI, spiral: false }))).not.toThrow();
+});
