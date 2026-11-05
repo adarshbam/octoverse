@@ -153,6 +153,23 @@ const BUBBLE_BLOW: SequenceDefaults = {
   },
 };
 
+// --- The bloom ------------------------------------------------------------------------------
+
+/**
+ * The bloom (spec 7.5, "Appearing"; the engine's `bloom` appear, artifacts/bloom.ts): the ripple's
+ * clock, 0 to 1 over the appear's 1.2 s, keyed straight so the ripple runs at the engine's own pace.
+ * Easing `ripple` in the studio eases the whole ripple (each pendant's beats are the engine's).
+ */
+const BLOOM: SequenceDefaults = {
+  length: 1.2,
+  objects: {
+    main: {
+      props: { ripple: 0 },
+      keys: { ripple: [[0, 0, LINEAR], [1.2, 1, LINEAR]] },
+    },
+  },
+};
+
 // --- The head swell ---------------------------------------------------------------------------
 
 /**
@@ -201,9 +218,10 @@ const ARRIVAL: SequenceDefaults = {
 };
 
 /** Code defaults for each sheet's props and keyframes; the seed script writes them into the state JSON the first time. */
-export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'bloom' | 'twinkle'>, SequenceDefaults> = {
+export const SEQUENCE_DEFAULTS: Record<Exclude<SequenceId, 'twinkle'>, SequenceDefaults> = {
   entrance: ENTRANCE,
   bubbleBlow: BUBBLE_BLOW,
+  bloom: BLOOM,
   headSwell: HEAD_SWELL,
   arrival: ARRIVAL,
 };

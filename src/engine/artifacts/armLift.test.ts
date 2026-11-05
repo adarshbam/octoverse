@@ -1,7 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ARM_IDS, type ArmId, type Point2 } from '../config/types';
 import type { StagePose } from '../poses/types';
-import { ArmLiftChoreography, LIFT_MAX_TURN, RELEASE_MS, RELEASE_OVERSHOOT, armLiftTarget, busyWeight, liftProgress, liftWeightAt, releaseShape, tracedLift } from './armLift';
+import { ArmLiftChoreography, LIFT_MAX_TURN, RELEASE_MS, RELEASE_OVERSHOOT, armLiftTarget, busyWeight, liftProgress, liftWeightAt, liftedReach, liftedScale, releaseShape, tracedLift } from './armLift';
 
 /** A plain arm: from its root at (-0.3, -1) out to the left and a little down, eleven points. */
 const LEFT: Point2[] = Array.from({ length: 11 }, (_, k) => [-0.3 - 0.15 * k, -1 - 0.03 * k] as Point2);
@@ -228,4 +229,20 @@ describe('where a lifted pendant hangs (liftHangAt)', () => {
     expect(armLiftTarget({ arm: 'T1', at: 0.96 }, null, pose(), curl).hangAt).toBe(u);
     expect(armLiftTarget({ arm: 'T1' }, null, pose(), curl).hangAt).toBeUndefined();
   });
+});
+
+it("the lifted orb grows by the select's scale and its thread shortens by its threadShorten (Veyra: 0.085 to 0.106, 0.03 to 0.021)", () => {
+  const lift = { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 } as const;
+  expect(0.085 * liftedScale(lift, 1)).toBeCloseTo(0.10625, 6);
+  expect(0.03 * liftedReach(lift, 1)).toBeCloseTo(0.021, 6);
+  expect(liftedScale(lift, 0)).toBe(1);
+  expect(liftedReach(lift, 0)).toBe(1);
+  expect(liftedScale(lift, 0.5)).toBeCloseTo(1.125, 6);
+  // A select that does not lift changes nothing.
+  expect(liftedScale({ kind: 'suctionHold' }, 1)).toBe(1);
+  expect(liftedReach({ kind: 'suctionHold' }, 1)).toBe(1);
+  // TechBubbles draws with these (the orb's radius and the thread's reach), so the config's numbers are the ones on screen.
+  const source = readFileSync(new URL('./TechBubbles.tsx', import.meta.url), 'utf8');
+  expect(source).toMatch(/liftedScale\(artifacts\.select, lifted\)/);
+  expect(source).toMatch(/liftedReach\(artifacts\.select, lifted\)/);
 });

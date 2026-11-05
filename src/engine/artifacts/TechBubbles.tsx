@@ -7,6 +7,7 @@ import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SequenceId } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
 import { useInstance } from '../host/instanceContext';
+import { liftedReach, liftedScale } from './armLift';
 import { type BubbleLive, sideOfFace } from './bubbleLive';
 import { APPEARS, type AppearModule, SELECTS, holdModule, placementDriver } from './strategies';
 import type { TwinkleState } from './twinkle';
@@ -304,9 +305,6 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   const select = SELECTS[artifacts.select.kind];
   // The suction hold's module (with the arm lift nothing is held, so it is never used there).
   const holder = holdModule(select);
-  // The arm lift's growth and thread (1 and 0 for a select that does not lift).
-  const liftScale = artifacts.select.kind === 'armLift' ? artifacts.select.scale : 1;
-  const liftShorten = artifacts.select.kind === 'armLift' ? artifacts.select.threadShorten : 0;
   // Where a held artifact swings round, from the world's placement (Nox's: the middle of his rings).
   const holdCentre = useMemo(() => holder.centre(placementConfig), [holder, placementConfig]);
   const group = useRef<THREE.Group>(null);
@@ -412,7 +410,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       run.size[i] = Number.isNaN(run.size[i]) || s.still ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
       // Lifted by its arm, a pendant grows by the lift's scale (the focus's own growth is the hold's).
       const lifted = s.lift[i] ?? 0;
-      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : 1 + (liftScale - 1) * lifted);
+      let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : liftedScale(artifacts.select, lifted));
       // Flying between its placement's forms (the satellite's ring and arms), it is the size and has the logo its flight gives it.
       const look: FlightLook | undefined = driver.flight?.(i);
       if (look) radius *= look.scale;
@@ -422,7 +420,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       // The satellite's orbs stay where its driver puts them (on the ring, in flight, or hanging with their bob), as before;
       // a landed one its arm lifts (Aether) moves, as far as the lift has gone, to where a pendant's would hang on its shortened thread.
       const pendant = threads && driver.pendants ? driver.pendants[i] : null;
-      const reach = (b?.bloom ? b.bloom.thread : 1) * (1 - liftShorten * lifted);
+      const reach = (b?.bloom ? b.bloom.thread : 1) * liftedReach(artifacts.select, lifted);
       const hung = pendant && pendant.points.length > 0 ? pendant : null;
       const liftedSatellite = placementConfig.kind === 'satellite' && lifted > 0 && !!look?.landed;
       if (hung && (placementConfig.kind === 'pendant' || liftedSatellite)) {
