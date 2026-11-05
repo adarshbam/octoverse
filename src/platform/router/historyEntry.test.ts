@@ -9,6 +9,10 @@ interface FakeLink {
   id: string;
   href: string;
   focused: boolean;
+  /** `data-focus-id`, or null. */
+  focusId: string | null;
+  /** True while the control cannot take focus (inside an `inert` part of the page). */
+  inert: boolean;
   focus: ReturnType<typeof vi.fn>;
   getAttribute: (name: string) => string | null;
 }
@@ -19,11 +23,14 @@ function link(href: string, id = ''): FakeLink {
     id,
     href,
     focused: false,
+    focusId: null,
+    inert: false,
     focus: vi.fn(() => {
+      if (el.inert) return;
       el.focused = true;
       doc.activeElement = el as unknown;
     }),
-    getAttribute: (name: string) => (name === 'href' ? href : null),
+    getAttribute: (name: string) => (name === 'href' ? href : name === 'data-focus-id' ? el.focusId : null),
   };
   return el;
 }
@@ -58,7 +65,11 @@ function installFakes(initial: string) {
     body,
     scroller: { scrollTop: 0 },
     links: [],
-    querySelector: (selector: string) => (selector === '.oct-page' ? doc.scroller : null),
+    querySelector: (selector: string) => {
+      if (selector === '.oct-page') return doc.scroller;
+      const id = /^\[data-focus-id="(.*)"\]$/.exec(selector)?.[1];
+      return id === undefined ? null : (doc.links.find(l => l.focusId === id) ?? null);
+    },
     querySelectorAll: () => doc.links,
   };
   const win = {
@@ -146,6 +157,21 @@ describe('history entries (spec 7.9)', () => {
     expect(focusKeyOf(null)).toBeNull();
   });
 
+  it('a control with a stable focus id (data-focus-id) is named by it, not by its address, so a link whose address changes is still found', () => {
+    const preview = link('/create/preview?project=a');
+    preview.focusId = 'see-live-preview';
+    doc.links = [preview];
+    const key = focusKeyOf(preview as unknown as Element)!;
+    expect(key).toBe('@see-live-preview');
+    // The address is different when Back lands (another project is selected): the control is still found.
+    const again = link('/create/preview?project=b');
+    again.focusId = 'see-live-preview';
+    doc.links = [again];
+    expect(elementForFocusKey(key)).toBe(again);
+    doc.links = [];
+    expect(elementForFocusKey(key)).toBeNull();
+  });
+
   it('a popstate arrival restores the stored scroll and puts focus back on the control', () => {
     const enter = link('/@veyra/vault-os');
     doc.links = [enter];
@@ -204,6 +230,26 @@ describe('history entries (spec 7.9)', () => {
       expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
       vi.advanceTimersByTime(RESTORE_WAIT_MS * 2);
       expect(enter.focus).toHaveBeenCalledTimes(1);
+      off();
+    });
+
+    it('a control that is on the page but cannot take focus yet (inside an inert part) is waited for, and focused when it can', () => {
+      const button = link('/create/preview');
+      button.focusId = 'see-live-preview';
+      button.inert = true;
+      const off = popTo({ platform: { scrollY: 30, focusId: '@see-live-preview' } });
+      doc.scroller = { scrollTop: 0 };
+      doc.links = [button];
+      restoreArrival();
+      expect(button.focus).toHaveBeenCalledTimes(1);
+      expect(doc.activeElement).not.toBe(button);
+      expect(observers).toHaveLength(1);
+      expect(observers[0].disconnect).not.toHaveBeenCalled();
+      // The page becomes editable (inert lifted): the next change of the document puts focus on it, once.
+      button.inert = false;
+      observers[0].callback();
+      expect(doc.activeElement).toBe(button);
+      expect(observers[0].disconnect).toHaveBeenCalledTimes(1);
       off();
     });
 

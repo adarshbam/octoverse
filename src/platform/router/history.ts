@@ -128,9 +128,15 @@ export function entryState(): EntryState | null {
 
 const pathOf = (url: string) => url.split('?')[0];
 
-/** A link is named by its address and its place among the links to the same address (a profile has two to its world); another control by its id. */
+/**
+ * A control with a `data-focus-id` is named by it (a stable name, for a link whose address can differ when Back lands: the creator's See
+ * live preview carries the selected project). Otherwise a link is named by its address and its place among the links to the same address
+ * (a profile has two to its world); another control by its id.
+ */
 export function focusKeyOf(el: Element | null | undefined): string | null {
   if (!el || typeof document === 'undefined' || el === document.body) return null;
+  const stable = el.getAttribute('data-focus-id');
+  if (stable) return `@${stable}`;
   const href = el.tagName === 'A' ? el.getAttribute('href') : null;
   if (href !== null) {
     const same = [...document.querySelectorAll('a[href]')].filter(a => a.getAttribute('href') === href);
@@ -142,6 +148,8 @@ export function focusKeyOf(el: Element | null | undefined): string | null {
 
 /** The control a key (`focusKeyOf`) names on the page now, or null. */
 export function elementForFocusKey(key: string): HTMLElement | null {
+  // (a stable name is a plain word: anything else cannot be one of ours, and must not reach a selector)
+  if (key.startsWith('@')) return /^[\w-]+$/.test(key.slice(1)) ? document.querySelector<HTMLElement>(`[data-focus-id="${key.slice(1)}"]`) : null;
   if (key.startsWith('#')) return document.getElementById?.(key.slice(1)) ?? null;
   const cut = key.lastIndexOf('|');
   if (cut < 0) return null;
@@ -186,13 +194,13 @@ let arrival: Arrival = 'load';
 export const RESTORE_WAIT_MS = 4000;
 let cancelRestore: (() => void) | null = null;
 
-/** Puts back what the entry remembers; true when everything it names is on the page (the scroller, and the control when it names one). */
+/** Puts back what the entry remembers; true when everything it names is on the page (the scroller, and the control when it names one, which has taken focus: a control inside an `inert` part cannot yet). */
 function applyEntry(entry: EntryState): boolean {
   const scroller = document.querySelector<HTMLElement>(SCROLLER);
   const control = entry.focusId !== null ? elementForFocusKey(entry.focusId) : null;
   control?.focus({ preventScroll: true });
   if (scroller) scroller.scrollTop = entry.scrollY;
-  return scroller !== null && (entry.focusId === null || control !== null);
+  return scroller !== null && (entry.focusId === null || (control !== null && document.activeElement === control));
 }
 
 /**
@@ -222,5 +230,6 @@ export function restoreArrival(): void {
     stop();
   }, RESTORE_WAIT_MS);
   cancelRestore = stop;
-  observer.observe(document.body, { childList: true, subtree: true });
+  // (`inert` is an attribute: a page that is made editable once its data is read, as the creator is, changes no element.)
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['inert', 'hidden', 'disabled'] });
 }
