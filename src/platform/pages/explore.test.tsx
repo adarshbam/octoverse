@@ -42,7 +42,7 @@ describe('Explore', () => {
     expect(tiles.map(t => /<a\b[^>]*href="([^"]+)"/.exec(t.html)![1])).toEqual(['/@veyra', '/@flux', '/@nox', '/@aether', '/create']);
   });
 
-  it('gives Your Octopus the gold glyph picture, no still, no Showcase badge', () => {
+  it('gives Your Octopus the gold glyph picture while the draft is read (no still yet), no Showcase badge', () => {
     const yours = tiles[4].html;
     expect(yours).toContain('data-glyph="octopus"');
     expect(yours).not.toContain('<img');

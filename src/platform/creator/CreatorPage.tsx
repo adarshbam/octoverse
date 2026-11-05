@@ -1,8 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { Link } from '../ui/Link';
-import { PageFrame } from '../pages/parts';
+import { CreatorStill, PageFrame } from '../pages/parts';
 import { Tabs } from '../pages/Tabs';
-import { YourOctopusPicture } from '../pages/YourOctopusPicture';
 import { OctopusPanel } from './OctopusPanel';
 import { ProjectsPanel } from './ProjectsPanel';
 import { PALETTE_NAMES, PERSONALITY_NAMES, TEMPLATE_NAMES, type CreatorDraft } from './types';
@@ -20,13 +19,13 @@ const phoneNow = (): CreatorLayout => (window.matchMedia(PHONE).matches ? 'phone
 /** Phone (under 768 px wide) or wide; the server render and tests are wide. */
 const useLayout = (): CreatorLayout => useSyncExternalStore(subscribe, phoneNow, () => 'wide');
 
-/** The centre of the screen: the octopus's picture slot. A picture only for now (the gold glyph of "Your Octopus"): the live preview is Task 13's. */
+/** The centre of the screen: the octopus's picture slot, the creator still of the draft's template and palette (so it changes with either). A picture only: the live preview is Task 13's. */
 function Preview({ draft }: { draft: CreatorDraft }) {
   const { template, palette, personality, name } = draft.octopus;
   return (
     <section className="oct-creator-preview" data-slot="preview" aria-label="Octopus preview">
       <div className="oct-creator-picture">
-        <YourOctopusPicture />
+        <CreatorStill template={template} palette={palette} alt={`${name === '' ? 'Your Octopus' : name}, ${TEMPLATE_NAMES[template]} template in ${PALETTE_NAMES[palette]}`} />
       </div>
       <p className="oct-creator-caption">
         <b>{name === '' ? 'Your Octopus' : name}</b>

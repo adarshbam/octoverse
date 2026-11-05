@@ -304,11 +304,12 @@ test.describe('How It Works alive: desktop', () => {
     // Leaving unmounts it (after 300 ms).
     await page.mouse.move(5, 500);
     await expect.poll(() => canvases(page), { timeout: LEAVE_MS }).toEqual(HOST_ONLY);
-    // Your Octopus never goes live: its picture stays the gold glyph.
+    // Your Octopus never goes live: its picture stays a still (the labelled sample octopus when this browser holds no draft).
     await card(page, 'yours').hover({ force: true });
     await page.waitForTimeout(1500);
     expect(await canvases(page)).toEqual(HOST_ONLY);
-    await expect(page.locator('[data-card="yours"] [data-glyph="octopus"]')).toBeVisible();
+    await expect(page.locator('[data-card="yours"] [data-picture="sample"] img')).toBeVisible();
+    await expect(page.locator('[data-card="yours"] .oct-still-tag')).toHaveText('Sample octopus');
   });
 
   test('the cross-fade: the picture is fully in a moment after it is asked to show, and a card left fades it out at once', async ({ page }) => {
@@ -491,7 +492,7 @@ test.describe('Explore tiles come alive like the cards (spec 7.11)', () => {
   test.setTimeout(180_000);
   const tile = (page: Page, id: string) => page.locator(`[data-tile="${id}"] .oct-tile`);
 
-  test('one live preview at a time, the last tile entered; Your Octopus stays the glyph; a phone has stills', async ({ page }) => {
+  test('one live preview at a time, the last tile entered; Your Octopus stays a still; a phone has stills', async ({ page }) => {
     await watchCanvases(page);
     await page.goto('/explore');
     await expect(tile(page, 'veyra')).toBeVisible();

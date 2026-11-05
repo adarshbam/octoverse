@@ -73,7 +73,7 @@ describe('How It Works', () => {
     expect(cards).toEqual(['Veyra The Keeper of Files', 'Flux The Pipeline Runner', 'Nox The Watcher', 'Aether The Curious Mind', 'Your Octopus Your Story']);
   });
 
-  it('puts an engine still on the four worlds cards and the gold glyph card on Your Octopus', () => {
+  it('puts an engine still on the four worlds cards and the gold glyph card on Your Octopus until the draft is read (yourOctopusPicture.test.tsx has the rest)', () => {
     const cards = [...html.matchAll(/<button\b[\s\S]*?<\/button>/g)].map(m => m[0]);
     for (const [i, id] of ['veyra', 'flux', 'nox', 'aether'].entries()) {
       expect(cards[i]).toContain(`src="/platform/stills/${id}.webp"`);

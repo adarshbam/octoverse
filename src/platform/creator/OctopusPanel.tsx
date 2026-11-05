@@ -1,13 +1,13 @@
 import { useId } from 'react';
-import { WorldStill } from '../pages/parts';
+import { CreatorStill } from '../pages/parts';
 import { withOctopus } from './draftEdits';
 import { SWATCH_COLOURS } from './swatchColours';
 import { PALETTE_IDS, PALETTE_NAMES, PERSONALITY_IDS, PERSONALITY_NAMES, TEMPLATE_IDS, TEMPLATE_NAMES, type CreatorDraft } from './types';
 
 /**
- * The left glass panel, "Your Octopus" (spec 7.13, P4): the four templates (the four world stills for now, the creator stills come
- * with Task 18), the nine palette swatches (Original and P4's eight, round buttons named for screen readers), the four personality
- * pills and the name. Presets and a name only: no colour picker, no geometry, no slider.
+ * The left glass panel, "Your Octopus" (spec 7.13, P4): the four templates (each one's creator still at its Original palette, spec 7.13), the nine
+ * palette swatches (Original and P4's eight, round buttons named for screen readers), the four personality pills and the name.
+ * Presets and a name only: no colour picker, no geometry, no slider.
  */
 export function OctopusPanel({ draft, onChange }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void }) {
   const uid = useId();
@@ -23,7 +23,7 @@ export function OctopusPanel({ draft, onChange }: { draft: CreatorDraft; onChang
         <div className="oct-templates">
           {TEMPLATE_IDS.map(id => (
             <button key={id} type="button" data-template={id} aria-pressed={template === id} className="oct-template" onClick={() => onChange(withOctopus(draft, { template: id }))}>
-              <WorldStill world={id} />
+              <CreatorStill template={id} palette="original" />
               <span className="oct-template-name">{TEMPLATE_NAMES[id]}</span>
             </button>
           ))}

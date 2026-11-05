@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { PaletteId, TemplateId } from '../creator/types';
 import type { ShowcaseWorld } from '../fixtures/worldContent';
 import { stillFor } from '../stills/stills';
 import { Nav } from './Nav';
@@ -31,6 +32,12 @@ export function Chips({ names, label }: { names: readonly string[]; label?: stri
 export function WorldStill({ world }: { world: ShowcaseWorld }) {
   const still = stillFor({ kind: 'world', world });
   return <img className="oct-still" src={still.src} width={still.width} height={still.height} alt="" decoding="async" draggable={false} />;
+}
+
+/** A creator still (spec 7.14): one template in one palette, rendered by the engine; a still shows no personality. */
+export function CreatorStill({ template, palette, alt = '' }: { template: TemplateId; palette: PaletteId; alt?: string }) {
+  const still = stillFor({ kind: 'creator', template, palette });
+  return <img className="oct-still" src={still.src} width={still.width} height={still.height} alt={alt} decoding="async" draggable={false} />;
 }
 
 /**

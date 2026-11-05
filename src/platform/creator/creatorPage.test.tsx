@@ -31,12 +31,12 @@ describe('the creator composition (spec 7.13)', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it('Your Octopus: four template thumbnails (the four world stills, labelled by name), nine swatches, four personality pills, Name', () => {
+  it('Your Octopus: four template thumbnails (a creator still of each template at its Original palette, labelled by name), nine swatches, four personality pills, Name', () => {
     const left = html.slice(html.indexOf('Your Octopus</h2>'), html.indexOf('Your Projects</h2>'));
     const templates = [...left.matchAll(/<button\b[^>]*data-template="([^"]+)"[^>]*>([\s\S]*?)<\/button>/g)];
     expect(templates.map(m => m[1])).toEqual(['veyra', 'flux', 'nox', 'aether']);
     expect(templates.map(m => textOf(m[2]))).toEqual(['Veyra', 'Flux', 'Nox', 'Aether']);
-    for (const m of templates) expect(m[2]).toContain(`src="/platform/stills/${m[1]}.webp"`);
+    for (const m of templates) expect(m[2]).toContain(`src="/platform/stills/creator-${m[1]}-original.webp"`);
     const swatches = [...left.matchAll(/<button\b[^>]*data-palette="([^"]+)"[^>]*>/g)];
     expect(swatches.map(m => m[1])).toEqual([...PALETTE_IDS]);
     const pills = [...left.matchAll(/<button\b[^>]*data-personality="([^"]+)"[^>]*>([\s\S]*?)<\/button>/g)];
@@ -71,8 +71,9 @@ describe('the creator composition (spec 7.13)', () => {
     expect(TEMPLATE_IDS).toEqual(['veyra', 'flux', 'nox', 'aether']);
   });
 
-  it('the picture slot is the Your Octopus glyph (no live preview yet) and says the draft name', () => {
-    expect(html).toContain('data-glyph="octopus"');
+  it("the picture slot is the creator still of the draft's template and palette (no live preview yet) and says the draft name", () => {
+    expect(html).toContain('src="/platform/stills/creator-aether-peach.webp"');
+    expect(html).not.toContain('data-glyph="octopus"');
     expect(html).not.toContain('<canvas');
     expect(text).toContain('Aether');
     expect(text).toContain('Peach');
