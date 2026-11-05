@@ -7,6 +7,13 @@ const FACE_NDC_Y = -0.17;
 const clamp1 = (v: number) => Math.min(1, Math.max(-1, v));
 
 /**
+ * With a look point to wander to, a pointer that moved within this many seconds holds the eyes
+ * (the pointer wins), and a pointer that has been still longer lets them go back to the look point.
+ * Without one, the pointer is followed for `micro.tracking` as ever.
+ */
+export const LOOK_POINTER_HOLD = 1.5;
+
+/**
  * Where Nox looks. Eyes follow a moving pointer quickly and the head follows
  * slowly; once the pointer has been still for a while, Nox makes idle glances.
  */
@@ -51,16 +58,20 @@ export class Attention {
    * `rest`, also in NDC, is where the eyes settle when there is nothing to follow (the detail panel)
    * instead of glancing about. Resting is the eyes' alone: the stage pose already turns the head
    * toward it, so the head holds still, and nothing counts as followed (`tracking`).
+   * `lookPoint`, also in NDC, is the point the eyes are wandering to (behavior/lookPoints.ts): the
+   * priority is `fixed`, then the pointer (moved within LOOK_POINTER_HOLD), then `lookPoint`, then
+   * `rest`. Like `rest` it is the eyes' alone and counts as nothing followed. Unset (Nox, Veyra, Flux), nothing changes.
    */
-  update(pointer: { x: number; y: number } | null, t: number, dt: number, fixed?: { x: number; y: number }, faceCenter?: { x: number; y: number }, rest?: { x: number; y: number }) {
+  update(pointer: { x: number; y: number } | null, t: number, dt: number, fixed?: { x: number; y: number }, faceCenter?: { x: number; y: number }, rest?: { x: number; y: number }, lookPoint?: { x: number; y: number }) {
     if (pointer && (!this.last || Math.abs(pointer.x - this.last.x) + Math.abs(pointer.y - this.last.y) > 1e-6)) {
       this.last = { ...pointer };
       this.lastMove = t;
     }
     if (!pointer) this.last = null;
     const { tracking, saccade } = this.personality.micro;
-    const followed = fixed ?? (pointer && t - this.lastMove < tracking ? pointer : null);
-    const look = followed ?? rest ?? null;
+    const pointerHold = lookPoint ? Math.min(tracking, LOOK_POINTER_HOLD) : tracking;
+    const followed = fixed ?? (pointer && t - this.lastMove < pointerHold ? pointer : null);
+    const look = followed ?? lookPoint ?? rest ?? null;
     const resting = !followed && look !== null;
     if (!look) {
       if (!this.idle) {

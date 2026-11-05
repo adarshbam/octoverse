@@ -263,16 +263,28 @@ export const AETHER: CharacterConfig = {
     curl: 1.25,
     float: { amplitude: 0.07, period: 6.8 },
     breathPeriod: 5.0,
-    swim: { recovery: 0.6, power: 0.24, glide: 0.85, fill: 0.04, squeeze: 0.06 },
+    // The glide is 0.85 / 1.4 s here: glideBias 1.4 (below) stretches it to the spec's 0.85 s.
+    swim: { recovery: 0.6, power: 0.24, glide: 0.85 / 1.4, fill: 0.04, squeeze: 0.06 },
     micro: {
       blink: { seconds: 0.17, doubleGap: 0.12 },
       tracking: 3.5,
       glance: { first: 2, wait: [2.0, 4.5], x: 0.45, y: 0.3, lift: 0.05 },
       saccade: { first: 0.4, wait: [0.35, 1.25], x: 0.07, y: 0.05 },
       startle: { duration: 0.6, lift: 0.05, armsIn: 0.12, eyes: 0.5, speed: 3.5, near: 0.55, cooldown: 3 },
-      // The settle overshoots 80% of Nox's 0.03; the arrival wiggle is Nox's size with softer timing.
-      settle: { duration: 0.9, amount: 0.024, cycles: 1.5 },
+      // Nox's approved overshoot: `settle` 0.8 (below) lands her at 80% of it, 0.024 (spec 7.8). The
+      // arrival wiggle is Nox's size with softer timing.
+      settle: { duration: 0.9, amount: 0.03, cycles: 1.5 },
       arrival: { duration: 1.6, roll: 0.09, armWave: 0.14 },
     },
+    // Her motion personality (spec 7.8, Task 16): she lands at 80% of the approved overshoot, glides
+    // 1.4 times as long, and every 10 to 16 s one arm slowly reaches (the shared flourish layer, the
+    // tip uncurling at most 40%; flourishRate 4.6 draws waits of 10.4 to 17.4 s, mean about 14). Her
+    // signature is the curious head tilt: up to 6 degrees (0.105 rad) every 5 to 9 s, each one
+    // 4.6 s long and never faster than her head turns (behavior/idleTilt.ts). The gaze wander is
+    // `lookPoints` on the intro pose (poses.ts); the spark of an idea is moments.ts.
+    settle: 0.8,
+    glideBias: 1.4,
+    flourishRate: 4.6,
+    idleTilt: { amplitude: 0.105, period: [5, 9] },
   },
 };

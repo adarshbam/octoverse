@@ -16,6 +16,8 @@ export interface Sequences {
   length(id: SequenceId): number;
   /** How the entrance's final turn runs (`SequenceSet.entrance`). */
   readonly entrance: EntranceShape;
+  /** The kit props the entrance drives, from the world's sequence set (`SequenceSet.kitDrives`). */
+  readonly kitDrives?: Readonly<Record<string, string>>;
 }
 
 /** What the loader needs of a world's sequence set, with its saved state already in hand. */
@@ -63,7 +65,7 @@ export function loadSequences(spec: SequenceSpec): Promise<Sequences> {
   return started;
 }
 
-async function load({ projectId, state, defaults, entrance }: SequenceSpec): Promise<Sequences> {
+async function load({ projectId, state, defaults, entrance, kitDrives }: SequenceSpec): Promise<Sequences> {
   const { getProject, types } = await import('@theatre/core');
   const project = getProject(projectId, { state: state as never });
   await project.ready;
@@ -89,6 +91,7 @@ async function load({ projectId, state, defaults, entrance }: SequenceSpec): Pro
   };
   return {
     entrance,
+    kitDrives,
     sheet,
     length: id => defaultsOf(id).length,
     sample<T>(id: SequenceId, objectKey: string, seconds: number): T {

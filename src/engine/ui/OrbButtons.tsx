@@ -53,14 +53,23 @@ export function faceSpot(bundle: WorldBundle, stage: 'intro' | 'overview' = 'ove
 }
 
 function faceSpotNow(bundle: WorldBundle, stage: 'intro' | 'overview'): FaceSpot {
-  const size = { width: window.innerWidth, height: window.innerHeight };
+  return faceSpotAt(bundle, stage, { width: window.innerWidth, height: window.innerHeight });
+}
+
+/**
+ * `faceSpot` for a viewport of `size`: the face's keep-clear box is 1.05 either side, 0.45 up and
+ * 0.55 down of the face origin in the head's own units, scaled with the stage pose's body as the
+ * face is drawn (at scale 1, every Nox stage, the sums are exactly the unscaled ones).
+ */
+function faceSpotAt(bundle: WorldBundle, stage: 'intro' | 'overview', size: { width: number; height: number }): FaceSpot {
   const [fx, fy] = faceOrigin(bundle, stage);
+  const { scale } = bundle.poses[stage].body;
   const camera = stageCamera(bundle.stage.frames[stage], size);
   const center = projectToScreen(new THREE.Vector3(...faceAnchor(bundle, stage)), camera, size);
-  const pRight = projectToScreen(new THREE.Vector3(fx + 1.05, fy - 0.1, 0), camera, size);
-  const pLeft = projectToScreen(new THREE.Vector3(fx - 1.05, fy - 0.1, 0), camera, size);
-  const pTop = projectToScreen(new THREE.Vector3(fx, fy + 0.45, 0), camera, size);
-  const pBottom = projectToScreen(new THREE.Vector3(fx, fy - 0.55, 0), camera, size);
+  const pRight = projectToScreen(new THREE.Vector3(fx + 1.05 * scale, fy - 0.1 * scale, 0), camera, size);
+  const pLeft = projectToScreen(new THREE.Vector3(fx - 1.05 * scale, fy - 0.1 * scale, 0), camera, size);
+  const pTop = projectToScreen(new THREE.Vector3(fx, fy + 0.45 * scale, 0), camera, size);
+  const pBottom = projectToScreen(new THREE.Vector3(fx, fy - 0.55 * scale, 0), camera, size);
   const bounds = {
     left: Math.min(pLeft.x, pRight.x),
     right: Math.max(pLeft.x, pRight.x),

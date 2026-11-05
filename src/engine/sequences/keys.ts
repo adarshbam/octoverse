@@ -34,20 +34,27 @@ export interface SequenceDefaults {
 }
 
 /**
- * How the entrance's final turn runs (amendment A1, G2): `turn` radians about the vertical axis,
- * in the arc's spin; `spiral` is whether the swim ends on a golden-spiral arc (only `true` until
- * F01 builds the other path, then it widens to `boolean`). The entrance's yaw and arc read it
- * (sequences/entrance.ts). Nox turns once round, on the spiral.
+ * Where the spiral arc starts: `r0` stage units from the stage spot, at `phase` radians about +y
+ * from +z. The world's own, since the swim's path (its sheet's keys) ends where the arc begins.
  */
-export interface EntranceShape {
-  turn: number;
-  spiral: true;
-  /**
-   * Where the spiral arc starts: `r0` stage units from the stage spot, at `phase` radians about +y
-   * from +z. The world's own, since the swim's path (its sheet's keys) ends where the arc begins.
-   */
-  arc: { readonly r0: number; readonly phase: number };
+export interface EntranceArc {
+  readonly r0: number;
+  readonly phase: number;
 }
+
+/**
+ * How the entrance's final turn runs (amendment A1, G2; the non-spiral path built for Veyra, Task
+ * 17): `turn` radians about the vertical axis (above 0, at most 2 pi), run by the sheet's `spin`
+ * (0 to 1). `spiral` picks the path (sequences/entrance.ts):
+ * - `true` (Nox): the swim ends on a golden-spiral arc (`arc`) that curls once round into the stage
+ *   spot, the body facing along it. The yaw is the turn times the spin wrapped to the near side
+ *   (-0.5 to 0.5), so it is 0 at the end and jumps by `turn` half way round: a turn short of 2 pi
+ *   leaves that jump in view, so use it for the full turn.
+ * - `false` (Veyra): no arc; the sheet's keyed path carries the body to the spot, and the body turns
+ *   in place on it, a glide-turn into the front: the yaw runs from -turn to exactly 0 as `spin`
+ *   goes 0 to 1, monotonic, so the body faces -turn before the turn (the sheet's `yaw` key aside).
+ */
+export type EntranceShape = { turn: number; spiral: true; arc: EntranceArc } | { turn: number; spiral: false };
 
 /**
  * What a world gives the sequence loader (sequences/theatre.ts): its Theatre project's id and
@@ -63,6 +70,13 @@ export interface SequenceSet {
   state: () => Promise<unknown>;
   defaults: Partial<Record<SequenceId, SequenceDefaults>>;
   entrance: EntranceShape;
+  /**
+   * The kit props the entrance drives (Task 18; `WorldConfig.props`): each key is a prop's id, each
+   * value the name of the prop of the entrance sheet's `main` object that gives its value (so the
+   * sheet's `lockRing` can turn the world's padlock ring). Absent: the entrance drives none (Nox).
+   * `validateBundle` checks that both sides exist.
+   */
+  kitDrives?: Readonly<Record<string, string>>;
 }
 
 /** Straight-line handles: the value runs at an even rate between two keys. */

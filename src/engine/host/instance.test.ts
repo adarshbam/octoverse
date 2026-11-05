@@ -88,3 +88,15 @@ test("the host's attend request starts empty, copies the point it is given, and 
   // Two instances never share one.
   expect(createInstanceState(world('b'), 'preview').attend).not.toBe(attend);
 });
+
+test('each instance has its own flourish events (Task 16, A2 X1): a subscriber of one is not told of the other', () => {
+  const a = createInstanceState(world('a'), 'page');
+  const b = createInstanceState(world('b'), 'page');
+  expect(a.flourish).not.toBe(b.flourish);
+  const told: string[] = [];
+  b.flourish.subscribe(e => told.push(e.arm));
+  a.flourish.emit({ arm: 'T2', start: 1 });
+  expect(told).toEqual([]);
+  b.flourish.emit({ arm: 'T3', start: 2 });
+  expect(told).toEqual(['T3']);
+});

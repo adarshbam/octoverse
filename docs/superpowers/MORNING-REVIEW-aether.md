@@ -56,6 +56,51 @@ What to check:
 4. **Happy face at the dome's bottom**: eyes whole under the glass, open smile. The face anchor is just below the glass's seat (P3 paints the eyes 24 px below it), not inside the dome's lower fifth as the plan words it: inside, the glass would tint the eyes.
 5. The arms keep their P2 thickness and cups, so they read heavier than P3's slim painted tentacles.
 
+### Overview orbs and the flight (Task 12): PROVISIONAL, not approved
+
+Open the overview live (`?world=aether`, then Explore or click her head) and watch the head swell: the ring's beads brighten, split into orbs, fly to her arms and hang there on gold threads. Then hover an orb. Stills in `docs/superpowers/evidence/aether/m3/`:
+- `t12-p3-vs-overview.webp`: P3 left, the settled overview right (registered pixel for pixel).
+- `t12-flight-0.1-0.75s.webp` and `t12-flight-0.85s-settled.webp`: the opening at 0.1, 0.3, 0.6, 0.75, 0.85, 0.95 and 1.0 s, and settled.
+
+Numbers (all in `docs/superpowers/reviews/aether.md`, Task 12):
+- Orbs 0.6 across, 16 lavender-white rim beads each, a gold cap (0.05) at a gold thread 0.16 long.
+- Her ten technologies hang on the upper slots (T1, T8, T2, T7 both; T3, T6 tips). Up to 16 hang (two an arm); more go to the tray.
+- Flight: beads brighten 0.2 to 0.43 s, split 0.43 to 0.6 s, orbs fly 0.6 to 1.24 s (T1's tip first), settle by 1.35 s. Float: at most 15 degrees, settled in 1.4 s, 0.03 bob over 3 to 5 s.
+- No orb in flight touches her face box, for 10, 15 or 16 technologies (tested). They fly over the dome for about half a second.
+- Reduced motion: a crossfade, no flight.
+
+What to check:
+1. **Orb rim beads and cap**: P3's rims are a solid glowing ring; these are dotted beads. The glass is lighter than P3's dark glass. Close enough?
+2. **The flight**: timing, the arcs (orbs from a bead across her centre line rise over the top), the small stagger (0.06 s first to last), trails, the landing. It has no arm "catch" dip on landing.
+3. **No orb over the face**, in flight or hanging.
+4. **Orbs over the arms**: all ten of her orbs overlap an arm (only four of the 16 slots clear the arm tubes, none of them hers). P3 has some of this too. Acceptable?
+5. **Blank orbs and Redis**: five orbs have no logo (OpenAI, Next.js, PostgreSQL, AWS, Vector DB; engine follow-up "Logo marks"). Redis's mark is red. Keep it or recolour it?
+6. Her ten leave the bottom of the horseshoe empty, where P3 has orbs all round.
+
+### Static P3, P4 and P5 (Milestone 3, Task 13): PROVISIONAL, not approved
+
+Open `?world=aether&stage=techFocus&tech=openai`, `?world=aether&stage=detail` and the same on a 390 x 844 phone. Stills in `docs/superpowers/evidence/aether/m3/`:
+- `t13-p4-vs-techfocus.webp`, `t13-p4-mouth-vs-render-3x.webp`: P4 left, the frozen tech focus right.
+- `t13-p5-vs-detail.webp`, `t13-detail-ui.webp`: P5 left, the detail right; the detail page with its panel.
+- `t13-phone-intro-overview-techfocus-detail.webp`: the four frozen stages at 390 x 844.
+
+Numbers (all in `docs/superpowers/reviews/aether.md`, Task 13):
+- P4 samples: **not what a visitor sees.** A real tech focus shows the overview's `happy` face (WorldHost draws the returnTo pose). The samples were taken with the expression forced (`expression=curious` in the URL), so they describe the face Task 19's arm lift (expression `curious`) will show; none of it is visible on a real tech focus until then.
+- Mouth inside: 7.5 with a patch at the render's own inside centroid (pass), 15.0 by the inside's region mean (miss), 64.7 at P4's point carried by the eyes (miss). It passes only under the most favourable registration.
+- Tongue: 25.0 on a patch (MISS: the tongue's own colour is 1.8 off by region mean, but it is 22 px against P4's 176 px, so the patch takes in the dark mouth), 50.7 eye-registered. Focused orb rim: 3.8. Her mouth sits higher than P4's and is a V/U, not P4's D.
+- Tools: `src/worlds/aether/review/p4de.py` (mouth) and `src/worlds/aether/review/p4rim.py` (rim).
+- Detail: her eyes land within 2.5 px of P5's; eye line 22 degrees as painted; yaw 0.32, tilt 0.37.
+- Phone: no bead, orb or thread on her face rect, the title or the nameplate in any frozen stage, tested for 1, 3, 10, 15, 16 and 20 technologies (not every count from 1 to 20); the ring keeps its 45-degree face sector and shrinks with her (ratio to her head 1.671 at both sizes); the phone tray lists her ten (e2e). On the phone she is drawn smaller and centred, not in the upper screen.
+- Held orb on a real tech focus: the intended pick (a model: nearestArm from the orb's true place) lands every orb at least 37.9 px clear of her face. The frozen render instead holds OpenAI on T4, about 10 px off her face at 509 x 504: an engine bug (below), held by an expected-failure e2e test on the real page.
+
+What to check:
+1. **The lifted arm curling over the orb.** It is authored (`AETHER_POSES.techFocus`, T1 mirrored from P4) but **not drawn yet**: the engine shows a focus in the overview's pose (dome open) and pulls the orb with Nox's suction hold. On the still the held OpenAI orb sits by her left eye among T2's arm, about 10 px off her face. Task 19's arm lift draws the traced arm. Is the traced shape right (crest 1.2 above the eyes, tip over the orb's top)?
+2. **The open mouth.** Small V/U with a small tongue against P4's big D (engine). Colours are right.
+3. **Aether at the left edge facing the panel**: placement, turn and lean against P5; her arms are the intro's, not P5's longer hanging ones. The panel's left edge comes just over her right cheek on the page.
+4. **The ring back round her head** in the detail: tilted with her head it rides high round the crown (as P5's). Its rear bead passes behind her brow, hidden by her head.
+5. **Phone frames**: she is centred, not in the upper screen (shared framing); the overview's sheet and tray take the lower third; in the detail the sheet covers her. 15 or 16 technologies reach the tray's third row (known limit, as Veyra; Task 20).
+6. **From Task 12, still open**: the flight's stagger reads as a near-simultaneous launch (0.06 s first to last), not a "ripple" from the upper arms down; all ten orbs overlap an arm.
+
 ### Observatory world: bake, far plate, membrane and world light (Task 9): PROVISIONAL, not approved
 
 The page now shows `OBSERVATORY_WORLD` (kit, baked `near.glb`, three far-plate layers, sand floor, membrane, glyph pulse, jellyfish, manta fish). Task 10 is the look review. Open `?world=aether` live; stills in `docs/superpowers/evidence/aether/m2/`:
@@ -112,6 +157,38 @@ What to check:
 5. **The portal off-frame in the intro.**
 6. **Bubbles past the portal (spec 7.7 look note).** Let the entrance play and watch the bubbles cross the portal: they reach pure white, brighter than her face glow at its dimmest. Keep, or dim them near the portal?
 7. **Overall.** The world is sparser and darker than P2: dark blank tower faces, few warm lights, and no bloom on the windows or jellyfish (bloom starts at 0.95 to keep her pupils dark). Is this calm enough, or too empty?
+
+### Back view (Task 14, Milestone 4): PROVISIONAL, not approved
+
+Look at it live: http://127.0.0.1:5196/?world=aether&stage=intro&freeze&yaw=180 (and `yaw=45`, `90`, `135`; `stage=overview` for the dome; add `&orbit` and drag on the water, not on her, to look from above or below). Stills in `docs/superpowers/evidence/aether/m4/`: `t14-intro-yaws.webp`, `t14-overview-yaws.webp` (yaw 0, 45, 90, 135, 180), `t14-intro-yaw180.webp`, `t14-overview-yaw180.webp`, `t14-desktop-frame-yaw0-180.webp`, `t14-rear-roots-committed-vs-option.webp`. Per-yaw table and numbers: `docs/superpowers/reviews/aether.md`, "Task 14". No source changed.
+
+Verdicts against spec 2.3:
+- **Round and glassy: pass** (intro and overview, all yaws).
+- **Specks and rim continue: pass.** Intro dome specks 8 / 7 / 9 / 11 / 15 at yaw 0 / 45 / 90 / 135 / 180 (the back at least as many as the front); rim luminance 235 to 239 at every yaw. The overview dome has no specks front or back (as P3).
+- **The ring circles behind the head: pass,** all five beads and the line at yaw 45 to 180. **Spec 7.5's dimmed rear beads: not met** (engine): the bead behind her at yaw 0 is hidden, not seen through the jelly.
+- **Face not visible from behind: pass.** No face or glow card at yaw 180 (0 dark and 0 peach pixels on the head at 180; also checked on the 1536 x 1024 frame).
+- **Overview from behind: pass with a limit.** No orb inside the dome. From behind the orbs are dark glass discs without a logo; yaw 90 piles them in a column (arms authored flat, as Nox and Veyra).
+- **Popping or holes: one fault, the rear arm roots,** at yaw 135 and 180: T1 and T8's root caps meet in a hard butt joint with a notch. Veyra's fix (`rear()` z `[0, -0.62]`) removes it but costs the front one P2 sample (arm underside glow 6.0 to 17.2) and two tests, so I did not apply it.
+
+What to check:
+1. Walk yaw 135 to 180 on the intro and overview: the crease where the two upper rear arms meet at the centre. **Owner call:** apply the fix (cost above) or live with it.
+2. The ring from behind and from the side: does it read as circling her head? At yaw 90 its line crosses the face's edge (side view, no stage shows it).
+3. Overview orbs from behind: anonymous dark discs. Acceptable, or should logos show?
+4. The pink wash low in the dome at yaw 135: the face glow through the jelly. Wanted?
+5. Motion (twinkle, sway, the head turn) was not judged from stills.
+
+### Curious personality (Task 16, Milestone 5): PROVISIONAL, not approved
+
+Live: http://127.0.0.1:5196/?world=aether&stage=intro (no `freeze`: every item below is motion, so a still shows nothing). Leave the pointer away from her for a minute first. Values: `src/worlds/aether/character.ts` (personality) and `poses.ts` (`INTRO_LOOK_POINTS`); logic and tests: `moments.ts`, `moments.test.ts`. Report: `.superpowers/sdd/2026-11-03-aether-world/task-16-report.md`.
+
+What to look at, and what is only data and tests tonight:
+1. **The tilt** (visible live). Head leans up to 6 degrees to one side every 5 to 9 s, takes 4.6 s (2.2 s over, 0.2 s hold, 2.2 s back). Tests: count 6 to 12 in 60 s; never faster than her head turns (measured). Not judged by eye. Is 4.6 s too slow or the 6 degrees too small? Owner call: the "sometimes a blink at the top of the tilt" is not built (engine request below).
+2. **The gaze wander** (visible live). Eyes move to a new point every 4 to 8 s: the left jellyfish, the right jellyfish, the title's upper right corner, or you (straight ahead). With a look point in play the pointer holds her eyes for 1.5 s, not 3.5 s. Tests pin the points and the schedule; where the eyes really land was not looked at. The four points are authored from P2 and the title box: say if one should move.
+3. **The reach** (visible live). Every 10.4 to 17.4 s (flourishRate 4.6; the spec says 10 to 16, the engine's wait range is fixed at 0.8 to 4/3 of the mean) one arm uncurls its tip up to 40% and rolls back, 3 s. It is the flourish layer Veyra uses, so it does not aim "toward a nearby point of interest": that is an engine request below. Tests: 3 to 5 starts per 60 s over 200 seeds.
+4. **The spark** (DATA AND TESTS ONLY, not visible). The trigger (pointer within 1.2 units for over 1.5 s), the wave (1.2 s, `uSparkleWave` 1 to 0, face to crown), the bead flicker and the 8 s cooldown are a tested pure function, `sparkStep` in `moments.ts`. The engine has no hook to call it, so nothing happens live. Never fires during a lift or the swell (tested).
+5. **Nothing reads as nervous.** Visible live for the tilt, the wander and the reach, one at a time each; "never two moments at once" is tested on the schedules but NOT live: the engine runs the tilt, the reach and the wander independently, so today they can overlap (the test finds overlaps in the raw schedules). The tilt alone is about 66% of the time (4.6 s of every 7 s on average), so with the arbiter the reach and wander will be pushed back often. Owner call: shorten the tilt, or let the eyes-only wander run during it.
+
+Also changed (values from spec 7.8): `settle` 0.8 (the micro settle amount is Nox's 0.03 now; it was pre-scaled to 0.024, which would have been applied twice), `glideBias` 1.4 (the swim glide base is 0.85 / 1.4, so the effective glide stays 0.85 s and the entrance stroke stays 1.69 s). Other table values already matched.
 
 ## Owner decisions (look gate)
 
@@ -178,7 +255,34 @@ Please give the real names.
   - Paler, bluer, nearer and larger bells read further off (14.2 to 28.0). The blue cannot climb.
   - Wanted (optional, absent = today's look): `JellyfishConfig.glow` (a bell strength above 1, drawn with `toneMapped: false` so it can reach the bloom) and `JellyfishConfig.opacity` (today 0.75).
   - Target: P2's jellyfish bell sample (81, 155) within delta E 10, with her face glow still the brightest thing in frame.
+- **Tech focus shows the traced arm (Task 13).** `src/engine/host/WorldHost.tsx` shows a focus in its `returnTo` stage's pose (`const shown = state.stage === 'techFocus' ? state.returnTo : state.stage`, then `blender.start(stagePoseOf(poses, reviewSwim, shown))` and `headOpen={headOpens(stagePoseOf(..., shown))}`), so `poses.techFocus` (arms and `headMorph` 0) is never drawn and the dome stays open. The only select is `suctionHold`, which pulls Aether's OpenAI orb beside her left eye.
+  - Wanted: the arm lift select (Veyra's `armLift`, spec 7.5) that blends the chosen arm to `poses.techFocus.arms[arm]` (root first, tip last, about 500 ms) and holds the orb under the curl, and the focus taking `poses.techFocus.headMorph`.
+  - Target: on `?freeze&stage=techFocus&tech=openai` her T1 lies within 0.04 of `P4_LIFT` (poses.ts), the orb at `TECH_FOCUS_ORB` (-1.568, 0.387) grown 1.3x, the head closed; the P4 rim sample stays within dE 10.
+- **Open mouth shape and tongue (Task 4, Task 13).** `src/engine/character/mouthShape.ts` keeps the closed smile's curved top line and `FaceCanvas.ts` draws the tongue as an ellipse of 0.32 x the mouth's width in the bottom third of the opening.
+  - Wanted (optional, absent = today): `FaceLayout.mouth.openTop` (how flat the open mouth's top goes, for P4's D) and `FaceLayout.mouth.tongue` (`{ width, share }`; today 0.32 and 1/3).
+  - Target: P4's tongue sample (287, 239) within dE 10 on a 5x5 patch at the rendered tongue's centre; the rendered tongue at least 100 native px (P4 176).
+- **Face-glow card facing the pose's turn (Task 13).** `Octopus.tsx` sets `rig.coreGlow` strength by `coreGlowFacing((swim ? swim.yaw : 0) + extraYaw)`, not the pose's `body.yaw`. The card sits 0.9 in front of the face, so in a turned pose it reaches past the cheek. Aether's detail uses yaw 0.32 (P5's own turn) partly to keep it in.
+  - Wanted: include `pose.body.yaw` in the facing.
+- **Phone composition (Task 13).** Spec 7.11 puts her in the upper screen on a phone; `fovFor` centres the frame, and the detail's sheet (`ProjectDetail`, portrait phone) covers her face (y 380 to 432 of 844).
+  - Wanted: a per-stage phone offset (a lens shift that lifts her into the upper screen), and a detail sheet that stops below her face.
+- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
+  - Wanted: pick the arm once the orbit point is written (or from the bubble's slot point when the orbit is unset), and re-pick if the hold's first pick was made from an unset point.
+  - Measured on the real page (fix round 2, `tests/e2e/aether.spec.ts`, 1536 x 1024, frozen): the OpenAI orb button is 49 px from T4's drawn tip and 221 px or more from every other tip (T1's 459 px). The cause (the unset orbit point) is read from the code, not traced frame by frame.
+  - Target: the e2e test "Aether tech focus, frozen: OpenAI is held near T1, the arm it hangs from [engine follow-up: ...]" is marked `test.fail` today; once the engine holds OpenAI on T1 it passes, Playwright reports it, and the `test.fail` line comes out. On the frozen still the orb then sits at T1's tip, clear of her face (the intended-pick model says 129 px at 509 x 504; model only).
+- **Panel edge over her cheek on the page (Task 13 fix round 1).** At 1672 x 941 the detail panel's left edge comes over her right cheek. The model puts her face box's right edge (the blush's outer edge) at stage x -2.546, 0.29 left of the panel's left edge (the Task 13 review read 0.18 for the blush itself; either way it is left of it) (-2.255, `AETHER_STAGE_PANELS.detail`), so the overlap is probably the engine's panel mapping (stage panel to page CSS) at that aspect, not her pose. Not traced in the engine.
+  - Wanted: check how `AETHER_STAGE_PANELS` maps to the page panel's left edge at a wide aspect.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
+
+- **Back view (Task 14).** Three requests, all optional for the stills.
+  - Rear beads seen through the jelly, dimmed (spec 7.5): the ring's rear beads are hidden behind the opaque head at yaw 0 and 45. Wanted: draw the ring and beads behind the head dimmed through the glass.
+  - Orb logo from behind: a turned-away orb shows a dark disc without its logo. Wanted: a dim mirrored logo on the back face, or the logo as a billboard.
+  - Rear arm root caps: where T1's and T8's caps meet at the body's axis they butt in a hard flat joint with a notch (`armTube.ts` root cap). Wanted: caps that overlap or blend, so a rear pair at z `[-0.3, -0.62]` (Nox's) needs no config change. Target: Aether intro yaw 180 shows no crease, the 23-sample P2 check unchanged (HEAD: 4 misses).
+
+- **Character moments hook (Task 16).** The spark of an idea and "never more than one moment at a time" need the engine to call world logic Aether already has (`src/worlds/aether/moments.ts`, pure and tested). Three requests:
+  - Moment arbiter. Wanted: an optional bundle field, e.g. `character.moments?: { arbiter: () => MomentArbiter }`, or simply the engine's own one-at-a-time rule, shared by the idle tilt (`idleTiltAt`), the flourish scheduler and the look-point pick (`pickLookPoint`). Each asks `claim(kind, t, seconds)` before it starts (tilt 4.6 s, reach 3 s, gaze shift 1.2 s) and waits when refused. Called in `Octopus.tsx` where `idleTiltAt`, `flourish.step` and `pickLookPoint` are called (about lines 598 to 642). Today they overlap (moments.test.ts finds overlaps in the raw schedules).
+  - Spark trigger. Wanted: a per-frame call `sparkStep(state, { t, dt, pointerDistance, lifting, swelling, otherMoment, reducedMotion }, frame)` in the same place; `pointerDistance` is the pointer's distance to her head centre in stage world units (the engine already has the pointer in NDC for the gaze), `lifting` is "a pendant lift is running" (the lift's busy arms), `swelling` the head swell. Its output drives `rig.uniforms.uSparkleWave.value = frame.wave` (the shader band runs crown to face as the value rises, so the world gives 1 down to 0 for face to crown; Octopus never writes it today, it stays 0) and one lit satellite bead's glow by `frame.bead` for the bead `sparkBeadIndex(count, start)`.
+  - Blink at the top of the tilt. Wanted: when an idle tilt is at its hold (`IDLE_TILT_SECONDS`, the 0.2 s plateau), sometimes (say one in three) start a blink now. Wanted: a `BlinkScheduler.blinkNow(t)` method (`behavior/ambient.ts` has only `sample(t)`). Not built: needs the tilt phase and the blink scheduler in the same place.
+  - Reach toward a point. The flourish layer unrolls a random free arm straight; the spec's reach aims the tip at a nearby point of interest. Wanted: a `FlourishScheduler` choice weighted to the upper arms (T1, T2, T7, T8) and, optionally, a bias of the unroll toward the current look point.
 
 ## Questions for the owner (Task 4, face)
 
@@ -189,3 +293,8 @@ Please give the real names.
 ## Engine follow-up from the Flux merge (for the engine owner)
 
 Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same quality tier. The Aether branch keeps both (always equal, with a test holding them equal). Fold them into one name, `id` (platform's branch already carries it): a two-line change.
+
+## Review notes
+
+- Task 14 (back view) is docs and evidence only (no source changed) and skipped its separate task review. Its checklist verdicts are the implementer's own; look at the contact sheets in `docs/superpowers/evidence/aether/m4/`.
+- The engine merge `9ab7af7` (Veyra back view and Task 16 with Aether's satellite flight) was committed by an agent killed in the laptop crash. Afterwards the full unit suite (1089 passed) and the typecheck were re-run clean; the Nox still gate and the e2e specs were not re-run on that exact commit.

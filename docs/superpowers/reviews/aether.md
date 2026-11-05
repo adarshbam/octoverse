@@ -875,3 +875,240 @@ The relic rule holds for the portal, but world elements near it can outshine her
 **Doc fixes.**
 - The face-trough wording no longer claims that a changing patch size only adds to the dip (both in the script and in fix round 2 above).
 - MORNING-REVIEW no longer calls t 6.5 a bubble: it is her light on the lantern, and it counts.
+
+## Task 12: overview orbs (engine `satellite` active form, the flight, `orbStyle`); owner review PROVISIONAL
+
+Three commits: two engine-only, one Aether.
+- **`orbStyle`** (engine, also for Flux): `ArtifactConfig.orbStyle { rimBeads, rimColour, cap | null }`, validated (`rimBeads` 0 to 64, a colour, `cap.size` > 0). Every orb gets a rim of small additive beads, which brighten with its focus, and a small cap where its thread meets it. Absent, the orb glass is today's exactly: `orbStyle.test.ts` pins the glass shaders' fingerprints, uniforms and flags.
+- **Satellite flight and active form** (engine). Without `slots`, `sizes`, `tether` and `swing` the satellite is ring-only with capacity 0, as before. With them:
+  - the technologies are dealt round the ring's beads;
+  - the beads brighten, flare and split into orbs, which fly to the pendant slots, hang on tethers and float;
+  - Veyra's `assignPendants`, `layoutPendants`, `stepPendants` and `pendantSwing` are reused unchanged (two type widenings only).
+- **Aether** (`src/worlds/aether/artifacts.ts`): 16 overview slots from `OVERVIEW_ROOM`, two per arm, filled a pair of arms at a time from the top down, tips first (T1 tip order 0, T8 tip order 1, then T1 and T8 mid-arm, then T2/T7, and so on). Orbs 0.6 across (`sizes.overview` is the radius, 0.3; the plan's "0.6" is the width, as in `poses.test.ts`). Gold thread 0.16 long, sag 0.2. Swing at most 15 degrees, settled in 1.4 s. `orbStyle { rimBeads: 16, rimColour: '#e4d9f8', cap: { colour: '#d99982', size: 0.05 } }`. Still choosable in the overview only.
+
+**Her ten.** They take both slots on T1, T8, T2 and T7 and the tips of T3 and T6. The lower arms' slots wait for an eleventh to sixteenth technology. A seventeenth and beyond go to the tray (tested for 1, 3, 10, 15, 16 and 20).
+
+**The flight** (swell sheet seconds; the satellite reads the swell's `push` over its settled value as the flight's progress p):
+- Aether's `push` key was Nox's (peak then settle), which gave the flight only 0.3 to about 0.6 s. It now rises once, with no overshoot, from 0.2 s to 1.35 s (`sequences/defaults.ts`; `state.theatre.json` reseeded for `headSwell` only). p = (t - 0.2) / 1.15.
+- Beads brighten, p 0 to 0.2 (0.2 to 0.43 s). They flare and split, p 0.2 to 0.35 (0.43 to 0.6 s).
+- Travel, p 0.35 to 0.9 (0.6 to 1.235 s). Each orb flies for 0.5 of p (0.58 s), T1's tip first and the last orb 0.05 of p (0.06 s) later. The orb grows from 0.3 of its size, and its logo comes up over the last 30% of its own travel. A short gold trail follows it (fixed pool of 7-point tubes). Threads appear on landing.
+- Settle, p 0.9 to 1 (1.235 to 1.35 s). Then each orb floats: `pendantSwing` with the arm, plus a 0.03 bob over 3 to 5 s, each orb out of phase.
+- **The path keeps clear of her face.** It comes down a lane at least the ring's radius (1.25) out from her head's centre line, on the slot's side:
+  - an orb whose bead is across her centre line from its slot rises over the top, higher the further across it is;
+  - an orb whose bead is already out on the slot's side and above it swings outward and down, and comes in low.
+  - Tested: for 10, 15 and 16 technologies no orb in flight touches her face box (eyes, brows, blush, mouth). The first arc tried (a bow outward and up) crossed it for 4 of her ten.
+- **Continuity:** at most 0.148 per 0.01 of swell progress (plan limit 0.15). The plan's limit is why the stagger is small: a longer stagger shortens each orb's travel and speeds it past the limit.
+- **Reduced motion:** a crossfade. The orbs shrink out at the bead before p 0.5 and grow in at the slot after it, never between.
+- **Hold:** once the orbs land in the overview, a technology focus keeps them landed although it closes the head. Leaving the overview flies them home with the swell. A still (`?freeze`, `?swell=`) shows the swell's own moment. A bug found while capturing: a settled frame before the seek latched the orbs as landed, and `?swell=0.3` showed them on the arms.
+
+**Stills** (`docs/superpowers/evidence/aether/m3/`, 509 x 504 at SCALE 2, P3's registration; `kitwait=90000`):
+- `t12-p3-vs-overview.webp`: P3 left, settled overview (bare `?freeze`) right. Also `t12-overview-settled.webp`.
+- `t12-flight-0.1-0.75s.webp`: `?swell=` 0.1 and 0.3 s (ring at rest; the ring line's left half is behind the squeezing head, as before Task 12), 0.6 s (beads bright, splitting), 0.75 s (orbs leaving).
+- `t12-flight-0.85s-settled.webp`: 0.85 s (mid-flight, trails, over the dome), 0.95 s (landing), 1.0 s (landed, logos up), settled.
+- Single stills: `t12-swell-0.1s/0.3s/0.6s/1s.webp`.
+
+**Against P3:**
+- Matches: the horseshoe of orbs round her, gold caps and threads, dotted bright rims, and nothing over the face.
+- P3 shows more orbs (about 15) all round the horseshoe down to the bottom; her shipped ten fill only the upper slots, so the bottom of the horseshoe is empty.
+- P3's orbs are dark glass with a solid glowing rim and large logos. The render's rims read as dotted bead rings, and the glass is lighter.
+- Five of her ten orbs are blank: OpenAI, Next.js, PostgreSQL, AWS and Vector DB have no logo mark (`LOGO_SLUGS`; already an engine follow-up).
+- Redis's mark is red (its brand colour), against spec 7.7's no-red rule. Owner call.
+
+**Clearances** (`artifacts.test.ts`):
+- Attach points: more than 0.05 clear of the other arms and her face (`threadClearance`).
+- Hanging straight down (as every still holds them): threads and orbs more than 0.05 from her face and from the dome's panel.
+- Floating, at the idle sway's few degrees and the 0.03 bob: none reaches the panel. Swung to the full 15 degrees: none reaches the face. T8's mid-arm orb does reach the panel's right edge by about 0.065; only a hard arm sweep swings it that far (tested to stay under 0.1).
+- **Arms:** only four of the 16 slots clear the arm tubes (Task 11: T3/T6@0.6, T4/T5@0.75), and her ten use none of them. All ten of her orbs overlap an arm, from 0.01 (T1/T8 tips against the T2/T7 curls) to 0.35 (T3/T6 tips on their own curl), as several of P3's orbs sit over tentacles.
+- **Mid-flight**, the orbs cross the dome and its panel for about half a second (up to 0.23 inside the panel box). They fly over the glass, as P3's story has them rise out of the head.
+
+**Not done / known:**
+- No arm "catch" dip on landing.
+- In the detail stage the orbs fade out with the overview; they do not fly back to the ring.
+- The beads' `from` points ignore the head's turn.
+- Orbs appear with the overview's blow, then the flight runs.
+- During the flight the ring line, at brow height, crosses the dome's lower edge until it fades.
+
+## Task 13: tech focus (P4), detail (P5) and the phone frames (Milestone 3 statics); owner review PROVISIONAL
+
+Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and tests only: no engine file, no Nox, Veyra or Flux file.
+
+**Tech focus (P4).** `AETHER_POSES.techFocus` is the overview with T1 lifted, face `curious`, head closed (`headMorph` 0). OpenAI is technology 0 and hangs from slot order 0, T1's tip (her left), so P4's right-hand lift is mirrored, as Veyra's is.
+- Traced on native P4 relative to the head's near edge (x 347 px) and the eyes' midpoint (284, 204.5), at P4's 109 px a unit (eyes 75.5 px apart, hers 0.69). Placed on the overview: head edge at x -0.725, 0.1 further out (her arms are thicker), eyes' midpoint y -0.37. Root first, at the intro's root (no pop).
+- Drawn (rig at rest): the arm runs under the chin, rises beside the head (0.22 clear of the head box above the waist, thickness taken off), crests at (-1.49, 0.86), 1.23 above the eyes (P4 1.18), and its tip ends at (-1.72, 0.78), on the held orb's top far side. `TECH_FOCUS_ORB` (-1.568, 0.387), 0.76 above the eyes (P4's OpenAI (428, 122) mirrored).
+- Against her ten overview orbs: the lifted arm touches T2's mid-arm orb (gap -0.001, arm thickness and orb radius taken off). T1's own two orbs would ride the arm in a real lift.
+- **The render does not show this arm.** WorldHost shows a focus in the pose of the stage it came from (the overview, dome open) and moves the chosen orb by the select strategy, `suctionHold` (the only one). This pose is the target data for Task 19's arm lift, as Veyra's is. On the frozen capture the held OpenAI orb sits beside her left eye, among T2's arm, not grown much; it clears her face by about 10 px at 509 x 504. Engine follow-up recorded.
+
+**P4 samples** (bare `?freeze`, `stage=techFocus&tech=openai&expression=curious`, the settled rule; CIE76 as `check_stage.py`; `src/worlds/aether/review/p4de.py`, `p4rim.py`, moved there and committed in fix round 1):
+
+| Sample | Target | Feature-registered | dE | Region mean | dE | Eye-registered | dE |
+|---|---|---|---|---|---|---|---|
+| Open-mouth inside (P4 295,231) | 119,29,73 | 101,28,66 (5x5 at the inside's centroid) | **7.5** | 83,27,65 | 15.0 | 246,207,243 | 64.7 |
+| Open-mouth tongue (P4 287,239) | 253,135,143 | 176,88,109 (5x5 at the tongue's centroid) | **25.0 MISS** | 249,133,143 | **1.8** | 106,45,83 | 50.7 |
+| Focused orb rim (P4 385,110) | 228,217,248 | 217,215,250 (P4's place on the held orb) | **3.8** | mirrored side 222,205,244 | 5.9 | best on the rim | 1.3 |
+
+- Task 4 read inside 29.2 and tongue 16.8 (render lighter than the palette). Since Task 6's bloom threshold 0.95 the colours are right: the tongue's own pixels average dE 1.8, the inside's centre 7.5.
+- **The tongue miss is size, not colour.** The rendered tongue is about 22 native px; P4's is 176 px (inside 238 px against P4's 304). A 5x5 patch on it takes in the dark inside. The engine draws the tongue as a fixed ellipse in the bottom third of a V/U mouth (`FaceCanvas.ts`, `mouthShape.ts`); P4's is a D with the tongue filling nearly half.
+- Eye-registered points miss (64.7 / 50.7) because her mouth sits higher under the eyes than P4's and is a different shape: P4's sample points land on her lip and cheek.
+- Config tuning tried: `curious.mouthOpen` 0.7 to 1.0 (a deeper mouth, larger tongue). The mouth's bottom then went under her chin and the arm roots (tongue region 194 to 96 px at 3x, inside region mean 13.2): reverted. Nothing in the look changed, so the P2 samples and four global checks are as Task 10 left them (not re-measured).
+
+**Detail (P5).** Body (-3.115, 0.95), scale 1, yaw 0.32, tilt 0.37, `look` (0.65, 0.2) (the panel's screenshot), `attentive`; the intro's arms (as Nox's and Veyra's).
+- Registered on the face: P5's eyes (87.5, 246) and (152.5, 220) px of 861 x 519; the capture's (85, 244) and (151, 221): within 2.5 px. Eye line 22 degrees (P5 22).
+- Yaw 0.32, not Veyra's 0.45: P5's eyes' midpoint sits 0.19 right of her head's middle, which her face depth gives at 0.32. At 0.45 the additive face-glow card (it faces the camera only with the swim's turn) and T8's top showed as a pale band past her right cheek.
+- Her head is inside the frame (its left edge less than 0.6 in from the frame's), her left arms are cropped, her head is left of the panel's box. On the 1672 x 941 page the panel's left edge comes just over her right cheek, clear of the eyes.
+- The ring is back round her head (the satellite's rest form; stage `detail`). Tilted with her head, it sits higher round the crown, as P5's does. The rear bead (home 180 degrees) and part of the rear line project onto her brow area; they are behind her head and hidden there (depth-tested; tested: inside the head's outline). Not visible on the 3x capture.
+- Sections: Overview, Features, Tech Stack, Architecture, Experiments, Challenges, What I Learned, in order (content from Task 2, placeholder-marked; `content.test.ts`), shown on the page as P5's.
+- Not traced: P5's own arms (longer, hanging to the bottom). The detail's orbs fade with the overview; they do not fly back to the ring (Task 12 note).
+
+**Phone, 390 x 844** (`frames.test.ts`, `stageCriteria.ts`: the stage camera's framing from the bundle's stage frames, Octopus's pivots read from its source):
+- ringKeepOut: over a minute at 30 fps every bead angle is outside the 45-degree face sector; frozen, the nearest home is 72 degrees.
+- The ring shrinks with her: ring half-width / head half-width 1.671 at desktop and phone (intro), 1.605 (detail); intro ring 94 px at the phone against 253 px at 1536 x 1024.
+- Face rect: over a minute of sway, no bead in front of her head comes nearer than 30.8 px (phone intro) or 6.8 px (phone detail); counting the rear beads too, the phone intro's nearest is 8.9 px. The ring line in front never crosses it.
+- Intro, frozen: beads clear the face rect by 11.9 px, the title by 28.8 px and the nameplate by 104 px (phone); 31.7 / 75.2 / 273 px (desktop).
+- Overview and tech focus, frozen, 1, 3, 10, 15, 16 and 20 technologies: no orb or thread within 24 px of the face rect (phone; 65 px desktop); the held orb at `TECH_FOCUS_ORB` (authored, not drawn: Task 19's target) grown 1.3x clears it by more than 20 px.
+- Sheet and tray: her ten clear the bottom sheet and the two-row tray by 23.7 px. 15 and 16 (a third row) reach it by 23 px: the known limit Veyra has (Task 20).
+- Tray: the model (`createProjectModel` with the satellite's capacity 16) lists every technology in order on the phone for 1, 3, 10, 15, 16 and 20 (the counts tested); `tests/e2e/aether.spec.ts` checks the live phone overview: ten 44 px+ tray buttons, OpenAI to Vector DB, above the sheet (passed).
+- Stills: on the phone she is centred, not in the upper screen (the shared framing fits the frame to the width); the overview's sheet and tray take the lower third. The detail's sheet covers her (her face is under it at y 380 to 432 px).
+
+**Tests.** `poses.test.ts`: tech focus (T1 only, root, curious, closed), the lift (crest, tip on the orb, head clearance 0.1+, frame), the detail (eyes on P5 within 0.06, eye line 17 to 27 degrees, left edge, cropped arms, left of the panel, face on screen at 861, 1536 and 390). RED: the four pose tests failed on the HEAD poses. `frames.test.ts` (8 tests) is a guard: it also passes on the old poses. `npx vitest run --testTimeout=30000`: 134 files, 1061 passed, 1 skipped. Typecheck clean. E2E `aether.spec.ts`: 3 of 3.
+
+**Stills** (`docs/superpowers/evidence/aether/m3/`): `t13-p4-vs-techfocus.webp`, `t13-p4-mouth-vs-render-3x.webp`, `t13-p5-vs-detail.webp`, `t13-detail-ui.webp`, `t13-phone-intro-overview-techfocus-detail.webp`. No videos; no fps measured.
+
+### Verdict, honest (not an approval)
+- Detail: the strongest match of the three: her face lands on P5's within 2.5 px, turned and leaning as painted, the ring round her head. The arms are the intro's, not P5's hanging ones.
+- Tech focus (see Fix round 1: the mouth samples need the expression forced, and inside 7.5 is the most favourable of three registrations): the colours are right (inside 7.5, rim 3.8, tongue's own colour 1.8), but the open mouth is a small V/U with a small tongue against P4's big D, and the rendered focus is the dome-open overview with Nox's suction hold, not P4's closed head and lifted arm. The traced lift waits for the arm lift.
+- Phone: every frozen stage keeps beads, orbs and threads off her face, title and nameplate. The phone composition is centred, and the detail sheet hides her.
+
+### Task 13 fix round 1: the rendered stage pinned, reporting made plain
+
+**What a visitor sees on a tech focus.** WorldHost draws a focus in the `returnTo` pose, so a real tech focus shows the overview: dome open, face `happy`, the orb moved by the suction hold. The traced lift, the closed head and the `curious` face are target data for Task 19's arm lift (expression `curious`). None of them is visible on a real tech focus until then.
+
+**P4 samples, plainly.** They exist only with the expression forced (`expression=curious` in the URL). On the same capture the mouth inside reads:
+- 7.5 with a 5x5 patch at the render's own inside centroid: pass;
+- 15.0 by the inside's region mean: miss;
+- 64.7 at P4's sample point carried by the eyes: miss.
+It passes only under the most favourable registration. The tongue misses on a patch (25.0) and eye-registered (50.7); only its region mean (1.8) is close. The rim, 3.8, is the one sample that passes under any reading near P4's place (5.9 mirrored). Tools, now committed: `src/worlds/aether/review/p4de.py` (mouth), `src/worlds/aether/review/p4rim.py` (rim; Task 13's orb at 157.5 306 31 on the 509 x 504 capture).
+
+**Held orb, tested against the render's own logic** (`frames.test.ts`):
+- The authored-target test is retitled: `TECH_FOCUS_ORB` grown 1.3x clears the face rect by more than 20 px. It describes Task 19's target, not the rendered stage.
+- New, the rendered stage: for every orb of 1, 3, 10, 15, 16 and 20 technologies, the arm `nearestArm` picks (from her drawn overview tips, the orb's place and her head box, as `Octopus.tsx` `holdArm` does) lands the orb, grown 1.3x, turned toward its orbit by `HOLD_ARM`, lifted and held `offTip` radii past the tip, clear of the face rect. Least margin 37.9 px (the phone, T8@0.55's orb held by T7) over the desktop, the phone and 509 x 504; OpenAI (T1@0.9) is held by T1, 98.7 px clear at the phone and 128.8 px at 509 x 504. The test asks only for more than 0, as the review set it.
+- New, `KNOWN ENGINE BUG (pinned, flips with the engine fix)`: the frozen render does not do that. `holdArm` reads the bubble's orbit point before `TechBubbles` writes it; for the origin every path crosses her head box and `nearestArm` falls back to the nearest tip, T4. The test expects T4 for the origin. The render shows OpenAI beside her left eye about 10 px off her face; the model puts T4's landing 18 px off at the phone, 24 px at 509 x 504 and 48 px on the desktop (cruder than the render). Engine follow-up recorded. The likely cause is read from the code, not traced frame by frame.
+
+**Overclaims corrected.**
+- Counts: the phone checks cover 1, 3, 10, 15, 16 and 20 technologies, not every count from 1 to 20.
+- On the phone she is drawn smaller and centred (the stage frames are fitted to the phone's width, the extra height above and below her), not "in the upper screen"; the `frames.test.ts` header said otherwise and is fixed.
+
+**Cheap fixes.**
+- The lifted T1 touched T2's mid-arm orb (T2@0.5) at its elbow under the cheek: gap -0.001. Nudging the lift 0.03 outward made it worse (-0.024: that orb hangs below and outside the elbow), so the first traced point is raised instead (`P4_LIFT[0]` y -0.6, was -0.65; about 5 P4 px). Gap now 0.03; a test pins every other overview orb more than 0.02 clear. The crest, the tip on the orb and the head clearance tests are unchanged and pass. No render changes: the tech focus pose is not drawn.
+- `stageCriteria.ts` takes the swim's centre line from `poses.ts` `BODY_X` (was a copy, 0.07).
+- `faceBoxLocal` notes that its mouth bottom is the closed mouth's depth; the happy and curious faces open a little lower, not modelled or measured: the 10 px and 20 px margins may or may not cover it (fix round 2 wording).
+- Engine follow-up added: the detail panel's edge over her right cheek on the 1672 x 941 page is probably the engine's panel mapping. The model puts her face box's right edge 0.29 left of the panel's left edge (the review read 0.18 for the blush).
+
+**Tests.** `frames.test.ts` 12 tests (was 8). Full run and typecheck: see the Task 13 report.
+
+### Task 13 fix round 2: the engine-bug guard drives the real hold path
+
+**The fake guard is gone.** Fix round 1's "KNOWN ENGINE BUG" test in `frames.test.ts` called a test-local model with the origin and expected T4. No engine fix could flip it. It is deleted.
+
+**The real hold path cannot be reached from a vitest world test.** `holdArm` is a closure inside `Octopus.tsx`'s frame loop, and `TechBubbles.tsx` writes the orbit points in its own frame step. Neither is a pure function an Aether test can call with the same inputs. So the guard is an e2e test on the real page, in `tests/e2e/aether.spec.ts`:
+- Title: "Aether tech focus, frozen: OpenAI is held near T1, the arm it hangs from [engine follow-up: the suction hold picks its arm before the orbit point is written]".
+- It opens `?world=aether&stage=techFocus&tech=openai&freeze` at 1536 x 1024 and waits for the hold probe to report `openai` at pull 1. It takes the OpenAI orb button's centre and the drawn arm tips (`window.__octoverse.attention.tips`). It places the tips by the overview's body and projects them through the reported stage camera (fov, position, lens shift; its 2-degree pitch left out).
+- It expects the correct behaviour: the nearest tip is T1's. It is marked `test.fail` and fails for that reason today: nearest T4 at 49 px (T3 221, T2 339, T1 459). Checked in the JSON report: the error is `Expected: "T1" Received: "T4"`, not a timeout.
+- When the engine is fixed, the test passes and Playwright reports the expected failure as unexpected; then the `test.fail` line comes out.
+- Limit: `test.fail` also counts any other failure (a timeout, a missing probe) as expected. The recorded annotation (`hold`: orb, tip distances, nearest) shows which.
+
+**Labels.** The model test is renamed "intended hold pick". It asserts the pick from the orb's true place, a model of the hold as intended: least 37.9 px from her face (the phone). The frozen render today holds OpenAI on T4, about 10 px off her face at 509 x 504 (the engine bug). The 18 / 24 / 48 px figures from fix round 1 were model-only and are dropped.
+
+**Small items.**
+- The authored held orb (`TECH_FOCUS_ORB` at 1.3x, > 20 px) is now labelled "authored, not drawn" in the Task 13 phone list.
+- The `faceBoxLocal` comment and the fix round 1 note now say the open mouth's extra depth is not modelled or measured; the margins may or may not cover it.
+- `src/worlds/aether/review/targets.json` is tracked. Both tools were run from a `git archive` export of HEAD's `src/worlds/aether/review/` (a clean path, the export as working directory). They reproduce Task 13's numbers exactly (inside 7.5 / 15.0 / 64.7, tongue 25.0 / 1.8 / 50.7, rim 3.8 / 5.9 / 1.3). They need numpy and Pillow, and the captures they read are not committed (`.tmp/t13/f-tf-face3x.png`, `f-tf.png`).
+
+**Run.** vite on 127.0.0.1:5196 for the e2e only, stopped afterwards. The page logged "the world's kit did not load in 15000 ms" once (the world drew less); the character, hold and probes were unaffected. `aether.spec.ts`: 4 of 4 (the new one as an expected failure).
+
+## Task 14: back view (Milestone 4); owner review PROVISIONAL
+
+Spec 2.3 "Back view": round and glassy, the specks and rim continue round the back, the ring circles behind the head. This is the orbit review for the intro and the overview. No approval is claimed: the owner looks live (`?world=aether&stage=intro&freeze&yaw=180`, and `yaw=45`, `90`, `135`; add `&orbit` and drag on the water to look from above or below). `yaw` turns her body about its upright axis; the stage camera stays put.
+
+**Source: unchanged.** HEAD `11319aa`'s config was captured and is committed as is. A fix for the one clear fault (the rear arm roots, below) was found and measured, and not applied; see "Rear arm roots".
+
+**Captures** (vite on 127.0.0.1:5196 only; bare `?freeze`, the settled state; `tier=high&kitwait=90000`; no kit retry needed):
+- Intro: `WORLD=aether VIEW=514x504 SCALE=2 node scripts/stage-capture.mjs intro <out> "view=-2.57,2.52,2.57,-2.52&tier=high&kitwait=90000&yaw=<0|45|90|135|180>"` (P2's box, 200 px to a unit).
+- Overview: the same with `overview`, `VIEW=509x504`, `view=-2.545,2.52,2.545,-2.52` (P3's box).
+- Desktop frame: `VIEW=1536x1024 SCALE=1`, no `view`, yaw 0 and 180, both stages.
+- Evidence (`docs/superpowers/evidence/aether/m4/`): `t14-intro-yaws.webp` and `t14-overview-yaws.webp` (yaw 0, 45, 90, 135, 180 side by side, 0.67 size), `t14-intro-yaw180.webp`, `t14-overview-yaw180.webp` (the back at 0.75 size), `t14-desktop-frame-yaw0-180.webp` (intro and overview, front and back, on the page), `t14-rear-roots-committed-vs-option.webp` (the root crease, 3x, committed against the option).
+
+### Per-yaw checklist against spec 2.3
+
+PASS means seen on the stills and, where a number exists, measured. Concern means a fault or a limit the owner should look at.
+
+| Check | 0 | 45 | 90 | 135 | 180 |
+|---|---|---|---|---|---|
+| Intro: round and glassy | pass | pass | pass | pass | pass |
+| Intro: specks continue | pass | pass | pass | pass | pass |
+| Intro: rim continues | pass | pass | pass | pass | pass |
+| Intro: ring round the head, 5 beads | 4 seen, 1 hidden (engine) | 5 | 5 | 5 | 5 |
+| Intro: face not visible from behind | n/a | face turning | face edge-on | pass | pass |
+| Intro: no popping or holes | pass | pass | pass | concern (roots) | concern (roots) |
+| Overview: dome glassy and round | pass | pass | pass | pass | pass |
+| Overview: orbs and threads sensible | pass | pass | concern (column) | concern (no logos) | concern (no logos) |
+| Overview: no orb inside the head | pass | pass | pass | pass | pass |
+| Overview: nothing popping | pass | pass | pass | concern (roots) | concern (roots) |
+
+**1. Round and glassy: yes, intro and overview.** From behind the intro mantle is the same jelly as the front: lavender-white crown, violet middle, a bright rim all round, a faint pink wash low in the dome where the face glow shines through (yaw 135, lower right). The overview dome is a blue glass capsule with the white rim all round and the pink-lavender seat band at its foot, the same from behind as from the front.
+
+**2. Specks continue: yes (intro mantle).** Counted with Veyra's method (bright points at least 35 over a 15 px median, 2 px or larger, on the dome interior eroded 10 px; `.tmp/t14/measure.py`, adapted from the Nox spike's `measure.py` to this 514 x 504 box at 200 px a unit; the arm, cream and P2-sample columns of that script do not apply to Aether and are not used):
+
+| Yaw | Specks on the dome | per 10,000 px | Rim luminance | Dark px on the head | Peach px |
+|---|---|---|---|---|---|
+| 0 | 8 | 7.7 | 237 | 1,687 (eyes, brows) | 0 |
+| 45 | 7 | 7.5 | 236 | 1,120 | 0 |
+| 90 | 9 | 10.9 | 239 | 115 (face edge-on) | 14 |
+| 135 | 11 | 11.7 | 235 | 0 | 2 |
+| 180 | 15 | 14.5 | 237 | 0 | 0 |
+
+The back has at least as many as the front. These counts are not Task 3's or Task 6's (23 to 26 on the front at 3x, by a top-hat peak count): the method differs, so compare yaws with each other, not with the spec's 15; this method reads 8 on the front, so it cannot confirm the spec's 15 at P2 size, and Task 6's count stands for that. In the overview the dome is the engine's glass capsule with no specks on it, front or back (P3 paints none either), so nothing stops at the sides; the arms carry their specks at every yaw (seen on the stills, not counted).
+
+**3. Rim continues: yes.** The rim's brightest outline reads 235 to 239 at every yaw (the intro), and in the overview it is the same bright white line all round the capsule at every yaw.
+
+**4. The ring circles behind the head: yes, and it holds at every yaw.** At yaw 0 four of the five beads show (two lit gold, two glass) outside the head's sides, and the fifth is behind the head and hidden. At yaw 45 to 180 all five beads and the ring line are seen: the line runs round the head at brow height, the beads sit at the same places, and at 180 the near arc crosses the back of the dome with a glass bead near its top, while the far arc (the face side) passes behind it. At yaw 90 the ring is seen edge-on and its line crosses the face's edge, with one bead beside the eye: the ring's front sector is the face's, seen from the side, and no stage shows her from the side. **Spec 7.5's "rear beads seen through the jelly, dimmed" is not met, and the engine is why:** a bead behind the head at yaw 0 is hidden by the opaque head, not drawn dimmed through the glass (it predates Task 13; engine follow-up below). The five beads sit on the ring's rear 270 degrees, so from behind none of them is behind the dome (nothing is hidden at yaw 180); the limit shows at yaw 0 and 45, and for the far bead at 90.
+
+**5. The face is not visible from behind: pass, and the glow card is not seen at yaw 180.** At yaw 135 and 180 there is no near-black pixel and no peach pixel to speak of on the head (0 and 0 at 180; 0 dark and 2 peach at 135; yaw 0 has 1,687 dark pixels, the eyes and brows). No face card or glow patch shows through or round the head at yaw 180, on the P2 box or on the 1536 x 1024 desktop frame (`t14-desktop-frame-yaw0-180.webp`). `?yaw` is part of the engine's `coreGlowFacing` input (`(swim ? swim.yaw : 0) + extraYaw`), so the card fades with the yaw in these stills. **Task 13's engine follow-up stands for the pose's own turn:** `coreGlowFacing` still does not read `pose.body.yaw`, and the detail's turn depends on it. At yaw 90 the face sits at the head's edge with the glow card faded; no streak is seen.
+
+**6. Overview from behind.** The dome reads round and glassy with nothing inside it: no orb lies inside the head, and at every yaw each orb hangs on an arm outside the dome's silhouette or in front of it (at yaw 45 the Python and React orbs overlap the dome's right edge, drawn in front of the glass, on their arms). Orbs from behind are dark glass discs with their rim beads and the gold cap, and no logo (the logo is on the orb's front face and the orb turns with the arm), so from behind the twelve orbs are anonymous; the coloured rim (red on the Redis-like orb) and the arm seen through the glass remain. The threads hang from the arm slots as at the front. At yaw 90 the orbs stack in a column along the side-on pile of arms: the arms are authored flat for the stage camera (as Nox and Veyra: "not a design", nothing shows her from the side). On the desktop frame at yaw 180 the project panel stays over the dome's back: it is an HTML panel, not world geometry, and does not follow the yaw.
+
+**7. No popping geometry or holes: one fault, the rear arm roots.** From behind (intro yaw 135 and 180; overview yaw 135 and 180) T1 and T8's root caps stand out behind the mantle and meet in a hard flat-ended butt joint with a notch under it, at the body's axis (`t14-rear-roots-committed-vs-option.webp`, left). It is the same fault as Veyra's Task 15 (`rear()` arm z `[-0.3, -0.62]`, as Nox). No other seam, hole or colour mismatch was seen between front and back, and nothing pops.
+
+### Rear arm roots: the fix, measured, not applied
+
+Veyra's fix is `rear()` z `[0, -0.62]`: the root caps then sit inside the neck. On Aether it removes the crease (the arms join in a smooth V under the dome, `t14-rear-roots-committed-vs-option.webp`, right: the option is round 8 below) and it moves the front: the front lighting of T1's middle (P2 samples (-1.12, -1.05) and (-1.15, -1.12)) depends on the arm's depth. The 23-sample P2 check (`check_stage.py --world --stage intro --world-id aether`; HEAD has 4 misses: arm body upper 39.4, the two seed beads 89.0 and 44.4, jellyfish bell 13.2):
+
+| Round | Change | Misses | Arm underside glow | Cup | IoU raw |
+|---|---|---|---|---|---|
+| HEAD | none | 4 | 6.0 | 7.2 | 0.8123 |
+| 1 | z [0, -0.62] | 6 | 12.3 miss | 11.7 miss | 0.8129 |
+| 2 | z [-0.15, -0.62] | 5 | 8.0 | 10.7 miss | 0.8126 |
+| 3 | z [0, -1.0] | 7 | 14.1 miss | 7.7 | 0.8128 |
+| 4 | z 0, underside 1.25, cup glow 1.1 | 5 | 16.7 miss | 6.4 | 0.8129 |
+| 5 | z 0, underside 0.95, cup glow 1.1 | 5 | 17.7 miss | 6.4 | 0.8129 |
+| 6 | z 0, underside 1.1, cup glow 1.2 | 5 | 15.0 miss | 8.9 | not taken |
+| 7 | z -0.15, cup glow 1.2 | 5 | 10.8 miss | 7.2 | 0.8126 |
+| 8 | z 0, cup glow 1.1 | 5 | 17.2 miss | 6.4 | 0.8129 |
+| 9 | round 8 and underglow 0.42 to 0.6 | 5 | 17.0 miss | 7.5 | 0.8129 |
+
+Round 3's rear tips at z -1.0 also took the arm top rim (14.5) and the inside tip spiral (10.6). Every variant costs at least one sample; the arm underside glow does not come back (the cups' glow lights it, and the cups' own sample then goes). The best candidate (round 8) removes the crease at the cost of one sample (arm underside glow 6.0 to 17.2; mean inside, saturation and brightness stay in range). It also broke two tests: `character.test.ts` ("the config still holds the Task 6 look", which pins the cup glow) and `artifacts.test.ts` (frozen: no thread or orb within 0.05 of her face, 0.0495, because the rear arm's chain moved). So it is not a one-line fix and I stopped: the front's Task 6 look is the owner's tuned gate, and the crease is an orbit-only fault. **Owner call:** take `rear()` z `[0, -0.62]` with cup glow 1.1, accept the arm underside sample at 17.2 and update the two tests; or keep the crease (seen only from behind, yaw 135 to 180, which no stage shows). The tuning rounds are not committed (config reverted to HEAD).
+
+### Engine requests (also in MORNING-REVIEW)
+
+1. Rear beads seen through the jelly, dimmed (spec 7.5): the ring's rear beads hide behind the opaque head at yaw 0 and 45.
+2. Orb logo seen from behind: a turned-away orb shows a dark disc with no logo. Optional.
+3. Root caps that blend: a rear pair's root caps should overlap or blend where they meet at the body's axis (as Veyra noted), so no config trade is needed.
+
+### Concerns
+
+1. The rear arm roots' crease from behind (above).
+2. Spec 7.5's dimmed rear beads are not drawn (engine).
+3. Orbs have no logo from behind; stacked at yaw 90 (not a design).
+4. Specks: the count method cannot compare with the spec's 15; the back reads at least as many as the front by this method (15 against 8).
+5. Motion (twinkle, sway, the head turn) is not judged from stills.
+
+No `src/engine/**`, Nox, Veyra or Flux file touched; no source file changed. No videos. Vite stopped afterwards.

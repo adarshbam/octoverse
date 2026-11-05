@@ -37,7 +37,8 @@ export const VEYRA_STAGE_FRAMES: Record<StageId, StageFrame> = {
  * buttons' bottom at 0.011. Its height is 1.2, not P3's 1.36 (screenshot top 1.13): the layout's
  * type is sized by the box's height and its copy column is 40% of the width, so at 1.36 the summary
  * wraps to five lines and runs into the buttons; at 1.2 it takes four. It sits inside the dome's
- * rectangle (character.ts) with at least 0.12 to spare on every side. P5's is provisional until Task 14.
+ * rectangle (character.ts) with at least 0.12 to spare on every side. P5's (the detail) is P5's panel: re-measured
+ * by Task 14 on the 3x panel as [-2.21, 1.817, 4.223, -2.32], within 0.01 of the box.
  */
 export const VEYRA_STAGE_PANELS: StagePanels = {
   overview: [-1.31, 1.17, 1.19, -0.03],

@@ -373,7 +373,30 @@ export interface Personality {
   swim: StrokeTiming;
   /** The shared micro-animations (design 9.7). */
   micro: MicroMotion;
+  /**
+   * 0 to 1: a scale on the approved landing overshoots, the settle of a stage move
+   * (`micro.settle`) and the entrance arms' run past the intro pose (swimArms.settleWeight).
+   * Unset: 1, Nox's (engine contract 14.1; Veyra's 0.6 lands at 60% of it).
+   */
+  settle?: number;
+  /** Above 0: a scale on the stroke's glide (`swim.glide`), motion/stroke.ts strokeTiming. Unset: 1, Nox's. */
+  glideBias?: number;
+  /**
+   * 0 or more: idle flourishes per minute, nominal (behavior/flourish.ts, gap G4; the waits are
+   * drawn from 0.8 to 4/3 of 60 / rate s, so about 0.94 of it plays): one arm slowly unrolls its tip
+   * curl and rolls it back. Unset: 0, none (Nox).
+   */
+  flourishRate?: number;
+  /**
+   * The curious head tilt (behavior/idleTilt.ts, Aether spec 7.8): every `period` seconds (a range)
+   * the head leans up to `amplitude` radians to one side and levels again. Unset, or an amplitude
+   * of 0: none (Nox, Veyra).
+   */
+  idleTilt?: { amplitude: number; period: readonly [number, number] };
 }
+
+/** What `Personality.settle`, `glideBias` and `flourishRate` read when unset: Nox's values, today's behaviour. */
+export const PERSONALITY_VARIANT_DEFAULTS = { settle: 1, glideBias: 1, flourishRate: 0 } as const;
 
 /**
  * Living skin detail: droplet bumps, dark blotches, cool and warm tints, wet gloss and light
@@ -593,9 +616,19 @@ export type PlacementConfig = | {
   kind: 'satellite';
   /**
    * The ring round the head the artifacts rest on (artifacts/satellite.ts), drawn in the intro and
-   * the detail. Its active form (pendant slots, sizes and tether) joins with the pendant code.
+   * the detail.
    */
   ring: RingStyle;
+  /**
+   * The active form (overview and technology focus): the pendant slots the orbs fly out to from the
+   * ring's beads as the head swells (at most two an arm; more go to the tray), the orbs' radius there,
+   * the thread each hangs on and its swing (absent: at most 15 degrees, settled in 1.4 s). All three
+   * of slots, sizes and tether, or none: without them the satellite is the ring alone and places no artifact.
+   */
+  slots?: { overview: readonly PendantSlot[] };
+  sizes?: { overview: number };
+  tether?: TetherStyle;
+  swing?: SwingLimits;
 };
 
 /** The orbit placement's settings. */
@@ -604,6 +637,18 @@ export type OrbitPlacement = Extract<PlacementConfig, { kind: 'orbit' }>;
 export type PendantPlacement = Extract<PlacementConfig, { kind: 'pendant' }>;
 /** The satellite placement's settings. */
 export type SatellitePlacement = Extract<PlacementConfig, { kind: 'satellite' }>;
+
+/**
+ * What a world adds round the shared orb glass (artifacts/orbStyle.ts): a rim of `rimBeads` small
+ * glowing beads in `rimColour`, evenly round the orb's outline, and a small cap of `cap.colour`
+ * (radius `cap.size`, world units, at the orb's stage size) where its thread meets it, or none.
+ * Absent (or no beads and no cap), the orb is today's glass alone. Colours are config, never engine literals.
+ */
+export interface OrbStyle {
+  rimBeads: number;
+  rimColour: string;
+  cap: { colour: string; size: number } | null;
+}
 
 /**
  * How a world's artifacts (its technologies' orbs) are placed, appear and are chosen: three
@@ -617,6 +662,8 @@ export interface ArtifactConfig {
   select: { kind: SelectId };
   /** The stages in which an artifact can be chosen; the reducer ignores a choice in any other, and the buttons and the tray are not drawn there. */
   choosableIn: readonly ChoosingStage[];
+  /** Rim beads and a cap round each orb's glass; absent, the orbs are the glass alone (Nox's and Veyra's). */
+  orbStyle?: OrbStyle;
 }
 
 export interface CharacterConfig {

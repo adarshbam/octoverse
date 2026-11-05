@@ -1,11 +1,14 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { BlinkScheduler, floatOffset, spring } from '../behavior/ambient';
+import { BlinkScheduler, floatOffset, settleScale, spring } from '../behavior/ambient';
 import { Attention, nearFace } from '../behavior/attention';
 import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
+import { FlourishScheduler, flourishMayPlay, flourishRate, flourishUnroll, yieldedUnroll } from '../behavior/flourish';
 import { FocusChoreography } from '../behavior/focusChoreography';
+import { idleGateStep, idleTiltAt } from '../behavior/idleTilt';
+import { LOOK_INTERVAL, pickLookPoint } from '../behavior/lookPoints';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
 import { screenToStage } from '../stage/anchors';
@@ -13,7 +16,7 @@ import { isRestful } from '../behavior/stageMachine';
 import { ARM_IDS, type ArmId, type ArtifactConfig, type CharacterConfig, type StageId } from '../config/types';
 import { arrivalWiggle, settleOvershoot, startle } from '../motion/micro';
 import { SETTLE_IDLE, arrivalDue, inwardSign, settleStep, startleDue, trailSpeed } from '../motion/microTriggers';
-import { strokeAt } from '../motion/stroke';
+import { strokeAt, strokeTiming } from '../motion/stroke';
 import { createSwimRests, swimArmPitch, swimShapes } from '../motion/swimArms';
 import { toStage } from '../poses/authoring';
 import type { StagePose, SwimPoseSet } from '../poses/types';
@@ -47,6 +50,9 @@ import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } 
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 import { type AccentLink, farHaze } from './worldAccent';
 
+/** The seeds of the idle tilt's and the look points' schedules (behavior/idleTilt.ts, lookPoints.ts): fixed, so a character's idle always plays out the same. */
+const TILT_SEED = 0x7117;
+const LOOK_SEED = 0x100c;
 /** Rotation pivot for whole-body turns: the middle of the body. */
 const PIVOT_Y = -0.6;
 /** Pivot for the head's own turns and tilt (head-local height): the neck, under the chin. */
@@ -180,8 +186,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const PlacementForm = placementOf(artifacts.placement).Form;
   const placementFrame = useMemo<PlacementFormFrame>(() => ({ stage: 'entering', swell: 0, still: false }), []);
   const readPlacement = useMemo(() => () => placementFrame, [placementFrame]);
-  // The entrance's stroke timing (the arguments entranceFrame takes of the character).
-  const entranceSwim = useMemo(() => ({ swim: config.personality.swim }), [config.personality.swim]);
+  // The entrance's stroke timing (the arguments entranceFrame takes of the character): its swim, the
+  // glide stretched by the personality's glideBias (Nox's own swim object, unchanged, at 1).
+  const entranceSwim = useMemo(() => ({ swim: strokeTiming(config.personality) }), [config.personality]);
   // The head swell's clock, and the frame and draw it writes each frame (never allocated per frame).
   const swellSeconds = swellSheet.seconds;
   const swell = useMemo(() => ({ run: new SwellRun(swellSeconds), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), [swellSeconds]);
@@ -199,6 +206,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
   const restAt = useMemo(() => new THREE.Vector3(), []);
+  const wanderAt = useMemo(() => new THREE.Vector3(), []);
   // In a world Nox brings his aura, the grade of the water near him and his face glow's light on
   // the seabed, stone and the world's lit pieces round him (his own skin lights itself and takes
   // none of it). A silhouette capture has none of them: they would draw as shape.
@@ -367,7 +375,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     rest: 0,
     breathPhase: 0,
     // The entrance's clock (seconds of frame time from its first frame; null until the sheet is in) and the wait for its sheet.
-    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false },
+    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
     // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
     glowShown: 1,
     // The micro-animations (motion/micro.ts): seconds since each began (Infinity: not playing), on
@@ -385,7 +393,16 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       dir: { x: 0, y: 0 },
       lift: 0,
     },
+    // The idle flourish (behavior/flourish.ts; none at Nox's rate 0) and its clock: frame time that
+    // runs only while one may play (motion on, the entrance over).
+    flourish: new FlourishScheduler(flourishRate(config.personality)),
+    flourishClock: 0,
+    // The idle tilt's gate (0 to 1, behavior/idleTilt.ts idleGateStep): the tilt is faded in and out as the character stops and starts idling, never cut.
+    idleGate: 0,
   });
+  // The busy-arm hook: no flourish starts on an arm that holds something (the suction hold's turn
+  // toward its bubble; Task 19's pendant lift goes through the same hold).
+  const armBusy = useCallback((arm: ArmId) => motion.current.holdWeight[ARM_IDS.indexOf(arm)] > 0, []);
 
   // The pointer and the keys wake him from rest. Only a page instance listens (a preview shares the window with the page and does not).
   useWindowListeners(instance.mode, {
@@ -465,9 +482,19 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
         }
       }
     }
+    // The kit's props (a padlock ring, a membrane's flash: `SequenceSet.kitDrives`) take the entrance's values while it plays; once
+    // it is over, skipped, or never played (reduced motion, a preview), they rest where the entrance ends, written once.
+    const kitSheet = entranceSheet?.sequences;
+    if (swim?.kit) {
+      Object.assign(instance.kit, swim.kit);
+      m.entrance.kitAtRest = false;
+    } else if (!swim && kitSheet?.kitDrives && !m.entrance.kitAtRest) {
+      Object.assign(instance.kit, entranceFrame(kitSheet, kitSheet.length('entrance'), entranceSwim).kit);
+      m.entrance.kitAtRest = true;
+    }
     // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
     // The drive gives way as the arms swing forward (`forward`), before they spread (`open`).
-    const stroke = swim ? strokeAt(swim.stroke, personality.swim) : null;
+    const stroke = swim ? strokeAt(swim.stroke, entranceSwim.swim) : null;
     const drive = swim && stroke ? entranceDrive(swim, stroke) : null;
     const bodyX = pose.body.x + (swim ? swim.position[0] : 0);
     const bodyY = pose.body.y + (swim ? swim.position[1] : 0);
@@ -503,7 +530,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       if (entranceSheet?.sequences) mc.arrival = 0;
     }
     const flinch = startle(mc.startle, micro);
-    const settle = moving * settleOvershoot(mc.settle, micro);
+    const settle = moving * settleOvershoot(mc.settle, micro, settleScale(personality));
     const wiggle = entranceSheet?.sequences ? arrivalWiggle(entranceSheet.sequences, mc.arrival, micro) : { roll: 0, armWave: 0 };
     const lift = moving * flinch.lift + settle * mc.dir.y;
     // The arms trail against the lift as they do against the float (`droop`), at a gentler gain;
@@ -577,13 +604,16 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
 
     // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
     const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
+    // Where the eyes wander when the stage lists look points (behavior/lookPoints.ts): not frozen, not swimming in, not under reduced motion. Eyes alone; the pointer and a focused orb come first (attention.ts).
+    const wander = !freeze && !swim && stage !== 'entering' && pose.lookPoints ? pickLookPoint(t, pose.lookPoints, LOOK_INTERVAL, LOOK_SEED, reducedMotion) : null;
+    const wanderNdc = wander ? wanderAt.set(wander[0], wander[1], 0).project(state.camera) : null;
 
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
     // Swimming in, Nox looks where he is going.
     const gaze = (freeze && !fixed && !rest) || stage === 'entering'
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
+      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined, wanderNdc ? { x: wanderNdc.x, y: wanderNdc.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
     spring(m.smile, near, 5, dt);
     // The small startle: the pointer darting in close to the face (motion/microTriggers.ts startleDue).
@@ -615,12 +645,18 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       }
     });
     spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
+    // The curious head tilt (behavior/idleTilt.ts; none unless the personality has one, and then idleRoll is exactly 0): it gives way to a technology in focus, and waits out the swim-in and a still. The schedule runs on the absolute clock, so the gate fades it in and out where it opens and closes mid-tilt.
+    let idleRoll = 0;
+    if (personality.idleTilt) {
+      m.idleGate = idleGateStep(m.idleGate, !freeze && !swim && stage !== 'entering', dt);
+      idleRoll = idleTiltAt(t, personality.idleTilt, TILT_SEED, reducedMotion) * (1 - strongest) * m.idleGate;
+    }
     // While the orbs are out the body barely turns, so the orbs and arms hold still under the
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
     turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * (drift.roll + wiggle.roll) - gaze.headX * 0.02 * bodyTurn);
-    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x + idleRoll);
     // The glow card turns with the head; turned side-on (the entrance's spin) it fades rather than
     // show edge-on beside the face.
     rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw) * glowShown;
@@ -683,12 +719,15 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     bubbleState.stage = stage === 'intro' || (stage === 'techFocus' && pose.orbs < 0.5) ? 'intro' : 'overview';
     bubbleState.hot = instance.hover.bubble || selected >= 0;
     bubbleState.still = freeze || reducedMotion;
+    bubbleState.reducedMotion = reducedMotion;
+    bubbleState.focused = stage === 'techFocus';
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
     bubbleState.blow = blowSheet;
     placementFrame.stage = stage;
     placementFrame.swell = sf.push;
     placementFrame.still = freeze || reducedMotion;
+    placementFrame.reducedMotion = reducedMotion;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
     // pulled to the tip and lifted; letting go (or choosing another) sends it home. Motion off, it
@@ -735,9 +774,23 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // Swimming, the arms take the stroke's shape (motion/swimArms.ts) and its swing back: the
     // bundle and the body's lean together near TRAIL_PITCH, so it shows behind and below the head.
-    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests) : null;
+    const rests = swim && stroke ? entranceRests(swim, stroke, swimShapes(swimPoses, introPose, rig.arms[0].chain.segments), rig.swimRests, settleScale(personality)) : null;
     const pitch = swim && drive ? swimArmPitch(drive.pitch, swim.pitch) : armDrive?.pitch;
     const straighten = drive ? drive.straighten : armDrive?.straighten;
+    // The idle flourish: one arm's tip curl unrolls by up to 40% and rolls back, through the chain's
+    // own tip straightening. Never with motion off or frozen, never in the entrance, never on a busy
+    // arm; each start is told to the instance's subscribers (instance.flourish).
+    let flourishArm = -1;
+    let unroll = 0;
+    if (flourishMayPlay(moving, swim !== null, stage)) {
+      m.flourishClock += dt;
+      const playing = m.flourish.step(m.flourishClock, armBusy, instance.flourish);
+      if (playing) {
+        flourishArm = playing.index;
+        // Gives way if its arm starts to hold something mid-flourish (Task 19's lift goes through the hold).
+        unroll = yieldedUnroll(flourishUnroll(m.flourishClock, playing.start), m.holdWeight[playing.index]);
+      }
+    }
     let offset = 0;
     rig.arms.forEach(({ chain, tube, row }, i) => {
       const weight = m.reach[i];
@@ -761,7 +814,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
         reach: { x: target.x, y: target.y, weight: w },
         bend: config.armBend,
         pitch,
-        straighten,
+        straighten: i === flourishArm ? Math.max(straighten ?? 0, unroll) : straighten,
       });
       tube.update();
       row.write(rig.suckers, offset, rig.suckerBend);
@@ -800,6 +853,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // The sparkles' twinkle runs on the character's clock (held at 0 when frozen); nothing reads it on a surface without them.
     rig.uniforms.uSkinTime.value = t;
+    // The shimmer that runs crown to face as she settles (the entrance's `shimmer`); out of sight otherwise.
+    rig.uniforms.uSparkleWave.value = swim?.shimmer ?? 0;
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 
     // The head opens into the glass dome: the dome stays whole and in place while its glass is
@@ -843,7 +898,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} headCentreX={config.head.centerX} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

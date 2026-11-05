@@ -1,5 +1,6 @@
 import { APPEARS, PLACEMENTS, SELECTS } from '../artifacts/strategies';
-import { ARM_IDS, type ArtifactConfig, CHOOSING_STAGES, type CharacterConfig, type PendantPlacement, SKIN_MODES, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
+import { MAX_PER_ARM } from '../artifacts/pendant';
+import { ARM_IDS, type ArtifactConfig, CHOOSING_STAGES, type CharacterConfig, type PendantPlacement, SKIN_MODES, STAGE_IDS, type SatellitePlacement, type StageId, isChoosingStage } from '../config/types';
 import { clampCharacterConfig } from '../config/validate';
 import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
@@ -121,6 +122,39 @@ function checkPlacePresent(place: WorldBundle['place'], need: (field: string, va
   }
 }
 
+/** One stage's pendant slots, checked by name: each on an arm the character has, at an arc fraction, with its own whole-number order, never more than `maxPerArm` to an arm. */
+function checkSlots(at: string, stage: string, slots: unknown, maxPerArm: number) {
+  if (!Array.isArray(slots)) throw new BundleError(`${at}.slots.${stage}`, 'is missing (the slots a pendant can hang from in this stage, as a list)');
+  const onArm = new Map<string, number>();
+  const orders = new Set<number>();
+  slots.forEach((slot: { arm?: unknown; at?: unknown; order?: unknown }, i) => {
+    const field = `${at}.slots.${stage}[${i}]`;
+    if (!record(slot)) throw new BundleError(field, 'is not a slot ({ arm, at, order })');
+    if (!ARM_IDS.includes(slot.arm as never)) throw new BundleError(`${field}.arm`, `"${String(slot.arm)}" is not one of the arms ${ARM_IDS.join(', ')}`);
+    if (!(finite(slot.at) && slot.at >= 0 && slot.at <= 1)) throw new BundleError(`${field}.at`, `${String(slot.at)} is not an arc fraction from 0 (the root) to 1 (the tip)`);
+    if (!(finite(slot.order) && Number.isInteger(slot.order) && slot.order >= 0)) throw new BundleError(`${field}.order`, `${String(slot.order)} is not a whole number from 0 (the technology's rank for the slot)`);
+    if (orders.has(slot.order)) throw new BundleError(`${field}.order`, `${slot.order} is the order of another slot in this stage (each technology has one place)`);
+    orders.add(slot.order);
+    const taken = (onArm.get(slot.arm as string) ?? 0) + 1;
+    onArm.set(slot.arm as string, taken);
+    if (taken > maxPerArm) throw new BundleError(`${field}.arm`, `${String(slot.arm)} carries more than ${maxPerArm} pendants in the ${stage} (never more than two to an arm)`);
+  });
+}
+
+/** A pendant's thread and its swing, checked by name. */
+function checkHanging(at: string, tether: unknown, swing: unknown) {
+  if (!record(tether)) throw new BundleError(`${at}.tether`, 'is missing (the thread each pendant hangs on)');
+  if (!(finite(tether.length) && tether.length >= 0)) throw new BundleError(`${at}.tether.length`, `${String(tether.length)} is not 0 or more (0 is a cap only)`);
+  if (!(finite(tether.width) && tether.width > 0)) throw new BundleError(`${at}.tether.width`, `${String(tether.width)} is not above 0`);
+  if (!(finite(tether.sag) && tether.sag >= 0 && tether.sag <= 1)) throw new BundleError(`${at}.tether.sag`, `${String(tether.sag)} is not from 0 to 1 (a fraction of the thread's length)`);
+  for (const key of ['color', 'cap'] as const) if (!isColour(tether[key])) throw new BundleError(`${at}.tether.${key}`, `"${String(tether[key])}" is not a colour`);
+  if (swing !== undefined) {
+    const limits = swing as { maxAngle?: unknown; settle?: unknown } | null;
+    if (!(finite(limits?.maxAngle) && limits.maxAngle > 0 && limits.maxAngle <= Math.PI / 2)) throw new BundleError(`${at}.swing.maxAngle`, `${String(limits?.maxAngle)} is not above 0 and at most a quarter turn (radians)`);
+    if (!(finite(limits.settle) && limits.settle > 0)) throw new BundleError(`${at}.swing.settle`, `${String(limits.settle)} is not above 0 (seconds)`);
+  }
+}
+
 /**
  * A pendant placement's slots, sizes, tether and optional swing and reveal are what the engine reads
  * each frame, so each is checked by name: a slot on an arm the character lacks, a ninth number, a
@@ -130,39 +164,67 @@ function checkPendants(placement: PendantPlacement) {
   const at = 'artifacts.placement';
   if (placement.maxPerArm !== 2) throw new BundleError(`${at}.maxPerArm`, `${String(placement.maxPerArm)} is not 2 (an arm carries at most two pendants)`);
   for (const stage of CHOOSING_STAGES) {
-    const slots: unknown = placement.slots?.[stage];
-    if (!Array.isArray(slots)) throw new BundleError(`${at}.slots.${stage}`, 'is missing (the slots a pendant can hang from in this stage, as a list)');
-    const onArm = new Map<string, number>();
-    const orders = new Set<number>();
-    slots.forEach((slot: { arm?: unknown; at?: unknown; order?: unknown }, i) => {
-      const field = `${at}.slots.${stage}[${i}]`;
-      if (!record(slot)) throw new BundleError(field, 'is not a slot ({ arm, at, order })');
-      if (!ARM_IDS.includes(slot.arm as never)) throw new BundleError(`${field}.arm`, `"${String(slot.arm)}" is not one of the arms ${ARM_IDS.join(', ')}`);
-      if (!(finite(slot.at) && slot.at >= 0 && slot.at <= 1)) throw new BundleError(`${field}.at`, `${String(slot.at)} is not an arc fraction from 0 (the root) to 1 (the tip)`);
-      if (!(finite(slot.order) && Number.isInteger(slot.order) && slot.order >= 0)) throw new BundleError(`${field}.order`, `${String(slot.order)} is not a whole number from 0 (the technology's rank for the slot)`);
-      if (orders.has(slot.order)) throw new BundleError(`${field}.order`, `${slot.order} is the order of another slot in this stage (each technology has one place)`);
-      orders.add(slot.order);
-      const taken = (onArm.get(slot.arm as string) ?? 0) + 1;
-      onArm.set(slot.arm as string, taken);
-      if (taken > placement.maxPerArm) throw new BundleError(`${field}.arm`, `${String(slot.arm)} carries more than ${placement.maxPerArm} pendants in the ${stage} (never more than two to an arm)`);
-    });
+    checkSlots(at, stage, placement.slots?.[stage], placement.maxPerArm);
     if (!(finite(placement.sizes?.[stage]) && placement.sizes[stage] > 0)) throw new BundleError(`${at}.sizes.${stage}`, `${String(placement.sizes?.[stage])} is not above 0 (the orb's radius)`);
   }
-  const { tether } = placement;
-  if (!record(tether)) throw new BundleError(`${at}.tether`, 'is missing (the thread each pendant hangs on)');
-  if (!(finite(tether.length) && tether.length >= 0)) throw new BundleError(`${at}.tether.length`, `${String(tether.length)} is not 0 or more (0 is a cap only)`);
-  if (!(finite(tether.width) && tether.width > 0)) throw new BundleError(`${at}.tether.width`, `${String(tether.width)} is not above 0`);
-  if (!(finite(tether.sag) && tether.sag >= 0 && tether.sag <= 1)) throw new BundleError(`${at}.tether.sag`, `${String(tether.sag)} is not from 0 to 1 (a fraction of the thread's length)`);
-  for (const key of ['color', 'cap'] as const) if (!isColour(tether[key])) throw new BundleError(`${at}.tether.${key}`, `"${String(tether[key])}" is not a colour`);
-  const { swing, reveal } = placement;
-  if (swing !== undefined) {
-    if (!(finite(swing?.maxAngle) && swing.maxAngle > 0 && swing.maxAngle <= Math.PI / 2)) throw new BundleError(`${at}.swing.maxAngle`, `${String(swing?.maxAngle)} is not above 0 and at most a quarter turn (radians)`);
-    if (!(finite(swing.settle) && swing.settle > 0)) throw new BundleError(`${at}.swing.settle`, `${String(swing.settle)} is not above 0 (seconds)`);
-  }
+  checkHanging(at, placement.tether, placement.swing);
+  const { reveal } = placement;
   if (reveal !== undefined) {
     if (!(finite(reveal?.start) && reveal.start >= 0)) throw new BundleError(`${at}.reveal.start`, `${String(reveal?.start)} is not 0 or more (seconds)`);
     if (!(finite(reveal.span) && reveal.span > 0)) throw new BundleError(`${at}.reveal.span`, `${String(reveal.span)} is not above 0 (seconds)`);
     if (!(finite(reveal.step) && reveal.step >= 0)) throw new BundleError(`${at}.reveal.step`, `${String(reveal.step)} is not 0 or more (seconds)`);
+  }
+}
+
+/**
+ * A satellite's active form (its overview slots, the orbs' size there, their thread and swing), by
+ * name, as a pendant's: all three of slots, sizes and tether, or none (the ring alone).
+ */
+function checkSatellite(placement: SatellitePlacement) {
+  const at = 'artifacts.placement';
+  const { slots, sizes, tether, swing } = placement;
+  if (slots === undefined && sizes === undefined && tether === undefined) return;
+  if (!record(slots)) throw new BundleError(`${at}.slots`, 'is missing (an active form needs its slots, sizes and tether)');
+  checkSlots(at, 'overview', slots.overview, MAX_PER_ARM);
+  if (!(finite(sizes?.overview) && sizes.overview > 0)) throw new BundleError(`${at}.sizes.overview`, `${String(sizes?.overview)} is not above 0 (the orb's radius)`);
+  checkHanging(at, tether, swing);
+}
+
+/** The most rim beads an orb carries: past this they would touch one another round an orb's outline. */
+export const MAX_RIM_BEADS = 64;
+
+/** An orb style's bead count, colours and cap, by name: a colour three would draw black, or a cap of no size, must not surface as a bad frame. */
+function checkOrbStyle(style: unknown) {
+  const at = 'artifacts.orbStyle';
+  if (!record(style)) throw new BundleError(at, 'is not an orb style ({ rimBeads, rimColour, cap })');
+  const { rimBeads, rimColour, cap } = style;
+  if (!(finite(rimBeads) && Number.isInteger(rimBeads) && rimBeads >= 0 && rimBeads <= MAX_RIM_BEADS)) throw new BundleError(`${at}.rimBeads`, `${String(rimBeads)} is not a whole number from 0 to ${MAX_RIM_BEADS}`);
+  if (!isColour(rimColour)) throw new BundleError(`${at}.rimColour`, `"${String(rimColour)}" is not a colour`);
+  if (cap === null) return;
+  if (!record(cap)) throw new BundleError(`${at}.cap`, 'is missing (a cap { colour, size }, or null for none)');
+  if (!isColour(cap.colour)) throw new BundleError(`${at}.cap.colour`, `"${String(cap.colour)}" is not a colour`);
+  if (!(finite(cap.size) && cap.size > 0)) throw new BundleError(`${at}.cap.size`, `${String(cap.size)} is not above 0 (the cap's radius)`);
+}
+
+/**
+ * The personality's motion variants (engine contract 14.1), each optional (unset reads Nox's value),
+ * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more,
+ * `idleTilt` an amplitude of 0 or more (radians) and a period [low, high] of seconds, 0 < low <= high.
+ */
+function checkPersonalityVariants(personality: unknown) {
+  if (!record(personality)) return;
+  const at = 'character.personality';
+  const { settle, glideBias, flourishRate, idleTilt } = personality;
+  if (settle !== undefined && !(finite(settle) && settle >= 0 && settle <= 1)) throw new BundleError(`${at}.settle`, `${String(settle)} is not from 0 to 1 (a share of the approved overshoot)`);
+  if (glideBias !== undefined && !(finite(glideBias) && glideBias > 0)) throw new BundleError(`${at}.glideBias`, `${String(glideBias)} is not above 0 (a scale on the glide)`);
+  if (flourishRate !== undefined && !(finite(flourishRate) && flourishRate >= 0)) throw new BundleError(`${at}.flourishRate`, `${String(flourishRate)} is not 0 or more (flourishes per minute)`);
+  if (idleTilt !== undefined) {
+    if (!record(idleTilt)) throw new BundleError(`${at}.idleTilt`, 'is not an object (an idleTilt { amplitude, period: [low, high] })');
+    const { amplitude, period } = idleTilt;
+    if (!(finite(amplitude) && amplitude >= 0)) throw new BundleError(`${at}.idleTilt.amplitude`, `${String(amplitude)} is not 0 or more (the lean, in radians)`);
+    if (!(Array.isArray(period) && period.length === 2 && finite(period[0]) && finite(period[1]) && period[0] > 0 && period[0] <= period[1])) {
+      throw new BundleError(`${at}.idleTilt.period`, `${JSON.stringify(period)} is not [low, high] seconds above 0 with low at most high (the wait between tilts)`);
+    }
   }
 }
 
@@ -201,6 +263,37 @@ function checkPresent(bundle: WorldBundle) {
   if (!Array.isArray(bundle.content.technologies)) throw new BundleError('content.technologies', 'is missing (the technologies, as a list)');
 }
 
+/**
+ * The entrance's shape (`sequences.entrance`, EntranceShape), by field: a turn above 0 and at most
+ * a full turn; `spiral` a boolean; on the spiral, an arc with a finite `r0` above 0 and a finite `phase`.
+ */
+function checkEntranceShape(shape: unknown) {
+  if (!record(shape)) throw new BundleError('sequences.entrance', 'is missing (the entrance\'s turn and path: { turn, spiral })');
+  const { turn, spiral } = shape;
+  if (!(finite(turn) && turn > 0 && turn <= 2 * Math.PI)) throw new BundleError('sequences.entrance.turn', `${String(turn)} is not a turn above 0 and at most 2 pi (radians)`);
+  if (typeof spiral !== 'boolean') throw new BundleError('sequences.entrance.spiral', `${String(spiral)} is not true or false (whether the entrance ends on the golden-spiral arc)`);
+  if (!spiral) return;
+  const arc = shape.arc;
+  if (!record(arc)) throw new BundleError('sequences.entrance.arc', 'is missing (the spiral needs its start: { r0, phase })');
+  if (!(finite(arc.r0) && arc.r0 > 0)) throw new BundleError('sequences.entrance.arc.r0', `${String(arc.r0)} is not above 0 (stage units from the stage spot)`);
+  if (!finite(arc.phase)) throw new BundleError('sequences.entrance.arc.phase', `${String(arc.phase)} is not a finite angle (radians)`);
+}
+
+/**
+ * The kit props the entrance drives (`sequences.kitDrives`), by field: each key a prop the place
+ * declares (`place.props`), each value a prop the entrance sheet's `main` object has.
+ */
+function checkKitDrives(sequences: SequenceSet, place: WorldConfig) {
+  const { kitDrives } = sequences;
+  if (kitDrives === undefined) return;
+  if (!record(kitDrives)) throw new BundleError('sequences.kitDrives', 'is not an object (kit prop id to the entrance sheet prop that drives it)');
+  const sheetProps = sequences.defaults.entrance?.objects.main?.props ?? {};
+  for (const [id, sheetProp] of Object.entries(kitDrives)) {
+    if (!(place.props ?? []).some(prop => prop.id === id)) throw new BundleError(`sequences.kitDrives.${id}`, `names no prop of the place (place.props has ${(place.props ?? []).map(prop => prop.id).join(', ') || 'none'})`);
+    if (typeof sheetProp !== 'string' || !Object.hasOwn(sheetProps, sheetProp)) throw new BundleError(`sequences.kitDrives.${id}`, `names the entrance sheet prop "${String(sheetProp)}", which the entrance's main object does not have`);
+  }
+}
+
 /** Each stage has a pose, and each pose has exactly the eight arms, T1..T8. */
 function checkPoses(poses: unknown) {
   if (!record(poses)) throw new BundleError('poses', 'is not an object');
@@ -210,6 +303,11 @@ function checkPoses(poses: unknown) {
     if (!record(pose.body)) throw new BundleError(`poses.${stage}.body`, 'is missing (every pose places the body: x, y, scale and yaw)');
     for (const key of ['x', 'y', 'scale', 'yaw'] as const) {
       if (!finite(pose.body[key])) throw new BundleError(`poses.${stage}.body.${key}`, 'is missing (every pose places the body: x, y, scale and yaw, as numbers)');
+    }
+    // The points the eyes wander between: absent, or a list of [x, y] finite numbers (an empty list is none).
+    const lookPoints: unknown = pose.lookPoints;
+    if (lookPoints !== undefined && !(Array.isArray(lookPoints) && lookPoints.every(point => Array.isArray(point) && point.length === 2 && point.every(finite)))) {
+      throw new BundleError(`poses.${stage}.lookPoints`, 'is not a list of [x, y] points (finite numbers, world units)');
     }
     const keys: string[] = Object.keys(pose.arms);
     const missing = ARM_IDS.filter(id => !keys.includes(id));
@@ -259,6 +357,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (surfaces && !(SKIN_MODES as readonly unknown[]).includes(mode)) throw new BundleError(`character.skin.surfaces.${surface}.mode`, `"${String(mode)}" is not a skin mode the engine has (${SKIN_MODES.join(', ')})`);
   }
   checkLeaves(rest.character, 'character', true);
+  checkPersonalityVariants(bundle.character.personality);
   // The face glow's spread and reach divide in the skin and jelly shaders: each must be above zero.
   for (const key of ['spreadX', 'reachUp', 'reachDown'] as const) {
     const value: unknown = bundle.character.glow?.[key];
@@ -285,12 +384,16 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   const { placement, appear, select, choosableIn } = bundle.artifacts;
   if (!Object.hasOwn(PLACEMENTS, placement.kind)) throw new BundleError('artifacts.placement.kind', `"${placement.kind}" is not a placement the engine has (${Object.keys(PLACEMENTS).join(', ')})`);
   if (placement.kind === 'pendant') checkPendants(placement);
+  if (placement.kind === 'satellite') checkSatellite(placement);
+  if (bundle.artifacts.orbStyle !== undefined) checkOrbStyle(bundle.artifacts.orbStyle);
   if (!Object.hasOwn(APPEARS, appear.kind)) throw new BundleError('artifacts.appear.kind', `"${appear.kind}" is not an appear the engine has (${Object.keys(APPEARS).join(', ')})`);
   if (!Object.hasOwn(SELECTS, select.kind)) throw new BundleError('artifacts.select.kind', `"${select.kind}" is not a select the engine has (${Object.keys(SELECTS).join(', ')})`);
   for (const stage of choosableIn) if (!isChoosingStage(stage)) throw new BundleError('artifacts.choosableIn', `"${stage}" is not a stage a technology can be chosen in`);
   for (const sheet of ['entrance', 'headSwell', 'arrival', APPEARS[appear.kind].sheet] as const) {
     if (!sequences.defaults[sheet]) throw new BundleError(`sequences.defaults.${sheet}`, 'is missing (the engine plays this sheet)');
   }
+  checkEntranceShape(sequences.entrance);
+  checkKitDrives(sequences, bundle.place);
 
   const world = validateWorld(bundle.place);
   if (world.length > 0) throw new BundleError('place', world.join('; '));

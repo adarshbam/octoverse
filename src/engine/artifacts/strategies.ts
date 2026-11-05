@@ -7,7 +7,7 @@ import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { type ArmReader, type PendantLive, type PendantPlace, createPendantRun, layoutPendants, resetPendants, stepPendants } from './pendant';
 import { SatelliteRing } from './SatelliteRing';
-import { layoutSatellite, satellitePoint } from './satellite';
+import { type FlightLook, layoutSatellite, satelliteCapacity, satelliteDriver, satellitePoint } from './satellite';
 import { HOLD_BEATS, HoldChoreography, nearestArm, pullPosition } from './suctionHold';
 
 // The artifact strategies (spec 9.2): where a world's artifacts sit (placement), how they appear
@@ -31,6 +31,8 @@ export interface PlacementFormFrame {
   stage: StageId;
   swell: number;
   still: boolean;
+  /** The visitor asked for reduced motion (not only a still): a flight between forms is a crossfade. */
+  reducedMotion?: boolean;
 }
 
 /** A placement's own drawing, beside the artifacts: its config, its frame, the orb glass's surroundings and the head it sits round. */
@@ -59,6 +61,15 @@ export interface PlacementFrame {
   dt: number;
   hot: boolean;
   still: boolean;
+  /** The visitor asked for reduced motion (a still alone does not): the satellite's flight is then a crossfade. */
+  reducedMotion?: boolean;
+  /** A technology chosen in the overview is in focus (the stage reads as the overview's): the satellite's orbs stay landed while it closes the head. */
+  focused?: boolean;
+}
+
+/** What a driver may be told of the character it is made for: where its head's centre line is across the body (the satellite's ring is centred on it). */
+export interface PlacementContext {
+  headCentreX?: number;
 }
 
 /**
@@ -77,6 +88,12 @@ export interface PlacementDriver {
   reset?(): void;
   /** The live pendants (their threads and orbs), for a placement that hangs artifacts on threads; undefined for one that does not. */
   readonly pendants?: readonly PendantLive[];
+  /**
+   * For a placement whose artifacts fly between its forms (the satellite's ring and pendants):
+   * artifact `i`'s flight this frame (its scale of its size, its logo's and trail's strengths, whether
+   * it hangs on its thread yet, and its trail's points); absent for one whose artifacts stay in place.
+   */
+  flight?(i: number): FlightLook;
 }
 
 /**
@@ -86,7 +103,7 @@ export interface PlacementDriver {
  */
 export interface PlacementEntry<C> {
   capacity(config: C): number;
-  driver(config: C, count: number): PlacementDriver;
+  driver(config: C, count: number, context?: PlacementContext): PlacementDriver;
   readonly Form?: ComponentType<PlacementFormProps<C>>;
 }
 
@@ -137,27 +154,18 @@ const pendantPlacement = {
   },
 } satisfies { layout: typeof layoutPendants; capacity(config: PendantPlacement): number; driver(config: PendantPlacement, count: number): PlacementDriver };
 
-/** A ring of seed beads round the head at rest (artifacts/satellite.ts); its active form comes with the pendant code. */
+/**
+ * A ring of seed beads round the head at rest, whose technologies fly out as the head swells to hang
+ * as pendants on the arms (artifacts/satellite.ts): its Form draws the ring, its driver the flight and the pendants.
+ */
 const satellitePlacement = {
   layout: layoutSatellite,
   point: satellitePoint,
   pace: orbitSpeed,
   Form: SatelliteRing,
-  /** Until its active form (pendant slots) arrives it keeps the orbit placement's capacity, so what a project shows beside the tray is unchanged. */
-  capacity: (): number => ORBIT_CAPACITY,
-  driver(config: SatellitePlacement, count: number): PlacementDriver {
-    // At rest it lays out no artifacts (the beads are its Form's), so no artifact has a place: none is drawn or offered.
-    const layouts = { intro: layoutSatellite(count, config, 'intro'), overview: layoutSatellite(count, config, 'overview') };
-    const run = { clock: 0, speed: { x: 1, v: 0 } };
-    return {
-      step: ({ dt, hot, still }) => {
-        const pace = orbitSpeed(hot, dt, run.speed);
-        if (!still) run.clock += dt * pace;
-      },
-      size: (stage, i) => layouts[stage][i]?.size ?? null,
-      point: (stage, i, swell, out) => satellitePoint(layouts[stage][i], run.clock, swell, out, config),
-    };
-  },
+  /** One per slot, at most two an arm (the rest go to the tray); none for a ring with no active form. */
+  capacity: satelliteCapacity,
+  driver: (config: SatellitePlacement, count: number, context?: PlacementContext): PlacementDriver => satelliteDriver(config, count, context),
 } satisfies PlacementModule<SatellitePlacement> & PlacementEntry<SatellitePlacement>;
 
 export const PLACEMENTS = { orbit: orbitPlacement, pendant: pendantPlacement, satellite: satellitePlacement } as const;
@@ -173,9 +181,9 @@ export function placementOf(config: PlacementConfig): PlacementEntry<PlacementCo
 }
 
 /** The driver for a world's placement (`count` artifacts), from the table entry its `kind` names. */
-export function placementDriver(config: PlacementConfig, count: number): PlacementDriver {
+export function placementDriver(config: PlacementConfig, count: number, context?: PlacementContext): PlacementDriver {
   // Each entry takes its own kind's config; the table is closed and keyed by that kind, so the pairing holds.
-  return (PLACEMENTS[config.kind] as { driver(config: PlacementConfig, count: number): PlacementDriver }).driver(config, count);
+  return (PLACEMENTS[config.kind] as { driver(config: PlacementConfig, count: number, context?: PlacementContext): PlacementDriver }).driver(config, count, context);
 }
 
 /** How many artifacts a world's placement shows (a project's technologies beyond it go to the tray, never to extra arms). */

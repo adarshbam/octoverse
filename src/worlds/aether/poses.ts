@@ -107,18 +107,68 @@ const OVERVIEW_ARMS = Object.fromEntries(
 
 const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expression: 'happy', headMorph: 1, orbs: 1 };
 
-// Panel 4, a technology in focus: the head closes again while the arms keep the overview's places,
-// so the orbs do not move round; the owning arm's lift comes from the focus choreography (Task 13).
-const TECH_FOCUS: StagePose = { ...OVERVIEW, headMorph: 0 };
+// Panel 4, a technology in focus (Task 13), traced from the native panel (674 x 519) and checked on
+// the 3x one. The head closes again and the other arms keep the overview's places, so their orbs do
+// not move round; the arm that holds the chosen orb rises beside the head and its tip curls over the
+// top of the orb, holding it (spec 7.5, P4). P4 paints OpenAI on her right; OpenAI is her first
+// technology, so it hangs from T1's tip (her left, artifacts.ts: order 0), and the lift is P4's
+// mirrored. The arm's centre line was read on P4 relative to the head's near edge (x 347 px) and the
+// eyes' midpoint (284, 204.5), at P4's 109 px a unit (its eyes 75.5 px apart, hers 0.69 units), then
+// placed on the overview: the closed head's left edge at x -0.725, 0.1 further out (her arms are
+// thicker than P4's), and the eyes' midpoint at y -0.37 (faceAnchor, overview). So a P4 point
+// (px, py) is (-0.825 - (px - 347) / 109, -0.37 + (204.5 - py) / 109). It runs from under the cheek
+// (P4 (365, 235)) up past the eye line to a crest 1.18 above the eyes (P4 (410, 76)) and curls down
+// over the orb's far side; the root is the intro's, as every overview arm's is. The engine shows a
+// focus in the pose of the stage it came from (WorldHost: the overview) and moves the chosen orb by
+// the select strategy (the suction hold, until Task 19's arm lift, whose target this pose is).
+// Fix round 1: the first point (under the cheek) sits higher than P4's reading (y -0.6, was -0.65).
+// The lifted T1 touched T2's mid-arm orb (T2@0.5, below and outside it) at the elbow there; moving
+// the lift outward brings the elbow nearer that orb, so the elbow is raised instead, and it clears the
+// orb by more than 0.02 (frames.test.ts).
+const P4_LIFT: Point2[] = [[-0.99, -0.6], [-1.082, -0.375], [-1.137, -0.099], [-1.146, 0.13], [-1.119, 0.359], [-1.109, 0.543], [-1.164, 0.68], [-1.275, 0.772], [-1.403, 0.809], [-1.531, 0.791], [-1.623, 0.726]];
 
-// The detail and the entrance reuse the intro's arms and body until milestone 3 traces them from
-// P5 and P1: only what a stage means is set.
-const DETAIL: StagePose = { ...INTRO, expression: 'attentive' };
+/** Where the held orb sits in the tech focus (P4's OpenAI at (428, 122), mirrored to T1), on the stage: under the curl, above the eyes. */
+export const TECH_FOCUS_ORB: Point2 = [-1.568, 0.387];
+
+const TECH_FOCUS: StagePose = {
+  ...OVERVIEW,
+  arms: { ...OVERVIEW_ARMS, T1: flattenForDepth(withRoot(spec('T1'), toContent(P4_LIFT, OVERVIEW_BODY), undefined, INTRO_TRACED.T1[0]), spec('T1')) },
+  headMorph: 0,
+  expression: 'curious',
+};
+
+// Panel 5, the full project view (Task 13), registered on the face against the native panel
+// (861 x 519, the detail frame 8.61 x 5.19: world (x, y) = ((px - 430.5) / 100, (259.5 - py) / 100)).
+// She moves to the left edge, partly cropped (her left arms run off the frame), turned three-quarters
+// toward the project panel with her head leaning: P5's eyes at (87.5, 246) and (152.5, 220) px, so
+// their midpoint at (-3.105, 0.265) and the line rising 22 degrees to the right; the smile at (130,
+// 256). The body puts her eyes there at P2's size (P5's eyes are 68 px apart, P2's 69), leaning
+// 0.37 (21 degrees) and yawed 0.32 toward the panel: P5's eyes' midpoint sits 0.19 right of her head's
+// middle, which her face's depth (0.61) gives at that turn. (A wider turn, 0.45 as Veyra's, also
+// pushes the additive face-glow card, which faces the camera only as the swim turns, out past her
+// right cheek as a pale band: MORNING-REVIEW engine follow-ups.) Her eyes rest on the panel's
+// screenshot. Registered on a capture: the eyes land at (91, 249) and (157.5, 222.5) px against P5's
+// (87.5, 246) and (152.5, 220), then nudged by that difference. The ring circles her head again (the
+// satellite's rest form is drawn in the detail: artifacts.ts, spec 7.5). The arms keep the intro's
+// spread, as Nox's and Veyra's details do: P5's own arms (longer, hanging to the frame's bottom) are
+// not traced.
+const DETAIL: StagePose = { ...INTRO, body: { x: -3.115, y: 0.95, scale: 1, yaw: 0.32 }, tilt: 0.37, look: [0.65, 0.2], expression: 'attentive' };
 const ENTERING: StagePose = { ...INTRO };
+
+/**
+ * The gaze wander (spec 7.8, Task 16): where her eyes go in the intro while nothing else holds them,
+ * a new one every 4 to 8 s (the pointer still wins). World points in the intro frame (P2, origin at
+ * the panel's centre): the two jellyfish P2 paints (bell rims at P2 px (81, 165) and (427, 151); the
+ * first and fourth of the world's scatter, place/config.ts JELLYFISH), the upper right corner of the
+ * title block (AETHER_INTRO_TITLE: half width 1.16, top 1.54), and the visitor, straight ahead on her
+ * own eye line (face origin x 0.12, eyes y -0.68). Only the intro wanders: the other stages spread
+ * the intro pose and keep their own single `look` or the glance.
+ */
+export const INTRO_LOOK_POINTS: readonly Point2[] = [[-1.76, 0.87], [1.7, 1.01], [1.16, 1.54], [0.12, -0.68]];
 
 export const AETHER_POSES: Record<StageId, StagePose> = {
   entering: ENTERING,
-  intro: INTRO,
+  intro: { ...INTRO, lookPoints: INTRO_LOOK_POINTS },
   overview: OVERVIEW,
   techFocus: TECH_FOCUS,
   detail: DETAIL,

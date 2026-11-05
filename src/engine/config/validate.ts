@@ -1,7 +1,7 @@
 import { EXPRESSION_IDS, EXPRESSION_PARAM_KEYS, type ExpressionParams } from '../behavior/expressions';
 import { isColour, isWorldColour } from '../world/colour';
 import { INTRO_LIGHTING, type StageLighting } from './lighting';
-import { ARM_IDS, type AuraSettings, type CharacterConfig, type CupPulse, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, SKIN_MODES, type SkinMode, type SuckerSettings, type SuckerStyle, type SurfaceLook } from './types';
+import { ARM_IDS, type AuraSettings, type CharacterConfig, type CupPulse, type EffectColours, type GlowLightSettings, type GlowShape, type JellySettings, type OrbGlass, type Palette, type Personality, SKIN_MODES, type SkinMode, type SuckerSettings, type SuckerStyle, type SurfaceLook } from './types';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -91,6 +91,14 @@ const SPARKLE_MAX = 400;
 
 /** A jelly's numbers when a config leaves one out or gives one that is not a number. */
 const JELLY_DEFAULTS = { rimPower: 3, crownHeight: 0.5, depthStrength: 0.5, coreWarmth: 1 } as const;
+
+const IDLE_TILT_MAX = 0.35;
+const IDLE_TILT_MIN_PERIOD = 4.5;
+
+function clampIdleTilt(tilt: NonNullable<Personality['idleTilt']>): NonNullable<Personality['idleTilt']> {
+  const low = clamp(tilt.period?.[0], IDLE_TILT_MIN_PERIOD, 600, 5);
+  return { amplitude: clamp(tilt.amplitude, 0, IDLE_TILT_MAX, 0), period: [low, clamp(tilt.period?.[1], low, 600, Math.max(low, 9))] };
+}
 
 /**
  * One surface's look: a mode from the closed table (anything else reads `'skin'`), its sparkle held
@@ -267,6 +275,12 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       float: { amplitude: clamp(p.float.amplitude, 0, 0.08, d.floatAmplitude), period: clamp(p.float.period, 4, 8, d.floatPeriod) },
       breathPeriod: clamp(p.breathPeriod, 3, 6, d.breathPeriod),
       blinkInterval: [low, clamp(blinkMax, low, 10, Math.max(low, d.blinkInterval[1]))],
+      // The motion variants (contract 14.1): absent stays absent (Nox's values); set, kept in range.
+      ...(p.settle !== undefined ? { settle: unit(p.settle, 1) } : {}),
+      ...(p.glideBias !== undefined ? { glideBias: finite(p.glideBias) && p.glideBias > 0 ? p.glideBias : 1 } : {}),
+      ...(p.flourishRate !== undefined ? { flourishRate: clamp(p.flourishRate, 0, Infinity, 0) } : {}),
+      // The idle tilt: a lean of at most 0.35 rad (20 degrees), and a period of at least 4.5 s (the schedule itself floors each wait at one tilt's length, IDLE_TILT_SECONDS) so two never overlap.
+      ...(p.idleTilt !== undefined ? { idleTilt: clampIdleTilt(p.idleTilt) } : {}),
     },
   };
 }

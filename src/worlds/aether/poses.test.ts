@@ -4,9 +4,12 @@ import { armRadius } from '../../engine/character/armTube';
 import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
 import { faceAnchor } from '../../engine/types/bundle';
-import { AETHER_BUNDLE } from './bundle';
+import { AETHER_ARTIFACTS } from './artifacts';
+import { AETHER_BUNDLE, AETHER_STAGE_FRAMES, AETHER_STAGE_PANELS } from './bundle';
 import { AETHER } from './character';
-import { AETHER_POSES, INTRO_TRACED, OVERVIEW_OPEN_WATER, OVERVIEW_ROOM, OVERVIEW_TRACED } from './poses';
+import { aetherTechnologies } from './content/aetherTechnologies';
+import { AETHER_POSES, INTRO_TRACED, OVERVIEW_OPEN_WATER, OVERVIEW_ROOM, OVERVIEW_TRACED, TECH_FOCUS_ORB } from './poses';
+import { FACE_Z, headToStage, seen, toScreen } from './stageCriteria';
 import targets from './review/targets.json';
 import { SWIM_POSES } from './swim';
 
@@ -52,11 +55,11 @@ test('the left arms curl counter-clockwise and the right arms clockwise, as pain
   for (const id of ['T7', 'T8'] as const) expect(turn(id), id).toBeLessThan(-1);
 });
 
-test('the entrance and the detail still reuse the intro arms and body (P1 and P5 are traced later); only what the stage means differs', () => {
-  for (const stage of ['entering', 'detail'] as const) {
-    expect(AETHER_POSES[stage].arms, stage).toBe(AETHER_POSES.intro.arms);
-    expect(AETHER_POSES[stage].body, stage).toEqual(AETHER_POSES.intro.body);
-  }
+test("the entrance still reuses the intro arms and body (P1 is traced later); the detail keeps the intro's arms on its own body (P5)", () => {
+  expect(AETHER_POSES.entering.arms).toBe(AETHER_POSES.intro.arms);
+  expect(AETHER_POSES.entering.body).toEqual(AETHER_POSES.intro.body);
+  expect(AETHER_POSES.detail.arms).toBe(AETHER_POSES.intro.arms);
+  expect(AETHER_POSES.detail.body).not.toEqual(AETHER_POSES.intro.body);
   expect(AETHER_POSES.overview.headMorph).toBe(1);
   expect(AETHER_POSES.overview.orbs).toBe(1);
   expect(AETHER_POSES.techFocus.headMorph).toBe(0);
@@ -73,12 +76,103 @@ const dome = () => {
   return { cx, cy, halfWidth: halfWidth * overview.body.scale, halfHeight: halfHeight * overview.body.scale, power, bottom: cy - halfHeight * overview.body.scale, top: cy + halfHeight * overview.body.scale };
 };
 
-test('the overview has its own eight arms, T1 to T8 (P3), and the tech focus keeps them and the body', () => {
+test('the overview has its own eight arms, T1 to T8 (P3), and the tech focus keeps them (but the lifted one) and the body', () => {
   expect(Object.keys(overview.arms)).toEqual([...ARM_IDS]);
   expect(overview.arms).not.toBe(AETHER_POSES.intro.arms);
   expect(overview.expression).toBe('happy');
-  expect(AETHER_POSES.techFocus.arms).toBe(overview.arms);
+  for (const id of ARM_IDS.filter(id => id !== 'T1')) expect(AETHER_POSES.techFocus.arms[id], id).toBe(overview.arms[id]);
   expect(AETHER_POSES.techFocus.body).toEqual(overview.body);
+});
+
+// The tech focus (Task 13), traced from P4 and mirrored to T1 (poses.ts P4_LIFT).
+const { techFocus, detail } = AETHER_POSES;
+/** A pose's arm as the rig draws it at rest, on the stage (the body's place and scale; neither stage turns her). */
+function drawn(pose: typeof techFocus, id: (typeof ARM_IDS)[number]) {
+  const i = ARM_IDS.indexOf(id);
+  const chain = new ArmChain(restFromCurve(pose.arms[id]), AETHER.arms[i], i);
+  chain.solve({ time: 0, sway: 0, curl: 0, droop: 0, bend: AETHER.armBend });
+  return Array.from(chain.px, (x, k) => [pose.body.x + pose.body.scale * x, pose.body.y + pose.body.scale * chain.py[k]]);
+}
+
+test('the tech focus (P4) is the overview with one arm lifted: T1, the arm her first technology (OpenAI) hangs from; the face is curious, the head closed', () => {
+  const first = [...AETHER_ARTIFACTS.placement.slots!.overview].sort((a, b) => a.order - b.order)[0];
+  expect(first.arm).toBe('T1');
+  expect(aetherTechnologies[0].id).toBe('openai');
+  expect(techFocus.arms.T1).not.toEqual(overview.arms.T1);
+  // Root first: the lifted arm keeps the overview's (the intro's) root, so nothing pops under the mantle.
+  expect(techFocus.arms.T1[0][0]).toBeCloseTo(overview.arms.T1[0][0], 9);
+  expect(techFocus.arms.T1[0][1]).toBeCloseTo(overview.arms.T1[0][1], 9);
+  expect(techFocus.headMorph).toBe(0);
+  expect(techFocus.expression).toBe('curious');
+  expect(techFocus.orbs).toBe(1);
+});
+
+test('the lifted arm rises beside the closed head past the eye line, its tip curling over the top of the held orb (P4)', () => {
+  const line = drawn(techFocus, 'T1');
+  const [, eyeLine] = faceAnchor(AETHER_BUNDLE, 'overview');
+  const crest = line.reduce((a, p) => (p[1] > a[1] ? p : a));
+  // Its crest well above the eyes (P4: 1.18 above the eyes' midpoint, at P4's size), over the held orb.
+  expect(crest[1] - eyeLine).toBeGreaterThan(0.9);
+  const r = 1.3 * AETHER_ARTIFACTS.placement.sizes!.overview;
+  expect(Math.abs(crest[0] - TECH_FOCUS_ORB[0])).toBeLessThan(r);
+  expect(crest[1] - TECH_FOCUS_ORB[1]).toBeGreaterThan(r - 0.05);
+  // The tip comes past the orb's middle to its far side, at the orb's top: it holds the orb, it does not point at it.
+  const tip = line[line.length - 1];
+  expect(tip[0]).toBeLessThan(TECH_FOCUS_ORB[0]);
+  expect(Math.abs(Math.hypot(tip[0] - TECH_FOCUS_ORB[0], tip[1] - TECH_FOCUS_ORB[1]) - r)).toBeLessThan(0.2);
+  // The held orb above the eyes (P4: 0.76 above them), outside the closed head by more than its grown radius.
+  expect(TECH_FOCUS_ORB[1] - eyeLine).toBeGreaterThan(0.5);
+  expect(TECH_FOCUS_ORB[1] - eyeLine).toBeLessThan(1);
+  const { head } = AETHER;
+  const headLeft = overview.body.x + overview.body.scale * (head.centerX - head.halfWidth);
+  expect(headLeft - TECH_FOCUS_ORB[0]).toBeGreaterThan(r);
+  // Above the head's waist the arm keeps off the head's box, its thickness taken off.
+  let least = Infinity;
+  line.forEach(([x, y], k) => {
+    const lx = (x - overview.body.x) / overview.body.scale, ly = (y - overview.body.y) / overview.body.scale;
+    if (ly < head.waist) return;
+    least = Math.min(least, Math.hypot(Math.max(head.centerX - head.halfWidth - lx, 0, lx - head.centerX - head.halfWidth), Math.max(head.waist - ly, 0, ly - head.top)) - armRadius(k / (line.length - 1), AETHER.arms[0], AETHER));
+  });
+  expect(least).toBeGreaterThan(0.1);
+  // In the tech focus's frame (the overview's), the orb and the arm.
+  const { width, height } = AETHER_STAGE_FRAMES.techFocus;
+  for (const [x, y] of [...line, [TECH_FOCUS_ORB[0] - r, TECH_FOCUS_ORB[1] + r]]) {
+    expect(Math.abs(x)).toBeLessThan(width / 2);
+    expect(Math.abs(y)).toBeLessThan(height / 2);
+  }
+});
+
+test("the detail (P5): her eyes land where P5 paints them, at the left edge, three-quarters toward the panel, leaning, attentive", () => {
+  // P5's eyes at (87.5, 246) and (152.5, 220) px of 861 x 519: their midpoint (-3.105, 0.265) on the detail's stage.
+  const { eye } = AETHER.face;
+  const [fx, fy] = AETHER.head.faceOrigin;
+  const mid: [number, number, number] = [fx + (eye.centers[0][0] + eye.centers[1][0]) / 2, fy + (eye.centers[0][1] + eye.centers[1][1]) / 2, FACE_Z];
+  const at = seen(headToStage(detail, mid));
+  expect(Math.abs(at.x + 3.105)).toBeLessThan(0.06);
+  expect(Math.abs(at.y - 0.265)).toBeLessThan(0.06);
+  // The eye line rises about 22 degrees to the right (P5), from the lean.
+  const [l, r] = eye.centers.map(([x, y]) => seen(headToStage(detail, [fx + x, fy + y, FACE_Z])));
+  expect((Math.atan2(r.y - l.y, r.x - l.x) * 180) / Math.PI).toBeGreaterThan(17);
+  expect((Math.atan2(r.y - l.y, r.x - l.x) * 180) / Math.PI).toBeLessThan(27);
+  expect(detail.body.yaw).toBeGreaterThan(0.2);
+  expect(detail.expression).toBe('attentive');
+  expect(detail.orbs).toBe(0);
+  // At the left edge: her head inside the frame, her left arms cropped by it, the whole head left of the panel.
+  const { head } = AETHER;
+  const half = AETHER_STAGE_FRAMES.detail.width / 2;
+  const headLeft = seen(headToStage(detail, [head.centerX - head.halfWidth, head.waist, 0])).x;
+  const headRight = seen(headToStage(detail, [head.centerX + head.halfWidth, head.waist, 0])).x;
+  expect(headLeft).toBeGreaterThan(-half);
+  expect(headLeft).toBeLessThan(-half + 0.6);
+  expect(Math.min(...ARM_IDS.flatMap(id => drawn(detail, id).map(p => p[0])))).toBeLessThan(-half);
+  expect(headRight).toBeLessThan(AETHER_STAGE_PANELS.detail[0]);
+  // The face stays on screen at P5, the desktop and the phone.
+  for (const size of [{ width: 861, height: 519 }, { width: 1536, height: 1024 }, { width: 390, height: 844 }]) {
+    const p = toScreen(at.x, at.y, AETHER_STAGE_FRAMES.detail, size);
+    expect(p.x, `${size.width}`).toBeGreaterThan(0.05 * size.width);
+    expect(p.y, `${size.width}`).toBeGreaterThan(0.05 * size.height);
+    expect(p.y, `${size.width}`).toBeLessThan(0.95 * size.height);
+  }
 });
 
 test("the dome is P3's: half-width 1.38 +- 0.06 and its top at P3 y 105 +- 6 (spec 2.2)", () => {

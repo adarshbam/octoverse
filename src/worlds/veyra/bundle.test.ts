@@ -3,8 +3,12 @@ import { join } from 'node:path';
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { LOGO_SLUGS, logoIcon } from '../../engine/artifacts/logoTexture';
+import { settleScale } from '../../engine/behavior/ambient';
 import { EXPRESSIONS, EXPRESSION_IDS, resolveExpressions } from '../../engine/behavior/expressions';
+import { FlourishScheduler, flourishRate } from '../../engine/behavior/flourish';
 import { ARM_IDS } from '../../engine/config/types';
+import { seededRng } from '../../engine/motion/micro';
+import { strokeTiming } from '../../engine/motion/stroke';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { type WorldBundle, faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { stageBoxFor } from '../../engine/ui/useStageBox';
@@ -307,4 +311,30 @@ test("the overview's place and size are P3's: the eyes' midpoint and the dome as
   expect(Math.abs((rect[1] + rect[3]) / 2 - 0.655)).toBeLessThanOrEqual(0.03);
   expect(Math.abs((rect[2] - rect[0]) / 2 - 1.44)).toBeLessThanOrEqual(0.03);
   expect(Math.abs((rect[1] - rect[3]) / 2 - 0.98)).toBeLessThanOrEqual(0.03);
+});
+
+test('her motion personality is set (spec 7.8, Task 16): settle 0.6, glideBias 1.6, flourishRate 4, with the spec\'s effective values', () => {
+  const p = VEYRA.personality;
+  expect([p.settle, p.glideBias, p.flourishRate]).toEqual([0.6, 1.6, 4]);
+  // The bases are restated so nothing is applied twice: 60% of Nox's 0.03 overshoot, and a 1.0 s glide.
+  expect(p.micro.settle.amount * settleScale(p)).toBeCloseTo(0.018, 12);
+  expect(strokeTiming(p).glide).toBeCloseTo(1.0, 12);
+  // flourishRate is the nominal rate. The scheduler waits 12 to 20 s between starts (spec 7.8), 16 s on average
+  // (3.75 a minute), measured here over an hour of seeded draws.
+  expect(flourishRate(p)).toBe(4);
+  const scheduler = new FlourishScheduler(flourishRate(p), seededRng(16));
+  const starts: number[] = [];
+  for (let i = 0; i <= 3600 * 10; i++) {
+    const playing = scheduler.step(i / 10);
+    if (playing && playing.start !== starts.at(-1)) starts.push(playing.start);
+  }
+  const waits = starts.slice(1).map((s, i) => s - starts[i]);
+  for (const wait of waits) {
+    expect(wait).toBeGreaterThanOrEqual(12 - 0.1);
+    expect(wait).toBeLessThanOrEqual(20 + 0.1);
+  }
+  expect(waits.reduce((a, b) => a + b, 0) / waits.length).toBeGreaterThan(15.3);
+  expect(waits.reduce((a, b) => a + b, 0) / waits.length).toBeLessThan(16.7);
+  // She validates with them.
+  expect(validateBundle(VEYRA_BUNDLE).character.personality).toMatchObject({ settle: 0.6, glideBias: 1.6, flourishRate: 4 });
 });

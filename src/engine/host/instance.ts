@@ -1,5 +1,6 @@
 import { BubbleLive } from '../artifacts/bubbleLive';
 import { type PulseTriggers, createPulseTriggers } from '../character/cupPulse';
+import { FlourishEvents } from '../behavior/flourish';
 import { LiveAnchors } from '../stage/liveAnchors';
 import type { WorldBundle } from '../types/bundle';
 
@@ -37,6 +38,18 @@ export interface InstanceState {
    * another world) starts with every arm idle.
    */
   pulse: PulseTriggers;
+  /**
+   * The character's idle flourishes as they start (behavior/flourish.ts, amendment A2 X1):
+   * `flourish.subscribe(cb: (e: { arm, start }) => void)` returns the unsubscribe function. Nothing
+   * is told while the personality's `flourishRate` is 0 (Nox).
+   */
+  flourish: FlourishEvents;
+  /**
+   * The values the sequences last gave the kit's props (`WorldConfig.props`), by prop id: the
+   * character's frame writes them from the entrance (`SequenceSet.kitDrives`) and the kit applies
+   * them each frame (world/props.ts `driveProps`). Empty for a world with no props (Nox).
+   */
+  kit: Record<string, number>;
 }
 
 /** The host's request to look at a point (`useInstanceApi().attend`): `set` replaces it, `set(null)` lets it go. */
@@ -58,5 +71,5 @@ function createAttend(): Attend {
 }
 
 export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
-  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), pulse: createPulseTriggers() };
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), pulse: createPulseTriggers(), flourish: new FlourishEvents(), kit: {} };
 }

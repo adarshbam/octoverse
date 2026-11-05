@@ -15,8 +15,12 @@ Then three rules on the pixels:
   - no clip: no pixel of the membrane's rim (the `noClip` boxes: thin strips along its two sides and its top, where the
     edge glow is brightest) is drawn white (R, G and B all 250 or more): the bloom and the bright edge must not burn
     the cyan out. Their brightest channels are printed;
-  - no red (`noRed`): outside her silhouette (the capture's <capture>-mask.png, dilated by `herPx`), the coral boxes
-    and near-black dither (every channel below `darkBelow`), no pixel has R > G and R > B. Every class is counted.
+  - no red (`noRed`): outside her silhouette (the capture's <capture>-mask.png, dilated by `herPx`), the coral boxes,
+    near-black dither (every channel below `darkBelow`) and the technology pendants, no pixel has R > G and R > B.
+    Every class is counted. The pendants (Task 15 fix round 1) are content in brand colours, not the world: a pixel is
+    on a pendant when it lies within `pendantPx` of a pendant's centre (<capture>-pendants.json, the orb buttons'
+    centres) AND the pendants change it (it differs by more than `pendantDiff` in some channel from <capture>-solo.png,
+    the same frozen frame with the pendants hidden). So world red near an orb, which both frames show, still counts.
 Exit 0 when every held sample and the three rules pass, 1 otherwise.
 """
 import json
@@ -63,29 +67,57 @@ def luminance(p):
     return p @ [0.2126, 0.7152, 0.0722]
 
 
-def no_red(render, capture):
-    rule = SPEC['noRed']
-    mask_path = capture.with_name(capture.stem + '-mask.png')
-    if not mask_path.exists():
-        print(f'MISS no red: needs her silhouette at {mask_path} (scripts/veyra-world-capture.mjs writes it)')
-        return False
-    mask = (np.asarray(Image.open(mask_path).convert('L')) > 127).astype(np.uint8)
+def red_classes(render, her_mask, rule, solo=None, pendants=()):
+    """The no-red rule's pixel classes: (world red mask, counts by class). `her_mask` is her silhouette (bool), `solo` the
+    same frame with the pendants hidden (or None), `pendants` their centres [(x, y), ...] in capture pixels."""
     size = 2 * rule['herPx'] + 1
-    her = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))).astype(bool)
+    her = cv2.dilate(her_mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))).astype(bool)
     px = render.astype(int)
     red = (px[..., 0] > px[..., 1]) & (px[..., 0] > px[..., 2])
     coral = np.zeros_like(red)
     for x0, y0, x1, y1 in rule['coral']:
         coral[y0:y1, x0:x1] = True
     dark = px.max(axis=2) < rule['darkBelow']
-    rest = red & ~her & ~coral & ~dark
-    count = int(rest.sum())
+    pendant = np.zeros_like(red)
+    if solo is not None and len(pendants):
+        changed = np.abs(px - solo.astype(int)).max(axis=2) > rule['pendantDiff']
+        near = np.zeros(red.shape, np.uint8)
+        for x, y in pendants:
+            cv2.circle(near, (int(round(x)), int(round(y))), int(rule['pendantPx']), 1, -1)
+        pendant = changed & near.astype(bool)
+    rest = red & ~her & ~coral & ~dark & ~pendant
+    counts = {
+        'world': int(rest.sum()),
+        'her': int((red & her).sum()),
+        'coral': int((red & coral & ~her).sum()),
+        'dark': int((red & dark & ~her & ~coral).sum()),
+        'pendants': int((red & pendant & ~her & ~coral & ~dark).sum()),
+    }
+    return rest, counts
+
+
+def no_red(render, capture):
+    rule = SPEC['noRed']
+    need = {
+        'her silhouette': capture.with_name(capture.stem + '-mask.png'),
+        'pendant-free frame': capture.with_name(capture.stem + '-solo.png'),
+        'pendant places': capture.with_name(capture.stem + '-pendants.json'),
+    }
+    for what, path in need.items():
+        if not path.exists():
+            print(f'MISS no red: needs the {what} at {path} (scripts/veyra-world-capture.mjs writes it)')
+            return False
+    mask = np.asarray(Image.open(need['her silhouette']).convert('L')) > 127
+    solo = np.asarray(Image.open(need['pendant-free frame']).convert('RGB'))
+    pendants = [(p['x'], p['y']) for p in json.loads(need['pendant places'].read_text(encoding='utf-8'))]
+    rest, counts = red_classes(render, mask, rule, solo, pendants)
+    count = counts['world']
     where = ''
     if count:
         ys, xs = np.nonzero(rest)
-        where = f' (first at x {xs[0]}, y {ys[0]}: {tuple(int(v) for v in px[ys[0], xs[0]])})'
+        where = f' (first at x {xs[0]}, y {ys[0]}: {tuple(int(v) for v in render[ys[0], xs[0]])})'
     print(f"{'ok  ' if count == 0 else 'MISS'} no red: {count} pixels with R > G and R > B in the world{where}; left out: "
-          f"{int((red & her).sum())} on her, {int((red & coral & ~her).sum())} on the coral, {int((red & dark & ~her & ~coral).sum())} near-black")
+          f"{counts['her']} on her, {counts['pendants']} on the {len(pendants)} technology pendants, {counts['coral']} on the coral, {counts['dark']} near-black")
     return count == 0
 
 
