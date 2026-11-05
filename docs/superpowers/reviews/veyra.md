@@ -733,7 +733,7 @@ Stills (`docs/superpowers/reviews/assets/veyra/`; frozen intro, P2's view box, 9
 ### The four checks, with my verdict
 
 1. **The back is round and glassy: yes.** Seen from behind, the dome is the same round jelly as from the front: a bright cyan rim all round, a lighter crown, a darker middle, and the warm core showing through faintly low in the middle. Its colours match the front within a few points (table below). Nothing of the face leaks through: no near-black pixel on the head at yaw 135 or 180 (5,417 at yaw 0: the eyes and brows).
-2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks keep the same scatter: 27 to 37 on the upper dome at every yaw (10.5 to 17.0 per 10,000 px; 33 on the front, 27 on the back). The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
+2. **The rim, sparkles and crown continue round it: yes.** The rim's brightest outline reads the same at every yaw (luminance 213 to 220). The specks continue, but a little sparser behind: 27 on the upper dome from the back (10.5 per 10,000 px) against 33 from the front (12.8), about 18% sparser; 29 to 35 at the yaws between. The crown reads (11, 173, 192) from behind against (12, 172, 191) from the front.
 3. **The cups read from behind: yes, as an edge.** From behind the frill is on the far side of each arm, so it reads as a thin cream scalloped edge along each arm's underside, with a cup crest here and there; from three-quarters and from below the cups show in full. Cream pixels on the arms: 17% from the front, 13% from behind.
 4. **No seams, no matte patches, no popped geometry: yes after one fix, with one small residue.** Before the fix, the two rear arms' roots (T1 and T8) stood out behind the mantle and met in a hard crease with a dark notch under it, the one clear defect of the orbit (`t15-roots-before-after.png`, left). Now they root inside the neck and pass out under the dome (right). A small pinch remains where the two root caps meet at the body's axis, about 4 x 8 px at scale 2, half hidden under the dome's lower edge (see weaknesses). Nothing else popped, and there is no colour mismatch between front and back.
 
@@ -771,7 +771,14 @@ Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. 
 - Intro: `check_stage.py --world --stage intro --world-id veyra` exit 0, 13/13. The samples are all within 0.1 of HEAD except: arm top 9.4 (HEAD 9.3), arm body 9.2 (9.3), cup rim 6.3 (5.3), chin 9.0 (9.1). Mean (72, 163, 144); saturation 0.657; brightness 0.655 (HEAD 0.659).
 - `veyra_shape.py`: PASS, "her" row unchanged (IoU without the extra arms 0.852, span 3.74).
 - Overview (`check_stage.py --world --stage overview --world-id veyra`): the same misses as HEAD (Task 12's dome glass); one sample moved 0.1 (arm T6, 9.7 to 9.8).
-- `veyra_world.py`: exit 1 on `no red`, 600 pixels, and **HEAD fails the same way (601)**. These pixels are the cream pendant caps (Tasks 13 and 14), which lie outside her silhouette mask, e.g. the cap at T1's tip at (466, 534). Task 12 passed it before the pendants hung in the intro. Not changed here: the fix belongs in the check or the pendant colours.
+- `veyra_world.py`: first exit 1 on `no red`, 600 pixels, and **HEAD failed the same way (601)**. Fix round 1 below corrects the cause and the gate. 599 of the 600 pixels are the technology pendants' brand-logo glass, which lies outside her silhouette mask:
+  - 273 px on the Linux orb (amber), at (529, 805);
+  - 147 px on the Cloudflare orb (orange logo), at (741, 849);
+  - 90 px on the JavaScript orb (yellow), at (400, 690);
+  - 89 px on the Redis orb (truly red, (122, 62, 63)), at (698, 873);
+  - 1 px on React's cream cap, at (466, 534).
+
+  (My first note read only the first printed pixel and called them cream caps; that was wrong.) Task 12 passed this check before the pendants hung in the intro.
 - `npx vitest run src/worlds/veyra` (6 files, 60 tests) and `npx tsc -p tsconfig.nox3d.json --noEmit`, `npx tsc -b`: pass. No engine file touched, so Nox is untouched.
 
 ### Remaining weaknesses (mine)
@@ -780,5 +787,88 @@ Speck counts are bright points at least 35 over a 15 px median, 2 px or larger. 
 - **The side view (yaw 90) is not a design:** the arms are authored flat for the stage camera, so from the side they bunch into a column under the head. It is the same for Nox, and no stage shows her from the side.
 - **The arms read darker from behind** (mean green 158 against 178): the face glow and the cups' cream light fall on their front faces. They still read as jelly, with the rim and the specks, but a little more opaque than from the front.
 - **The warm core from behind** shows as a muted green patch low in the dome, where the front has the bright face glow. I left it: it is what a translucent head with a light inside should show, and spec 7.2 asks for the core inside. If you would rather the back read cleaner teal, that is `coreWarmth`, and changing it moves the front's face glow sample.
+- **The underglow change reaches every stage:** 0.25 is her stage lighting, not an intro value. I rechecked only the intro and the overview; the reviewer's fresh detail and techFocus captures show no defect. I chose 0.25 to hold the intro's saturation floor, not for the look: you confirm the look.
 - **Do not click on her in `?orbit`:** a click on her opens the dome (the head morph shows with the arms frozen in the intro), which looks like a cut head. Drag on the water instead. This is the click's interaction, not a geometry fault.
 - Twinkle, sway and the head turn are motion: check them live.
+
+### Task 15 fix round 1 (review): the no-red gate leaves out the pendants
+
+Controller's ruling: the no-red rule is the world's rule (Task 11). The technology logos are content in brand colours, and P4 itself shows a red Redis orb, so the rule holds for the world, not the pendants. The pendant colours stay.
+
+- **Capture:** `scripts/veyra-world-capture.mjs` now also writes:
+  - `<out>-solo.png`: the same frozen frame with `&solo`, so the pendants, dome glass and ambient bubbles are hidden;
+  - `<out>-pendants.json`: each pendant's centre and size, taken from its orb button (the buttons follow the drawn orbs).
+- **Rule:** `scripts/veyra_world.py` (`red_classes`) leaves a red pixel out as a pendant pixel only when both are true:
+  - it lies within `pendantPx` (30) of a pendant's centre;
+  - the pendants change it (it differs by more than `pendantDiff`, 8, in some channel from the solo frame).
+
+  So world red next to an orb, which both frames show, still counts. 30 px covers each pendant's whole footprint (orb, cap and thread): the pixels the pendants change stop within 26 to 30 px of their centres. The reason is recorded in `world_samples.json` `noRed.rule`.
+- **On the current frame:** `ok no red: 0 pixels ... in the world; left out: 12152 on her, 600 on the 12 technology pendants, 549 on the coral, 58 near-black`. `veyra_world.py` now exits 0. The membrane, padlock, plants, stone and water samples, relic and no clip are unchanged (2.5, 13.0, 10.2, 13.8, 1.7; 0.594 below 0.938; 0 white).
+- **Earlier results stand.** The new rule only removes pixels from the count, and Task 11's frame had no pendants, so its 0 world pixels stay 0.
+- **Negative control (on a copy of the real capture), painted into both frames:**
+  - a 20 x 20 red patch on the left foreground (400 px);
+  - a 4 x 4 red patch 27 px from the Linux orb's centre, inside its 30 px disc (16 px).
+
+  The rule fails with exactly 416 world pixels, and the 600 pendant pixels are still left out. The pendant exclusion does not hide world red near an orb.
+- **Test:** `src/worlds/reviewTooling.test.ts`, "veyra_world.py no-red rule", on synthetic frames:
+  - a red logo on the orb is left out (64 px);
+  - world red far away (25 px) and under the orb in both frames (9 px) still counts;
+  - a changed pixel far from any pendant (4 px) still counts;
+  - with no pendant frame, everything counts (the old rule).
+
+## Task 16 engine variants: PENDING OWNER REVIEW (engine owner to confirm)
+
+Contract 14.1 deferred the personality fields `settle`, `glideBias` and `flourishRate`; gap G4 accepted a shared idle-flourish layer, built in F01. The brief says to raise this with the engine owner before starting. The owner was asleep, so the controller ruled provisionally: proceed, log it here and in the morning list, and add the contract row (engine design section 18, "G4 and 14.1 build").
+
+### What the engine gained (commit `a1fa799`, `feat(engine): settle, glide bias and flourish (for Veyra)`)
+- **`Personality.settle`** (0 to 1; unset is Nox's 1). It scales the landing overshoots:
+  - the settle of a stage move (`settleOvershoot(t, micro, scale)`);
+  - the entrance arms' run past the intro pose (`settleWeight(s, overshoot)`).
+
+  The arms' curve keeps its shape. Its coefficient is solved so the run past the pose is exactly that share of Nox's (scaling the coefficient directly gives only 6% at 0.6).
+- **`Personality.glideBias`** (above 0; unset is 1). `strokeTiming(personality)` stretches `swim.glide` by it. At 1 it returns Nox's own `swim` object. Octopus and the entrance read it.
+- **`Personality.flourishRate`** (flourishes per minute; unset is 0, none). It drives `engine/behavior/flourish.ts`:
+  - **Timing.** The wait between starts is 0.8 to 4/3 of 60 / rate s: 12 to 20 s at 4, as in spec 7.8. A wait is never shorter than one flourish, and the same arm never flourishes twice in a row.
+  - **The motion.** `flourishCurve(t, start)` runs 0 to 1 to 0 over 3 s, with a smootherstep up and down. `flourishUnroll` is 0.4 times the curve, applied to one arm through the chain's own tip straightening (`ArmDrive.straighten`, the max with any drive). It creates no material and changes no draw order.
+  - **When it never plays:** with reduced motion, with `freeze`, and in the entrance.
+- **Events (A2 X1).** `instance.flourish.subscribe(cb: (e: { arm, start }) => void)` returns the unsubscribe function. There is one emitter per instance. Veyra subscribes to nothing; Flux's pulse will.
+- **Busy-arm hook (for Task 19).** `FlourishScheduler.step(t, busy, events)` starts a flourish only on an arm for which `busy` is false. Octopus passes `armBusy`, the suction hold's `holdWeight[arm] > 0`. Task 19's pendant lift must make the lifting arm busy, either through that hold or by extending `armBusy`.
+- **Validation.** `validateBundle` refuses each field out of range, by name (one test each). `clampCharacterConfig` keeps the fields when they are set.
+
+### Veyra's values (`feat(veyra): motion personality`)
+She now sets `settle: 0.6`, `glideBias: 1.6` and `flourishRate: 4`. Two base values were restated so that spec 7.8's effective values are unchanged and nothing is applied twice:
+- `micro.settle.amount` goes from 0.018 back to Nox's approved 0.03, so 0.6 of it is still 0.018.
+- `swim.glide` goes from 1.0 to 0.625, so 1.6 times it is still the spec's 1.0 s.
+
+### Numbers (no video: `.tmp/t16/numbers.json`, from the engine functions)
+| Measure | Veyra | Nox | Ratio |
+|---|---|---|---|
+| Stage-move overshoot peak (units) | 0.0180 | 0.0300 | 0.600 |
+| Entrance arms' run past the intro pose (weight) | 0.0275 | 0.0458 | 0.600 |
+| Glide (s) | 1.000 | 0.600 | 1.667 (the bias alone: 1.6) |
+
+- **Flourishes per 60 s at rate 4** (1000 seeds, 60 frames a second): 3 in 79% of runs and 4 in 21%, mean 3.21. None ever overlap.
+- **Largest unroll:** 0.400 of the tip curl. On her intro arms, the outer arm's turn at the peak is 40.0% less on all eight arms.
+- **Tip excursion at a flourish's peak** (intro pose, body scale 1, the largest of three moments): T1 0.25, T2 0.18, T3 0.20, T4 0.28, T5 0.11, T6 0.16, T7 0.21, T8 0.26 units. The largest is 0.28 (T4).
+
+### What to look at (live, `?world=veyra&stage=intro`, wait 12 to 20 s)
+1. **The flourish.** Does one arm unroll slowly and roll back, calm and not twitchy? A 0.28-unit tip move on T4 is about a fifth of the head's width; if it reads large, lower `FLOURISH_UNROLL` or her rate.
+2. **The landing** reads cleaner than Nox's. This shows in the entrance once Task 17 authors it.
+3. **The long glide.** It is only visible in the entrance (Task 17); her placeholder entrance has no strokes.
+
+There is no still of a flourish: no URL parameter freezes one, and adding one was out of scope.
+
+### Nox regression
+- Nox sets none of the new fields.
+- His stroke, swim drive, float, breath, blinks, springs and both overshoots equal fixtures captured from the code before the change (`src/engine/motion/fixtures/nox-motion.json`, at `4770b01`). They are tested with the fields unset and with them set to his values.
+- The still gate passes. Everything is 0.0000 except techFocus (0.0119, its known residual). The set's `intro.png` showed a one-off 15-pixel transient (max 29); two recaptures of it were bit-identical to the baseline.
+
+### Task 16 review round 1 (fix `d718155`)
+- **A flourish yields to a busy arm.** Before, a flourish that was playing ran to its end even if its arm started to hold something. Task 19's lift would then have moved the lifting arm's tip, and its pendant's attach point, for up to 3 s. Now the unroll is scaled by 1 minus the hold's weight on that arm (`yieldedUnroll`), so it is gone once the arm holds. Test: a flourish on its way up gives way as a hold ramps in, with no frame-to-frame jump. Nox is unaffected: his rate is 0, so no flourish ever plays.
+- **The play gate is a pure function.** `flourishMayPlay(moving, swimming, stage)` gates every flourish, and its behaviour is tested: none with reduced motion or `freeze` (moving 0), none while swimming, none in the entrance, every other stage allowed.
+- **flourishRate is nominal.** The scheduler plays about 0.94 of the rate: 3.75 a minute at her 4, an average wait of 16 s, every wait from 12 to 20 s. Her test now measures the scheduler's real waits over an hour.
+- **Owner decision, recorded and not built:** Flux's plan conflicts with this contract on the event field name (`clock` against `start`), on `settle` above 1, and on a hook to suppress the unroll. Details: the morning list and the spec row.
+- **For Task 19 and Task 20 (ledger, no code):**
+  - *(M4)* A playing flourish ends at once, without easing out, when motion turns off (reduced motion switched on mid-flourish) or the stage leaves the gate. The unroll snaps back to 0 in one frame. It is rare and small (at most a 0.28-unit tip move); ease it out if it shows.
+  - *(M6)* There is no review parameter to freeze a flourish at its peak, so the owner cannot judge one from a still. A `?flourish=<arm>&t=<s>` still would need an engine review hook.
+

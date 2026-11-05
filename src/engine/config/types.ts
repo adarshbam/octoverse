@@ -373,7 +373,24 @@ export interface Personality {
   swim: StrokeTiming;
   /** The shared micro-animations (design 9.7). */
   micro: MicroMotion;
+  /**
+   * 0 to 1: a scale on the approved landing overshoots, the settle of a stage move
+   * (`micro.settle`) and the entrance arms' run past the intro pose (swimArms.settleWeight).
+   * Unset: 1, Nox's (engine contract 14.1; Veyra's 0.6 lands at 60% of it).
+   */
+  settle?: number;
+  /** Above 0: a scale on the stroke's glide (`swim.glide`), motion/stroke.ts strokeTiming. Unset: 1, Nox's. */
+  glideBias?: number;
+  /**
+   * 0 or more: idle flourishes per minute, nominal (behavior/flourish.ts, gap G4; the waits are
+   * drawn from 0.8 to 4/3 of 60 / rate s, so about 0.94 of it plays): one arm slowly unrolls its tip
+   * curl and rolls it back. Unset: 0, none (Nox).
+   */
+  flourishRate?: number;
 }
+
+/** What `Personality.settle`, `glideBias` and `flourishRate` read when unset: Nox's values, today's behaviour. */
+export const PERSONALITY_VARIANT_DEFAULTS = { settle: 1, glideBias: 1, flourishRate: 0 } as const;
 
 /**
  * Living skin detail: droplet bumps, dark blotches, cool and warm tints, wet gloss and light

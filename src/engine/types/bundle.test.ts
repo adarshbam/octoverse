@@ -368,3 +368,27 @@ test("a satellite's active form (slots, sizes, tether, swing) is checked by name
     [{ ...active, swing: { maxAngle: 0, settle: 1.4 } }, 'artifacts.placement.swing.maxAngle'],
   ] as const) expect(refusal(withPlacement(bad)).field).toBe(field);
 });
+
+// --- Task 16: the personality's motion variants (engine contract 14.1) -------------------------
+
+/** Nox's bundle with these personality fields. */
+const withPersonality = (fields: Record<string, unknown>) => ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, personality: { ...NOX_BUNDLE.character.personality, ...fields } } }) as WorldBundle;
+
+test('settle, glideBias and flourishRate validate unset (Nox) and in range, and the clamp keeps them', () => {
+  expect(validateBundle(NOX_BUNDLE).character.personality.settle).toBeUndefined();
+  const calm = validateBundle(withPersonality({ settle: 0.6, glideBias: 1.6, flourishRate: 4 })).character.personality;
+  expect([calm.settle, calm.glideBias, calm.flourishRate]).toEqual([0.6, 1.6, 4]);
+  for (const fields of [{ settle: 0 }, { settle: 1 }, { flourishRate: 0 }, { glideBias: 0.01 }]) expect(() => validateBundle(withPersonality(fields))).not.toThrow();
+});
+
+test('settle outside 0 to 1, or not a finite number, is refused by name', () => {
+  for (const settle of [-0.1, 1.2, Number.NaN, Infinity, '0.6']) expect(refusal(withPersonality({ settle })).field, String(settle)).toBe('character.personality.settle');
+});
+
+test('glideBias at or below 0, or not a finite number, is refused by name', () => {
+  for (const glideBias of [0, -1, Number.NaN, Infinity, null]) expect(refusal(withPersonality({ glideBias })).field, String(glideBias)).toBe('character.personality.glideBias');
+});
+
+test('flourishRate below 0, or not a finite number, is refused by name', () => {
+  for (const flourishRate of [-1, -0.001, Number.NaN, Infinity, '4']) expect(refusal(withPersonality({ flourishRate })).field, String(flourishRate)).toBe('character.personality.flourishRate');
+});
