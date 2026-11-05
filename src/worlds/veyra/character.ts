@@ -29,7 +29,7 @@ export const VEYRA_LIGHTING: StageLighting = {
 // 0.18): the painting wins where they differ (T1, T2, T5 are thicker).
 // The rear pair root at z 0, inside the neck (Nox's -0.3, Task 15): with T1's thick root, at -0.3 the
 // two root caps stood out behind the mantle and met in a hard crease seen from the back (yaw 180).
-const rear =(id: 'T1' | 'T8', rootRadius: number): ArmSpec => ({ id, depth: 'rear', rootRadius, z: [0, -0.62] });
+const rear = (id: 'T1' | 'T8', rootRadius: number): ArmSpec => ({ id, depth: 'rear', rootRadius, z: [0, -0.62] });
 const middle = (id: 'T2' | 'T7', rootRadius: number): ArmSpec => ({ id, depth: 'middle', rootRadius, z: [0.05, -0.32] });
 const side = (id: 'T3' | 'T6', rootRadius: number): ArmSpec => ({ id, depth: 'front', rootRadius, z: [0.0, 0.3] });
 // The two arms that hang down the centre (P2): their cups show along the outer edge of their curls.
