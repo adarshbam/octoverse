@@ -81,8 +81,8 @@ export function toScreen(x: number, y: number, frame: StageFrame, size: Size) {
  * Her face (eyes, brows, blush and mouth) as a box in her head's space (Aether's face layout, about
  * the face origin). The mouth's bottom is the closed mouth's depth (face.mouth.depth): the happy and
  * curious faces open it a little lower, so their faces are a little taller than this box. The
- * open mouth's extra depth is not modelled here: the margins the tests ask for (over 20 px for a
- * held orb, over 10 px for a hanging one) are what cover it.
+ * open mouth's extra depth is not modelled or measured here; the margins the tests ask for (over 20
+ * px for a held orb, over 10 px for a hanging one) may or may not cover it.
  */
 export function faceBoxLocal(): Box {
   const [fx, fy] = head.faceOrigin;

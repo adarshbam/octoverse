@@ -145,11 +145,14 @@ test("the authored tech focus target (Task 19's arm lift, not drawn today): its 
   }
 });
 
-// The rendered tech focus (Fix round 1): the engine draws the overview's pose and the suction hold
-// takes the chosen orb to the tip of the arm nearestArm picks (Octopus: holdArm, from the rig's tips,
-// the bubble's orbit point and her head box), turned toward the orbit by HOLD_ARM and lifted. Modelled
-// here at rest (her drawn overview arms), the orb grown 1.3x (spec 7.5) and held offTip radii past the
-// tip along the arm's last segments.
+// The intended hold pick (Fix round 1, renamed in fix round 2): the engine draws the overview's pose
+// and the suction hold takes the chosen orb to the tip of the arm nearestArm picks (Octopus: holdArm,
+// from the rig's tips, the bubble's orbit point and her head box), turned toward the orbit by HOLD_ARM
+// and lifted. This is a model of the hold as intended, with the bubble at its true place: at rest (her
+// drawn overview arms), the orb grown 1.3x (spec 7.5) and held offTip radii past the tip along the
+// arm's last segments. Least margin 37.9 px (the phone; model only). It is NOT the frozen render: today
+// the page holds OpenAI on T4, about 10 px off her face at 509 x 504 (an engine bug; the expected
+// failure in tests/e2e/aether.spec.ts drives the real hold path and names the engine follow-up).
 const hold = SELECTS.suctionHold;
 const HEAD_BOX: Box = { x0: AETHER.head.centerX - AETHER.head.halfWidth, y0: AETHER.head.bottom, x1: AETHER.head.centerX + AETHER.head.halfWidth, y1: AETHER.head.top };
 const OVERVIEW_DRAWN = drawnArms(AETHER_POSES.overview);
@@ -174,7 +177,7 @@ const landingClear = (landing: ReturnType<typeof heldLanding>, size: Size) => {
   return discClear({ ...at, r: landing.r * body.scale * pixelsPerUnit(frame, size) }, faceRect(AETHER_POSES.overview, frame, size));
 };
 
-test('the rendered tech focus: for every orb of 1, 3, 10, 15, 16 and 20 technologies, the arm nearestArm picks lands it (grown 1.3x) clear of her face rect', () => {
+test('intended hold pick: for every orb of 1, 3, 10, 15, 16 and 20 technologies, the arm nearestArm picks from the orb\'s true place lands it (grown 1.3x) clear of her face rect', () => {
   for (const count of [1, 3, 10, 15, 16, 20]) {
     for (const { slot } of assignPendants(count, placement.slots!.overview).placed) {
       const { orbCentre } = tetherCurve(along(OVERVIEW_DRAWN[slot.arm], slot.at), 0, placement.tether!, placement.sizes!.overview);
@@ -182,18 +185,6 @@ test('the rendered tech focus: for every orb of 1, 3, 10, 15, 16 and 20 technolo
       for (const [view, size] of VIEWS) expect(landingClear(landing, size), `${view} ${count}: ${slot.arm}@${slot.at} held by ${landing.arm}`).toBeGreaterThan(0);
     }
   }
-});
-
-test('KNOWN ENGINE BUG (pinned, flips with the engine fix): a frozen tech focus picks the hold arm before the orbit point is written, so it picks for the origin: T4, and the orb lands beside her face', () => {
-  // The render (?freeze, techFocus at 509 x 504) shows the held OpenAI orb beside her left eye, about
-  // 10 px off the face, held by T4 rather than T1: holdArm reads bubbleState.orbit[bubble] before
-  // TechBubbles has written it, and an unset point is the origin (the likely cause; not traced in the
-  // engine frame by frame). The model below lands it 18 px off the face at the phone, 24 px at 509 x
-  // 504 and 48 px on the desktop: it is cruder than the render, which shows about 10 px at 509. The
-  // pick is what this pins. Engine follow-up in MORNING-REVIEW-aether.md.
-  const landing = heldLanding([0, 0, 0]);
-  expect(landing.arm).toBe('T4');
-  for (const [view, size] of VIEWS) expect(landingClear(landing, size), view).toBeGreaterThan(0);
 });
 
 test('the lifted T1 (the tech focus target) clears every other overview orb by more than 0.02 (T2@0.5 sits close under it)', () => {

@@ -964,7 +964,7 @@ Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and t
 - The ring shrinks with her: ring half-width / head half-width 1.671 at desktop and phone (intro), 1.605 (detail); intro ring 94 px at the phone against 253 px at 1536 x 1024.
 - Face rect: over a minute of sway, no bead in front of her head comes nearer than 30.8 px (phone intro) or 6.8 px (phone detail); counting the rear beads too, the phone intro's nearest is 8.9 px. The ring line in front never crosses it.
 - Intro, frozen: beads clear the face rect by 11.9 px, the title by 28.8 px and the nameplate by 104 px (phone); 31.7 / 75.2 / 273 px (desktop).
-- Overview and tech focus, frozen, 1, 3, 10, 15, 16 and 20 technologies: no orb or thread within 24 px of the face rect (phone; 65 px desktop); the held orb at `TECH_FOCUS_ORB` grown 1.3x clears it by more than 20 px.
+- Overview and tech focus, frozen, 1, 3, 10, 15, 16 and 20 technologies: no orb or thread within 24 px of the face rect (phone; 65 px desktop); the held orb at `TECH_FOCUS_ORB` (authored, not drawn: Task 19's target) grown 1.3x clears it by more than 20 px.
 - Sheet and tray: her ten clear the bottom sheet and the two-row tray by 23.7 px. 15 and 16 (a third row) reach it by 23 px: the known limit Veyra has (Task 20).
 - Tray: the model (`createProjectModel` with the satellite's capacity 16) lists every technology in order on the phone for 1, 3, 10, 15, 16 and 20 (the counts tested); `tests/e2e/aether.spec.ts` checks the live phone overview: ten 44 px+ tray buttons, OpenAI to Vector DB, above the sheet (passed).
 - Stills: on the phone she is centred, not in the upper screen (the shared framing fits the frame to the width); the overview's sheet and tray take the lower third. The detail's sheet covers her (her face is under it at y 380 to 432 px).
@@ -1000,7 +1000,27 @@ It passes only under the most favourable registration. The tongue misses on a pa
 **Cheap fixes.**
 - The lifted T1 touched T2's mid-arm orb (T2@0.5) at its elbow under the cheek: gap -0.001. Nudging the lift 0.03 outward made it worse (-0.024: that orb hangs below and outside the elbow), so the first traced point is raised instead (`P4_LIFT[0]` y -0.6, was -0.65; about 5 P4 px). Gap now 0.03; a test pins every other overview orb more than 0.02 clear. The crest, the tip on the orb and the head clearance tests are unchanged and pass. No render changes: the tech focus pose is not drawn.
 - `stageCriteria.ts` takes the swim's centre line from `poses.ts` `BODY_X` (was a copy, 0.07).
-- `faceBoxLocal` notes that its mouth bottom is the closed mouth's depth; the happy and curious faces open a little lower, which the 10 px and 20 px margins cover (not modelled).
+- `faceBoxLocal` notes that its mouth bottom is the closed mouth's depth; the happy and curious faces open a little lower, not modelled or measured: the 10 px and 20 px margins may or may not cover it (fix round 2 wording).
 - Engine follow-up added: the detail panel's edge over her right cheek on the 1672 x 941 page is probably the engine's panel mapping. The model puts her face box's right edge 0.29 left of the panel's left edge (the review read 0.18 for the blush).
 
 **Tests.** `frames.test.ts` 12 tests (was 8). Full run and typecheck: see the Task 13 report.
+
+### Task 13 fix round 2: the engine-bug guard drives the real hold path
+
+**The fake guard is gone.** Fix round 1's "KNOWN ENGINE BUG" test in `frames.test.ts` called a test-local model with the origin and expected T4. No engine fix could flip it. It is deleted.
+
+**The real hold path cannot be reached from a vitest world test.** `holdArm` is a closure inside `Octopus.tsx`'s frame loop, and `TechBubbles.tsx` writes the orbit points in its own frame step. Neither is a pure function an Aether test can call with the same inputs. So the guard is an e2e test on the real page, in `tests/e2e/aether.spec.ts`:
+- Title: "Aether tech focus, frozen: OpenAI is held near T1, the arm it hangs from [engine follow-up: the suction hold picks its arm before the orbit point is written]".
+- It opens `?world=aether&stage=techFocus&tech=openai&freeze` at 1536 x 1024 and waits for the hold probe to report `openai` at pull 1. It takes the OpenAI orb button's centre and the drawn arm tips (`window.__octoverse.attention.tips`). It places the tips by the overview's body and projects them through the reported stage camera (fov, position, lens shift; its 2-degree pitch left out).
+- It expects the correct behaviour: the nearest tip is T1's. It is marked `test.fail` and fails for that reason today: nearest T4 at 49 px (T3 221, T2 339, T1 459). Checked in the JSON report: the error is `Expected: "T1" Received: "T4"`, not a timeout.
+- When the engine is fixed, the test passes and Playwright reports the expected failure as unexpected; then the `test.fail` line comes out.
+- Limit: `test.fail` also counts any other failure (a timeout, a missing probe) as expected. The recorded annotation (`hold`: orb, tip distances, nearest) shows which.
+
+**Labels.** The model test is renamed "intended hold pick". It asserts the pick from the orb's true place, a model of the hold as intended: least 37.9 px from her face (the phone). The frozen render today holds OpenAI on T4, about 10 px off her face at 509 x 504 (the engine bug). The 18 / 24 / 48 px figures from fix round 1 were model-only and are dropped.
+
+**Small items.**
+- The authored held orb (`TECH_FOCUS_ORB` at 1.3x, > 20 px) is now labelled "authored, not drawn" in the Task 13 phone list.
+- The `faceBoxLocal` comment and the fix round 1 note now say the open mouth's extra depth is not modelled or measured; the margins may or may not cover it.
+- `src/worlds/aether/review/targets.json` is tracked. Both tools were run from a `git archive` export of HEAD's `src/worlds/aether/review/` (a clean path, the export as working directory). They reproduce Task 13's numbers exactly (inside 7.5 / 15.0 / 64.7, tongue 25.0 / 1.8 / 50.7, rim 3.8 / 5.9 / 1.3). They need numpy and Pillow, and the captures they read are not committed (`.tmp/t13/f-tf-face3x.png`, `f-tf.png`).
+
+**Run.** vite on 127.0.0.1:5196 for the e2e only, stopped afterwards. The page logged "the world's kit did not load in 15000 ms" once (the world drew less); the character, hold and probes were unaffected. `aether.spec.ts`: 4 of 4 (the new one as an expected failure).
