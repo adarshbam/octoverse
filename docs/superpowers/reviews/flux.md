@@ -386,3 +386,26 @@ Ruled provisionally overnight; the owner judges the look live.
 - `createOrbStyle`: scale or hide the cap with the orb (size 0 means no cap).
 - Tech focus: draw `poses.techFocus` (or the arm lift) and let the focused tech hang from the lifted arm.
 - Phone overview layout for pendant worlds (spec 7.11).
+
+## Milestone 4: Task 13, back view (orbit review) (PENDING OWNER REVIEW)
+
+**Ruling (provisional, overnight):** no change needed to `character.ts`. Nothing was edited; the front look is untouched.
+
+**Stills** (`docs/superpowers/reviews/assets/flux/`): `back-t13-yaw-0-45-90-180.webp`, `back-t13-yaw180-2x.webp`. Captured with `NOX_URL=http://localhost:5195 NOX_PORT=5195 WORLD=flux node scripts/stage-capture.mjs intro <out.png> "yaw=<n>&solo&tier=high&kitwait=180000"` (506 x 504, scale 2).
+
+**What was checked, and the numbers**
+- Round and glassy: at yaw 180 the head is a complete round dome with a soft specular glassy look and a violet middle fading to pink at the lower back (the core shows through the jelly).
+- Blue crown: sample at the top, 3x3 mean, (71, 107, 236) at yaw 180 against (72, 108, 236) at yaw 0.
+- Rim: left and right edge (77, 122, 244) and (86, 112, 254) at 180 against (83, 128, 244) and (85, 111, 253) at 0; the blue rim runs round the whole back outline.
+- Sparkles: blob count of specks over the same head area (a 135 px disc on the head, cut off below the face) 58 at yaw 0, 93 at 45, 91 at 90, 61 at 180. The arms carry sparkles on their backs too.
+- Cups: cup-pink pixels outside the head 8322 (yaw 0), 7421 (45), 3324 (90), 1217 (180).
+- Front unchanged: `python scripts/check_stage.py .tmp/t13/w0.png --world --stage intro --world-id flux` (capture by `world-capture.mjs intro` with `tier=high&solo&kitwait=180000&yaw=0`): FAIL with the 3 known misses (mouthInside 35.2, armTopHighlight 31.8, cupGlow 25.7), no new ones. The plain page still (`stage-capture`, not the check the world gate uses) reads 5 misses, as in Tasks 10 and 12, by its different framing.
+- The earlier killed attempt's experiment (rear arms `z: [0, -0.8]`) was not applied and not needed.
+
+**Honest weaknesses**
+- The cups do not read from behind: they sit on the underside, which a camera behind and above does not see. Only the pink underside edge light and a hint on the lower tip curls show. This is the one brief item not met. Fixing it means wrapping the cups further round the arm (`suckers.tilt`, `rowAngle`), which changes the front (Task 6 rejected tilt 12 for hiding root cups); left for the owner to rule whether to trade it.
+- The two lower centre arms meet at the back in a hard seam with a dark notch under the head.
+- The core's glow is a strong magenta-pink hotspot at the lower back (255, 171, 255), pinker than the front's pink-white.
+- The pink fin behind the head belongs to the world kit and also shows at yaw 0.
+
+**Check:** `/?world=flux&stage=intro&freeze&yaw=180` (and 45, 90).
