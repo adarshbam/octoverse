@@ -473,3 +473,25 @@ Ruled provisionally overnight; motion is checked live (no video). No source or c
 - The reduced-motion test bounds the drift but the bound cannot separate reduced motion from normal motion; the engine has no swing probe; the no-swing guarantee is the unit test of pendantSwing plus the ungated curl engine-owner item. The test claims only live buttons, bounded drift and a lift far beyond it.
 - Lifted-orb overlap (Task 16, still open): the chosen orb at 1.25x and its lifted arm overlap neighbours in the arms' plane (-0.31 to -0.41 against the 0.05 threshold); the e2e does not look at it.
 - Engine-owner items: gate the arm tip curl with reduced motion (`curl: moving * ...`), a lift/swing probe, the phone tooltip over the tray.
+
+## Task 18: pipelineRun head effect (PENDING OWNER REVIEW; engine commit PENDING ENGINE-OWNER REVIEW)
+
+Ruled provisionally overnight; motion is checked live (no video). Engine: `src/engine/character/headEffects/pipelineRun.ts` (in `HEAD_EFFECTS`; `pipelineRunState(swell)`), the bundle check for `headEffect` and the three colours. Flux: `headEffect: 'pipelineRun'`, `palette.effect` = the cup pulse's cyan, lavender, pink, and the `headSwell` sheet seeded in `state.theatre.json`.
+
+### What changed
+- Progress phases: rings 0 to 0.3; bead and in-order fills 0.3 to 0.75 (cyan, lavender, pink, cyan, each with a flash); ripple 0.75 to 1; fade 0.82 to 1. Exactly four fill peaks, in order. Reduced motion: a crossfade, no bead, no ripple.
+- Sheet: 1.5 s as Nox's; `effect` runs linearly from 0.5 s to 1.5 s (1.0 s of pipeline).
+
+### Stills
+`docs/superpowers/reviews/assets/flux/headswell-t18-pipeline.webp`: seconds 0.7, 0.95, 1.2, 1.3, 1.4, 1.5 (progress 0.2, 0.45, 0.7, 0.8, 0.9, 1), as the page shows them (top) and with the overlays hidden (bottom). At 1.5 s the nodes have faded and the dome is empty, by design.
+
+### Check live
+1) it reads as the dome's own data run (rings, bead, four fills in order, ripple, fade); 2) node size and brightness; 3) the ripple's strength; 4) closing plays it backwards.
+
+### Honest weaknesses
+- The panel's text and buttons cover the right half of the pipeline in the still; whether the panel is hidden during the run live was not seen.
+- Closing is the same speed backwards, not half the time (spec 7.6).
+- Reduced motion shows nothing at rest (the pipeline has faded at the head's end); the crossfade is only seen in a `?freeze&swell=` still with reduced motion.
+- The dome's lowest part is hidden by the head, so the nodes sit in the visible lower half, above the face.
+- Veyra's `vaultDial` is not in this tree: no output-unchanged test for it.
+- Engine-owner items: `update` has an optional `reducedMotion` argument; the bundle check is stricter (unknown `headEffect`; solid `#rrggbb` colours for `pipelineRun`).

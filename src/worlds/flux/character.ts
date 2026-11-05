@@ -89,7 +89,9 @@ export const FLUX: CharacterConfig = {
     domeRimTop: '#b0f0ff',
     domeSheen: '#80c8ff',
     orbFocus: '#4ac8ff',
-    effect: { halo: 'rgba(74,166,208,0.5)', stroke: '#4aa6d0', core: '#d0f0ff' },
+    // The pipelineRun nodes (spec 7.6), the cup pulse's own three hues: stroke is the electric cyan,
+    // halo the lavender, core the pink; the nodes run cyan, lavender, pink, cyan.
+    effect: { halo: '#9a78ff', stroke: '#20e0ff', core: '#ff8ce0' },
     rimHot: 'color(srgb-linear 0.85 0.9 1)',
     domeRimHot: 'color(srgb-linear 0.8 0.9 1)',
     suckerSpecular: 'color(srgb-linear 1 0.9 1)',
@@ -212,8 +214,8 @@ export const FLUX: CharacterConfig = {
   // x +-1, as painted. The mantle sinks to -0.32 (stage -0.19), where P3's head top shows under the
   // glass (-0.2).
   dome: { center: [0, 0.405], halfWidth: 1.52, halfHeight: 0.975, depth: 0.6, power: 2.6, mantleTop: -0.32 },
-  // The head swell's own effect (`pipelineRun`, spec 7.6) comes with its task; until then the dome alone.
-  headEffect: 'none',
+  // The head swell's own effect (spec 7.6): a pipeline runs inside the dome (Task 18).
+  headEffect: 'pipelineRun',
   skin: {
     speckDensity: 0.5,
     speckSize: [0.14, 0.42],

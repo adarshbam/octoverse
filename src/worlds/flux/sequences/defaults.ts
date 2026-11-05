@@ -205,7 +205,14 @@ const BUBBLE_BLOW: SequenceDefaults = {
 /** How far the orbits are pushed out at the overshoot's peak; the settled push is SWELL_PUSH_SETTLED. */
 export const SWELL_PUSH_PEAK = 0.14;
 
-/** The head swelling into the dome: a small squeeze, the swell past full and back, the orbits pushed out with it, the effect fading in. */
+/**
+ * The head swelling into the dome: a small squeeze, the swell past full and back (Nox's timings), the
+ * orbits pushed out with it. The head's effect here is Flux's pipeline run (spec 7.6): `effect` is its
+ * progress, 0 to 1 in a straight line (so the phases land where the spec puts them: the rings 0 to
+ * 0.3, the bead and the fills 0.3 to 0.75, the ripple and the fade after) over the second half of
+ * the sheet, from 0.5 s, when the glass is half open, to 1.5 s, the sheet's end, when the nodes have
+ * faded and the panel can come in. Closing plays it backwards.
+ */
 const HEAD_SWELL: SequenceDefaults = {
   length: 1.5,
   objects: {
@@ -215,7 +222,7 @@ const HEAD_SWELL: SequenceDefaults = {
         squeeze: [[0, 0], [0.2, 1], [0.4, 0]],
         morph: [[0.18, 0], [0.85, 1.07], [1.3, 1]],
         push: [[0.3, 0], [0.9, SWELL_PUSH_PEAK], [1.35, SWELL_PUSH_SETTLED]],
-        effect: [[0.65, 0], [1.5, 1]],
+        effect: [[0.5, 0, LINEAR], [1.5, 1, LINEAR]],
       },
     },
   },
