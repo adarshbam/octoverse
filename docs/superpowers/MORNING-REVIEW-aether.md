@@ -364,3 +364,7 @@ Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same qu
 ## More engine follow-ups (from the merge reviews)
 
 - Validation gaps (latent, no world hits them): a `rotateZ`/`emissive` prop that names a placed piece (not an attached node) never moves and validateWorld accepts it; a `bob` prop must name a placed piece and must not also appear in `sequences.kitDrives` (the bob wins over the kit drive). Add both checks with tests.
+
+## Nox still gate residual (for the engine owner)
+
+On the Aether branch after the Veyra Task 18/19 merge (`0bf10f8`) the Nox still gate passes, but the `techFocus` face-box residual grew: mean 0.0317 against 0.0158 at the previous sync (earlier runs varied 0.0086 to 0.0127), and the over-8 fraction is 0.0479% against a 0.05% limit. The merge review found nothing in the Octopus resolution that reaches Nox pixels. Suspects that do reach Nox: `orbMaterial.ts` (Aether's instancing branch: same maths, new GLSL source on every orb in the focus frame) and `fish.ts` (`fishGeometry` replacing the far fish merge). Not bisected tonight (browser budget): capture techFocus at feat/nox-3d and at the Aether branch with the same harness to attribute it.
