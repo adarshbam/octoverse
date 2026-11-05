@@ -30,8 +30,16 @@ const PULSE_TO = 0.8;
 const DISSOLVE_FROM = 0.8;
 const LINES_GONE = 0.95;
 
-/** A change of the swell bigger than this in one frame is a jump to a moment, not the swell running. */
-const SEEK = 0.3;
+/**
+ * The swell is playing when its progress moves no faster than this (per second of the effect's own clock)
+ * and the clock moves on by no more than MAX_STEP seconds between two updates. Anything else (a scrub, a
+ * still placed at a moment, the first frame, the clock held at 0 with motion off) is a seek: the effect
+ * shows the swell's own progress exactly. The sheet's effect runs at about 0.9 a second.
+ */
+const MAX_RATE = 2;
+const MAX_STEP = 1;
+/** How far the dome's glass is revealed past a node before the node shows: the shader's own soft edge (domeMaterial). */
+const REVEAL_EDGE = 0.07;
 
 const NODE_ALPHA = 0.95;
 const LINE_ALPHA = 0.8;
@@ -67,6 +75,8 @@ export interface SynapseLayout {
   wake: Float32Array;
   /** Each node's size, as a fraction of NODE_SIZE. */
   size: Float32Array;
+  /** Each node's distance from the dome's seat in the glass's own reveal measure (domeMaterial's `m`): the node shows once `frame.reveal` has passed it. */
+  reach: Float32Array;
   /** Edge ends as node indices, the lower node first: [a0, b0, a1, b1, ...]. */
   edges: Uint16Array;
   /** When (0 to 1) each edge starts to wire: the lower an edge, the sooner. */
@@ -96,6 +106,7 @@ export function synapseLayout(dome: DomeShape): SynapseLayout {
   const nodes = new Float32Array(n * 3);
   const wake = new Float32Array(n);
   const size = new Float32Array(n);
+  const revealAt = new Float32Array(n);
   // Unit coordinates of the glass (u across, v up, both -1 to 1), inside 0.8 of its superellipse, clear of the very foot (the face).
   const reach = 0.8;
   const us = new Float32Array(n);
@@ -124,6 +135,7 @@ export function synapseLayout(dome: DomeShape): SynapseLayout {
     nodes[3 * i] = us[i] * dome.halfWidth;
     nodes[3 * i + 1] = dome.halfHeight + vs[i] * dome.halfHeight;
     nodes[3 * i + 2] = dome.depth * (0.08 + 0.4 * rand()) * room;
+    revealAt[i] = Math.hypot(us[i], (1 + vs[i]) / 2);
     wake[i] = rand() * WAKE_SPREAD;
     size[i] = 0.7 + 0.6 * rand();
   }
@@ -162,7 +174,15 @@ export function synapseLayout(dome: DomeShape): SynapseLayout {
     edges[2 * e + 1] = b;
     wireAt[e] = WIRE_START + WIRE_RISE * ((height[e] - low) / span);
   });
-  return { nodes, wake, size, edges, wireAt, edgeCount };
+  return { nodes, wake, size, reach: revealAt, edges, wireAt, edgeCount };
+}
+
+/** A CSS colour for the shader: three ignores an `rgba` string's alpha (and warns), so the alpha is split off and applied by the shader. */
+function colourAndAlpha(css: string) {
+  const m = /^\s*rgba\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\)\s*$/i.exec(css);
+  if (!m) return { colour: new THREE.Color(css), alpha: 1 };
+  const alpha = Number.parseFloat(m[4]);
+  return { colour: new THREE.Color(`rgb(${m[1]},${m[2]},${m[3]})`), alpha: Number.isFinite(alpha) ? clamp01(alpha) : 1 };
 }
 
 export interface SynapseRuntime extends HeadEffectRuntime {
@@ -195,6 +215,7 @@ const POINT_VERTEX = /* glsl */ `
 const POINT_FRAGMENT = /* glsl */ `
   uniform vec3 uColor;
   uniform vec3 uHalo;
+  uniform float uHaloAlpha;
   uniform float uGlow;
   varying float vAlpha;
   void main() {
@@ -202,7 +223,7 @@ const POINT_FRAGMENT = /* glsl */ `
     if (d > 1.0) discard;
     float core = smoothstep(0.4, 0.0, d);
     float halo = (1.0 - d) * (1.0 - d);
-    vec3 rgb = (uColor * core + uHalo * halo * 0.6) * uGlow;
+    vec3 rgb = (uColor * core + uHalo * halo * uHaloAlpha * 1.2) * uGlow;
     float cover = clamp(core + halo * 0.5, 0.0, 1.0);
     gl_FragColor = vec4(rgb * vAlpha, cover * vAlpha);
   }
@@ -234,6 +255,9 @@ const premultiplied = {
   blendDst: THREE.OneMinusSrcAlphaFactor,
 } as const;
 
+/** 1 once the dome's glass has been revealed past `reach`, 0 before it (the glass shader's soft edge): a node or line end shows only inside the glass that has formed. */
+const shown = (reach: number, reveal: number) => 1 - smooth(reveal - REVEAL_EDGE, reveal, reach);
+
 const dynamic = (array: Float32Array, itemSize: number) => new THREE.BufferAttribute(array, itemSize).setUsage(THREE.DynamicDrawUsage);
 
 /**
@@ -243,6 +267,7 @@ const dynamic = (array: Float32Array, itemSize: number) => new THREE.BufferAttri
  */
 export function createSynapse(dome: DomeShape, palette: { effect: { halo: string; stroke: string; core: string } }, options: HeadEffectOptions = {}): SynapseRuntime {
   const reduced = options.reducedMotion === true;
+  const halo = colourAndAlpha(palette.effect.halo);
   const layout = synapseLayout(dome);
   const { edgeCount } = layout;
   const n = SYNAPSE_NODES;
@@ -260,7 +285,8 @@ export function createSynapse(dome: DomeShape, palette: { effect: { halo: string
   const pointMaterial = new THREE.ShaderMaterial({
     uniforms: {
       uColor: { value: new THREE.Color(palette.effect.core) },
-      uHalo: { value: new THREE.Color(palette.effect.halo) },
+      uHalo: { value: halo.colour },
+      uHaloAlpha: { value: halo.alpha },
       uGlow: { value: 1 },
       uPx: { value: 1 },
     },
@@ -307,6 +333,7 @@ export function createSynapse(dome: DomeShape, palette: { effect: { halo: string
   };
 
   let last = 0;
+  let lastClock = 0;
   const runtime = {
     root,
     layout,
@@ -315,15 +342,19 @@ export function createSynapse(dome: DomeShape, palette: { effect: { halo: string
     nodeAlpha,
     lineAlpha,
     wired,
-    update(swell: number, frame: DomeFrame) {
-      // Closing runs at twice the speed: the swell's sheet plays back at its own pace, and the effect
-      // follows it down twice as fast (opening, and catching up when turned round, as fast as the swell
-      // or faster, never ahead of it; a jump lands at once). Only the last swell is remembered; nothing is allocated.
+    update(swell: number, frame: DomeFrame, clockSeconds = 0) {
+      // Closing runs at twice the speed: while the swell is playing (its progress moving at a sheet's pace
+      // on the effect's clock) the effect follows it down twice as fast (opening, and catching up when
+      // turned round, as fast as the swell or faster, never ahead of it). A seek (a scrub, a still at a
+      // moment, the first frame, the clock held at 0) shows the swell's own progress exactly. Only the last
+      // swell and clock are remembered; nothing is allocated.
       const target = clamp01(Number.isFinite(swell) ? swell : 0);
       const step = target - last;
+      const dt = clockSeconds - lastClock;
       last = target;
-      // A jump (a still placed at a moment of the sheet, the first frame) is a seek, not a closing: it lands.
-      const s = Math.abs(step) > SEEK ? target : Math.min(target, Math.max(0, runtime.progress + 2 * step));
+      lastClock = clockSeconds;
+      const playing = dt > 0 && dt <= MAX_STEP && Math.abs(step) <= MAX_RATE * dt;
+      const s = playing ? Math.min(target, Math.max(0, runtime.progress + 2 * step)) : target;
       runtime.progress = s;
       root.visible = s > 0.001 && s < 0.9995;
       root.scale.setScalar(frame.scale);
@@ -343,7 +374,7 @@ export function createSynapse(dome: DomeShape, palette: { effect: { halo: string
       // Reduced motion: one envelope for everything, no wave.
       const fade = smooth(0, 0.25, s) * (1 - smooth(0.75, 1, s));
       for (let i = 0; i < n; i++) {
-        const lit = reduced ? fade : smooth(layout.wake[i], layout.wake[i] + WAKE_TIME, s) * (1 - dissolve);
+        const lit = (reduced ? fade : smooth(layout.wake[i], layout.wake[i] + WAKE_TIME, s) * (1 - dissolve)) * shown(layout.reach[i], frame.reveal);
         nodeAlpha[i] = Math.min(1, NODE_ALPHA * lit * (1 + 0.35 * pulse));
         nodeSize[i] = layout.size[i] * (reduced ? 1 : 0.6 + 0.4 * lit) * (1 + DISSOLVE_GROWTH * (reduced ? 0 : dissolve) + PULSE_SWELL * pulse);
       }
@@ -353,11 +384,11 @@ export function createSynapse(dome: DomeShape, palette: { effect: { halo: string
         const w = run * run * (3 - 2 * run);
         wired[e] = w;
         const alpha = Math.min(1, LINE_ALPHA * (reduced ? fade : Math.min(1, run * 3) * thin) * (1 + 0.5 * pulse));
-        lineAlpha[2 * e] = alpha;
-        lineAlpha[2 * e + 1] = alpha;
-        // The line grows from its lower node to its upper.
+        // The line grows from its lower node to its upper; the glass's reveal gates each end by its own reach.
         const a = layout.edges[2 * e];
         const b = layout.edges[2 * e + 1];
+        lineAlpha[2 * e] = alpha * shown(layout.reach[a], frame.reveal);
+        lineAlpha[2 * e + 1] = alpha * shown(layout.reach[a] + (layout.reach[b] - layout.reach[a]) * w, frame.reveal);
         for (let k = 0; k < 3; k++) {
           const from = layout.nodes[3 * a + k];
           linePosition[6 * e + 3 + k] = from + (layout.nodes[3 * b + k] - from) * w;

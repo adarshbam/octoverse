@@ -156,29 +156,101 @@ test('reduced motion is a crossfade: no wave, no pulse, every node and line on t
   full.dispose();
 });
 
-test('closing runs at twice the speed: the swell sheet plays back, the effect is gone by the time the swell is half undone', () => {
+/** The swell playing at 60 fps on the effect's clock: `rate` of progress a second, from `from` to `to`; returns the last clock. */
+function play(synapse: ReturnType<typeof createSynapse>, from: number, to: number, clock: number, rate = 1 / 1.15) {
+  const dt = 1 / 60;
+  const steps = Math.round(Math.abs(to - from) / (rate * dt));
+  for (let i = 1; i <= steps; i++) synapse.update(from + ((to - from) * i) / steps, frame, (clock += dt));
+  return clock;
+}
+
+test('closing runs at twice the speed while the swell plays: the effect is gone when the swell is half undone', () => {
   const synapse = createSynapse(dome, palette);
-  synapse.update(0.99, frame, 0);
-  for (let s = 0.99; s >= 0.2; s -= 0.01) synapse.update(s, frame, 0);
-  synapse.update(0.2, frame, 0);
-  expect(synapse.progress).toBe(0);
-  // Opening is not hurried: progress follows the swell exactly.
-  for (const s of [0.4, 0.6]) {
-    synapse.update(s, frame, 0);
-    expect(synapse.progress).toBeCloseTo(s, 9);
-  }
-  // Closing from 0.6: after the swell falls by 0.1 the effect has fallen by 0.2.
-  synapse.update(0.5, frame, 0);
-  expect(synapse.progress).toBeCloseTo(0.4, 9);
-  // A jump (a still placed at a moment of the sheet) is a seek, not a closing: it lands where the sheet is.
-  synapse.update(0.9, frame, 0);
-  synapse.update(0.26, frame, 0);
+  // Opening 60 fps: progress is the swell exactly, never hurried.
+  let clock = play(synapse, 0, 0.6, 1);
+  expect(synapse.progress).toBeCloseTo(0.6, 6);
+  // Closing from 0.6 at the sheet's pace: when the swell has fallen by 0.1 the effect has fallen by 0.2.
+  clock = play(synapse, 0.6, 0.5, clock);
+  expect(synapse.progress).toBeCloseTo(0.4, 6);
+  // Mid-swell reversal: turned round it catches up with the swell, never jumps (each frame's change is small).
+  const before = synapse.progress;
+  synapse.update(0.5 + 0.0145, frame, clock + 1 / 60);
+  expect(Math.abs(synapse.progress - before)).toBeLessThan(0.04);
+  clock = play(synapse, 0.5145, 0.6, clock + 1 / 60);
+  expect(synapse.progress).toBeCloseTo(0.6, 6);
+  // All the way closed: gone when the swell is half undone.
+  const closing = createSynapse(dome, palette);
+  clock = play(closing, 0, 1, 1);
+  clock = play(closing, 1, 0.5, clock);
+  expect(closing.progress).toBeCloseTo(0, 2);
+  // A stall of 0.4 s while closing is still the swell running, not a seek.
+  const stall = createSynapse(dome, palette);
+  clock = play(stall, 0, 0.8, 1);
+  stall.update(0.8 - 0.35, frame, clock + 0.4);
+  expect(stall.progress).toBeCloseTo(0.1, 6);
+  synapse.dispose();
+  closing.dispose();
+  stall.dispose();
+});
+
+test('a scrub or a still shows the swell own progress exactly, whatever it was before', () => {
+  const synapse = createSynapse(dome, palette);
+  play(synapse, 0, 0.5, 1);
+  // One update back to 0.3 on the same frame time, and one a frame later: both are seeks.
+  synapse.update(0.3, frame, 3);
+  expect(synapse.progress).toBeCloseTo(0.3, 9);
+  synapse.update(0.9, frame, 3 + 1 / 60);
+  synapse.update(0.26, frame, 3 + 2 / 60);
   expect(synapse.progress).toBeCloseTo(0.26, 9);
-  synapse.update(0.6, frame, 0);
-  synapse.update(0.5, frame, 0);
-  // Turned round part-way, it catches up with the swell, never jumps.
-  synapse.update(0.52, frame, 0);
-  expect(synapse.progress).toBeCloseTo(0.44, 9);
+  // With the clock held at 0 (motion off) every update is a seek.
+  synapse.update(0.9, frame, 0);
+  synapse.update(0.2, frame, 0);
+  expect(synapse.progress).toBeCloseTo(0.2, 9);
+  // A fresh load at that moment draws the same alphas as the runtime scrubbed to it.
+  const fresh = createSynapse(dome, palette);
+  fresh.update(0.2, frame, 0);
+  expect(Array.from(synapse.nodeAlpha)).toEqual(Array.from(fresh.nodeAlpha));
+  expect(Array.from(synapse.lineAlpha)).toEqual(Array.from(fresh.lineAlpha));
+  synapse.dispose();
+  fresh.dispose();
+});
+
+test('nodes and line ends show only inside the glass that has formed: the reveal gates them', () => {
+  const layout = synapseLayout(dome);
+  const synapse = createSynapse(dome, palette);
+  const open = (reveal: number): HeadDraw => ({ ...frame, reveal });
+  const index = Array.from({ length: SYNAPSE_NODES }, (_, i) => i).sort((a, b) => layout.reach[a] - layout.reach[b]);
+  const low = index[0];
+  const high = index[SYNAPSE_NODES - 1];
+  expect(layout.reach[high]).toBeGreaterThan(layout.reach[low]);
+  // Every node is lit by 0.3: with the glass revealed only to the low node, the high one is dark.
+  synapse.update(0.3, open(layout.reach[low] + 0.001), 0);
+  expect(synapse.nodeAlpha[high]).toBe(0);
+  expect(synapse.nodeAlpha[low]).toBeGreaterThan(0);
+  // Revealed past the high node it is as bright as with the glass whole.
+  synapse.update(0.3, open(layout.reach[high] + 0.08), 0);
+  const covered = synapse.nodeAlpha[high];
+  synapse.update(0.3, open(1.5), 0);
+  expect(covered).toBeGreaterThan(0);
+  expect(covered).toBe(synapse.nodeAlpha[high]);
+  // A line end follows the same gate: wired to its top, an edge's upper end is dark until the glass reaches it.
+  const top = Array.from({ length: layout.edgeCount }, (_, e) => e).sort((a, b) => layout.reach[layout.edges[2 * b + 1]] - layout.reach[layout.edges[2 * a + 1]])[0];
+  synapse.update(0.65, open(layout.reach[layout.edges[2 * top]] + 0.001), 0);
+  expect(synapse.lineAlpha[2 * top + 1]).toBe(0);
+  synapse.update(0.65, open(1.5), 0);
+  expect(synapse.lineAlpha[2 * top + 1]).toBeGreaterThan(0);
+  synapse.dispose();
+});
+
+test('an rgba halo is split into colour and alpha: no three.js warning, the alpha is the halo strength', () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const synapse = createSynapse(dome, palette);
+  const [points] = synapse.root.children as [THREE.Points];
+  const uniforms = (points.material as THREE.ShaderMaterial).uniforms;
+  expect(warn).not.toHaveBeenCalled();
+  warn.mockRestore();
+  expect((uniforms.uHalo.value as THREE.Color).getHex()).toBe(new THREE.Color('#c9d6ff').getHex());
+  expect(uniforms.uHaloAlpha.value).toBeCloseTo(0.5, 9);
   synapse.dispose();
 });
 
