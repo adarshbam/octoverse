@@ -279,7 +279,7 @@ export function clampCharacterConfig(config: LegacyCharacterConfig): CharacterCo
       ...(p.settle !== undefined ? { settle: unit(p.settle, 1) } : {}),
       ...(p.glideBias !== undefined ? { glideBias: finite(p.glideBias) && p.glideBias > 0 ? p.glideBias : 1 } : {}),
       ...(p.flourishRate !== undefined ? { flourishRate: clamp(p.flourishRate, 0, Infinity, 0) } : {}),
-      // The idle tilt: a lean of at most 0.35 rad (20 degrees), and a wait of at least a tilt's own length (4.5 s) so two never overlap.
+      // The idle tilt: a lean of at most 0.35 rad (20 degrees), and a period of at least 4.5 s (the schedule itself floors each wait at one tilt's length, IDLE_TILT_SECONDS) so two never overlap.
       ...(p.idleTilt !== undefined ? { idleTilt: clampIdleTilt(p.idleTilt) } : {}),
     },
   };

@@ -7,7 +7,7 @@ import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
 import { FlourishScheduler, flourishMayPlay, flourishRate, flourishUnroll, yieldedUnroll } from '../behavior/flourish';
 import { FocusChoreography } from '../behavior/focusChoreography';
-import { idleTiltAt } from '../behavior/idleTilt';
+import { idleGateStep, idleTiltAt } from '../behavior/idleTilt';
 import { LOOK_INTERVAL, pickLookPoint } from '../behavior/lookPoints';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
@@ -397,6 +397,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // runs only while one may play (motion on, the entrance over).
     flourish: new FlourishScheduler(flourishRate(config.personality)),
     flourishClock: 0,
+    // The idle tilt's gate (0 to 1, behavior/idleTilt.ts idleGateStep): the tilt is faded in and out as the character stops and starts idling, never cut.
+    idleGate: 0,
   });
   // The busy-arm hook: no flourish starts on an arm that holds something (the suction hold's turn
   // toward its bubble; Task 19's pendant lift goes through the same hold).
@@ -633,8 +635,12 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       }
     });
     spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
-    // The curious head tilt (behavior/idleTilt.ts; none unless the personality has one): it gives way to a technology in focus, and waits out the swim-in and a still.
-    const idleRoll = personality.idleTilt && !freeze && !swim && stage !== 'entering' ? idleTiltAt(t, personality.idleTilt, TILT_SEED, reducedMotion) * (1 - strongest) : 0;
+    // The curious head tilt (behavior/idleTilt.ts; none unless the personality has one, and then idleRoll is exactly 0): it gives way to a technology in focus, and waits out the swim-in and a still. The schedule runs on the absolute clock, so the gate fades it in and out where it opens and closes mid-tilt.
+    let idleRoll = 0;
+    if (personality.idleTilt) {
+      m.idleGate = idleGateStep(m.idleGate, !freeze && !swim && stage !== 'entering', dt);
+      idleRoll = idleTiltAt(t, personality.idleTilt, TILT_SEED, reducedMotion) * (1 - strongest) * m.idleGate;
+    }
     // While the orbs are out the body barely turns, so the orbs and arms hold still under the
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.

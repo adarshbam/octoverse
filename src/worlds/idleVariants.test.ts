@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { Attention } from '../engine/behavior/attention';
-import { IDLE_TILT_MAX_RATE } from '../engine/behavior/idleTilt';
+import { IDLE_GATE_RATE, IDLE_TILT_MAX_RATE } from '../engine/behavior/idleTilt';
 import { seededRng } from '../engine/motion/micro';
 import { AETHER } from './aether/character';
 import { FLUX } from './flux/character';
@@ -45,4 +45,6 @@ test('Nox and Veyra set no idle tilt, so they get none', () => {
 test('the idle tilt moves slower than the slowest shipped head turns (a critically damped spring peaks at omega / e per unit)', () => {
   const slowest = Math.min(...[NOX, VEYRA, FLUX, AETHER].map(c => c.personality.headOmega));
   expect(IDLE_TILT_MAX_RATE).toBeLessThanOrEqual(slowest / Math.E);
+  // At a gate edge the tilt's rate and the gate's add, and still stay under it.
+  expect(IDLE_TILT_MAX_RATE + IDLE_GATE_RATE).toBeLessThanOrEqual(slowest / Math.E);
 });

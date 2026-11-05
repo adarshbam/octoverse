@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { Point2 } from '../config/types';
-import { LOOK_INTERVAL, pickLookPoint } from './lookPoints';
+import { LOOK_INTERVAL, lookSchedule, lookScheduleCount, pickLookPoint } from './lookPoints';
 
 const POINTS: readonly Point2[] = [
   [-1, 0.2],
@@ -70,4 +70,20 @@ test('an interval that is not a range of seconds, or a time that is not a time, 
 test('with reduced motion it returns null', () => {
   for (let t = 0; t < 60; t += 1) expect(pickLookPoint(t, POINTS, LOOK_INTERVAL, 1, true)).toBeNull();
   expect(pickLookPoint(10, POINTS, LOOK_INTERVAL, 1, false)).not.toBeNull();
+});
+
+test('asking again with the same arguments builds no new schedule and grows nothing', () => {
+  const seed = 4242;
+  pickLookPoint(100, POINTS, LOOK_INTERVAL, seed);
+  const schedule = lookSchedule(LOOK_INTERVAL, POINTS.length, seed);
+  const count = lookScheduleCount();
+  const drawn = schedule.starts.length;
+  for (let i = 0; i < 5000; i++) {
+    pickLookPoint(100 + (i % 50) / 60, POINTS, [4, 8], seed);
+    expect(lookSchedule([4, 8], POINTS.length, seed)).toBe(schedule);
+  }
+  expect(lookScheduleCount()).toBe(count);
+  expect(schedule.starts.length).toBe(drawn);
+  expect(lookSchedule(LOOK_INTERVAL, POINTS.length, seed + 1)).not.toBe(schedule);
+  expect(lookSchedule(LOOK_INTERVAL, POINTS.length, seed)).toBe(schedule);
 });

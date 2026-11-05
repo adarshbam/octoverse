@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { NOX } from '../../worlds/nox/character';
-import { IDLE_TILT_MAX_RATE, IDLE_TILT_SECONDS, idleTiltAt } from './idleTilt';
+import { IDLE_GATE_RATE, IDLE_TILT_MAX_RATE, IDLE_TILT_SECONDS, idleGateStep, idleTiltAt, idleTiltSchedule, idleTiltScheduleCount } from './idleTilt';
 
 const TILT = { amplitude: 0.105, period: [5, 9] as const };
 
@@ -90,4 +90,56 @@ test('with reduced motion it returns 0', () => {
   for (const t of frames(60)) expect(idleTiltAt(t, TILT, 1, true)).toBe(0);
   // The same call with motion on does tilt.
   expect(frames(60).some(t => idleTiltAt(t, TILT, 1, false) !== 0)).toBe(true);
+});
+
+test('asking again with the same arguments allocates no schedule, builds no new one, and grows nothing', () => {
+  const period = [5, 9] as const;
+  const seed = 4242;
+  const schedule = idleTiltSchedule(period, seed);
+  idleTiltAt(100, { amplitude: 0.1, period }, seed);
+  const count = idleTiltScheduleCount();
+  const drawn = schedule.events.length;
+  for (let i = 0; i < 5000; i++) {
+    // A frame later each time, and a fresh (equal) period array each call, as a caller that builds one would.
+    idleTiltAt(100 + (i % 50) / 60, { amplitude: 0.1, period: [5, 9] }, seed);
+    expect(idleTiltSchedule([5, 9], seed)).toBe(schedule);
+  }
+  expect(idleTiltScheduleCount()).toBe(count);
+  // 50 frames inside 100 to 100.83 s: no tilt event is drawn beyond the one past the clock already drawn.
+  expect(schedule.events.length).toBe(drawn);
+  // Another seed is another schedule, and asking for the first again finds it.
+  expect(idleTiltSchedule(period, seed + 1)).not.toBe(schedule);
+  expect(idleTiltSchedule(period, seed)).toBe(schedule);
+});
+
+test('the gate moves 0 to 1 and back at IDLE_GATE_RATE, and a tilt cut by it never changes faster than the head turns', () => {
+  expect(idleGateStep(0, true, 1 / 60)).toBeCloseTo(IDLE_GATE_RATE / 60, 12);
+  expect(idleGateStep(1, true, 1 / 60)).toBe(1);
+  expect(idleGateStep(0, false, 1 / 60)).toBe(0);
+  let g = 0;
+  for (let i = 0; i < 60 * 6 + 1; i++) g = idleGateStep(g, true, 1 / 60);
+  expect(g).toBe(1);
+  for (let i = 0; i < 60 * 6 + 1; i++) g = idleGateStep(g, false, 1 / 60);
+  expect(g).toBe(0);
+  // The slowest shipped head (omega 2.4, src/worlds/idleVariants.test.ts) sets the limit.
+  const limit = (2.4 / Math.E) * TILT.amplitude;
+  // Open and close the gate at every point of a tilt (each 1/10 s of 120 s), and watch the roll frame to frame, as Octopus does (frames up to 1/20 s too).
+  for (const dt of [1 / 60, 1 / 20]) {
+    let fastest = 0;
+    for (let open = 0; open < 120; open += 0.1) {
+      for (const opening of [true, false]) {
+        let gate = opening ? 0 : 1;
+        let prev = idleTiltAt(open, TILT, 9) * gate;
+        for (let t = open + dt; t < open + 8; t += dt) {
+          gate = idleGateStep(gate, opening, dt);
+          const v = idleTiltAt(t, TILT, 9) * gate;
+          fastest = Math.max(fastest, Math.abs(v - prev) / dt);
+          prev = v;
+        }
+      }
+    }
+    expect(fastest, `dt ${dt}`).toBeLessThanOrEqual(limit);
+  }
+  // The bound the sweep stays under: the tilt's peak rate and the gate's, together.
+  expect((IDLE_TILT_MAX_RATE + IDLE_GATE_RATE) * TILT.amplitude).toBeLessThanOrEqual(limit);
 });
