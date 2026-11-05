@@ -10,6 +10,7 @@ import type { StageFrame } from '../../engine/stage/framing';
 import type { Vec3 } from '../../engine/world/types';
 import { AETHER_ARTIFACTS } from './artifacts';
 import { AETHER } from './character';
+import { BODY_X } from './poses';
 
 // Aether's frame criteria (Task 13), shared by frames.test.ts: where her face, her ring's beads and
 // line, her hanging orbs and the intro's HTML land on a viewport, so a test can say that nothing of
@@ -28,8 +29,8 @@ export type Size = { width: number; height: number };
  */
 export const NECK_Y = -1.05;
 export const PIVOT_Y = -0.6;
-/** The swim's centre line, the one the body yaws about (swim.ts: her head's centre). */
-const SWIM_X = 0.07;
+/** The swim's centre line, the one the body yaws about (swim.ts: her head's centre, poses.ts BODY_X). */
+const SWIM_X = BODY_X;
 
 const { head, face } = AETHER;
 const { placement } = AETHER_ARTIFACTS;
@@ -76,7 +77,13 @@ export function toScreen(x: number, y: number, frame: StageFrame, size: Size) {
   return { x: size.width / 2 + x * ppu, y: size.height / 2 - y * ppu };
 }
 
-/** Her face (eyes, brows, blush and mouth) as a box in her head's space (Aether's face layout, about the face origin). */
+/**
+ * Her face (eyes, brows, blush and mouth) as a box in her head's space (Aether's face layout, about
+ * the face origin). The mouth's bottom is the closed mouth's depth (face.mouth.depth): the happy and
+ * curious faces open it a little lower, so their faces are a little taller than this box. The
+ * open mouth's extra depth is not modelled here: the margins the tests ask for (over 20 px for a
+ * held orb, over 10 px for a hanging one) are what cover it.
+ */
 export function faceBoxLocal(): Box {
   const [fx, fy] = head.faceOrigin;
   const { eye, blush, mouth, brow } = face;

@@ -85,9 +85,13 @@ Open `?world=aether&stage=techFocus&tech=openai`, `?world=aether&stage=detail` a
 - `t13-phone-intro-overview-techfocus-detail.webp`: the four frozen stages at 390 x 844.
 
 Numbers (all in `docs/superpowers/reviews/aether.md`, Task 13):
-- P4 samples, feature-registered: mouth inside dE 7.5, focused orb rim 3.8, tongue 25.0 (MISS: the tongue's own colour is 1.8 off, but it is 22 px against P4's 176 px, so a 5x5 patch takes in the dark mouth). Eye-registered points miss (64.7 / 50.7): her mouth sits higher and is a V/U, not P4's D.
+- P4 samples: **not what a visitor sees.** A real tech focus shows the overview's `happy` face (WorldHost draws the returnTo pose). The samples were taken with the expression forced (`expression=curious` in the URL), so they describe the face Task 19's arm lift (expression `curious`) will show; none of it is visible on a real tech focus until then.
+- Mouth inside: 7.5 with a patch at the render's own inside centroid (pass), 15.0 by the inside's region mean (miss), 64.7 at P4's point carried by the eyes (miss). It passes only under the most favourable registration.
+- Tongue: 25.0 on a patch (MISS: the tongue's own colour is 1.8 off by region mean, but it is 22 px against P4's 176 px, so the patch takes in the dark mouth), 50.7 eye-registered. Focused orb rim: 3.8. Her mouth sits higher than P4's and is a V/U, not P4's D.
+- Tools: `src/worlds/aether/review/p4de.py` (mouth) and `src/worlds/aether/review/p4rim.py` (rim).
 - Detail: her eyes land within 2.5 px of P5's; eye line 22 degrees as painted; yaw 0.32, tilt 0.37.
-- Phone: no bead, orb or thread on her face rect, the title or the nameplate in any frozen stage, for 1 to 20 technologies; the ring keeps its 45-degree face sector and shrinks with her (ratio to her head 1.671 at both sizes); the phone tray lists her ten (e2e).
+- Phone: no bead, orb or thread on her face rect, the title or the nameplate in any frozen stage, tested for 1, 3, 10, 15, 16 and 20 technologies (not every count from 1 to 20); the ring keeps its 45-degree face sector and shrinks with her (ratio to her head 1.671 at both sizes); the phone tray lists her ten (e2e). On the phone she is drawn smaller and centred, not in the upper screen.
+- Held orb on a real tech focus (fix round 1): the model's pick (nearestArm from the orb's place) lands every orb clear of her face. The frozen render instead picks T4 and puts OpenAI about 10 px off her face: an engine bug (below), pinned by a named test.
 
 What to check:
 1. **The lifted arm curling over the orb.** It is authored (`AETHER_POSES.techFocus`, T1 mirrored from P4) but **not drawn yet**: the engine shows a focus in the overview's pose (dome open) and pulls the orb with Nox's suction hold. On the still the held OpenAI orb sits by her left eye among T2's arm, about 10 px off her face. Task 19's arm lift draws the traced arm. Is the traced shape right (crest 1.2 above the eyes, tip over the orb's top)?
@@ -229,6 +233,11 @@ Please give the real names.
   - Wanted: include `pose.body.yaw` in the facing.
 - **Phone composition (Task 13).** Spec 7.11 puts her in the upper screen on a phone; `fovFor` centres the frame, and the detail's sheet (`ProjectDetail`, portrait phone) covers her face (y 380 to 432 of 844).
   - Wanted: a per-stage phone offset (a lens shift that lifts her into the upper screen), and a detail sheet that stops below her face.
+- **The suction hold picks its arm before the orbit point is written (Task 13 fix round 1).** `Octopus.tsx` `holdArm` calls `select.nearestArm(tips, bubbleState.orbit[bubble], faceBox)`. On a frozen tech focus the hold is chosen on the first frame, and the orbit point is most likely still unset (the origin), because `TechBubbles.tsx` writes `s.orbit[i]` in its own frame step. For the origin every path crosses her face box, so `nearestArm` falls back to the nearest tip: T4. The render (`?freeze&stage=techFocus&tech=openai`, 509 x 504) shows the held OpenAI orb beside her left eye, about 10 px off her face, instead of at T1 (OpenAI hangs from T1@0.9).
+  - Wanted: pick the arm once the orbit point is written (or from the bubble's slot point when the orbit is unset), and re-pick if the hold's first pick was made from an unset point.
+  - Target: `frames.test.ts` "KNOWN ENGINE BUG" (expects T4 for the origin today) flips; on the frozen still the held orb sits at T1's tip, clear of her face (the model says 129 px at 509 x 504).
+- **Panel edge over her cheek on the page (Task 13 fix round 1).** At 1672 x 941 the detail panel's left edge comes over her right cheek. The model puts her face box's right edge (the blush's outer edge) at stage x -2.546, 0.29 left of the panel's left edge (the Task 13 review read 0.18 for the blush itself; either way it is left of it) (-2.255, `AETHER_STAGE_PANELS.detail`), so the overlap is probably the engine's panel mapping (stage panel to page CSS) at that aspect, not her pose. Not traced in the engine.
+  - Wanted: check how `AETHER_STAGE_PANELS` maps to the page panel's left edge at a wide aspect.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
 
 ## Questions for the owner (Task 4, face)

@@ -121,7 +121,11 @@ const OVERVIEW: StagePose = { arms: OVERVIEW_ARMS, body: OVERVIEW_BODY, expressi
 // over the orb's far side; the root is the intro's, as every overview arm's is. The engine shows a
 // focus in the pose of the stage it came from (WorldHost: the overview) and moves the chosen orb by
 // the select strategy (the suction hold, until Task 19's arm lift, whose target this pose is).
-const P4_LIFT: Point2[] = [[-0.99, -0.65], [-1.082, -0.375], [-1.137, -0.099], [-1.146, 0.13], [-1.119, 0.359], [-1.109, 0.543], [-1.164, 0.68], [-1.275, 0.772], [-1.403, 0.809], [-1.531, 0.791], [-1.623, 0.726]];
+// Fix round 1: the first point (under the cheek) sits higher than P4's reading (y -0.6, was -0.65).
+// The lifted T1 touched T2's mid-arm orb (T2@0.5, below and outside it) at the elbow there; moving
+// the lift outward brings the elbow nearer that orb, so the elbow is raised instead, and it clears the
+// orb by more than 0.02 (frames.test.ts).
+const P4_LIFT: Point2[] = [[-0.99, -0.6], [-1.082, -0.375], [-1.137, -0.099], [-1.146, 0.13], [-1.119, 0.359], [-1.109, 0.543], [-1.164, 0.68], [-1.275, 0.772], [-1.403, 0.809], [-1.531, 0.791], [-1.623, 0.726]];
 
 /** Where the held orb sits in the tech focus (P4's OpenAI at (428, 122), mirrored to T1), on the stage: under the curl, above the eyes. */
 export const TECH_FOCUS_ORB: Point2 = [-1.568, 0.387];

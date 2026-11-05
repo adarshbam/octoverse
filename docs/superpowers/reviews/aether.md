@@ -938,7 +938,7 @@ Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and t
 - Against her ten overview orbs: the lifted arm touches T2's mid-arm orb (gap -0.001, arm thickness and orb radius taken off). T1's own two orbs would ride the arm in a real lift.
 - **The render does not show this arm.** WorldHost shows a focus in the pose of the stage it came from (the overview, dome open) and moves the chosen orb by the select strategy, `suctionHold` (the only one). This pose is the target data for Task 19's arm lift, as Veyra's is. On the frozen capture the held OpenAI orb sits beside her left eye, among T2's arm, not grown much; it clears her face by about 10 px at 509 x 504. Engine follow-up recorded.
 
-**P4 samples** (bare `?freeze`, `stage=techFocus&tech=openai&expression=curious`, the settled rule; CIE76 as `check_stage.py`; `.tmp/t13/p4de.py`, `p4rim.py`):
+**P4 samples** (bare `?freeze`, `stage=techFocus&tech=openai&expression=curious`, the settled rule; CIE76 as `check_stage.py`; `src/worlds/aether/review/p4de.py`, `p4rim.py`, moved there and committed in fix round 1):
 
 | Sample | Target | Feature-registered | dE | Region mean | dE | Eye-registered | dE |
 |---|---|---|---|---|---|---|---|
@@ -966,7 +966,7 @@ Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and t
 - Intro, frozen: beads clear the face rect by 11.9 px, the title by 28.8 px and the nameplate by 104 px (phone); 31.7 / 75.2 / 273 px (desktop).
 - Overview and tech focus, frozen, 1, 3, 10, 15, 16 and 20 technologies: no orb or thread within 24 px of the face rect (phone; 65 px desktop); the held orb at `TECH_FOCUS_ORB` grown 1.3x clears it by more than 20 px.
 - Sheet and tray: her ten clear the bottom sheet and the two-row tray by 23.7 px. 15 and 16 (a third row) reach it by 23 px: the known limit Veyra has (Task 20).
-- Tray: the model (`createProjectModel` with the satellite's capacity 16) lists every technology in order on the phone for 1 to 20; `tests/e2e/aether.spec.ts` checks the live phone overview: ten 44 px+ tray buttons, OpenAI to Vector DB, above the sheet (passed).
+- Tray: the model (`createProjectModel` with the satellite's capacity 16) lists every technology in order on the phone for 1, 3, 10, 15, 16 and 20 (the counts tested); `tests/e2e/aether.spec.ts` checks the live phone overview: ten 44 px+ tray buttons, OpenAI to Vector DB, above the sheet (passed).
 - Stills: on the phone she is centred, not in the upper screen (the shared framing fits the frame to the width); the overview's sheet and tray take the lower third. The detail's sheet covers her (her face is under it at y 380 to 432 px).
 
 **Tests.** `poses.test.ts`: tech focus (T1 only, root, curious, closed), the lift (crest, tip on the orb, head clearance 0.1+, frame), the detail (eyes on P5 within 0.06, eye line 17 to 27 degrees, left edge, cropped arms, left of the panel, face on screen at 861, 1536 and 390). RED: the four pose tests failed on the HEAD poses. `frames.test.ts` (8 tests) is a guard: it also passes on the old poses. `npx vitest run --testTimeout=30000`: 134 files, 1061 passed, 1 skipped. Typecheck clean. E2E `aether.spec.ts`: 3 of 3.
@@ -975,5 +975,32 @@ Commit `64dcac9` (poses, tests, e2e) and the evidence commit. Config, data and t
 
 ### Verdict, honest (not an approval)
 - Detail: the strongest match of the three: her face lands on P5's within 2.5 px, turned and leaning as painted, the ring round her head. The arms are the intro's, not P5's hanging ones.
-- Tech focus: the colours are right (inside 7.5, rim 3.8, tongue's own colour 1.8), but the open mouth is a small V/U with a small tongue against P4's big D, and the rendered focus is the dome-open overview with Nox's suction hold, not P4's closed head and lifted arm. The traced lift waits for the arm lift.
+- Tech focus (see Fix round 1: the mouth samples need the expression forced, and inside 7.5 is the most favourable of three registrations): the colours are right (inside 7.5, rim 3.8, tongue's own colour 1.8), but the open mouth is a small V/U with a small tongue against P4's big D, and the rendered focus is the dome-open overview with Nox's suction hold, not P4's closed head and lifted arm. The traced lift waits for the arm lift.
 - Phone: every frozen stage keeps beads, orbs and threads off her face, title and nameplate. The phone composition is centred, and the detail sheet hides her.
+
+### Task 13 fix round 1: the rendered stage pinned, reporting made plain
+
+**What a visitor sees on a tech focus.** WorldHost draws a focus in the `returnTo` pose, so a real tech focus shows the overview: dome open, face `happy`, the orb moved by the suction hold. The traced lift, the closed head and the `curious` face are target data for Task 19's arm lift (expression `curious`). None of them is visible on a real tech focus until then.
+
+**P4 samples, plainly.** They exist only with the expression forced (`expression=curious` in the URL). On the same capture the mouth inside reads:
+- 7.5 with a 5x5 patch at the render's own inside centroid: pass;
+- 15.0 by the inside's region mean: miss;
+- 64.7 at P4's sample point carried by the eyes: miss.
+It passes only under the most favourable registration. The tongue misses on a patch (25.0) and eye-registered (50.7); only its region mean (1.8) is close. The rim, 3.8, is the one sample that passes under any reading near P4's place (5.9 mirrored). Tools, now committed: `src/worlds/aether/review/p4de.py` (mouth), `src/worlds/aether/review/p4rim.py` (rim; Task 13's orb at 157.5 306 31 on the 509 x 504 capture).
+
+**Held orb, tested against the render's own logic** (`frames.test.ts`):
+- The authored-target test is retitled: `TECH_FOCUS_ORB` grown 1.3x clears the face rect by more than 20 px. It describes Task 19's target, not the rendered stage.
+- New, the rendered stage: for every orb of 1, 3, 10, 15, 16 and 20 technologies, the arm `nearestArm` picks (from her drawn overview tips, the orb's place and her head box, as `Octopus.tsx` `holdArm` does) lands the orb, grown 1.3x, turned toward its orbit by `HOLD_ARM`, lifted and held `offTip` radii past the tip, clear of the face rect. Least margin 37.9 px (the phone, T8@0.55's orb held by T7) over the desktop, the phone and 509 x 504; OpenAI (T1@0.9) is held by T1, 98.7 px clear at the phone and 128.8 px at 509 x 504. The test asks only for more than 0, as the review set it.
+- New, `KNOWN ENGINE BUG (pinned, flips with the engine fix)`: the frozen render does not do that. `holdArm` reads the bubble's orbit point before `TechBubbles` writes it; for the origin every path crosses her head box and `nearestArm` falls back to the nearest tip, T4. The test expects T4 for the origin. The render shows OpenAI beside her left eye about 10 px off her face; the model puts T4's landing 18 px off at the phone, 24 px at 509 x 504 and 48 px on the desktop (cruder than the render). Engine follow-up recorded. The likely cause is read from the code, not traced frame by frame.
+
+**Overclaims corrected.**
+- Counts: the phone checks cover 1, 3, 10, 15, 16 and 20 technologies, not every count from 1 to 20.
+- On the phone she is drawn smaller and centred (the stage frames are fitted to the phone's width, the extra height above and below her), not "in the upper screen"; the `frames.test.ts` header said otherwise and is fixed.
+
+**Cheap fixes.**
+- The lifted T1 touched T2's mid-arm orb (T2@0.5) at its elbow under the cheek: gap -0.001. Nudging the lift 0.03 outward made it worse (-0.024: that orb hangs below and outside the elbow), so the first traced point is raised instead (`P4_LIFT[0]` y -0.6, was -0.65; about 5 P4 px). Gap now 0.03; a test pins every other overview orb more than 0.02 clear. The crest, the tip on the orb and the head clearance tests are unchanged and pass. No render changes: the tech focus pose is not drawn.
+- `stageCriteria.ts` takes the swim's centre line from `poses.ts` `BODY_X` (was a copy, 0.07).
+- `faceBoxLocal` notes that its mouth bottom is the closed mouth's depth; the happy and curious faces open a little lower, which the 10 px and 20 px margins cover (not modelled).
+- Engine follow-up added: the detail panel's edge over her right cheek on the 1672 x 941 page is probably the engine's panel mapping. The model puts her face box's right edge 0.29 left of the panel's left edge (the review read 0.18 for the blush).
+
+**Tests.** `frames.test.ts` 12 tests (was 8). Full run and typecheck: see the Task 13 report.

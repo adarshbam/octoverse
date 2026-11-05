@@ -2,9 +2,13 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { assignPendants } from '../../engine/artifacts/pendant';
 import { beadAngles, ringShown } from '../../engine/artifacts/satellite';
-import { placementCapacity } from '../../engine/artifacts/strategies';
-import { CHOOSING_STAGES, STAGE_IDS } from '../../engine/config/types';
+import { placementCapacity, SELECTS } from '../../engine/artifacts/strategies';
+import { type Box, nearestArm } from '../../engine/artifacts/suctionHold';
+import { tetherCurve } from '../../engine/artifacts/tether';
+import { armRadius } from '../../engine/character/armTube';
+import { ARM_IDS, CHOOSING_STAGES, STAGE_IDS } from '../../engine/config/types';
 import { createProjectModel } from '../../engine/host/instanceModel';
+import type { Vec3 } from '../../engine/world/types';
 import { AETHER_ARTIFACTS } from './artifacts';
 import { AETHER_INTRO_TITLE, AETHER_STAGE_FRAMES } from './bundle';
 import { AETHER } from './character';
@@ -12,12 +16,13 @@ import { aetherProjectFor } from './content/aetherProject';
 import { aetherTechnologies } from './content/aetherTechnologies';
 import { AETHER_TECHNOLOGIES_15 } from './content/testSets';
 import { AETHER_POSES, TECH_FOCUS_ORB } from './poses';
-import { NECK_Y, PIVOT_Y, VIEWPORTS, type Disc, type Rect, type Size, beadDiscs, discClear, faceRect, hangingDiscs, headToStage, introHtml, phoneSheetAndTray, pixelsPerUnit, ringAndHeadHalfWidths, ringLinePoints, seen, toScreen } from './stageCriteria';
+import { NECK_Y, PIVOT_Y, VIEWPORTS, type Disc, type Rect, type Size, along, beadDiscs, discClear, drawnArms, faceRect, hangingDiscs, headToStage, introHtml, phoneSheetAndTray, pixelsPerUnit, ringAndHeadHalfWidths, ringLinePoints, seen, toScreen } from './stageCriteria';
 
 // Spec 2.5 and 7.11 (Task 13, Review Focus 4): no bead, orb or thread of hers covers her face, the
 // intro's title or its nameplate in any frozen stage, on the review desktop and on the 390 x 844
-// phone, where she is drawn smaller in the upper screen (the stage frames are fitted to the phone's
-// width) and the ring shrinks with her. The frames are the bundle's stage frames, never hard-coded.
+// phone, where she is drawn smaller and centred (the stage frames are fitted to the phone's width,
+// so the extra height falls above and below her) and the ring shrinks with her. The frames are the
+// bundle's stage frames, never hard-coded.
 
 const { placement } = AETHER_ARTIFACTS;
 const { ring } = placement;
@@ -125,11 +130,80 @@ test('frozen overview and tech focus at the phone, for 1, 3, 10, 15, 16 and 20 t
           for (const d of discs) expect(discClear(d, rect), `${view} ${stage} ${count}: ${d.name}`).toBeGreaterThan(10);
         }
       }
-      // The held orb (grown 1.3x, spec 7.5) at the tech focus's place, off her face and inside the frame.
-      const frame = AETHER_STAGE_FRAMES[stage];
-      const held = { ...toScreen(TECH_FOCUS_ORB[0], TECH_FOCUS_ORB[1], frame, size), r: 1.3 * placement.sizes!.overview * pixelsPerUnit(frame, size), front: true, name: 'held' };
-      expect(discClear(held, rect), `${view} ${stage} held orb`).toBeGreaterThan(20);
     }
+  }
+});
+
+test("the authored tech focus target (Task 19's arm lift, not drawn today): its held orb, grown 1.3x, clears the face rect by more than 20 px", () => {
+  // TECH_FOCUS_ORB is target data: WorldHost draws a tech focus in the overview's pose and the
+  // suction hold moves the orb (the next test). This holds the target itself to the face margin.
+  for (const [view, size] of VIEWS) {
+    const frame = AETHER_STAGE_FRAMES.techFocus;
+    const rect = faceRect(AETHER_POSES.overview, frame, size);
+    const held = { ...toScreen(TECH_FOCUS_ORB[0], TECH_FOCUS_ORB[1], frame, size), r: 1.3 * placement.sizes!.overview * pixelsPerUnit(frame, size), front: true, name: 'held' };
+    expect(discClear(held, rect), `${view} authored held orb`).toBeGreaterThan(20);
+  }
+});
+
+// The rendered tech focus (Fix round 1): the engine draws the overview's pose and the suction hold
+// takes the chosen orb to the tip of the arm nearestArm picks (Octopus: holdArm, from the rig's tips,
+// the bubble's orbit point and her head box), turned toward the orbit by HOLD_ARM and lifted. Modelled
+// here at rest (her drawn overview arms), the orb grown 1.3x (spec 7.5) and held offTip radii past the
+// tip along the arm's last segments.
+const hold = SELECTS.suctionHold;
+const HEAD_BOX: Box = { x0: AETHER.head.centerX - AETHER.head.halfWidth, y0: AETHER.head.bottom, x1: AETHER.head.centerX + AETHER.head.halfWidth, y1: AETHER.head.top };
+const OVERVIEW_DRAWN = drawnArms(AETHER_POSES.overview);
+const TIPS = ARM_IDS.map(id => [...OVERVIEW_DRAWN[id][OVERVIEW_DRAWN[id].length - 1], 0] as Vec3);
+/** Where the held orb lands (arms' space) when the hold takes `bubble` (arms' space). */
+function heldLanding(bubble: Vec3) {
+  const arm = nearestArm(TIPS, bubble, HEAD_BOX);
+  const line = OVERVIEW_DRAWN[ARM_IDS[arm]];
+  const [tx, ty] = line[line.length - 1], [bx, by] = line[line.length - 5];
+  const dx = bubble[0] - tx, dy = bubble[1] - ty, d = Math.hypot(dx, dy) || 1;
+  // Settled: turn 1, pull 1, lift 1.
+  const outward = Math.min(hold.arm.reach, Math.max(0, d - hold.arm.short)) * (1 - hold.arm.draw);
+  const tip = [tx + (dx / d) * outward, ty + (dy / d) * outward + hold.arm.lift];
+  const r = 1.3 * placement.sizes!.overview;
+  const run = Math.hypot(tx - bx, ty - by);
+  return { arm: ARM_IDS[arm], x: tip[0] + ((tx - bx) / run) * r * hold.offTip, y: tip[1] + ((ty - by) / run) * r * hold.offTip, r };
+}
+const landingClear = (landing: ReturnType<typeof heldLanding>, size: Size) => {
+  const { body } = AETHER_POSES.overview;
+  const frame = AETHER_STAGE_FRAMES.techFocus;
+  const at = toScreen(body.x + body.scale * landing.x, body.y + body.scale * landing.y, frame, size);
+  return discClear({ ...at, r: landing.r * body.scale * pixelsPerUnit(frame, size) }, faceRect(AETHER_POSES.overview, frame, size));
+};
+
+test('the rendered tech focus: for every orb of 1, 3, 10, 15, 16 and 20 technologies, the arm nearestArm picks lands it (grown 1.3x) clear of her face rect', () => {
+  for (const count of [1, 3, 10, 15, 16, 20]) {
+    for (const { slot } of assignPendants(count, placement.slots!.overview).placed) {
+      const { orbCentre } = tetherCurve(along(OVERVIEW_DRAWN[slot.arm], slot.at), 0, placement.tether!, placement.sizes!.overview);
+      const landing = heldLanding([orbCentre[0], orbCentre[1], 0]);
+      for (const [view, size] of VIEWS) expect(landingClear(landing, size), `${view} ${count}: ${slot.arm}@${slot.at} held by ${landing.arm}`).toBeGreaterThan(0);
+    }
+  }
+});
+
+test('KNOWN ENGINE BUG (pinned, flips with the engine fix): a frozen tech focus picks the hold arm before the orbit point is written, so it picks for the origin: T4, and the orb lands beside her face', () => {
+  // The render (?freeze, techFocus at 509 x 504) shows the held OpenAI orb beside her left eye, about
+  // 10 px off the face, held by T4 rather than T1: holdArm reads bubbleState.orbit[bubble] before
+  // TechBubbles has written it, and an unset point is the origin (the likely cause; not traced in the
+  // engine frame by frame). The model below lands it 18 px off the face at the phone, 24 px at 509 x
+  // 504 and 48 px on the desktop: it is cruder than the render, which shows about 10 px at 509. The
+  // pick is what this pins. Engine follow-up in MORNING-REVIEW-aether.md.
+  const landing = heldLanding([0, 0, 0]);
+  expect(landing.arm).toBe('T4');
+  for (const [view, size] of VIEWS) expect(landingClear(landing, size), view).toBeGreaterThan(0);
+});
+
+test('the lifted T1 (the tech focus target) clears every other overview orb by more than 0.02 (T2@0.5 sits close under it)', () => {
+  const lifted = drawnArms(AETHER_POSES.techFocus).T1;
+  const radius = placement.sizes!.overview;
+  for (const { slot } of assignPendants(16, placement.slots!.overview).placed) {
+    if (slot.arm === 'T1') continue;
+    const { orbCentre } = tetherCurve(along(OVERVIEW_DRAWN[slot.arm], slot.at), 0, placement.tether!, radius);
+    const gap = Math.min(...lifted.map(([x, y], k) => Math.hypot(x - orbCentre[0], y - orbCentre[1]) - radius - armRadius(k / (lifted.length - 1), AETHER.arms[0], AETHER)));
+    expect(gap, `${slot.arm}@${slot.at}`).toBeGreaterThan(0.02);
   }
 });
 
