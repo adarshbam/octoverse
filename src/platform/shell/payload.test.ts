@@ -78,7 +78,9 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
     expect(modules.filter(m => worldCode(m))).toEqual([]);
     expect(modules).not.toContain('src/worlds/index.ts');
     expect(modules).not.toContain('src/app/ReviewPage.tsx');
-    expect(modules).not.toContain('src/platform/worlds/loadWorld.ts');
+    // The loader itself is in the landing since Task 13 (a card's live preview asks it for its world): it holds only the dynamic
+    // imports, one per world, and the test below holds that each of those is a chunk of its own, never a static import of the landing.
+    expect(modules).toContain('src/platform/worlds/loadWorld.ts');
     expect(modules).not.toContain('src/platform/creator/CreatorPage.tsx');
   });
 
@@ -93,14 +95,16 @@ describe.skipIf(skip)('the production build: what the landing loads (spec 2.4)',
     const landing = new Set(staticGraph(entry()[0]));
     const dynamicEntries = Object.entries(manifest).filter(([, chunk]) => chunk.isDynamicEntry);
     const named = (src: string) => dynamicEntries.find(([, chunk]) => chunk.src === src)?.[0];
-    const worldPage = named('src/platform/world/WorldPage.tsx');
-    expect(worldPage).toBeDefined();
+    expect(named('src/platform/world/WorldPage.tsx')).toBeDefined();
+    // The chunk the loader (src/platform/worlds/loadWorld.ts) was built into: the landing's own, since a card's preview uses it too.
+    const loader = Object.keys(manifest).filter(key => sourcesOf(key).includes('src/platform/worlds/loadWorld.ts'));
+    expect(loader, 'the loader is in one chunk').toHaveLength(1);
     for (const id of WORLD_IDS) {
       const key = worldChunk(id);
       expect(landing.has(key), `${id} is not loaded with the landing`).toBe(false);
-      // The loader's one dynamic import per world: the world page's chunk names each bundle's chunk as a dynamic import, never a static one.
-      expect(manifest[worldPage!].dynamicImports, id).toContain(key);
-      expect(manifest[worldPage!].imports ?? [], id).not.toContain(key);
+      // The loader's one dynamic import per world: its chunk names each bundle's chunk as a dynamic import, never a static one.
+      expect(manifest[loader[0]].dynamicImports, id).toContain(key);
+      expect(manifest[loader[0]].imports ?? [], id).not.toContain(key);
     }
     for (const src of ['src/platform/world/WorldPage.tsx', 'src/platform/creator/CreatorRoute.tsx', 'src/platform/creator/PreviewPage.tsx', 'src/app/ReviewPage.tsx']) {
       const key = named(src);

@@ -174,3 +174,27 @@ Known gaps for the owner to rule on:
 
 Numbers: unit 25 tests in `creatorPage.test.tsx` (and the boundary test); e2e `tests/e2e/platform-creator.spec.ts` 11 of 11 (five widths: no horizontal scroll, 44 px controls, the Profile fold opened; phone tabs and sticky 40%; keyboard order and the lavender focus ring; both panels at 1536 and 768).
 
+
+## PENDING OWNER REVIEW: M4, How It Works alive (Task 13)
+
+Commit on `claude/platform-overnight`: `feat(platform): How It Works alive (pending owner review)`. Owner review could not happen overnight; the live landing end to end is yours. What is built: the card ripple (five cards in over 600 ms, reading order, instant with reduced motion), hover or keyboard focus on a card (desktop and tablet) lifts it 4%, brightens the border and cross-fades its still to a live preview of that world within 400 ms of the preview's first frames; the host looks at the card and the nearest arm reaches toward it (`attend`); leaving fades the preview out at once and unmounts it 300 ms later. Click or Enter opens the profile; Your Octopus stays the gold glyph card and never goes live (the host still looks at it). Explore's world tiles come alive the same way; the profile hero is a live preview (artifacts settled). Phones, touch screens and reduced motion get stills only. The platform holds ONE live preview at a time (`previews/previewSlot.ts`), so the page has at most two WebGL canvases: the host (or none, on Explore and the profile) and one preview.
+
+Reach it: `/how-it-works` (hover a card, or Tab to it), `/explore` (hover a tile), `/@veyra` (the hero). Orbit stills of the host (front, three-quarter, side, back) are in `docs/superpowers/evidence/platform/m4/host-orbit-{0,45,90,180}.png` (yaw in degrees, with `-mask` silhouettes), captured with `scripts/platform-capture.mjs intro <out> yaw=<n>`.
+
+What to check:
+1. Hover Veyra, Flux, Nox quickly: only the last one comes alive. Move between neighbours: no flash back to the still.
+2. The crossfade: the preview should not jump against the still (it is laid out in the same crop). The first hover of a world loads its chunk: the still stays until the preview has drawn 3 frames. Say if the wait feels long.
+3. Keyboard: Tab into a card; the host's eyes and the nearest arm turn toward it. Does the reach look right, and does it let go when you leave?
+4. The live picture is a small water-only backdrop (`place: 'backdrop'`, no kit) at tier low: it is not the full world. Say if a card wants more.
+5. Profile hero: the live preview should settle after the page has faded in (it starts only once the route fade is over and the page is idle; the still shows until then).
+6. The host's back (`host-orbit-180.png`): round glowing mantle with the specks continuing, the arms' orange sucker rims continuing along their edges, the rim light all round. Side view (`-90`) shows one arm curling forward like an ear. Say if either bothers you.
+
+Numbers (production build, 1536 x 1024, pixel ratio 1, 8 s each, shared Intel GPU with other sessions running: 'under load'; the tier is the device's, picked and stepped down by the engine, since `?tier=` is ignored in production):
+- How It Works with one card live (Flux): medians 36.0, 29.7, 32.6 fps (3 runs; median 32.6); two more runs 34.4 and 26.5. Floor 36: MISSED under load. The same page with no card live: 33.7, 49.0, 50.0. The load alone swings the host by 15 fps, so the preview's share cannot be separated cleanly; it is roughly 10 to 15 fps.
+- Profile with its live hero: 68.0, 64.9, 68.0 fps (median 68.0). Floor 40: met.
+- Cuts (spec 7.16) in the platform's own power: the preview is already `tierCap: 'low'` and `place: 'backdrop'`; none further was applied because the load's noise is larger than any cut I could measure. Untried: laying the card's canvas out at 75% and scaling it up. Needs a quiet GPU, or your call.
+
+Known gaps:
+- The engine's preview still mounts its closed detail panel (buttons and links) in the DOM; the platform draws the layer beside the card's button and the tile's link (not inside them) and marks it `inert`, `aria-hidden`. An E02b item: a `ui: 'none'` preview should not render it.
+- A preview takes no input and plays no entrance (E02b item 1); previews run their frame loop always (E02b item 3).
+- No-WebGL browsers: the preview shows the engine's poster of the world in place of its still (the host's own fallback).

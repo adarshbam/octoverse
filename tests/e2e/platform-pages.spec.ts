@@ -4,7 +4,7 @@ import { overflowingElements, scrollToBottom } from './pageChecks';
 // The platform's static pages (platform Task 9; spec 2.5, 7.8, 7.11, 7.12): the profile, Explore and the not-found page, at their real
 // routes (/@<handle>, /explore, any unknown path; Task 14). Every page, at 360, 390, 768, 1024 and 1536 px wide:
 // the page never scrolls sideways, and every link, button and tab is at least 44 px square. Plus the profile's tabs by keyboard.
-// These pages draw stills only (no WebGL), so they are quick; run with --workers=1 (four sessions share one GPU).
+// These pages draw stills (a profile's hero and an Explore tile may be a live preview, which these checks leave out); they are quick; run with --workers=1 (four sessions share one GPU).
 
 const WIDTHS = [360, 390, 768, 1024, 1536] as const;
 const PAGES = [
@@ -34,7 +34,8 @@ for (const p of PAGES) {
         for (const el of document.querySelectorAll<HTMLElement>('a, button, [role="tab"]')) {
           const r = el.getBoundingClientRect();
           const style = getComputedStyle(el);
-          if (style.visibility === 'hidden' || style.display === 'none' || r.width === 0 || r.height === 0 || el.closest('[hidden]')) continue;
+          // A live preview's layer (the profile hero, an Explore tile) is the engine's own inert, aria-hidden picture: its DOM is not the page's controls.
+          if (style.visibility === 'hidden' || style.display === 'none' || r.width === 0 || r.height === 0 || el.closest('[hidden], .oct-live-layer')) continue;
           if (r.bottom <= 0) continue; // the skip link waits above the page until it has focus
           if (r.width < 44 || r.height < 44) small.push(`${el.tagName.toLowerCase()}[${(el.textContent ?? '').trim().slice(0, 24)}] ${Math.round(r.width)} x ${Math.round(r.height)}`);
         }

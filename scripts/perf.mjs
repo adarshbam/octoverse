@@ -6,6 +6,9 @@
 // animation-frame callback (the renderer draws inside it): median and best10 (the fastest tenth).
 // `--dpr=2` sets the device pixel ratio (default 1). Close the browser pane first.
 // WORLD=<id> (or OCTO_WORLD=<id>, which wins) adds world=<id> to every query (another world of the engine; unset, the page's default world, Nox).
+// PATHNAME=<path> picks the route (default `/`): the page opened is `<NOX_URL><PATHNAME>?<query>` (platform pages, e.g. /how-it-works, /@veyra).
+// HOVER=<css selector> hovers that element once the page is ready and waits for its live preview (a `.oct-live-layer.is-on`) before measuring.
+// READY=<css selector> waits for that element instead of the host's ready flag (a platform page with no host instance, such as a profile, never sets it).
 // NOX_URL picks the server (default http://localhost:5191). Derived from spike-env/perf.mjs.
 import { chromium } from '@playwright/test';
 
@@ -16,6 +19,9 @@ const dpr = Number(args.find(a => a.startsWith('--dpr='))?.slice(6) ?? 1);
 const queries = args.filter(a => !a.startsWith('--'));
 const base = process.env.NOX_URL ?? 'http://localhost:5191';
 const worldId = process.env.OCTO_WORLD || process.env.WORLD || '';
+const pathname = process.env.PATHNAME || '/';
+const hoverSelector = process.env.HOVER || '';
+const readySelector = process.env.READY || '';
 const world = worldId ? `&world=${encodeURIComponent(worldId)}` : '';
 const pct = (sorted, p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
 
@@ -56,9 +62,18 @@ try {
     const query = raw + world;
     const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, deviceScaleFactor: dpr });
     if (gpu) await page.addInitScript(TIMER);
-    await page.goto(`${base}/?${query}`, { waitUntil: 'load' });
-    await page.waitForFunction(() => window.__octoverse?.ready === true || window.__noxReady === true, null, { timeout: 180000, polling: 250 });
+    // A platform page counts the entrance as seen (the session has been through it), as the end-to-end specs do.
+    if (pathname !== '/') await page.addInitScript(() => { try { sessionStorage.setItem('octoverse.octoverse.entranceSeen', '1'); } catch { /* no storage */ } });
+    await page.goto(`${base}${pathname}?${query}`, { waitUntil: 'load' });
+    if (readySelector) await page.waitForSelector(readySelector, { timeout: 180000 });
+    else await page.waitForFunction(() => window.__octoverse?.ready === true || window.__noxReady === true, null, { timeout: 180000, polling: 250 });
     await page.waitForTimeout(1500);
+    if (hoverSelector) {
+      await page.locator(hoverSelector).first().hover({ force: true });
+      await page.waitForSelector('.oct-live-layer.is-on', { timeout: 180000 });
+      await page.waitForTimeout(1500);
+      console.log(`  canvases: ${await page.locator('canvas').count()}`);
+    }
     const { times, gpuMs } = await page.evaluate(ms => new Promise(done => {
       window.__gpuOn = true; window.__gpuMs = window.__gpuMs || [];
       window.__gpuMs.length = 0;

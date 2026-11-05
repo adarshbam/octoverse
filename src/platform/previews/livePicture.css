@@ -1,0 +1,42 @@
+/*
+ * A live picture (spec 7.10, 7.14): the still and, over it, a live preview. The picture fills its parent, which clips (the
+ * parent also makes a size container: the preview is laid out in the same "cover" box as the still, so the octopus does not jump
+ * when one fades into the other).
+ */
+.oct-live-picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* The preview's layer: the box the still would have under `object-fit: cover; object-position: 50% 64%`. A transform makes it
+   the containing block of the engine's fixed canvas, so the canvas fills this box and not the window. */
+.oct-live-layer {
+  --oct-y: 64%;
+  position: absolute;
+  left: 50%;
+  top: var(--oct-y);
+  width: max(100cqw, calc(100cqh * var(--oct-still-w) / var(--oct-still-h)));
+  height: max(100cqh, calc(100cqw * var(--oct-still-h) / var(--oct-still-w)));
+  transform: translate(-50%, calc(var(--oct-y) * -1));
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.oct-live-layer.is-on {
+  opacity: 1;
+}
+
+@starting-style {
+  .oct-live-layer.is-on {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-live-layer {
+    transition: none;
+  }
+}

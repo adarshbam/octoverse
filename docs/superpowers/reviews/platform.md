@@ -299,3 +299,17 @@ Verdict: provisional, pending owner.
 2. The edits live in memory (the temporary `?page=create` holds the draft in state); no storage.
 3. The page scrolls inside `.oct-page` because index.html's boot style hides overflow on html, body and #root. The Task 9 pages lack this and cannot scroll on a phone: a Task 14 fix.
 
+
+## Task 13: How It Works alive (2026-11-05)
+
+**Provisional, pending owner (the live landing was not reviewed: no owner overnight).** `previews/previewSlot.ts` (one live preview at a time; `usePreviewSlot(owner, wanted, lingerMs)`), `previews/LivePicture.tsx` (still at rest; the world's bundle through `loadWorld`, never imported; `mode: 'preview'` instance cross-faded in once its canvas has drawn 3 frames, the page has settled and the slot is granted; unmounts 300 ms after `live` goes false; stills only on phones (under 768 px), coarse pointers and reduced motion; a failed load or a throwing preview leaves the still), `useHot.ts` (hover or keyboard focus), `useCanPreview.ts`. `HowItWorks.tsx` wires the cards: hover or focus asks the slot and calls `attend(centre in canvas px, { reach: true })`; the last card entered owns the gaze. The ripple was already in the CSS (delay 75 ms x index, 300 ms each, instant under reduced motion): the e2e holds the delays, the event order and the draw order. Profile hero and Explore tiles use `LivePicture` with spec 7.12 and 7.11 options.
+
+Deviations from the brief: `LivePicture` takes the world's id (`world`), not `bundle`, because the platform may not import a bundle statically (spec 2.4); a card and a tile draw the preview's layer beside their button and link through a portal (`into`), because the engine's instance holds buttons and links of its own and nesting them is invalid HTML (React logged an error); `usePreviewSlot` has an optional third argument, the linger. The payload test now expects `loadWorld.ts` in the landing's chunk (a card's preview uses it; each world's bundle is still a separate chunk reached by dynamic import only). Preview start waits for the route fade to be over and the page idle (`useSettled`): started under the fade it held the 250 ms fade for seconds. `scripts/perf.mjs` gained `PATHNAME`, `HOVER` and `READY`.
+
+Numbers: see the morning-review entry (How It Works with one card live missed 36 fps under load: median 32.6; profile hero 68 fps). Orbit stills in `evidence/platform/m4/`.
+
+### Gaps
+
+1. The engine's preview renders its closed detail panel (buttons, links) with `ui: 'none'`; contained by `inert` and the portal. Engine fix (E02b).
+2. How It Works with a live card is under its floor on a loaded GPU; a quiet-GPU run is needed before any cut.
+3. A preview's first frames cost the main thread (shader compiles); the platform hides this with the still until 3 frames are drawn, not with a lighter start.

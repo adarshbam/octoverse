@@ -317,10 +317,34 @@
 
 .oct-card-picture {
   position: relative;
+  container-type: size;
   display: block;
   flex: 0 0 70%;
   min-height: 0;
   overflow: hidden;
+}
+
+/* A live preview's place: over the card's picture (the top 70% inside its 2px border), beside the button, which cannot hold the
+   engine's own buttons. It lifts with the card (same 4% about the card's centre: the picture's box is 70% of the card, so the
+   card's centre is at 5/7 of its height) and its top corners follow the card's. */
+.oct-card-live {
+  position: absolute;
+  z-index: 1;
+  left: 2px;
+  right: 2px;
+  top: 2px;
+  height: calc((100% - 4px) * 0.7);
+  container-type: size;
+  overflow: hidden;
+  border-radius: 16px 16px 0 0;
+  pointer-events: none;
+  transform-origin: 50% 71.43%;
+  transition: transform 220ms ease;
+}
+
+.oct-card-item:has(.oct-card:hover) .oct-card-live,
+.oct-card-item:has(.oct-card:focus-visible) .oct-card-live {
+  transform: scale(1.04);
 }
 
 /* The stills have water above the octopus: the crop trims it. */
@@ -477,7 +501,13 @@
   }
 
   .oct-card:hover,
-  .oct-card:focus-visible {
+  .oct-card:focus-visible,
+  .oct-card-item:has(.oct-card:hover) .oct-card-live,
+  .oct-card-item:has(.oct-card:focus-visible) .oct-card-live {
     transform: none;
+  }
+
+  .oct-card-live {
+    transition: none;
   }
 }

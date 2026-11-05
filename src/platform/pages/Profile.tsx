@@ -1,17 +1,21 @@
 import type { CSSProperties } from 'react';
 import { contentFor } from '../fixtures/worldContent';
 import type { ShowcaseProfile } from '../fixtures/showcase';
+import { LivePicture, type PreviewOptions } from '../previews/LivePicture';
 import { Link } from '../ui/Link';
 import { PLATFORM_TOKENS } from '../ui/tokens';
-import { Badge, Chips, PageFrame, WorldStill } from './parts';
+import { Badge, Chips, PageFrame } from './parts';
 import { Tabs } from './Tabs';
 
 /** How many of a project's technologies its card shows; the Tech Stack tab lists them all. */
 const CARD_CHIPS = 5;
 
+/** The hero's live preview (spec 7.12): the world's intro, ambient, its water only, the artifacts simply there (the technologies show as in its world), tier low at most. */
+const HERO_PREVIEW: PreviewOptions = { stage: 'intro', motion: 'ambient', place: 'backdrop', artifacts: 'settled', tierCap: 'low' };
+
 /**
- * A showcase profile (spec 7.12, P5 without the out-of-scope parts): the hero card with the octopus (an engine still for now;
- * the live preview is Task 13), the identity beside it (name and the Showcase badge, epithet, the project's tagline, a link or
+ * A showcase profile (spec 7.12, P5 without the out-of-scope parts): the hero card with the octopus (a live preview on a desktop or tablet, the engine's still on a
+ * phone, with reduced motion and until the preview is ready), the identity beside it (name and the Showcase badge, epithet, the project's tagline, a link or
  * a location only where the world's content supplies one) and the primary action, then the tabs Projects (n), About and Tech
  * Stack. No Follow, no counts, no social links.
  */
@@ -65,7 +69,7 @@ export function Profile({ profile }: { profile: ShowcaseProfile }) {
       <article className="oct-profile oct-glass" style={{ '--accent': PLATFORM_TOKENS.accents[profile.handle] } as CSSProperties}>
         <header className="oct-profile-top">
           <div className="oct-hero">
-            <WorldStill world={profile.handle} />
+            <LivePicture still={{ kind: 'world', world: profile.handle }} world={profile.world} options={HERO_PREVIEW} live />
           </div>
           <div className="oct-identity">
             <div className="oct-name-row">

@@ -115,6 +115,10 @@
   line-height: 1.3;
 }
 
+.oct-page .oct-live-layer {
+  --oct-y: 62%;
+}
+
 .oct-page .oct-still {
   display: block;
   width: 100%;
@@ -140,6 +144,7 @@
 
 .oct-hero {
   position: relative;
+  container-type: size;
   aspect-ratio: 5 / 4;
   overflow: hidden;
   border-radius: 22px;
@@ -422,7 +427,29 @@
 }
 
 .oct-tile-item {
+  position: relative;
   display: flex;
+}
+
+/* A live preview's place: over the tile's picture (inside its 2px border), beside the link, which cannot hold the engine's own
+   links and buttons. It lifts with the tile, and its top corners follow the tile's. */
+.oct-tile-live {
+  position: absolute;
+  z-index: 1;
+  left: 2px;
+  right: 2px;
+  top: 2px;
+  aspect-ratio: 738 / 560;
+  container-type: size;
+  overflow: hidden;
+  border-radius: 18px 18px 0 0;
+  pointer-events: none;
+  transition: transform 220ms ease;
+}
+
+.oct-tile-item:has(.oct-tile:hover) .oct-tile-live,
+.oct-tile-item:has(.oct-tile:focus-visible) .oct-tile-live {
+  transform: translateY(-4px);
 }
 
 .oct-tile {
@@ -450,12 +477,14 @@
 
 .oct-tile-picture {
   position: relative;
+  container-type: size;
   display: block;
   aspect-ratio: 738 / 560;
   overflow: hidden;
 }
 
-.oct-tile-picture .oct-badge {
+.oct-tile-live .oct-badge {
+  z-index: 2;
   position: absolute;
   top: 10px;
   left: 10px;
@@ -592,7 +621,13 @@
   .oct-project:hover,
   .oct-project:focus-within,
   .oct-tile:hover,
-  .oct-tile:focus-visible {
+  .oct-tile:focus-visible,
+  .oct-tile-item:has(.oct-tile:hover) .oct-tile-live,
+  .oct-tile-item:has(.oct-tile:focus-visible) .oct-tile-live {
     transform: none;
+  }
+
+  .oct-tile-live {
+    transition: none;
   }
 }

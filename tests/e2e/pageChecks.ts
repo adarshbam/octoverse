@@ -6,14 +6,14 @@ import type { Page } from '@playwright/test';
  * Every visible element that reaches past the window's right edge (or starts left of its left edge), as `tag.class right`. The page
  * wrapper clips sideways overflow out of sight, so `scrollWidth` alone cannot tell content that is cut off from content that fits;
  * this measures each element against the window instead. Left out: anything inside a deliberately sideways-scrolling row
- * (`data-hscroll`), the screen-reader-only text and the skip link (both wait outside the page), index.html's boot veil (its own clipped, fixed layer under the page) and anything not drawn.
+ * (`data-hscroll`), the screen-reader-only text and the skip link (both wait outside the page), a live preview's layer (the engine's own inert, aria-hidden picture, clipped to its box), index.html's boot veil (its own clipped, fixed layer under the page) and anything not drawn.
  */
 export async function overflowingElements(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const out: string[] = [];
     const width = window.innerWidth;
     for (const el of document.querySelectorAll<HTMLElement>('body *')) {
-      if (el.closest('#boot-veil, [data-hscroll], .oct-sr-only, .oct-skip-link, [hidden], script, style')) continue;
+      if (el.closest('#boot-veil, [data-hscroll], .oct-sr-only, .oct-skip-link, .oct-live-layer, [hidden], script, style')) continue;
       const style = getComputedStyle(el);
       if (style.display === 'none' || style.visibility === 'hidden') continue;
       const r = el.getBoundingClientRect();
