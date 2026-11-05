@@ -450,6 +450,8 @@ test("editing after a failed clear removes the message (the draft is the visitor
 });
 
 test('images: up to four (PNG, JPEG, WebP, at most 2 MB), previewed, "Saved in this browser only", removable, kept across a reload; every object url is revoked', async ({ page }) => {
+  // The images are the editor's: no live preview here (the engine makes object urls of its own, which are not the editor's to revoke).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => {
     const created: string[] = [];
     const revoked: string[] = [];

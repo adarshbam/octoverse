@@ -173,6 +173,8 @@
 }
 
 .oct-creator-picture {
+  position: relative;
+  container-type: size;
   box-sizing: border-box;
   width: min(100%, 480px);
   aspect-ratio: 5 / 4;
@@ -968,6 +970,7 @@
 
   .oct-creator-picture {
     flex: 1 1 0;
+    container-type: normal; /* no live preview on a phone: the size container (the preview's crop box) is not needed, and would collapse the width */
     width: auto;
     max-width: 100%;
     min-height: 0;
