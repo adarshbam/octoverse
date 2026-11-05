@@ -429,3 +429,25 @@ Ruled provisionally overnight; the owner judges the look live.
 **Engine-owner items:** none required. Noted: the entrance's settle face is hard-wired to 'gentle' (Flux overrides it to his intro face); the `armHalfSpan` check takes one open reach for the umbrella and the intro (the test splits the swim from the arrival); the stroke lead uses the stroke's own period, so a clock faster than the timing amplifies `surge`.
 - **Also weak:** no body bob in the arrival (the engine's arrival has only roll and armWave); `settle` 1 lets the arms open about 4 percent past the intro pose around 4.4 to 4.6 s, which the clearance check does not model (smallest gap 0.20 against 0.15).
 - **Check live:** 1) energetic, not frantic; 2) the portal run reads as a pipeline going green; 3) the overshoot and spring-back feel playful; 4) the turn and pop-open land on the smile; 5) skippable.
+
+## Task 16: pulse appear, lift pulse, swell reveal, swing (PENDING OWNER REVIEW; engine commit PENDING ENGINE-OWNER REVIEW)
+
+Ruled provisionally overnight; motion is checked live (no video).
+
+### What changed
+- Engine (`00d26e5`): `APPEARS.pulse` (`artifacts/pulseAppear.ts`, no sheet), `ArmLiftSelect.pulse`, `fireLiftPulse` (at most three arms pulsing), the swell-progress reveal (`revealSize`), bundle checks by name, TechBubbles and Octopus wiring.
+- Flux (`a6521a1`): `appear { kind: 'pulse', step: 0.18 }`; `select { kind: 'armLift', ease: 0.3, scale: 1.25, threadShorten: 0, pulse: true }`; `placement.reveal { start: 0.35, span: 0.3, step: 0.03 }` (head-swell progress); `placement.swing { maxAngle: 18 deg, settle: 0.8 }`.
+
+### Numbers
+- Appear 1.79 s; swing within 18 deg for a 3 units/s step, settled under 1 deg by 0.8 s.
+- Clearance of the twelve from other arms and the face (arms' plane), all at rest radius 0.28: 0.0893 rest, 0.0376 at 15 deg, 0.0286 at 18 deg, 0.0006 at 25 deg.
+- **Chosen orb at scale 1.25 (radius 0.35), worst of the twelve:** scale alone -0.039 rest (T8 mid), -0.088 at 15 deg, -0.098 at 18 deg (T7 mid); with the arm lifted as well (keyboard or tap lift) -0.313 rest, -0.391 at 15, -0.406 at 18 deg (T5 tip), the other eleven against the lifted arm -0.334. In the arms' plane only (depth ignored, so it overstates). Orb to orb: 0.171 at rest (0.243 at rest radius). Pinned as known-limit tests in `src/worlds/flux/artifacts.test.ts`.
+
+### Check live
+1) pulses run out along the arms in pairs in the intro, no orbs and no caps; 2) Explore: tip orbs grow first, then the mids, also when pressed mid-appear; 3) hover an orb: arm snaps up in 0.3 s with a pulse and the 1.25x glow; 4) a six-orb sweep gives at most three bands; 5) the swing is lively but tight; 6) reduced motion: cups light 0.3 s, orbs there, no swing; 7) **watch a chosen orb overlapping a neighbour** (arm, orb or face), with the swing running.
+
+### Honest weaknesses
+- The lifted-orb clearance above is negative in the plane; unverified live. A lift on an arm with no traced lift (every arm but T8) turns it rigidly up to 0.9 rad about its root.
+- The pulse (0.88 s) outlasts the lift (0.3 s); in a fast sweep later orbs get no pulse while three bands run.
+- Engine-owner items: the lift geometry (above); `placement.reveal` is seconds for the bloom and swell progress for the pulse; sizes.intro 0 is still refused (0.001 used).
+

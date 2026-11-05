@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { assignPendants, idleSway, pendantSwing, restSwing, swingLimits } from '../../engine/artifacts/pendant';
+import { armLiftTarget, tracedLift } from '../../engine/artifacts/armLift';
+import { assignPendants, idleSway, pendantSwing, restSwing, swingLimits, threadClearance } from '../../engine/artifacts/pendant';
 import { PULSE_GROW, orbGrowStart, pulseFrame, pulseLength, pulseSchedule, revealSize } from '../../engine/artifacts/pulseAppear';
 import { SELECTS, APPEARS, choiceRemoved, placementCapacity } from '../../engine/artifacts/strategies';
 import { CAMERA_Z } from '../../engine/config/stage';
@@ -13,7 +14,7 @@ import { CAP_VIOLET_PINK, FLUX_ARTIFACTS, FLUX_SLOTS, INTRO_ORB_SIZE, ORB_RIM } 
 import { FLUX_BUNDLE, FLUX_STAGE_FRAMES, FLUX_STAGE_PANELS } from './bundle';
 import { FLUX } from './character';
 import { FLUX_POSES } from './poses';
-import { VIEWPORTS, clearance, htmlBoxes, leastOrbGap, outsideBox, seenFace, seenOrbs, slotPoint } from './slotCriteria';
+import { FACE_RECT, VIEWPORTS, clearance, geometryFor, htmlBoxes, leastOrbGap, outsideBox, seenFace, seenOrbs, shownSlots, slotPoint } from './slotCriteria';
 
 // Flux's technology orbs as pendants (spec 7.5, Task 12): sixteen slots, a tip on every arm and a
 // mid-arm slot about 55% along, twelve shown as P3 (the eight tips and the mids of the four upper
@@ -255,4 +256,76 @@ test('at the full swing of 18 degrees either way his twelve orbs still hang clea
   // The clearance at rest is the Task 12 figure, and 25 degrees (Veyra's) would take the orbs through the arms: the swing is kept small.
   expect(clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [], [0])).toBeGreaterThan(0.05);
   expect(clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [], [-25 * DEG, 25 * DEG])).toBeLessThan(0.01);
+});
+
+// --- Task 16 fix round 1: the chosen orb, lifted to 1.25x, against its neighbours --------------------------
+//
+// The clearance figures above are for every orb at its rest radius (0.28). The orb that is chosen in the
+// overview is lifted to scale 1.25 (radius 0.35) and its arm lifts. Measured in the arms' plane, the
+// same way as `clearance` (engine threadClearance against the other arms as the rig draws them, and the
+// face), each of the twelve in turn, the worst of them. This is a known limit pinned with its measured
+// values (like the phone's, above): it flips and goes when the lift or the slots are reworked.
+
+/** The select's scale (Flux's `armLift`: 1.25). */
+const LIFT_SCALE = 1.25;
+const LIFTED = { tether: placement.tether, sizes: { intro: placement.sizes.intro, overview: placement.sizes.overview * LIFT_SCALE } };
+const TWELVE = shownSlots(FLUX_SLOTS.overview, SHOWN);
+const swung = (degrees: number) => (degrees === 0 ? [0] : [-degrees * DEG, 0, degrees * DEG]);
+
+/** The least clearance of the lifted orb (radius 0.35, arm unmoved: the scale alone), any of the twelve, from the other arms and the face. */
+function scaledOnly(degrees: number) {
+  return Math.min(...TWELVE.map(slot => threadClearance(overview, [slot], FACE_RECT, geometryFor(overview, LIFTED, swung(degrees)))));
+}
+
+/** The same with the arm lifted too (straight up and forward, as with the keyboard or a tap: the pointer-free lift), its orb hung where the lift puts it. */
+function liftedArm(degrees: number) {
+  let orb = Infinity;
+  let arm = Infinity;
+  for (const slot of TWELVE) {
+    const target = armLiftTarget(slot, null, overview, tracedLift(FLUX_POSES, 'overview', slot.arm));
+    const pose = { ...overview, arms: { ...overview.arms, [slot.arm]: target.curve } };
+    const hung = { ...slot, at: target.hangAt ?? slot.at };
+    // The chosen orb against the other arms and the face; the other eleven (rest radius) against the lifted arm and the rest.
+    orb = Math.min(orb, threadClearance(pose, [hung], FACE_RECT, geometryFor(pose, LIFTED, swung(degrees))));
+    arm = Math.min(arm, threadClearance(pose, TWELVE.filter(other => other !== slot), FACE_RECT, geometryFor(pose, placement, swung(degrees))));
+  }
+  return { orb, arm };
+}
+
+test('the known limit: an orb chosen in the overview (scale 1.25) comes within 0.05 of, and at 15 and 18 degrees of swing overlaps, a neighbouring arm', () => {
+  // Measured (this tree): scale alone, rest -0.039 (T8's mid orb), 15 degrees -0.088, 18 degrees -0.098 (T7's mid orb).
+  expect(scaledOnly(0)).toBeCloseTo(-0.039, 2);
+  expect(scaledOnly(15)).toBeCloseTo(-0.088, 2);
+  expect(scaledOnly(18)).toBeCloseTo(-0.098, 2);
+  for (const degrees of [0, 15, 18]) expect(scaledOnly(degrees)).toBeLessThan(0.05);
+  // At rest radius the same twelve keep 0.0893 clear (above), so the loss is the lift's growth: 0.07 of radius.
+  expect(clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [])).toBeGreaterThan(0.08);
+});
+
+test("the known limit: with its arm lifted too (keyboard or tap lift) the chosen orb and the lifted arm pass through neighbouring arms, orbs and the face in the arms' plane", () => {
+  // Measured in the plane (a lift also comes forward, toward the visitor, which this does not count): chosen orb -0.313 at rest,
+  // -0.391 at 15, -0.406 at 18 degrees (T5's tip); the other eleven against the lifted arm -0.334 at rest and at 18 degrees.
+  const rest = liftedArm(0);
+  const fifteen = liftedArm(15);
+  const eighteen = liftedArm(18);
+  expect(rest.orb).toBeCloseTo(-0.313, 2);
+  expect(fifteen.orb).toBeCloseTo(-0.391, 2);
+  expect(eighteen.orb).toBeCloseTo(-0.406, 2);
+  expect(rest.arm).toBeCloseTo(-0.334, 2);
+  for (const c of [rest, fifteen, eighteen]) {
+    expect(c.orb).toBeLessThan(0);
+    expect(c.arm).toBeLessThan(0);
+  }
+});
+
+test('the chosen orb at scale 1.25 still keeps 0.17 from its neighbouring orbs at rest (against 0.243 at rest radius), by the perspective-seen gap', () => {
+  const orbs = seenOrbs(overview, FLUX_SLOTS.overview, placement, SHOWN);
+  expect(leastOrbGap(orbs)).toBeCloseTo(0.2428, 3);
+  let worst = Infinity;
+  orbs.forEach((_, k) => {
+    const grown = orbs.map((orb, j) => (j === k ? { ...orb, r: orb.r * 1.25 } : orb));
+    worst = Math.min(worst, leastOrbGap(grown));
+  });
+  expect(worst).toBeCloseTo(0.1711, 3);
+  expect(worst).toBeGreaterThan(0.05);
 });
