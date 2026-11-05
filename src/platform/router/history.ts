@@ -149,7 +149,7 @@ export function focusKeyOf(el: Element | null | undefined): string | null {
 /** The control a key (`focusKeyOf`) names on the page now, or null. */
 export function elementForFocusKey(key: string): HTMLElement | null {
   // (a stable name is a plain word: anything else cannot be one of ours, and must not reach a selector)
-  if (key.startsWith('@')) return /^[\w-]+$/.test(key.slice(1)) ? document.querySelector<HTMLElement>(`[data-focus-id="${key.slice(1)}"]`) : null;
+  if (key.startsWith('@')) return /^[\w-]{1,64}$/.test(key.slice(1)) ? document.querySelector<HTMLElement>(`[data-focus-id="${key.slice(1)}"]`) : null;
   if (key.startsWith('#')) return document.getElementById?.(key.slice(1)) ?? null;
   const cut = key.lastIndexOf('|');
   if (cut < 0) return null;

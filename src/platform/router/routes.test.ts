@@ -63,6 +63,22 @@ describe('parseRoute', () => {
     expect(parse('/create/preview', '?view=x').replace).toBe('/create/preview');
   });
 
+  it('?project= is deliberately NOT part of the route: parse then build drops it (the page reads it from the address itself), and the route is the same with or without it', () => {
+    const withProject = parse('/create/preview', '?project=beta&view=overview');
+    expect(buildPath(withProject.route)).toBe('/create/preview?view=overview');
+    expect(parse('/create/preview', '?project=beta').route).toEqual(parse('/create/preview', '').route);
+    expect(buildPath(parse('/create/preview', '?project=beta').route)).toBe('/create/preview');
+  });
+
+  it('a duplicate ?view= takes the first value (URLSearchParams.get), as a world\'s does; a bad first one is replaced and the rest kept', () => {
+    expect(parse('/create/preview', '?view=overview&view=detail').route).toEqual({ name: 'createPreview', view: 'overview' });
+    expect(parse('/create/preview', '?view=overview&view=detail').replace).toBeUndefined();
+    expect(parse('/@veyra/vault-os', '?view=detail&view=overview').route).toMatchObject({ view: 'detail' });
+    const bad = parse('/create/preview', '?view=x&view=detail&project=beta');
+    expect(bad.route).toEqual({ name: 'createPreview', view: 'intro' });
+    expect(bad.replace).toBe('/create/preview?project=beta');
+  });
+
   it('rejects bad handles and projects', () => {
     expect(parse('/@explore').route).toEqual({ name: 'notFound', path: '/@explore' });
     expect(parse('/@Nox').route).toEqual({ name: 'notFound', path: '/@Nox' });

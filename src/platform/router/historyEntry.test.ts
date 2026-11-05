@@ -172,6 +172,35 @@ describe('history entries (spec 7.9)', () => {
     expect(elementForFocusKey(key)).toBeNull();
   });
 
+  it('a hostile stable focus key (a selector break-out, a prototype name, a huge string, an empty name) is ignored: no selector is built from it and nothing is focused', () => {
+    const real = link('/create/preview');
+    real.focusId = 'see-live-preview';
+    doc.links = [real];
+    const asked: string[] = [];
+    const query = doc.querySelector;
+    doc.querySelector = (selector: string) => (asked.push(selector), query(selector));
+    for (const key of ['@a"]', '@a"] , [id', '@', '@ ', '@a b', '@name\n', '@' + 'x'.repeat(65), '@' + 'x'.repeat(100000), '@<img src=x>', '@a\\"]']) {
+      expect(elementForFocusKey(key), key.slice(0, 20)).toBeNull();
+    }
+    expect(asked).toEqual([]);
+    // A plain name is looked up; a prototype-ish name is just a name that nothing has.
+    expect(elementForFocusKey('@see-live-preview')).toBe(real);
+    expect(elementForFocusKey('@__proto__')).toBeNull();
+    expect(elementForFocusKey('@constructor')).toBeNull();
+    expect(asked.length).toBe(3);
+  });
+
+  it('a hostile focus key left in a history entry does not break the arrival restore (the scroll is still put back, nothing is focused)', () => {
+    const off = subscribe(() => {});
+    env.hist.state = { platform: { scrollY: 77, focusId: '@a"]' } };
+    env.fire('popstate');
+    doc.scroller = { scrollTop: 0 };
+    doc.links = [];
+    expect(() => restoreArrival()).not.toThrow();
+    expect(doc.scroller.scrollTop).toBe(77);
+    off();
+  });
+
   it('a popstate arrival restores the stored scroll and puts focus back on the control', () => {
     const enter = link('/@veyra/vault-os');
     doc.links = [enter];
