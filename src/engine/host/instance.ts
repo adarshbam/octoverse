@@ -44,6 +44,12 @@ export interface InstanceState {
    * is told while the personality's `flourishRate` is 0 (Nox).
    */
   flourish: FlourishEvents;
+  /**
+   * The values the sequences last gave the kit's props (`WorldConfig.props`), by prop id: the
+   * character's frame writes them from the entrance (`SequenceSet.kitDrives`) and the kit applies
+   * them each frame (world/props.ts `driveProps`). Empty for a world with no props (Nox).
+   */
+  kit: Record<string, number>;
 }
 
 /** The host's request to look at a point (`useInstanceApi().attend`): `set` replaces it, `set(null)` lets it go. */
@@ -65,5 +71,5 @@ function createAttend(): Attend {
 }
 
 export function createInstanceState(bundle: WorldBundle, mode: 'page' | 'preview'): InstanceState {
-  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), pulse: createPulseTriggers(), flourish: new FlourishEvents() };
+  return { id: bundle.id, mode, bundle, bubbleLive: new BubbleLive(), liveAnchors: new LiveAnchors(), hover: { bubble: false }, reliefGate: { value: 1 }, attend: createAttend(), pulse: createPulseTriggers(), flourish: new FlourishEvents(), kit: {} };
 }

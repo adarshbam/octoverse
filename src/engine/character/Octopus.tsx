@@ -375,7 +375,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     rest: 0,
     breathPhase: 0,
     // The entrance's clock (seconds of frame time from its first frame; null until the sheet is in) and the wait for its sheet.
-    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false },
+    entrance: { seconds: null as number | null, waited: 0, settling: false, done: false, gaveUp: false, kitAtRest: false },
     // How much of the glow the aura, the grade and the glow's light last showed: written only on a change (never at rest).
     glowShown: 1,
     // The micro-animations (motion/micro.ts): seconds since each began (Infinity: not playing), on
@@ -481,6 +481,16 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           }
         }
       }
+    }
+    // The kit's props (a padlock ring, a membrane's flash: `SequenceSet.kitDrives`) take the entrance's values while it plays; once
+    // it is over, skipped, or never played (reduced motion, a preview), they rest where the entrance ends, written once.
+    const kitSheet = entranceSheet?.sequences;
+    if (swim?.kit) {
+      Object.assign(instance.kit, swim.kit);
+      m.entrance.kitAtRest = false;
+    } else if (!swim && kitSheet?.kitDrives && !m.entrance.kitAtRest) {
+      Object.assign(instance.kit, entranceFrame(kitSheet, kitSheet.length('entrance'), entranceSwim).kit);
+      m.entrance.kitAtRest = true;
     }
     // The stroke the sheet is in, and its arm drive: the follow-through is in these (no arm physics).
     // The drive gives way as the arms swing forward (`forward`), before they spread (`open`).
@@ -843,6 +853,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     }
     // The sparkles' twinkle runs on the character's clock (held at 0 when frozen); nothing reads it on a surface without them.
     rig.uniforms.uSkinTime.value = t;
+    // The shimmer that runs crown to face as she settles (the entrance's `shimmer`); out of sight otherwise.
+    rig.uniforms.uSparkleWave.value = swim?.shimmer ?? 0;
     rig.uniforms.uGlowStrength.value = (1 + 0.06 * b + 0.025 * live * Math.sin(t * 0.37 + 1.3)) * (1 - 0.15 * m.rest);
 
     // The head opens into the glass dome: the dome stays whole and in place while its glass is

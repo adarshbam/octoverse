@@ -5,7 +5,7 @@ import { noxProject } from './content/noxProject';
 import { noxTechnologies } from './content/noxTechnologies';
 import { NOX_POSES } from './poses';
 import { SWIM_POSES } from './swim';
-import { ARM_HALF_SPAN, type EntranceGeometry, PILLAR_HALF } from '../../engine/sequences/entrance';
+import { ARM_HALF_SPAN, type EntranceGeometry, type Footprint, PILLAR_HALF } from '../../engine/sequences/entrance';
 import { NOX_SEQUENCES } from './sequences/index';
 import type { IntroTitleBox, StageFrame, StagePanels } from '../../engine/stage/framing';
 import type { WorldBundle } from '../../engine/types/bundle';
@@ -92,3 +92,9 @@ export const NOX_BUNDLE: WorldBundle = {
 
 /** What the entrance's clearance check measures Nox with: his stroke, his arms' reach and the kit's pillar footprint. */
 export const NOX_ENTRANCE_GEOMETRY: EntranceGeometry = { swim: NOX.personality.swim, armHalfSpan: ARM_HALF_SPAN, pillarHalf: PILLAR_HALF };
+
+/**
+ * The kit pieces the entrance's clearance counts in Nox's layout, by kit name: the four pillars,
+ * each the pillar shaft's footprint. The rocks and corals lie low under the swim and are not counted.
+ */
+export const NOX_ENTRANCE_FOOTPRINTS: Readonly<Record<string, Footprint>> = { pillar_a: PILLAR_HALF, pillar_b: PILLAR_HALF, pillar_c: PILLAR_HALF, pillar_d: PILLAR_HALF };

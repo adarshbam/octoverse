@@ -872,3 +872,34 @@ There is no still of a flourish: no URL parameter freezes one, and adding one wa
   - *(M4)* A playing flourish ends at once, without easing out, when motion turns off (reduced motion switched on mid-flourish) or the stage leaves the gate. The unroll snaps back to 0 in one frame. It is rare and small (at most a 0.28-unit tip move); ease it out if it shows.
   - *(M6)* There is no review parameter to freeze a flourish at its peak, so the owner cannot judge one from a still. A `?flourish=<arm>&t=<s>` still would need an engine review hook.
 
+## Task 17 engine variants: PROVISIONAL (engine owner to confirm)
+
+Gap G2: the entrance spin was a fixed full turn on a golden spiral. Veyra needs a 200-degree glide-turn without the spiral. The brief says to raise this with the engine owner before starting. The owner was asleep, so the controller ruled provisionally: proceed, log it here and in the morning list, and add the contract row (engine design section 18, "G2 build").
+
+### What the engine gained (commit `feat(engine): entrance turn and spiral as data`)
+- **`EntranceShape`** is `{ turn, spiral: true, arc } | { turn, spiral: false }` (`sequences/keys.ts`). `turn` is the radians of the entrance's turn, above 0 and at most 2 pi. Nox states `turn: 2 pi, spiral: true` and his arc.
+- **`spiral: true`** is Nox's path, unchanged: the arc curls into the spot and the yaw is `yaw key + turn x (spin wrapped to [-0.5, 0.5])`.
+- **`spiral: false`**: no arc. The sheet's keyed path is the whole way to the spot. `glideTurnYaw(spin, turn)` = `turn (spin - 1)` is added to the `yaw` key: the yaw runs from -turn to exactly 0 as the sheet's `spin` goes 0 to 1.
+- **Ruling (interpretation):** "yaw at the end is 0 and the yaw path is monotonic" is read as: she starts turned by the shortfall, so the body swings through `turn` radians monotonically (rising yaw, the way Nox's spin turns) and ends at exactly 0, facing the visitor. It holds at -turn until the sheet's spin starts. It is not wrapped (a part turn has no jump to hide). If the owner would rather she face the visitor while swimming in and turn away and back, say so: that is a different shape and a different data field.
+- **`validateBundle`** checks the shape by field name: `sequences.entrance` (an object), `.turn` (finite, above 0, at most 2 pi), `.spiral` (a boolean), and on the spiral `.arc.r0` (finite, above 0) and `.arc.phase` (finite). One test per field.
+- **Clearance against a world's own layout:** `layoutClearance` and `entranceClearance(seq, geometry, layout, footprints, { samples, until })` return the least gap between the arm reach and every piece of the layout that has a footprint (by kit name, in any group), with the arms as drawn, held open and held closed, and name the piece and the second. For Nox (footprints `NOX_ENTRANCE_FOOTPRINTS`: his four pillars) the "as drawn" gap equals `pathClearance`.
+
+### Numbers (no video; from `entranceFrame` on Nox's sheet)
+| t (s) | spin | Nox yaw (deg) | 200-degree non-spiral yaw (deg) |
+|---|---|---|---|
+| 0 to 6.4 | 0 | 0 | -200.0 |
+| 6.6 | 0.064 | 23.2 | -187.1 |
+| 6.8 | 0.309 | 111.2 | -138.2 |
+| 7.0 | 0.691 | -111.2 | -61.8 |
+| 7.2 | 0.936 | -23.2 | -12.9 |
+| 7.4 and after | 1 | 0.0 | 0.0 |
+
+Nox's yaw jumps by 360 degrees half way round (the wrap); the glide-turn rises through exactly 200 degrees with no jump (largest step under 0.03 rad per millisecond of the sheet, tested).
+
+### Veyra
+- Not instantiated here. Her placeholder shape stays `spiral: true, turn: 200 degrees` (a spin of 0 adds neither turn nor arc, so she still lands as before); the placeholder would start at -200 degrees if switched to `spiral: false` before the spin is keyed.
+- **Task 18:** set `spiral: false` with her keyed spin; give her pieces' footprints (arch, walls, blocks from `worlds/veyra/place/layout.json`) to `entranceClearance` and test the clearance with the arms open and closed; set `EntranceGeometry.swim` to `strokeTiming(VEYRA.personality)`, never the raw `personality.swim` (glide 1.0 s, not 0.625).
+
+### Nox regression
+- Nox's entrance equals fixtures (`src/engine/sequences/fixtures/nox-entrance.json`, 169 frames at 0.05 s and the swim's clearance, captured from the code at `4ff01e3`), compared exactly in `entrance.test.ts`, including t = 0, 2, 4, 5, 5.5 and 6.5. The fixtures were also checked against a copy of the `4ff01e3` `entrance.ts` run side by side with the new one: both equal them.
+- Full gate (run after the review, on 9a05110 + c1cddef): vitest 113 files, 854 passed, 1 skipped; Nox still gate PASS, everything 0.0000 except techFocus (mean 0.0112, 0.0388% of pixels over 8, its known residual); no implementer report exists (the machine crashed before it was written).

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { expect, test } from 'vitest';
 import { SECURITY_WORLD } from '../../worlds/nox/place/config';
 import { motionAmount } from './liveMotion';
-import { PROP_DRIVES, PROP_DRIVE_IDS, bobOffset, drive, propPhase } from './props';
+import { PROP_DRIVES, PROP_DRIVE_IDS, type PropBinding, bobOffset, drive, driveProps, propPhase } from './props';
 import type { WorldConfig, WorldProp } from './types';
 import { validateWorld } from './validateWorld';
 
@@ -94,4 +94,28 @@ test("a 'bob' prop needs its amplitude and period; no other drive takes them", (
   expect(bob({ amplitude: 0.04, period: Number.NaN })).toContain('props[0] (float).bob.period');
   const stray = validateWorld(world([{ id: 'ring', node: 'rock_0', drive: 'rotateZ', bob: { amplitude: 0.04, period: 9 } } as unknown as WorldProp])).join('\n');
   expect(stray).toContain("only the 'bob' drive");
+});
+
+test('driveProps applies each prop its value by id, skips a value that holds, and leaves a prop with no value alone', () => {
+  const ring = new THREE.Group();
+  const ringB = new THREE.Group();
+  const flash = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+  const idle = new THREE.Group();
+  idle.rotation.z = 0.5;
+  const bindings: PropBinding[] = [
+    { prop: { id: 'lockRing', node: 'padlock_ring', drive: 'rotateZ' }, nodes: [ring, ringB] },
+    { prop: { id: 'membraneFlash', node: 'membrane', drive: 'emissive' }, nodes: [flash] },
+    { prop: { id: 'idle', node: 'x', drive: 'rotateZ' }, nodes: [idle] },
+  ];
+  driveProps(bindings, { lockRing: 1.5, membraneFlash: 1.2 });
+  expect([ring.rotation.z, ringB.rotation.z, (flash.material as THREE.MeshStandardMaterial).emissiveIntensity, idle.rotation.z]).toEqual([1.5, 1.5, 1.2, 0.5]);
+  // A held value is not applied again: a change made meanwhile by someone else stays.
+  ring.rotation.z = 9;
+  driveProps(bindings, { lockRing: 1.5, membraneFlash: 1.2 });
+  expect(ring.rotation.z).toBe(9);
+  driveProps(bindings, { lockRing: 0 });
+  expect(ring.rotation.z).toBe(0);
+  // No values at all (Nox): nothing moves.
+  driveProps(bindings, {});
+  expect(ring.rotation.z).toBe(0);
 });

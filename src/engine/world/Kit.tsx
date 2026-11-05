@@ -10,7 +10,7 @@ import { type WorldKit, bakedGeometry } from './kitLoader';
 import { type KitMaterialInstance, kitMaterialFor, makeKitMaterial } from './kitMaterials';
 import { fbm2, seeded } from './noise';
 import { DRESSED_GROUPS, applyPlacement, coralRest, withLod } from './placement';
-import { bobOffset, drive } from './props';
+import { type PropBinding, bobOffset, drive, driveProps } from './props';
 import { floorHeight, seabedLightUv } from './seabed';
 import { RUNE_SETS, glyphPanelLook, makeGlyphTexture, makeStoneMaps } from './textures';
 import type { Placement, Vec3, WorldConfig } from './types';
@@ -110,7 +110,8 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
   const coralTime = useRef({ value: 0 });
   const coralMotion = useRef({ value: 1 });
   const motionAmount = useMotionAmount();
-  const { reliefGate } = useInstance();
+  const instance = useInstance();
+  const { reliefGate } = instance;
   const group = useRef<THREE.Group>(null);
 
   const built = useMemo(() => {
@@ -366,12 +367,14 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // Nodes that share a piece's frame (`kit.attached`: a doorway's membrane and lock) stand in
     // each placement of that piece, as the kit file places them in it. One with a kit material is
     // drawn with it; one without keeps the material the file gives it.
+    const propNodes = new Map<string, THREE.Object3D[]>();
     const attached = placements.flatMap(p => {
       const parts = (world.kit.attached ?? []).filter(a => a.piece === p.piece);
       if (!near(p) || parts.length === 0) return [];
       const frame = new THREE.Group();
       for (const { node } of parts) {
         const copy = piece(node).clone(true);
+        for (const prop of (world.props ?? []).filter(pr => pr.node === node)) propNodes.set(prop.id, [...(propNodes.get(prop.id) ?? []), copy]);
         const material = kitMaterial(node);
         copy.traverse(child => {
           if (!(child instanceof THREE.Mesh)) return;
@@ -440,11 +443,15 @@ export function Kit({ world, kit }: { world: WorldConfig; kit: WorldKit }) {
     // The props on the `bob` drive move every placement of their piece, on the world's clock.
     const bobbing = (world.props ?? []).flatMap(prop => (prop.drive === 'bob' ? (placedByPiece.get(prop.node) ?? []).map(object => ({ prop, object })) : []));
 
-    return { pillars, rocks, corals, stoneGroups, glowing, attached, kitMaterials: [...kitMaterials.values()], chains, pebbles, lights, bobbing, disposables };
+    // The props a sequence moves (`WorldConfig.props`): the attached nodes they name, in every placement.
+    const bindings: PropBinding[] = (world.props ?? []).map(prop => ({ prop, nodes: propNodes.get(prop.id) ?? [] }));
+
+    return { pillars, rocks, corals, stoneGroups, glowing, attached, bindings, kitMaterials: [...kitMaterials.values()], chains, pebbles, lights, bobbing, disposables };
   }, [kit, world, reliefGate]);
   useDisposables(built.disposables);
 
   useFrame(state => {
+    driveProps(built.bindings, instance.kit);
     coralTime.current.value = now(state);
     coralMotion.current.value = motionAmount;
     for (const k of built.kitMaterials) k.update(now(state), motionAmount);
