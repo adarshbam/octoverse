@@ -67,7 +67,8 @@ export async function openRoute(page: Page, route: PassRoute, size: { width: num
 
 /** The waits of `openRoute`, for a page that is already navigating. */
 export async function settleRoute(page: Page, route: PassRoute) {
-  await page.waitForSelector('#oct-main', { state: 'attached', timeout: 60_000 });
+  // A world visit and the full preview are the engine's pages: they have no platform main landmark (the platform's `#oct-main` is only the placeholder shown while the world loads).
+  if (!route.engineOwned) await page.waitForSelector('#oct-main', { state: 'attached', timeout: 60_000 });
   if (route.host) {
     await hostReady(page);
     if (route.name === 'landing') await page.getByRole('button', { name: 'See how it works' }).waitFor({ state: 'visible' });

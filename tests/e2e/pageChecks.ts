@@ -46,7 +46,8 @@ export async function scrollToBottom(page: Page) {
  * layout shell is not drawn, so it is not measured. An element counts by what it paints: its own box when it has a background, a
  * border, a shadow or is an image, canvas or field; its text lines (a Range over its own text nodes) when it has text. The landing's
  * intro is one wide transparent block (the P2 rectangle) that follows the camera's drift with its text centred in it: the block can
- * pass the window's edge while every letter and button is well inside, and only the letters and buttons are seen.
+ * pass the window's edge while every letter and button is well inside, and only the letters and buttons are seen. Also left out: the engine's
+ * closed overview panel (aria-hidden, parked off the window's left edge on a phone by design; its open state is not closed).
  */
 export async function overflowingPaint(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -61,7 +62,7 @@ export async function overflowingPaint(page: Page): Promise<string[]> {
       (parseFloat(style.borderBottomWidth) > 0 && style.borderBottomStyle !== 'none') ||
       style.boxShadow !== 'none';
     for (const el of document.querySelectorAll<HTMLElement>('body *')) {
-      if (el.closest('#boot-veil, [data-hscroll], .oct-sr-only, .oct-skip-link, .oct-live-layer, [hidden], [inert], script, style')) continue;
+      if (el.closest('#boot-veil, [data-hscroll], .oct-sr-only, .oct-skip-link, .oct-live-layer, [hidden], [inert], .overview-panel:not(.is-open), script, style')) continue;
       const style = getComputedStyle(el);
       if (style.display === 'none' || style.visibility === 'hidden') continue;
       const boxes: DOMRect[] = [];

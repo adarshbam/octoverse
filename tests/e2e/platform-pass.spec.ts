@@ -46,8 +46,8 @@ for (const route of ROUTES) {
       }));
       expect(root.scrollWidth, 'no horizontal scroll').toBeLessThanOrEqual(root.innerWidth);
       expect(root.bodyScrollWidth).toBeLessThanOrEqual(root.innerWidth);
-      // The landing's intro is a wide transparent block that follows the camera: there what is drawn (letters, buttons, glass) is measured.
-      const overflow = route.face ? overflowingPaint : overflowingElements;
+      // The landing's intro and the engine's own intro block (a world visit, the preview) are wide transparent blocks that follow the camera's drift: there what is drawn (letters, buttons, glass) is measured.
+      const overflow = route.face || route.engineOwned ? overflowingPaint : overflowingElements;
       expect(await overflow(page)).toEqual([]);
       // The host's camera drifts (about 80 px either way on a tablet) and the landing's text and cards follow it: look again as it moves.
       if (route.face) {
