@@ -258,8 +258,9 @@ export const FLUX: CharacterConfig = {
     curl: 0.9,
     float: { amplitude: 0.05, period: 4.8 },
     breathPeriod: 3.6,
-    // Many short strokes: 0.38 + 0.16 + 0.32 = 0.86 s.
-    swim: { recovery: 0.38, power: 0.16, glide: 0.32, fill: 0.04, squeeze: 0.06 },
+    // Many short strokes: 0.38 + 0.16 + 0.32 = 0.86 s. The glide is 0.5818 here: glideBias 0.55 (below)
+    // shortens it to the spec's 0.32 s, so the bias is not applied twice.
+    swim: { recovery: 0.38, power: 0.16, glide: 0.5818, fill: 0.04, squeeze: 0.06 },
     micro: {
       blink: { seconds: 0.17, doubleGap: 0.12 },
       tracking: 3.5,
@@ -270,5 +271,18 @@ export const FLUX: CharacterConfig = {
       settle: { duration: 0.9, amount: 0.042, cycles: 1.5 },
       arrival: { duration: 1.4, roll: 0.11, armWave: 0.18 },
     },
+    // His motion personality (spec 7.8, engine contract 14.1; owner ruling on the flourish contract):
+    // - settle 1: `settle` is 0 to 1 only, so the springy 140% lives in micro.settle.amount (0.042)
+    //   above and settle 1 takes it whole; the entrance arms' run past the intro pose is Nox's full one.
+    // - glideBias 0.55 shortens the glide, so the strokes are many and short (see swim above).
+    // - flourishRate 10 a minute: the scheduler waits 4.8 to 8 s (6.4 s on average, 9.4 a minute), and
+    //   flourishPulse 0.75 makes three in four of them a cup pulse (engine/character/cupPulse.ts
+    //   subscribeIdlePulse): one idle pulse every 8.5 s on average, inside spec 2.4's 6 to 10 s.
+    //   The pulse travels alongside the flourish's tip unroll, which always plays (there is no way
+    //   to suppress it); the fourth flourish is the unroll alone, the spec's tip flick.
+    settle: 1,
+    glideBias: 0.55,
+    flourishRate: 10,
+    flourishPulse: 0.75,
   },
 };

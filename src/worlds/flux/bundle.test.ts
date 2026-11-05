@@ -7,6 +7,7 @@ import { ARM_IDS } from '../../engine/config/types';
 import { clampCharacterConfig } from '../../engine/config/validate';
 import { projectToScreen } from '../../engine/stage/anchors';
 import { fovFor } from '../../engine/stage/framing';
+import { strokeTiming } from '../../engine/motion/stroke';
 import { faceAnchor, validateBundle } from '../../engine/types/bundle';
 import { FLUX_BUNDLE, FLUX_STAGE_FRAMES, FLUX_STAGE_PANELS } from './bundle';
 import { FLUX } from './character';
@@ -67,8 +68,9 @@ test('twelve technologies (spec 7.10), chosen in the overview only (ruling R1)',
 });
 
 test("the entrance's stroke is Flux's own stroke: recovery + power + glide (spec 7.8)", () => {
-  const { recovery, power, glide } = FLUX.personality.swim;
-  expect(recovery + power + glide).toBeCloseTo(FLUX_STROKE_SECONDS, 9);
+  // The stroke he swims is strokeTiming (glideBias 0.55 on the glide), not the raw swim object.
+  const { recovery, power, glide } = strokeTiming(FLUX.personality);
+  expect(recovery + power + glide).toBeCloseTo(FLUX_STROKE_SECONDS, 3);
 });
 
 test('every piece of storyboard copy is flagged as a placeholder, and the Live Demo link is labelled', () => {

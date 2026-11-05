@@ -11,8 +11,9 @@ import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWE
 // --- The entrance (spec 7.9) -----------------------------------------------------------------
 
 /**
- * Flux's stroke, in seconds: recovery + power + glide of `personality.swim` in his character
- * config (0.38 + 0.16 + 0.32). This file may not import it; a test checks the two agree.
+ * Flux's stroke, in seconds: recovery + power + glide of `strokeTiming(personality)` in his character
+ * config (0.38 + 0.16 + 0.32: the glide is `swim.glide` times `glideBias` 0.55). This file may not
+ * import it; a test checks the two agree.
  */
 export const FLUX_STROKE_SECONDS = 0.86;
 
