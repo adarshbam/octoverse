@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { MAX_MEDIA, MAX_PROJECTS, validateDraft } from './draft';
+import { MAX_MEDIA, MAX_MEDIA_TOTAL_BYTES, MAX_PROJECTS, MAX_TITLE_LENGTH, mediaBytes, validateDraft } from './draft';
 import {
+  MEDIA_TOTAL_MESSAGE,
   addMedia,
   addProject,
   addTechnology,
@@ -17,24 +18,30 @@ import {
   withProfile,
   withProject,
 } from './draftEdits';
+import { clip } from './clip';
+import './editorFixes.css';
 import { FieldIssue } from './FieldIssue';
 import { issueFor } from './issueText';
 import { LinkField } from './LinkField';
 import { useMediaUrls, type MediaApi } from './mediaUrls';
 import { ProjectImages } from './ProjectImages';
-import { sniffBlob } from './storage';
+import { MediaError, sniffBlob } from './storage';
 import { TechnologyPicker } from './TechnologyPicker';
 import type { CreatorDraft, DraftProject } from './types';
 
-/** How long a deleted project can be brought back (spec 7.13). */
+/** How long a deleted project can be brought back (spec 7.13), and how many deleted projects are kept for it, newest first. */
 export const UNDO_MS = 5000;
+export const UNDO_DEPTH = 3;
 
-interface UndoState {
+interface Deleted {
   project: DraftProject;
   index: number;
-  /** True when the undo was tried and could not put the project back (the list is full): the toast then only says so. */
-  failed: boolean;
+  /** When its undo runs out (ms since the epoch): five seconds after ITS delete. */
+  expires: number;
 }
+
+/** Where focus goes after a change that removes the button it was on (a deleted project, an expired toast): never to the page. */
+type FocusTarget = 'add' | 'title' | { row: string };
 
 /**
  * The right glass panel, "Your Projects" (spec 7.13, P4): the project list with add (+), move up and down, and delete with a five
@@ -43,15 +50,22 @@ interface UndoState {
  * per field, and never blocks a save: an untitled project previews as "Untitled project" and a bad link is kept, flagged and not linked.
  * `media` is the browser's image store; without it (server render, tests) images cannot be added.
  */
-export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void; media?: MediaApi }) {
+export function ProjectsPanel({ draft, onChange, media, onSelect }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void; media?: MediaApi; onSelect?: (id: string | undefined) => void }) {
   const uid = useId();
   const [selectedId, setSelectedId] = useState(draft.projects[0]?.id);
-  const [undo, setUndo] = useState<UndoState | null>(null);
-  const [note, setNote] = useState('');
+  const [stack, setStack] = useState<Deleted[]>([]);
+  const [problem, setProblem] = useState<string | null>(null);
+  // One polite line for what happened (added, moved, deleted, back). It is on the page from the start and its text changes, so a screen
+  // reader speaks it; a repeat of the same words flips an invisible no-break space so it is spoken again.
+  const [live, setLive] = useState({ text: '', n: 0 });
+  const announce = (text: string) => setLive(previous => ({ text, n: previous.n + 1 }));
   const [imageError, setImageError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
-  const focusTitle = useRef(false);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const toastRef = useRef<HTMLDivElement>(null);
+  const wantFocus = useRef<{ target: FocusTarget; tries: number } | null>(null);
   // An upload finishes after the draft has moved on: it adds its image to the draft as it is THEN, not as it was when the file was chosen.
   const latest = useRef(draft);
   useEffect(() => {
@@ -60,43 +74,54 @@ export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft;
 
   const project = draft.projects.find(p => p.id === selectedId) ?? draft.projects[0];
   const index = project ? draft.projects.indexOf(project) : -1;
-  const addRef = useRef<HTMLButtonElement>(null);
-  const focusAdd = useRef(false);
+  // The creator's live preview draws the selected project's technologies: it is told which one that is.
+  const selectedNow = project?.id;
+  useEffect(() => onSelect?.(selectedNow), [onSelect, selectedNow]);
   const issues = useMemo(() => validateDraft(draft), [draft]);
   const urls = useMediaUrls(project ? project.media.map(m => m.id) : [], media?.get);
 
-  // The undo toast lasts five seconds from the last delete; a new delete restarts it, and unmounting stops it.
+  // Each deleted project can be brought back for five seconds from ITS delete; one timer waits for the first to run out.
   useEffect(() => {
-    if (!undo) return;
-    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    if (stack.length === 0) return;
+    const wait = Math.max(0, Math.min(...stack.map(d => d.expires)) - Date.now());
+    const timer = setTimeout(() => {
+      const left = stack.filter(d => d.expires > Date.now());
+      // The toast goes with the last of them. If focus was on its Undo button it would fall to the page: it goes to the selected project.
+      if (left.length === 0 && toastRef.current?.contains(document.activeElement) && selectedNow !== undefined) wantFocus.current = { target: { row: selectedNow }, tries: 0 };
+      setStack(left);
+    }, wait);
     return () => clearTimeout(timer);
-  }, [undo]);
-
-  // A project just added: its title field takes focus, so typing can start.
-  useEffect(() => {
-    if (focusTitle.current) {
-      focusTitle.current = false;
-      titleRef.current?.focus();
-    }
-  }, [selectedId]);
+  }, [stack, selectedNow]);
 
   useEffect(() => {
-    if (focusAdd.current && draft.projects.length === 0) {
-      focusAdd.current = false;
-      addRef.current?.focus();
-    }
-  }, [draft.projects.length]);
+    if (problem === null) return;
+    const timer = setTimeout(() => setProblem(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [problem]);
+
+  // Moves focus to where a change asked for it, once that element is on the page (a restored project's button appears a render late).
+  useEffect(() => {
+    const want = wantFocus.current;
+    if (want === null) return;
+    const target =
+      want.target === 'add' ? addRef.current : want.target === 'title' ? titleRef.current : listRef.current?.querySelector<HTMLElement>(`[data-project-id="${CSS.escape(want.target.row)}"]`);
+    if (target) {
+      wantFocus.current = null;
+      target.focus();
+    } else if ((want.tries += 1) > 4) wantFocus.current = null;
+  });
 
   const nameOf = (p: DraftProject) => (p.title.trim() === '' ? 'Untitled project' : p.title);
   const edit = (patch: Partial<DraftProject>) => project && onChange(withProject(draft, project.id, patch));
 
   const add = () => {
-    const next = addProject(draft);
+    // The ids of projects that can still be brought back are not handed out again.
+    const next = addProject(draft, stack.flatMap(d => [d.project.id, d.project.slug]));
     if (next === draft) return;
     onChange(next);
-    focusTitle.current = true;
+    wantFocus.current = { target: 'title', tries: 0 };
     setSelectedId(next.projects[next.projects.length - 1].id);
-    setNote('Project added.');
+    announce('Project added.');
   };
 
   const move = (direction: 'up' | 'down') => {
@@ -104,7 +129,7 @@ export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft;
     const next = moveProject(draft, project.id, direction);
     if (next === draft) return;
     onChange(next);
-    setNote(`${nameOf(project)} moved to place ${next.projects.findIndex(p => p.id === project.id) + 1} of ${next.projects.length}.`);
+    announce(`${clip(nameOf(project))} moved to place ${next.projects.findIndex(p => p.id === project.id) + 1} of ${next.projects.length}.`);
   };
 
   const remove = () => {
@@ -112,24 +137,35 @@ export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft;
     const out = deleteProject(draft, project.id);
     if (!out) return;
     onChange(out.draft);
-    // With none left the actions go away (the focused Delete with them): focus moves to Add.
-    focusAdd.current = out.draft.projects.length === 0;
-    setSelectedId(out.draft.projects[Math.min(out.index, out.draft.projects.length - 1)]?.id);
-    setUndo({ project: out.project, index: out.index, failed: false });
-    setNote('');
+    // The Delete button stays, but the project's place does not: focus goes to the project now in that place, or to Add when none is left.
+    const nextId = out.draft.projects[Math.min(out.index, out.draft.projects.length - 1)]?.id;
+    wantFocus.current = { target: nextId === undefined ? 'add' : { row: nextId }, tries: 0 };
+    setSelectedId(nextId);
+    setStack(previous => [...previous, { project: out.project, index: out.index, expires: Date.now() + UNDO_MS }].slice(-UNDO_DEPTH));
+    setProblem(null);
+    announce(`Deleted ${clip(nameOf(out.project))}. Undo is available for 5 seconds.`);
   };
 
   const undoNow = () => {
-    if (!undo) return;
-    const next = undoDelete(latest.current, undo.project, undo.index);
+    const top = stack[stack.length - 1];
+    if (!top) return;
+    const next = undoDelete(latest.current, top.project, top.index);
     if (next === latest.current) {
-      setUndo({ ...undo, failed: true });
+      const message =
+        latest.current.projects.length >= MAX_PROJECTS
+          ? `The list already has ${MAX_PROJECTS} projects, so ${clip(nameOf(top.project))} cannot come back yet. Delete another project first.`
+          : `${clip(nameOf(top.project))} cannot come back: its place in the list is taken.`;
+      setProblem(message);
+      announce(message);
       return;
     }
+    latest.current = next;
     onChange(next);
-    setSelectedId(undo.project.id);
-    setUndo(null);
-    setNote(`${nameOf(undo.project)} is back.`);
+    setSelectedId(top.project.id);
+    wantFocus.current = { target: { row: top.project.id }, tries: 0 };
+    setStack(previous => previous.slice(0, -1));
+    setProblem(null);
+    announce(`${clip(nameOf(top.project))} is back.`);
   };
 
   const addFiles = async (files: File[]) => {
@@ -139,16 +175,31 @@ export function ProjectsPanel({ draft, onChange, media }: { draft: CreatorDraft;
     setAdding(true);
     try {
       for (const file of files) {
-        const room = MAX_MEDIA - (latest.current.projects.find(p => p.id === projectId)?.media.length ?? MAX_MEDIA);
-        if (room <= 0) {
+        const current = latest.current;
+        const here = current.projects.find(p => p.id === projectId);
+        if (!here) {
+          setImageError('That project is not in the list any more.');
+          break;
+        }
+        if (here.media.length >= MAX_MEDIA) {
           setImageError(`A project has at most ${MAX_MEDIA} images.`);
+          break;
+        }
+        if (mediaBytes(current) + file.size > MAX_MEDIA_TOTAL_BYTES) {
+          setImageError(MEDIA_TOTAL_MESSAGE);
           break;
         }
         try {
           const id = await media.put(file);
-          const type = (await sniffBlob(file)) ?? 'image/png';
+          // The type is what the bytes say: if that cannot be told, the image is not added (the stored copy is cleaned up by the controller).
+          const type = await sniffBlob(file);
+          if (type === null) throw new MediaError('bad-type', 'The bytes are not an image.');
           // Chained on the draft as it is now (the next file of this batch starts from this result, even before React has rendered it).
           const next = addMedia(latest.current, projectId, { id, name: file.name.slice(0, 80), type, size: file.size });
+          if (next === latest.current) {
+            setImageError('That image could not be added to this project.');
+            continue;
+          }
           latest.current = next;
           onChange(next);
         } catch (error) {

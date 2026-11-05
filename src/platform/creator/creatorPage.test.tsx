@@ -71,12 +71,23 @@ describe('the creator composition (spec 7.13)', () => {
     expect(TEMPLATE_IDS).toEqual(['veyra', 'flux', 'nox', 'aether']);
   });
 
-  it("the picture slot is the creator still of the draft's template and palette (no live preview yet) and says the draft name", () => {
+  it("the picture slot is the creator still of the draft's template and palette (nothing live on a server render: the preview starts in the browser) and says the draft name", () => {
     expect(html).toContain('src="/platform/stills/creator-aether-peach.webp"');
     expect(html).not.toContain('data-glyph="octopus"');
     expect(html).not.toContain('<canvas');
     expect(text).toContain('Aether');
     expect(text).toContain('Peach');
+  });
+
+  it('the live preview slot carries the draft presets and the still, starts as a still, and has an Overview toggle (not pressed)', () => {
+    const slot = html.slice(html.indexOf('class="oct-creator-picture"'), html.indexOf('</section>', html.indexOf('class="oct-creator-picture"')));
+    expect(slot).toContain('data-state="still"');
+    expect(slot).toContain('data-template="aether"');
+    expect(slot).toContain('data-palette="peach"');
+    expect(slot).toContain('data-personality="playful"');
+    expect(slot).toContain('data-still="/platform/stills/creator-aether-peach.webp"');
+    expect(slot).toMatch(/<button[^>]*aria-pressed="false"[^>]*>\s*Overview\s*<\/button>/);
+    expect(slot).not.toContain('data-creator-layer');
   });
 
   it('Your Projects: the project list with an add button, the selected project, and the profile section collapsed', () => {

@@ -44,6 +44,124 @@
   align-self: end;
 }
 
+/* ---- the live preview (centre) ---------------------------------------------------------------- */
+
+/* A new instance (a palette, template, personality or technology change) fades in over the still of the new colours; the old one fades out in 200 ms (reactions.ts REMOUNT_FADE_MS). */
+.oct-creator-picture .oct-live-layer {
+  transition-duration: 200ms;
+}
+
+.oct-creator-overview {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--oct-glass-border, rgba(190, 172, 255, 0.5));
+  background: rgba(14, 10, 52, 0.62);
+  color: var(--oct-ink);
+  font: 500 14px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.oct-creator-overview[aria-pressed='true'] {
+  border-color: #d8c8ff;
+  box-shadow: 0 0 14px rgba(170, 140, 255, 0.55);
+}
+
+/* The palette's shimmer (the engine has no runtime trigger for one: a platform-drawn sparkle over the picture; reactions.ts). */
+.oct-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.oct-shimmer i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  background: radial-gradient(circle, #fff 0 18%, rgba(255, 244, 200, 0.85) 30%, rgba(255, 244, 200, 0) 70%);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  transform: scale(0.2) rotate(0deg);
+  animation: oct-sparkle 900ms ease-out calc(var(--i) * 70ms) both;
+}
+
+.oct-shimmer i:nth-child(1) {
+  left: 22%;
+  top: 36%;
+}
+
+.oct-shimmer i:nth-child(2) {
+  left: 68%;
+  top: 28%;
+}
+
+.oct-shimmer i:nth-child(3) {
+  left: 44%;
+  top: 18%;
+}
+
+.oct-shimmer i:nth-child(4) {
+  left: 80%;
+  top: 52%;
+}
+
+.oct-shimmer i:nth-child(5) {
+  left: 30%;
+  top: 62%;
+}
+
+.oct-shimmer i:nth-child(6) {
+  left: 58%;
+  top: 48%;
+}
+
+.oct-shimmer i:nth-child(7) {
+  left: 16%;
+  top: 50%;
+}
+
+.oct-shimmer i:nth-child(8) {
+  left: 72%;
+  top: 70%;
+}
+
+.oct-shimmer i:nth-child(9) {
+  left: 46%;
+  top: 74%;
+}
+
+@keyframes oct-sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.6) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oct-creator-picture .oct-live-layer {
+    transition: none;
+  }
+  .oct-shimmer {
+    display: none;
+  }
+}
+
 /* ---- the picture slot (centre) -------------------------------------------------------------- */
 
 .oct-creator-preview {

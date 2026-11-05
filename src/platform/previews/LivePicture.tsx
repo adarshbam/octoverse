@@ -22,7 +22,7 @@ const SETTLE_FRAMES = 3;
 const GIVE_UP_MS = 4000;
 
 /** A preview that throws (a bundle that cannot be drawn, a lost context) leaves its still, not a broken card. */
-class Contained extends Component<{ onFail: () => void; children: ReactNode }, { failed: boolean }> {
+export class Contained extends Component<{ onFail: () => void; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
@@ -45,7 +45,7 @@ const IDLE_TIMEOUT_MS = 1000;
  * chunk, a WebGL context, the shader compiles) is long main-thread work; begun under the fade it would hold the fade's 250 ms
  * for seconds, so the still shows until the page is quiet. Under a server render, or with no animation frames, it is not settled.
  */
-function useSettled(): boolean {
+export function useSettled(): boolean {
   const [settled, setSettled] = useState(false);
   useEffect(() => {
     let frame = 0;
@@ -92,7 +92,7 @@ function useBundle(world: WorldId, want: boolean): WorldBundle | null {
 }
 
 /** Whether the preview's canvas has drawn a few frames (so the fade shows a picture, not the water it starts as). */
-function useDrawn(layer: RefObject<HTMLElement | null>, mounted: boolean): boolean {
+export function useDrawn(layer: RefObject<HTMLElement | null>, mounted: boolean): boolean {
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     if (!mounted) {
