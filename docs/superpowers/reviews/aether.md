@@ -1126,13 +1126,15 @@ Spec 7.9. Code: `src/worlds/aether/swimArms.ts` (the swim shapes), `swim.ts`, `p
 | 0 to 1 s | glimmer in the haze on the left, glow first | `reveal` 0 to 1; she starts at (-3.5, 1.4, -9), left of centre and deep. |
 | 1 to 4.2 s | two or three pulse strokes toward the portal | Two whole strokes at her own 1.69 s, clock 0.82 to 4.2 s; the surges start at 1.42 and 3.11 s. The path runs right toward the portal. |
 | ~3.2 s | glyph fires; she looks back at it (3.0 to 3.8 s) | She is at (5.7, 0.8, -2.8), in front of the portal and to its left. `glyphFire` drives the membrane's emissive: 1 at rest, 1.25 at 3.2 s (the most its shader draws), back to 1 by 3.7 s. The look-back is `headYaw`, 0.7 rad from 3.3 to 3.55 s, inside 3.0 to 3.8 s: **sheet data only** (see the engine requests). |
-| 4.2 to 5.3 s | curve away, turn about 90 degrees, 12 degree tilt | The path curves toward the camera and the spot. The yaw falls monotonically. The whole entrance turns 90 degrees: 90 to 50 during the swim, as the path bends, and 50 to 0 in the turn. `headTilt` peaks at 12 degrees at 4.95 s and is 0 at 4.4 and 5.3 s: **sheet data only**. |
+| 4.2 to 5.3 s | curve away, turn about 90 degrees (three-quarter side to front), 12 degree tilt | The path curves toward the camera and the spot. The yaw falls monotonically. The whole entrance turns 90 degrees: 90 to 50 during the swim, as the path bends, and 50 to 0 in the turn. `headTilt` peaks at 12 degrees at 4.95 s and is 0 at 4.4 and 5.3 s: **sheet data only**. |
 | 5.3 to 6.3 s | settle; look, blink, smile in order | `forward` 5.3 to 5.7, `open` 5.4 to 6.2. Then `look` lands at 5.45, `blink` closes at 5.75 (sheet data only), and the smile follows: `settle`, happy to gentle, 5.85 to 6.3 s. That also brings in the intro's words at 5.85 s. She arrives at the spot at 6.1 s. |
 | 6.3 to 7.7 s | the ring forms (twinkle, Task 18) | Not in this sheet. The sheet ends at 6.3 s, so the camera can return sooner; see the concerns. |
 
 **The facing.** The engine's glide-turn only rises (from -turn to 0). On its own, she would face left while swimming right. So the sheet's `yaw` key carries a half turn plus her facing before the turn, and falls to 0 on the spin's own ease. The sum is monotonic (tested).
 
-**The 50 degrees at the pass.** The camera sits at the stage centre. Once she is right of centre, a body facing straight right shows the camera the back of her head. At 50 degrees the camera keeps her face three-quarter, as in P1 (stills below). The turn after the pass is 50 degrees, not 90; the whole entrance turns 90.
+**The 50 degrees at the pass.** The camera sits at the stage centre. Once she is right of centre, a body facing straight right shows the camera the back of her head. At 50 degrees the camera keeps her face three-quarter, as in P1 (stills below). The turn after the pass is 50 degrees, not 90; the whole entrance turns 90. Spec 7.9 says "about 90 degrees (three-quarter side to front)": the parenthetical fits 50, the number does not. Owner decision (also in MORNING-REVIEW).
+
+`AETHER_ARM_HALF_SPAN` (open 2.4, closed 1.3) is hand-set; the comment's "trail's farthest point 2.72 from her head" is asserted, not verified.
 
 ### Swim poses (P1)
 
@@ -1222,27 +1224,28 @@ Run: `relic_capture.mjs .tmp/t17/relic`, then `relic_entrance.py` (exit 0). Outp
 | 6.3 | 0.456 | a lantern (own 0.412) | 0.862 | 0.528 |
 | pulse peak (running intro) | 0.708, raised to 0.733 | lanterns/arch around 2.06 s | 0.813 | 0.901 |
 
-- **Worst counted ratio 0.926: pass**, but the margin is thin.
+- **Worst counted ratio 0.926: pass**, but the margin is thin: about 7% under 1.0, on an estimated trough of 0.813.
   - That pixel (t 5.3, (907, 544)) is pale blue (#c2e6ff) on the steps, which draw only 0.008 there. Zoomed at 3x, it is a bubble in front of the foreground rock and the swaying coral.
   - It counts because its patch above the portal's own light (bubbles plus the coral's sway, joined) reaches 964 px, over BLOB_MIN 850. That is the strict side of the rule.
-  - The portal's own light (lanterns, membrane, glyph) gives 0.51 to 0.58 against her trough in every frame.
+  - The counted ratios run 0.512 to 0.926 (0.864 at t 2, 0.814 at t 4.8, 0.926 at t 5.3, 0.901 at the pulse peak). Only the lantern and membrane rows (t 1, 3.2, 6, 6.3) are 0.51 to 0.58. The others are bubbles on the steps, counted by the size rule (BLOB_MIN 850 px).
+  - Which side of 850 px a bubble lands on is arbitrary: the t 4.8 patch counts at 853 px, the t 5.3 bubble at 964 px because it merged with the coral's sway, and a t 6 bubble (Y 0.978, ratio 1.077) is excluded at 626 px. Bubbles at 1.077 to 1.103 stay uncounted.
 - **The flash.** At t 3.2, with the membrane at its peak, the portal's brightest counted pixel is a lantern (0.441). The membrane's centre stays under it. Ratio 0.512.
 - **Bubbles and specks** near the portal, not counted, still reach 1.077 against her face glow (t 6: a bubble over the glyph, Y 0.978) and 1.103 in the pulse window. This is the owner look note Task 10 raised, unchanged.
 
-**Task 10's carry list, closed:**
+**Task 10's carry list, addressed; limits remain:**
 
 1. **Frame-path bloom test.** The frames now apply the pulse check's guard: stone within BLOOM_PX (20 px) of a glowing node's hull is never excluded.
-   - Positive control (`t17-relic-controls.txt`): a 6 px disc of Y 0.946 on the arch at (892, 297), 6 to 10 px from a glowing hull, in the t 4.8 frame. Result: **exit 1** (1.099).
+   - Positive control (`t17-relic-controls.txt`), at t 4.8, not at the flash frame: a 6 px disc of Y 0.946 on the arch at (892, 297), 6 to 10 px from a glowing hull, in the t 4.8 frame. Result: **exit 1** (1.099).
    - The same disc 40 px further left, off the ring, on dark stone, is excluded as a bubble would be: exit 0 (0.926, unchanged).
 2. **Halo tail past 20 px, and at the pulse peak.** `halo_tail` prints the stone round the glowing hulls in bands from 1 to 60 px, in two places: the flash frame, and the running intro held over each window (a whole glyph pulse).
-   - In every band, in both places, the stone's median light over its own frozen light is +0.0000.
+   - In every band, in both places, the stone's median light over its own frozen light is +0.0000. For the flash frame this is real: the median of the nine stills excludes the flash, so the tail is measured on the flash frame itself against the stone's frozen light.
    - The maxima and 99th percentiles in the bands (up to 0.867) are bubbles: bright, small, and moving between stills.
    - So neither the flash nor the pulse adds a halo the exclusion could hide. BLOOM_PX 20 is conservative.
 3. **Pulse-path control.** The same disc, painted into every running still, gives **exit 1** (1.205).
-4. **Limit (d).** It stays, stated in the script and in fix round 2's "Still left": a bubble-sized light (under 850 px) on dark membrane inside a glowing hull is excluded.
+4. **Limit (d).** Restated, not closed. It stays, stated in the script and in fix round 2's "Still left": a bubble-sized light (under 850 px) on dark membrane inside a glowing hull is excluded. The flash frame sits inside a glowing hull, exactly where (d) applies. The positive control for the frame path was a disc at t 4.8, not at the flash.
 5. **"bloom: never excluded".** The wording in fix round 3 is corrected above. It was true only of the pulse check; now it is true of both, outside the hulls.
-6. **t 1 UNVERIFIED.** Resolved: in the real entrance her face glow is found at t 1 (2171 px). Only the glimmer at t 0.5 stays UNVERIFIED (12881 px of silhouette, no pink-white patch of 200 px). There, the portal's counted 0.580 is under her own brightest pixel (Y 1.000).
-7. **The stage camera at the early moments.** The relic stills use the fixed `view` window. The stage's own entering frame shows the portal through the whole entrance (the frame test).
+6. **t 1 UNVERIFIED.** Resolved for t 1; t 0.5 stays UNVERIFIED. At t 1 in the real entrance her face glow is found at t 1 (2171 px). Only the glimmer at t 0.5 stays UNVERIFIED (12881 px of silhouette, no pink-white patch of 200 px). There, the portal's counted 0.580 is under her own brightest pixel (Y 1.000).
+7. **The stage camera at the early moments.** Closed by a geometric test (the entering frame holds the portal at 3:2 and 16:9 through the whole entrance), not by a render through the stage camera. The relic stills use the fixed `view` window (VIEW_BOX).
 8. **A flash frame.** t 3.2 is the flash's peak frame (FLASH_T).
 
 ### Budget (under load)
@@ -1252,6 +1255,11 @@ Run: `relic_capture.mjs .tmp/t17/relic`, then `relic_entrance.py` (exit 0). Outp
 - Run 2: median **98.0** fps (slow10 73.0, mean 78.2, 469 frames).
 
 Both are well over the 32 fps target, so no spec 10.1 lever was taken.
+
+Read these with care:
+- `scripts/perf.mjs` launches with `--disable-frame-rate-limit`, so numbers above 60 are not capped by vsync.
+- A small, wide framing does not lower GPU cost; the 99 and 98 say the machine had room, not that the wide frame is cheap.
+- The sample is 6 s starting 1.5 s after `ready` (set 40 frames after load). That covers most of the 6.3 s entrance and may run into the intro, but the script does not record when the entrance clock started, so I cannot say which part was sampled.
 
 ### Engine requests (also in MORNING-REVIEW)
 

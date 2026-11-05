@@ -202,8 +202,10 @@ Review: `docs/superpowers/reviews/aether.md` "Task 17". Report: `.superpowers/sd
 
 Numbers:
 - Clearance gap 0.73 with the arms as drawn, 0.41 held open, 1.51 held closed (bar 0.3).
-- Relic, worst counted ratio 0.926 (t 5.3, a bubble cluster counted by size). The portal's own light is 0.51 to 0.58 of her face glow's trough, and 0.512 at the flash's peak.
-- Under load at tier low: 99.0 and 98.0 fps median.
+- Relic, worst counted ratio 0.926 (t 5.3). The counted ratios run 0.512 to 0.926 across the frames: 0.864 at t 2, 0.814 at t 4.8, 0.926 at t 5.3, and 0.901 at the pulse peak. Only the lantern and membrane rows are 0.51 to 0.58 (0.512 at the flash's peak). The others are bubbles on the steps, counted by the size rule (BLOB_MIN 850 px).
+  - Which side of 850 px a bubble lands on is arbitrary: the t 5.3 bubble counts at 964 px because it merged with the coral's sway; a t 6 bubble (Y 0.978, ratio 1.077) is excluded at 626 px; bubbles at 1.077 to 1.103 stay uncounted.
+  - The margin under 1.0 is about 7%, on an estimated trough of 0.813.
+- Under load at tier low: 99.0 and 98.0 fps median. Those runs used `--disable-frame-rate-limit` (not capped at 60), and a small, wide framing does not lower GPU cost. The sample is 6 s starting 1.5 s after `ready` (40 frames after load); it covers most of the 6.3 s entrance and may run into the intro, but the log does not record when the entrance clock started, so I cannot say exactly.
 
 What to check (motion is live only; nothing here was judged from video):
 1. **The glimmer in (0 to 1 s).** A violet glow left of centre, deep in the haze, becoming her. Is it found by the eye, or too faint?
@@ -213,7 +215,7 @@ What to check (motion is live only; nothing here was judged from video):
 3. **The glyph firing and her look-back (~3.2 s).**
    - Only the membrane brightens (up to 25%, once, peak at 3.2 s). The glyph's own light running across its folds needs the engine.
    - The look-back (head toward the portal, 3.0 to 3.8 s) is authored in the sheet but **not drawn**: the engine passes no head turn from the entrance. Expect no look-back live.
-4. **The 90 degree turn with the 12 degree tilt (4.2 to 5.3 s).**
+4. **The turn with the 12 degree tilt (4.2 to 5.3 s).** Owner decision: the turn inside 4.2 to 5.3 s is 50 degrees, not "about 90". Spec 7.9 says "turns about 90 degrees (three-quarter side to front)"; the parenthetical fits 50, the number does not, and the plan text conflicts. The whole entrance turns 90 (90 to 50 on the swim, 50 to 0 in the turn). Which do you want?
    - She faces 90 degrees right at the start, 50 at the pass (so her face stays toward the unturned camera), and turns 50 to 0 here.
    - The 12 degree tilt is authored but **not drawn** (engine). Does the turn read as "first sees the visitor"?
 5. **The settle, then look, blink, smile (5.3 to 6.3 s).**
@@ -226,7 +228,9 @@ What to check (motion is live only; nothing here was judged from video):
 8. **Skip, and reduced motion.**
    - A key or click skips to the intro (ring shown).
    - With reduced motion she is simply present in the intro pose.
-   - Both are tested; not looked at live tonight.
+   - Tested: the engine's reducer (SKIP and ENTRANCE_DONE from entering land in the intro), Aether's own session-flag key, and the reduced-motion start pose, pinned. The reducer has no clock, so a skip at each time is not driven separately. Not looked at live tonight.
+
+Minor, not a decision: `AETHER_ARM_HALF_SPAN` in `sequences/clearance.ts` is hand-set (open 2.4, closed 1.3). Its comment says the trail's farthest point is 2.72 from her head; that is asserted, not verified. The clearance gaps (0.73 as drawn, 0.41 held open) depend on it.
 
 ## Owner decisions (look gate)
 

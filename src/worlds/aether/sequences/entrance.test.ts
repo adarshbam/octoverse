@@ -40,7 +40,7 @@ function peakOf(read: (s: number) => number) {
   return { top, s: at[0].s, runs, samples };
 }
 
-test('the session flag is octoverse.aether.entranceSeen, and the sheet is 6.3 s with a quarter glide-turn, no spiral', () => {
+test('pins the Aether session-flag key octoverse.aether.entranceSeen (key string only), and the sheet is 6.3 s with a quarter glide-turn, no spiral', () => {
   expect(entranceSeenKey(AETHER_BUNDLE.id)).toBe('octoverse.aether.entranceSeen');
   expect(seq.length('entrance')).toBe(LENGTH);
   expect(SEQUENCE_DEFAULTS.entrance.length).toBe(LENGTH);
@@ -125,7 +125,7 @@ test('she passes in front of the portal, on its left, as the glyph fires: nearer
   expect(v(4)[1]).toBeGreaterThan(0);
 });
 
-test('the brain glyph fires once, peaking in [3.0, 3.4] s, at the most the membrane draws, and rests at 1 otherwise', () => {
+test('the membrane flashes once (the glyph does not fire: engine request), peaking in [3.0, 3.4] s, at the most the membrane draws, and rests at 1 otherwise', () => {
   const fire = (s: number) => at(s).kit!.portalFlash;
   const { top, s, runs, samples } = peakOf(fire);
   expect(runs).toBe(1);
@@ -183,7 +183,7 @@ test('the head tilts about 12 degrees as she first sees the visitor and straight
   for (const t of times(0, LENGTH, 0.01)) if (t <= B.turnStart || t >= B.turnEnd) expect(prop('headTilt', t), `${t} s`).toBeCloseTo(0, 9);
 });
 
-test('inside the settle, 5.3 to 6.3 s, she looks at you, then blinks, then smiles, in that order; her arms open first', () => {
+test('sheet keys only: inside the settle, 5.3 to 6.3 s, look, then blink, then smile land in that order on the sheet; her arms open first (live drawing is not asserted)', () => {
   // When each beat lands: the look complete, the blink closed, the smile landed (the face's settle at 1).
   const first = (read: (s: number) => number, level: number) => times(0, LENGTH, 0.005).find(s => read(s) >= level)!;
   const look = first(s => prop('look', s), 1 - 1e-9);
@@ -213,19 +213,20 @@ test('inside the settle, 5.3 to 6.3 s, she looks at you, then blinks, then smile
   for (const s of times(B.turnStart, B.turnEnd, 0.05)) expect(armHalfSpan(at(s), AETHER_ENTRANCE_GEOMETRY)).toBeLessThan(AETHER_ARM_HALF_SPAN.open);
 });
 
-test('skipping at any moment lands in the intro, in the intro pose, with the ring shown and the membrane at rest', () => {
+test('skip: the stage reducer has no clock, so one SKIP from entering lands in the intro whatever the sheet time; the end frame is the kit at rest', () => {
   const known = new Set<string>();
   const entering = initialStage({ entranceSeen: false, reducedMotion: false });
   expect(entering.stage).toBe('entering');
-  for (const s of times(0, LENGTH, 0.35)) {
-    // The stage takes no time from the sheet: a skip at any second is the same event.
-    expect(at(s).position.every(Number.isFinite), `${s} s`).toBe(true);
-    const after = stageReducer(entering, { type: 'SKIP' }, known);
-    expect(after.stage, `${s} s`).toBe('intro');
-  }
+  // The reducer takes no time input (engine pure function), so it cannot be driven per t from here: the claim is that
+  // SKIP from `entering` is one event with one result, and that the frame the engine writes after it is the sheet's end.
+  expect(stageReducer(entering, { type: 'SKIP' }, known).stage).toBe('intro');
   expect(stageReducer(entering, { type: 'ENTRANCE_DONE' }, known).stage).toBe('intro');
   expect(ringShown('intro')).toBe(true);
   expect(ringShown('entering')).toBe(false);
+  // Mid-flash (t 3.2) the membrane is at 1.25; a skip then must come back to rest, which is what the end frame holds.
+  expect(at(3.2).kit).toEqual({ portalFlash: GLYPH_FIRE_PEAK });
+  expect(GLYPH_FIRE_PEAK).toBeCloseTo(1.25, 9);
+  for (const s of times(0, LENGTH, 0.35)) expect(at(s).position.every(Number.isFinite), `${s} s`).toBe(true);
   // The kit rests where the entrance ends (Octopus writes the end frame's kit when the entrance is over or skipped).
   expect(at(LENGTH).kit).toEqual({ portalFlash: 1 });
   // And the entrance's end is the intro pose's body place, so a finished entrance and a skip land in the same spot.
@@ -233,7 +234,7 @@ test('skipping at any moment lands in the intro, in the intro pose, with the rin
   expect(AETHER_POSES.intro.body).toMatchObject({ x: 0, y: 0, yaw: 0 });
 });
 
-test('with reduced motion she starts in the intro pose with the ring shown (no entrance)', () => {
+test('reduced motion: engine start state (restated) is the intro with the ring shown, no entrance', () => {
   const start = initialStage({ entranceSeen: false, reducedMotion: true });
   expect(start.stage).toBe('intro');
   expect(ringShown(start.stage)).toBe(true);
