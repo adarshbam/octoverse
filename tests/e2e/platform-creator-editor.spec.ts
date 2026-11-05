@@ -120,7 +120,8 @@ test('delete shows a five second Undo toast: undo restores the project at its pl
   await press(page, 'Delete project').click();
   await expect(toast).toBeVisible();
   await expect(toast).toContainText('Deleted Beta.');
-  await expect(toast).toHaveAttribute('role', 'status');
+  // The toast is announced by the panel's one polite line, which is on the page from the start.
+  await expect(page.locator('[data-panel-live]')).toContainText('Deleted Beta. Undo is available for 5 seconds.');
   await expect(rows(page)).toHaveText(['Sample project', 'Gamma']);
   // Undo inside the window: back at index 1, selected.
   await toast.getByRole('button', { name: 'Undo' }).click();
@@ -468,7 +469,7 @@ test('images: up to four (PNG, JPEG, WebP, at most 2 MB), previewed, "Saved in t
   await open(page);
   const urls = () => page.evaluate(() => (window as unknown as { __urls: { created: string[]; revoked: string[] } }).__urls);
   const input = page.locator('.oct-file input');
-  await expect(panel(page)).toContainText('Saved in this browser only');
+  await expect(panel(page)).toContainText('Images are saved in this browser only.');
   await expect(input).toHaveAttribute('accept', 'image/png,image/jpeg,image/webp');
   await expect(panel(page).locator('.oct-images-empty')).toHaveText('No images yet');
 
@@ -616,4 +617,149 @@ test('keyboard: every part of the editor is reached in reading order', async ({ 
   expect(order).toEqual([...order].sort((a, b) => a - b));
   // The disabled Publish button is not a tab stop.
   expect(seen).not.toContain('Publishing arrives with accounts');
+});
+
+// ---- Fix round 1 (Task 19a review): added, NOT YET RUN (the browser slot was taken by 19b) ----------------------------------------
+
+test('FIX C1: only an exact https://host address is a link; credentials, spaces, https:x.com and // are flagged and plain text; HTTPS://X.COM links normalised', async ({ page }) => {
+  await open(page);
+  const live = page.getByLabel('Live link', { exact: true });
+  for (const bad of ['https://user:pass@host.com', 'https:x.com', ' https://x.com', 'https://x.com ', '//x.com', 'https:///x', 'https://', 'http://x.com']) {
+    await live.fill(bad);
+    await expect(panel(page).locator('[data-issue]'), bad).toHaveCount(1);
+    await expect(panel(page).locator('a[href]'), bad).toHaveCount(0);
+    await expect(live, bad).toHaveAttribute('aria-invalid', 'true');
+  }
+  await live.fill('HTTPS://X.COM');
+  await expect(panel(page).locator('[data-issue]')).toHaveCount(0);
+  const anchor = panel(page).locator('a.oct-link-shown');
+  await expect(anchor).toHaveAttribute('href', 'https://x.com/');
+  // The link under the field is a 44 px target.
+  expect((await anchor.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // A saved bad link (with a space) is still kept as typed.
+  await live.fill(' https://x.com');
+  await settled(page);
+  const stored = (await storedDraft(page)) as { projects: { links: { live?: string } }[] };
+  expect(stored.projects[0].links.live).toBe(' https://x.com');
+});
+
+test('FIX I2: three deleted projects can be brought back, newest first; adding never takes a freed id; the same note twice changes the live text', async ({ page }) => {
+  await open(page);
+  for (const t of ['Beta', 'Gamma', 'Delta']) {
+    await press(page, 'Add project').click();
+    await title(page).fill(t);
+  }
+  await expect(rows(page)).toHaveText(['Sample project', 'Beta', 'Gamma', 'Delta']);
+  const toast = page.locator('[data-undo-toast]');
+  await press(page, 'Delete project').click(); // Delta (selected)
+  await expect(toast).toContainText('Deleted Delta.');
+  await panel(page).locator('.oct-project-row', { hasText: 'Gamma' }).click();
+  await press(page, 'Delete project').click();
+  await expect(toast).toContainText('Deleted Gamma.');
+  await expect(toast).toContainText('2 deleted projects can be brought back, newest first.');
+  // A new project must not take the id of one that can still come back.
+  await press(page, 'Add project').click();
+  await title(page).fill('Fresh');
+  await toast.getByRole('button', { name: 'Undo' }).click(); // Gamma, back at its place
+  await expect(rows(page)).toHaveText(['Sample project', 'Beta', 'Gamma', 'Fresh']);
+  await expect(toast).toContainText('Deleted Delta.'); // Delta is still there to bring back
+  // The same note twice is announced twice: the live line's text differs between the two.
+  const live = page.locator('[data-panel-live]');
+  await press(page, 'Add project').click();
+  const first = await live.evaluate(el => el.textContent);
+  await press(page, 'Add project').click();
+  const second = await live.evaluate(el => el.textContent);
+  expect(first?.replace(/ /g, '')).toBe('Project added.');
+  expect(second?.replace(/ /g, '')).toBe('Project added.');
+  expect(first).not.toBe(second);
+});
+
+test('FIX I3: after Delete, Undo and a toast that runs out, focus is on a control and never on the page', async ({ page }) => {
+  await open(page);
+  await press(page, 'Add project').click();
+  await title(page).fill('Beta');
+  await press(page, 'Add project').click();
+  await title(page).fill('Gamma');
+  await panel(page).locator('.oct-project-row', { hasText: 'Beta' }).click();
+  const toast = page.locator('[data-undo-toast]');
+  const activeText = () => page.evaluate(() => document.activeElement?.textContent ?? '');
+  // Delete: focus goes to the project that now has its place (Gamma's list button).
+  await press(page, 'Delete project').click();
+  await expect.poll(activeText).toContain('Gamma');
+  // Undo: focus goes to the restored project's list button.
+  await toast.getByRole('button', { name: 'Undo' }).click();
+  await expect(rows(page)).toHaveText(['Sample project', 'Beta', 'Gamma']);
+  await expect.poll(activeText).toContain('Beta');
+  // Expiry with focus on Undo: focus goes to a project in the list, not to the page.
+  await press(page, 'Delete project').click();
+  await toast.getByRole('button', { name: 'Undo' }).focus();
+  await expect(toast).toBeHidden({ timeout: 8000 });
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+  expect(await page.evaluate(() => (document.activeElement as HTMLElement).hasAttribute('data-project-id'))).toBe(true);
+  // Delete every project: the last Delete moves focus to Add.
+  while ((await rows(page).count()) > 0) await press(page, 'Delete project').click();
+  await expect(press(page, 'Add project')).toBeFocused();
+});
+
+test('FIX I4: long titles and searches are clipped in the live text; a title field stops at 80 characters', async ({ page }) => {
+  await open(page);
+  await press(page, 'Add project').click();
+  await expect(title(page)).toHaveAttribute('maxlength', '80');
+  await title(page).fill('T'.repeat(200));
+  await expect(title(page)).toHaveValue('T'.repeat(80));
+  await press(page, 'Delete project').click();
+  await expect(page.locator('[data-undo-toast]')).toContainText(`Deleted ${'T'.repeat(40)}…`);
+  expect(await page.locator('[data-panel-live]').textContent()).not.toContain('T'.repeat(41));
+  await press(page, 'Add project').click();
+  await page.getByLabel('Search technologies', { exact: true }).fill('q'.repeat(300));
+  await expect(panel(page).locator('[data-picker-count]')).toHaveText(`No technology matches "${'q'.repeat(40)}…".`);
+});
+
+test('FIX I5: a removed image and the images of a project deleted for good leave the browser; a project that came back keeps its image', async ({ page }) => {
+  await open(page);
+  const mediaCount = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>(resolve => {
+          const request = indexedDB.open('octoverse-creator');
+          request.onsuccess = () => {
+            const db = request.result;
+            const counted = db.transaction('media').objectStore('media').count();
+            counted.onsuccess = () => (db.close(), resolve(counted.result));
+          };
+          request.onerror = () => resolve(-1);
+        }),
+    );
+  const input = page.locator('.oct-file input');
+  await input.setInputFiles([1, 2].map(n => ({ name: `a${n}.png`, mimeType: 'image/png', buffer: PNG })));
+  await expect(panel(page).locator('.oct-image')).toHaveCount(2);
+  await settled(page);
+  expect(await mediaCount()).toBe(2);
+  // Removing one: it is gone from the store after the grace period (8 s), the other stays.
+  await panel(page).getByRole('button', { name: 'Remove image a1.png' }).click();
+  await expect.poll(mediaCount, { timeout: 15000, intervals: [1000] }).toBe(1);
+  // A project deleted and brought back inside the window keeps its image past the grace period.
+  await press(page, 'Delete project').click();
+  await page.locator('[data-undo-toast]').getByRole('button', { name: 'Undo' }).click();
+  await page.waitForTimeout(10000);
+  expect(await mediaCount()).toBe(1);
+  await expect(panel(page).locator('.oct-image img')).toHaveCount(1);
+  // Deleted for good: the image is removed once the undo window and the grace period have passed.
+  await press(page, 'Delete project').click();
+  await expect.poll(mediaCount, { timeout: 20000, intervals: [1000] }).toBe(0);
+});
+
+test('FIX M4: on a phone no focused field is hidden behind the sticky bar while tabbing through the Projects tab', async ({ page }) => {
+  await open(page, 390, 844);
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab');
+    const hidden = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      const barBox = document.querySelector('[data-draft-bar]')?.getBoundingClientRect();
+      if (!el || !barBox || !el.closest('.oct-projects-panel')) return false;
+      const r = el.getBoundingClientRect();
+      return r.height > 0 && r.bottom > barBox.top + 1 && r.top < barBox.bottom;
+    });
+    expect(hidden).toBe(false);
+  }
 });
