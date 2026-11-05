@@ -392,3 +392,51 @@ test('glideBias at or below 0, or not a finite number, is refused by name', () =
 test('flourishRate below 0, or not a finite number, is refused by name', () => {
   for (const flourishRate of [-1, -0.001, Number.NaN, Infinity, '4']) expect(refusal(withPersonality({ flourishRate })).field, String(flourishRate)).toBe('character.personality.flourishRate');
 });
+
+// --- Task 15: idle tilt and look points ---------------------------------------------------------
+
+test('idleTilt validates unset (Nox, Veyra) and in range, and the clamp keeps it', () => {
+  expect(validateBundle(NOX_BUNDLE).character.personality.idleTilt).toBeUndefined();
+  const tilt = validateBundle(withPersonality({ idleTilt: { amplitude: 0.105, period: [5, 9] } })).character.personality.idleTilt;
+  expect(tilt).toEqual({ amplitude: 0.105, period: [5, 9] });
+  for (const idleTilt of [{ amplitude: 0, period: [5, 9] }, { amplitude: 0.1, period: [5, 5] }]) expect(() => validateBundle(withPersonality({ idleTilt }))).not.toThrow();
+});
+
+test('the clamp holds idleTilt in range (a head tilt of at most 0.35 rad, a period of at least 4.5 s so tilts never overlap)', () => {
+  const held = clampCharacterConfig({ ...NOX_BUNDLE.character, personality: { ...NOX_BUNDLE.character.personality, idleTilt: { amplitude: 3, period: [0.1, 9000] } } }).personality.idleTilt!;
+  expect(held.amplitude).toBe(0.35);
+  expect(held.period[0]).toBeGreaterThanOrEqual(4.5);
+  expect(held.period[1]).toBeGreaterThanOrEqual(held.period[0]);
+  expect(clampCharacterConfig(NOX_BUNDLE.character).personality.idleTilt).toBeUndefined();
+});
+
+test('idleTilt that is not { amplitude 0 or more, period [low, high] above 0 } is refused by name', () => {
+  const bad: unknown[] = [
+    null,
+    5,
+    {},
+    { amplitude: -0.1, period: [5, 9] },
+    { amplitude: Number.NaN, period: [5, 9] },
+    { amplitude: Infinity, period: [5, 9] },
+    { amplitude: '0.1', period: [5, 9] },
+  ];
+  for (const idleTilt of bad) expect(refusal(withPersonality({ idleTilt })).field, JSON.stringify(idleTilt)).toMatch(/^character\.personality\.idleTilt(\.amplitude)?$/);
+  expect(refusal(withPersonality({ idleTilt: { amplitude: -0.1, period: [5, 9] } })).field).toBe('character.personality.idleTilt.amplitude');
+  const periods: unknown[] = [undefined, 5, [5], [5, 9, 12], [9, 5], [0, 5], [-1, 5], [5, 0], [Number.NaN, 5], [5, Infinity], ['5', 9]];
+  for (const period of periods) expect(refusal(withPersonality({ idleTilt: { amplitude: 0.1, period } })).field, JSON.stringify(period)).toMatch(/^character\.personality\.idleTilt\.period(\[\d\])?$/);
+});
+
+/** Nox's bundle with this on the intro pose. */
+const withLookPoints = (lookPoints: unknown) => withPoses(poses => Object.assign(poses.intro, { lookPoints }));
+
+test('lookPoints validate unset and as finite points, and an empty list is none', () => {
+  expect(() => validateBundle(NOX_BUNDLE)).not.toThrow();
+  expect(() => validateBundle(withLookPoints([[-1, 0.2], [1.2, 0.4]]))).not.toThrow();
+  expect(() => validateBundle(withLookPoints([]))).not.toThrow();
+});
+
+test('lookPoints that are not a list of [x, y] finite points are refused by name', () => {
+  for (const lookPoints of [5, {}, 'a', [5], [[1]], [[1, 2, 3]], [[1, Number.NaN]], [[Infinity, 0]], [['1', 0]], [[0, 0], null]]) {
+    expect(refusal(withLookPoints(lookPoints)).field, JSON.stringify(lookPoints)).toBe('poses.intro.lookPoints');
+  }
+});

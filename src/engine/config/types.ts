@@ -387,6 +387,12 @@ export interface Personality {
    * curl and rolls it back. Unset: 0, none (Nox).
    */
   flourishRate?: number;
+  /**
+   * The curious head tilt (behavior/idleTilt.ts, Aether spec 7.8): every `period` seconds (a range)
+   * the head leans up to `amplitude` radians to one side and levels again. Unset, or an amplitude
+   * of 0: none (Nox, Veyra).
+   */
+  idleTilt?: { amplitude: number; period: readonly [number, number] };
 }
 
 /** What `Personality.settle`, `glideBias` and `flourishRate` read when unset: Nox's values, today's behaviour. */

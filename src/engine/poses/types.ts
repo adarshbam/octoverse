@@ -15,6 +15,11 @@ export interface StagePose {
   tilt?: number;
   /** A world point (z = 0) the eyes rest on when nothing else holds them; without one they glance about. */
   look?: Point2;
+  /**
+   * World points (z = 0) the eyes wander between while nothing else holds them, a new one every 4
+   * to 8 s (behavior/lookPoints.ts). The single `look` stays: a look point comes before it.
+   */
+  lookPoints?: readonly Point2[];
 }
 
 /**

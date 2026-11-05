@@ -7,6 +7,8 @@ import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
 import { FlourishScheduler, flourishMayPlay, flourishRate, flourishUnroll, yieldedUnroll } from '../behavior/flourish';
 import { FocusChoreography } from '../behavior/focusChoreography';
+import { idleTiltAt } from '../behavior/idleTilt';
+import { LOOK_INTERVAL, pickLookPoint } from '../behavior/lookPoints';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
 import { screenToStage } from '../stage/anchors';
@@ -48,6 +50,9 @@ import { createCupArmAttribute, createCupShadowMaterial, createSuckerMaterial } 
 import { SuckerRow, createCupShadow, createSuckerCup } from './suckerRow';
 import { type AccentLink, farHaze } from './worldAccent';
 
+/** The seeds of the idle tilt's and the look points' schedules (behavior/idleTilt.ts, lookPoints.ts): fixed, so a character's idle always plays out the same. */
+const TILT_SEED = 0x7117;
+const LOOK_SEED = 0x100c;
 /** Rotation pivot for whole-body turns: the middle of the body. */
 const PIVOT_Y = -0.6;
 /** Pivot for the head's own turns and tilt (head-local height): the neck, under the chin. */
@@ -201,6 +206,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const faceAt = useMemo(() => new THREE.Vector3(), []);
   const restAt = useMemo(() => new THREE.Vector3(), []);
+  const wanderAt = useMemo(() => new THREE.Vector3(), []);
   // In a world Nox brings his aura, the grade of the water near him and his face glow's light on
   // the seabed, stone and the world's lit pieces round him (his own skin lights itself and takes
   // none of it). A silhouette capture has none of them: they would draw as shape.
@@ -586,13 +592,16 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
 
     // Where the stage rests Nox's eyes when nothing else holds them (the detail panel).
     const rest = pose.look ? restAt.set(pose.look[0], pose.look[1], 0).project(state.camera) : null;
+    // Where the eyes wander when the stage lists look points (behavior/lookPoints.ts): not frozen, not swimming in, not under reduced motion. Eyes alone; the pointer and a focused orb come first (attention.ts).
+    const wander = !freeze && !swim && stage !== 'entering' && pose.lookPoints ? pickLookPoint(t, pose.lookPoints, LOOK_INTERVAL, LOOK_SEED, reducedMotion) : null;
+    const wanderNdc = wander ? wanderAt.set(wander[0], wander[1], 0).project(state.camera) : null;
 
     const p = state.pointer;
     // Frozen, the eyes rest ahead, or settle on the orb in focus or where the stage rests them.
     // Swimming in, Nox looks where he is going.
     const gaze = (freeze && !fixed && !rest) || stage === 'entering'
       ? { gazeX: 0, gazeY: 0, headX: 0, headY: 0, tracking: false }
-      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined);
+      : m.attention.update(m.pointerInside && !freeze ? { x: p.x, y: p.y } : null, t, dt, fixed, { x: faceAt.x, y: faceAt.y }, rest ? { x: rest.x, y: rest.y } : undefined, wanderNdc ? { x: wanderNdc.x, y: wanderNdc.y } : undefined);
     const near = gaze.tracking ? nearFace(p, faceAt) : 0;
     spring(m.smile, near, 5, dt);
     // The small startle: the pointer darting in close to the face (motion/microTriggers.ts startleDue).
@@ -624,12 +633,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       }
     });
     spring(m.tilt, reducedMotion ? 0 : tiltTarget, 5, dt);
+    // The curious head tilt (behavior/idleTilt.ts; none unless the personality has one): it gives way to a technology in focus, and waits out the swim-in and a still.
+    const idleRoll = personality.idleTilt && !freeze && !swim && stage !== 'entering' ? idleTiltAt(t, personality.idleTilt, TILT_SEED, reducedMotion) * (1 - strongest) : 0;
     // While the orbs are out the body barely turns, so the orbs and arms hold still under the
     // visitor's pointer; the head turns and tilts on its own instead. In the intro the whole body
     // turns, as before.
     const bodyTurn = 1 - 0.75 * out;
     turn.current!.rotation.set(-gaze.headY * 0.08 * bodyTurn, pose.body.yaw + gaze.headX * 0.15 * bodyTurn, moving * (drift.roll + wiggle.roll) - gaze.headX * 0.02 * bodyTurn);
-    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x);
+    headTurn.current!.rotation.set(-gaze.headY * 0.06 * out, gaze.headX * 0.1 * out, pose.tilt - m.tilt.x + idleRoll);
     // The glow card turns with the head; turned side-on (the entrance's spin) it fades rather than
     // show edge-on beside the face.
     rig.coreGlow.uniforms.uStrength.value = CORE_GLOW * coreGlowFacing((swim ? swim.yaw : 0) + extraYaw) * glowShown;

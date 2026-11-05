@@ -13,6 +13,8 @@ export interface BlendedPose {
   tilt: number;
   /** Where the eyes rest: the new pose's from the start of a change. */
   look?: Point2;
+  /** The new pose's look points, from the start of a change. */
+  lookPoints?: readonly Point2[];
 }
 
 /**
@@ -61,6 +63,7 @@ function settle(pose: StagePose, segments: number, faces: Record<ExpressionId, E
     orbs: pose.orbs,
     tilt: pose.tilt ?? 0,
     look: pose.look,
+    lookPoints: pose.lookPoints,
   };
 }
 
@@ -73,6 +76,7 @@ function copyPose(pose: BlendedPose): BlendedPose {
     orbs: pose.orbs,
     tilt: pose.tilt,
     look: pose.look,
+    lookPoints: pose.lookPoints,
   };
 }
 
@@ -145,6 +149,7 @@ export class PoseBlender {
     current.orbs = mix(from.orbs, to.orbs, t);
     current.tilt = mix(from.tilt, to.tilt, t);
     current.look = to.look;
+    current.lookPoints = to.lookPoints;
     return current;
   }
 }

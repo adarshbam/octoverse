@@ -208,15 +208,24 @@ function checkOrbStyle(style: unknown) {
 
 /**
  * The personality's motion variants (engine contract 14.1), each optional (unset reads Nox's value),
- * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more.
+ * refused by name when set out of range: `settle` 0 to 1, `glideBias` above 0, `flourishRate` 0 or more,
+ * `idleTilt` an amplitude of 0 or more (radians) and a period [low, high] of seconds, 0 < low <= high.
  */
 function checkPersonalityVariants(personality: unknown) {
   if (!record(personality)) return;
   const at = 'character.personality';
-  const { settle, glideBias, flourishRate } = personality;
+  const { settle, glideBias, flourishRate, idleTilt } = personality;
   if (settle !== undefined && !(finite(settle) && settle >= 0 && settle <= 1)) throw new BundleError(`${at}.settle`, `${String(settle)} is not from 0 to 1 (a share of the approved overshoot)`);
   if (glideBias !== undefined && !(finite(glideBias) && glideBias > 0)) throw new BundleError(`${at}.glideBias`, `${String(glideBias)} is not above 0 (a scale on the glide)`);
   if (flourishRate !== undefined && !(finite(flourishRate) && flourishRate >= 0)) throw new BundleError(`${at}.flourishRate`, `${String(flourishRate)} is not 0 or more (flourishes per minute)`);
+  if (idleTilt !== undefined) {
+    if (!record(idleTilt)) throw new BundleError(`${at}.idleTilt`, 'is not an object (an idleTilt { amplitude, period: [low, high] })');
+    const { amplitude, period } = idleTilt;
+    if (!(finite(amplitude) && amplitude >= 0)) throw new BundleError(`${at}.idleTilt.amplitude`, `${String(amplitude)} is not 0 or more (the lean, in radians)`);
+    if (!(Array.isArray(period) && period.length === 2 && finite(period[0]) && finite(period[1]) && period[0] > 0 && period[0] <= period[1])) {
+      throw new BundleError(`${at}.idleTilt.period`, `${JSON.stringify(period)} is not [low, high] seconds above 0 with low at most high (the wait between tilts)`);
+    }
+  }
 }
 
 /**
@@ -263,6 +272,11 @@ function checkPoses(poses: unknown) {
     if (!record(pose.body)) throw new BundleError(`poses.${stage}.body`, 'is missing (every pose places the body: x, y, scale and yaw)');
     for (const key of ['x', 'y', 'scale', 'yaw'] as const) {
       if (!finite(pose.body[key])) throw new BundleError(`poses.${stage}.body.${key}`, 'is missing (every pose places the body: x, y, scale and yaw, as numbers)');
+    }
+    // The points the eyes wander between: absent, or a list of [x, y] finite numbers (an empty list is none).
+    const lookPoints: unknown = pose.lookPoints;
+    if (lookPoints !== undefined && !(Array.isArray(lookPoints) && lookPoints.every(point => Array.isArray(point) && point.length === 2 && point.every(finite)))) {
+      throw new BundleError(`poses.${stage}.lookPoints`, 'is not a list of [x, y] points (finite numbers, world units)');
     }
     const keys: string[] = Object.keys(pose.arms);
     const missing = ARM_IDS.filter(id => !keys.includes(id));
