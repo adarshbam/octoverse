@@ -1,0 +1,71 @@
+## landing intro run1
+x=1                                      median  42.9 fps  slow10  27.7 fps  mean  34.5 fps  (276 frames)  gpu median 21.77 ms  best10 20.35 ms  (247 timed)
+## landing intro run2
+x=1                                      median  43.1 fps  slow10  25.9 fps  mean  34.2 fps  (274 frames)  gpu median 21.94 ms  best10 20.62 ms  (246 timed)
+## landing entrance run1 (secs=3)
+x=1                                      median  38.8 fps  slow10  32.9 fps  mean  34.9 fps  (105 frames)  gpu median 28.07 ms  best10 25.58 ms  (89 timed)
+## landing entrance run2 (secs=3)
+x=1                                      median  50.0 fps  slow10  30.8 fps  mean  34.2 fps  (103 frames)  gpu median 28.51 ms  best10 24.51 ms  (86 timed)
+## how it works Flux card live run1
+  canvases: 2
+x=1                                      median  38.8 fps  slow10  23.3 fps  mean  36.6 fps  (293 frames)  gpu median 21.36 ms  best10 19.93 ms  (266 timed)
+## how it works Flux card live run2
+  canvases: 2
+x=1                                      median  39.1 fps  slow10  23.6 fps  mean  37.6 fps  (301 frames)  gpu median 21.45 ms  best10 20.05 ms  (273 timed)
+## profile veyra live hero run1
+x=1                                      median 117.6 fps  slow10  87.0 fps  mean 110.0 fps  (881 frames)  gpu median 3.26 ms  best10 2.99 ms  (861 timed)
+## profile veyra live hero run2
+x=1                                      median 112.4 fps  slow10  84.7 fps  mean 107.8 fps  (863 frames)  gpu median 3.34 ms  best10 3.03 ms  (838 timed)
+## creator live preview run1
+x=1                                      median 131.6 fps  slow10  95.2 fps  mean 116.4 fps  (932 frames)  gpu median 3.39 ms  best10 2.90 ms  (897 timed)
+## creator live preview run2
+x=1                                      median 131.6 fps  slow10  96.2 fps  mean 121.3 fps  (971 frames)  gpu median 3.36 ms  best10 2.90 ms  (937 timed)
+## world nox platform run1
+x=1                                      median  43.5 fps  slow10  32.8 fps  mean  43.5 fps  (348 frames)  gpu median 23.24 ms  best10 21.69 ms  (333 timed)
+## world nox review run1
+stage=intro                              median  42.2 fps  slow10  32.3 fps  mean  43.0 fps  (344 frames)  gpu median 23.43 ms  best10 21.90 ms  (328 timed)
+## world nox review run2
+stage=intro                              median  42.4 fps  slow10  32.2 fps  mean  43.7 fps  (350 frames)  gpu median 23.24 ms  best10 21.64 ms  (334 timed)
+## world nox platform run2
+x=1                                      median  42.7 fps  slow10  32.7 fps  mean  43.4 fps  (348 frames)  gpu median 23.27 ms  best10 21.71 ms  (331 timed)
+## world nox platform run3
+x=1                                      median  43.3 fps  slow10  33.8 fps  mean  43.6 fps  (349 frames)  gpu median 23.43 ms  best10 21.65 ms  (333 timed)
+## world nox review run3
+stage=intro                              median  42.6 fps  slow10  30.3 fps  mean  43.5 fps  (349 frames)  gpu median 23.29 ms  best10 21.63 ms  (334 timed)
+## world veyra platform run1
+x=1                                      median  47.4 fps  slow10  28.7 fps  mean  39.3 fps  (315 frames)  gpu median 20.97 ms  best10 19.48 ms  (292 timed)
+## world veyra review run1
+stage=intro                              median  47.6 fps  slow10  30.7 fps  mean  48.0 fps  (384 frames)  gpu median 20.77 ms  best10 19.46 ms  (362 timed)
+## world veyra review run2
+stage=intro                              median  47.6 fps  slow10  32.7 fps  mean  48.2 fps  (386 frames)  gpu median 20.87 ms  best10 19.48 ms  (364 timed)
+## world veyra platform run2
+x=1                                      median  47.2 fps  slow10  28.0 fps  mean  38.8 fps  (311 frames)  gpu median 20.96 ms  best10 19.31 ms  (288 timed)
+## world veyra platform run3
+x=1                                      median  47.2 fps  slow10  29.7 fps  mean  47.5 fps  (381 frames)  gpu median 20.78 ms  best10 19.56 ms  (360 timed)
+## world veyra review run3
+stage=intro                              median  47.6 fps  slow10  28.2 fps  mean  38.9 fps  (312 frames)  gpu median 20.96 ms  best10 19.58 ms  (289 timed)
+## world flux platform run1
+x=1                                      median  44.1 fps  slow10  29.2 fps  mean  37.7 fps  (302 frames)  gpu median 23.57 ms  best10 21.80 ms  (284 timed)
+## world flux review run1
+stage=intro                              median  43.3 fps  slow10  31.6 fps  mean  37.4 fps  (300 frames)  gpu median 23.85 ms  best10 22.21 ms  (278 timed)
+## world flux review run2
+stage=intro                              median  43.9 fps  slow10  29.9 fps  mean  37.2 fps  (298 frames)  gpu median 23.49 ms  best10 21.87 ms  (278 timed)
+## world flux platform run2
+x=1                                      median  44.2 fps  slow10  29.9 fps  mean  37.8 fps  (303 frames)  gpu median 23.52 ms  best10 21.92 ms  (283 timed)
+## world flux platform run3
+x=1                                      median  43.7 fps  slow10  29.3 fps  mean  37.6 fps  (301 frames)  gpu median 23.61 ms  best10 21.71 ms  (280 timed)
+## world flux review run3
+stage=intro                              median  43.5 fps  slow10  28.6 fps  mean  37.4 fps  (300 frames)  gpu median 23.56 ms  best10 22.07 ms  (281 timed)
+## world aether platform run1
+x=1                                      median  45.2 fps  slow10  27.9 fps  mean  37.1 fps  (297 frames)  gpu median 21.70 ms  best10 20.23 ms  (274 timed)
+## world aether review run1
+stage=intro                              median  45.5 fps  slow10  28.7 fps  mean  39.2 fps  (314 frames)  gpu median 21.47 ms  best10 19.90 ms  (290 timed)
+## world aether review run2
+stage=intro                              median  44.2 fps  slow10  27.3 fps  mean  36.8 fps  (295 frames)  gpu median 21.59 ms  best10 20.27 ms  (272 timed)
+## world aether platform run2
+x=1                                      median  45.5 fps  slow10  28.5 fps  mean  37.4 fps  (299 frames)  gpu median 21.80 ms  best10 20.32 ms  (277 timed)
+## world aether platform run3
+x=1                                      median  43.5 fps  slow10  27.8 fps  mean  42.4 fps  (339 frames)  gpu median 22.60 ms  best10 20.59 ms  (314 timed)
+## world aether review run3
+stage=intro                              median  44.4 fps  slow10  27.8 fps  mean  37.1 fps  (297 frames)  gpu median 21.61 ms  best10 19.86 ms  (274 timed)
+ALLDONE

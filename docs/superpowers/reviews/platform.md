@@ -507,3 +507,28 @@ Result: 9 passed (5.6 min), of which 2 are the expected failures (`test.fail`: t
 | Route change, cached chunk | < 500 ms | explore to create 265, 156, 150; to profile 156, 151, 144 | explore to create 294, 157, 162; to profile 147, 145, 145 ms |
 
 Heap: the leak is unchanged (+104% CDP over 20 trips, about +1.3 MB per trip, linear; the per-trip CDP list is in `final/resources-run-log.txt`). It did not grow or shrink beyond noise (105% to 104%). The heap checks are expected failures and the spec's 15% limit is MISSED. Contexts, listeners, payload, first frame and route change are met. The cause is still unidentified (the diagnostic under 'Open issue: heap growth' above was not run: it is an engine/world investigation, out of scope here).
+
+### Frame rates (`scripts/perf.mjs --gpu --secs=8`, production build on `vite preview`, port 5297, 1536 x 1024, dpr 1, 2 runs per row, back to back)
+
+Raw lines: `evidence/platform/final/perf-rows.txt`. The production build ignores `?tier=` and `?stage=`, so 'tier low' is the engine's own device pick (stepped down by its frame probe). The query `x=1` is a placeholder. Load: my own runs were one browser at a time; other sessions' dev servers (ports 5191, 5195, 5196, 5197) and about 48 Chrome processes were alive but idle as far as known, so this is 'under load' but the machine was much steadier than in Task 16 (run-to-run spread under 4% here, 20 to 30% then). Median fps / mean fps / GPU ms per frame (median; the timer sees only the first connected WebGL 2 context, so on the How It Works row it is the host, not the card).
+
+| Row | Floor | Run 1; run 2 | Verdict |
+|---|---|---|---|
+| Landing intro (`/`, entrance seen) | 40 | 42.9 / 34.5 / 21.8; 43.1 / 34.2 / 21.9 | met (median); mean fps 34.5 and 34.2 are under 40 |
+| Landing entrance (`/`, first visit) | 32 | 38.8 / 34.9 / 28.1; 50.0 / 34.2 / 28.5 | met; measured with `--secs=3` starting 1.5 s after the ready flag, so it is the tail of the 8.4 s entrance as far as the ready flag allows: not verified that every sampled frame was inside the entrance (see 'Not measured') |
+| How It Works, Flux card live | 36 | 38.8 / 36.6 / 21.4; 39.1 / 37.6 / 21.5 (2 canvases) | met (Task 16: 32.6 and 36.4 under load, missed) |
+| Profile `/@veyra`, live hero | 40 | 117.6 / 110.0 / 3.3; 112.4 / 107.8 / 3.3 | met |
+| Creator `/create`, live preview (waited for `data-state="live"`) | 36 | 131.6 / 116.4 / 3.4; 131.6 / 121.3 / 3.4 | met |
+
+### Each world through the platform against `?world=<id>` (SEEN=all, intro, 3 pairs per world, platform first in runs 1 and 3, review first in run 2, one server, back to back)
+
+Median fps per run, platform / review (production ignores `stage`, so `?stage=intro&world=<id>` is the world's default scene):
+
+| World | Platform runs | `?world=` runs | Median platform / median review | Ratio | Floor 40 |
+|---|---|---|---|---|---|
+| Nox (`/@nox/security-lab`) | 43.5, 42.7, 43.3 | 42.2, 42.4, 42.6 | 43.3 / 42.4 | 1.021 | met both |
+| Veyra (`/@veyra/vault-os`) | 47.4, 47.2, 47.2 | 47.6, 47.6, 47.6 | 47.2 / 47.6 | 0.992 | met both |
+| Flux (`/@flux/github-pipeline-engine`) | 44.1, 44.2, 43.7 | 43.3, 43.9, 43.5 | 44.1 / 43.5 | 1.014 | met both |
+| Aether (`/@aether/ai-playground`) | 45.2, 45.5, 43.5 | 45.5, 44.2, 44.4 | 45.2 / 44.4 | 1.018 | met both |
+
+Worst ratio 0.992 (Veyra): every world is within 3% of its `?world=` number (all four medians are within +2.1% to -0.8%). Run-to-run spread within one path is 0.4 to 4.6% (Aether platform run 3, 43.5, is the widest), so the 3% rule is decidable on this quiet-ish session, unlike Task 16. GPU ms per frame (median) platform / review: Nox 23.3 / 23.3, Veyra 21.0 / 20.9, Flux 23.6 / 23.6, Aether 21.8 / 21.6: no platform penalty on the host-context timer. Mean fps shows stalls in some runs (Veyra platform runs 1 and 2 mean 39.3 and 38.8 against median 47.4, review run 3 mean 38.9), on both paths and not tied to one, so not a platform cost; the owner's live check for stutter on world visits is still the test that matters.
