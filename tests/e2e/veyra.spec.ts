@@ -38,7 +38,12 @@ const centres = (page: Page) =>
     }),
   );
 
+/** Every arm's tip (arm space), as the page reports it each frame. */
+const armTips = (page: Page) => page.evaluate(() => (window as unknown as Win).__octoverse?.attention?.tips.map(t => ({ ...t })) ?? []);
+const tipTravel = (from: Tips, to: Tips) => to.map((t, i) => Math.hypot(t.x - from[i].x, t.y - from[i].y));
+
 test('twelve pendant buttons with unique ids after the entrance and the bloom', async ({ page }) => {
+  test.setTimeout(120_000);
   await openVeyra(page);
   // For the record: the buttons are live from ready on (the bloom is drawn in the scene; the buttons do not wait for it).
   const outAtReady = await page.locator(BUTTONS).evaluateAll(els => els.filter(el => (el as HTMLElement).style.pointerEvents !== 'none').length);
@@ -48,17 +53,24 @@ test('twelve pendant buttons with unique ids after the entrance and the bloom', 
   expect(ids).toHaveLength(12);
   expect(ids.every(id => !!id)).toBe(true);
   expect(new Set(ids).size).toBe(12);
-  // Each button sits on the page (a pendant that never bloomed would leave it at the origin).
+  // Each button sits where its pendant hangs: inside the page, not at the corner a button starts in (its 44 px box at the
+  // origin has its centre at 22, 22), and clear of every other button's centre (twelve different places).
   const box = page.viewportSize()!;
-  for (const c of await centres(page)) {
+  const at = await centres(page);
+  for (const c of at) {
     expect(c.x, c.name).toBeGreaterThan(0);
     expect(c.x, c.name).toBeLessThan(box.width);
     expect(c.y, c.name).toBeGreaterThan(0);
     expect(c.y, c.name).toBeLessThan(box.height);
+    expect(Math.hypot(c.x - 22, c.y - 22), `${c.name} has left the corner it starts in`).toBeGreaterThan(5);
+  }
+  for (let i = 0; i < at.length; i++) {
+    for (let j = i + 1; j < at.length; j++) expect(Math.hypot(at[i].x - at[j].x, at[i].y - at[j].y), `${at[i].name} and ${at[j].name} are not in one place`).toBeGreaterThan(5);
   }
 });
 
 test('Tab reaches a pendant, its tooltip names the technology, Escape clears it and focus stays', async ({ page }) => {
+  test.setTimeout(120_000);
   await openVeyra(page);
   await bloomed(page);
   for (let i = 0; i < 40 && !(await page.evaluate(() => document.activeElement?.classList.contains('orb-button') ?? false)); i++) await page.keyboard.press('Tab');
@@ -72,14 +84,17 @@ test('Tab reaches a pendant, its tooltip names the technology, Escape clears it 
   await expect(page.getByRole('button', { name: name! })).toBeFocused();
 });
 
-// Review Focus 2: the pendants swing, so a button is a moving anchor. A pointer that rests on one
+// Review Focus 2: the pendants hang from arms that move, so a button is a moving anchor. A pointer that rests on one
 // must give that pendant's tooltip and no flicker, and a pointer gliding across several chooses none.
-test('hover intent with a moving anchor: gliding across pendants chooses none, resting on one keeps its tooltip steady', async ({ page }) => {
+test('hover intent with a moving anchor: gliding across pendants chooses none, resting on one chooses it and keeps its tooltip steady', async ({ page }) => {
   test.setTimeout(120_000);
+  type Sample = { t: number; name: string | null };
   await page.addInitScript(() => {
-    // Samples the tooltip's name every 50 ms from the page's own clock, so a flicker is seen however busy the test runner is.
-    const log: { t: number; name: string | null }[] = [];
-    Object.assign(window, { __tipLog: log });
+    // Samples the tooltip's name every 50 ms from the page's own clock, so a flicker is seen however busy the test runner is;
+    // and notes when the pointer last moved, on the same clock.
+    const log: Sample[] = [];
+    Object.assign(window, { __tipLog: log, __lastMove: 0 });
+    addEventListener('pointermove', () => Object.assign(window, { __lastMove: performance.now() }), true);
     setInterval(() => {
       const tip = document.querySelector('[role="tooltip"] .tech-tooltip-head h3');
       log.push({ t: performance.now(), name: tip?.textContent?.trim() ?? null });
@@ -87,41 +102,54 @@ test('hover intent with a moving anchor: gliding across pendants chooses none, r
   });
   await openVeyra(page);
   await bloomed(page);
-  const log = () => page.evaluate(() => (window as unknown as { __tipLog: { t: number; name: string | null }[] }).__tipLog);
+  const log = () => page.evaluate(() => (window as unknown as { __tipLog: Sample[] }).__tipLog);
+  const lastMove = () => page.evaluate(() => (window as unknown as { __lastMove: number }).__lastMove);
   const start = await centres(page);
   // Three pendants, left to right on the page: the glide's way points.
   const way = [...start].sort((a, b) => a.x - b.x);
   const [first, mid, last] = [way[0], way[Math.floor(way.length / 2)], way[way.length - 1]];
+  const tipsBefore = await armTips(page);
 
-  // Gliding: the pointer crosses the pendants at a steady pace (a button is entered and left on the way).
+  // Gliding: the pointer crosses the pendants at a steady pace (a button is entered and left on the way). The pendants move (that is
+  // the test), so each leg aims at where its pendant is as the leg starts, not where it was when the page was measured.
+  const where = async (name: string) => (await centres(page)).find(c => c.name === name)!;
   await page.mouse.move(first.x, first.y);
-  const mark = (await log()).length;
-  await page.mouse.move(mid.x, mid.y, { steps: 12 });
-  await page.mouse.move(last.x, last.y, { steps: 12 });
-  const glideSamples = (await log()).slice(mark);
-  expect(glideSamples.filter(s => s.name !== null).map(s => s.name), 'a glide across pendants chooses none').toEqual([]);
+  const toMid = await where(mid.name);
+  await page.mouse.move(toMid.x, toMid.y, { steps: 12 });
+  const toLast = await where(last.name);
+  await page.mouse.move(toLast.x, toLast.y, { steps: 12 });
+  // The glide's window ends 100 ms after the pointer's last move on the page's own clock: less than the intent's dwell (130 ms), so
+  // however slowly this round trip comes back, the tooltip a rest brings cannot fall into it.
+  const stopped = await lastMove();
+  const glide = (await log()).filter(s => s.t <= stopped + 100);
+  expect(glide.length, 'the glide was sampled').toBeGreaterThan(3);
+  expect(glide.filter(s => s.name !== null).map(s => s.name), 'a glide across pendants chooses none').toEqual([]);
 
-  // Resting: the pointer stays on the last pendant while it swings; the anchor is followed by the button, not the pointer.
-  // Sample for about 1.5 s after the intent delay (130 ms dwell, then the tooltip's own fade-in delay).
-  const settleFrom = (await log()).length;
-  // How far the pendant's button travels while the pointer rests: the moving anchor.
+  // Resting: the pointer stays on the last pendant while it moves; the anchor is followed by the button, not the pointer.
+  // Sampled for 1.6 s after the glide's window (the intent's dwell of 130 ms, then the tooltip's own fade-in delay, come first).
   let travel = 0;
   for (let i = 0; i < 16; i++) {
     await page.waitForTimeout(100);
     const now = (await centres(page)).find(c => c.name === last.name)!;
-    travel = Math.max(travel, Math.hypot(now.x - last.x, now.y - last.y));
+    travel = Math.max(travel, Math.hypot(now.x - toLast.x, now.y - toLast.y));
   }
   test.info().annotations.push({ type: 'anchor travel (px)', description: travel.toFixed(1) });
-  const resting = (await log()).slice(settleFrom);
-  const names = resting.map(s => s.name);
-  // Compress runs; the tooltip may appear once (null to A) and then stays: never A to B to A, never A to nothing to A.
+  const names = (await log()).filter(s => s.t > stopped + 100).map(s => s.name);
+  // Compress runs; the tooltip may appear once (nothing, then the name) and then stays: never A to B to A, never A to nothing to A.
   const runs = names.filter((n, i) => i === 0 || n !== names[i - 1]);
   const named = runs.filter((n): n is string => n !== null);
   expect(new Set(named).size, `tooltip names while resting: ${JSON.stringify(runs)}`).toBeLessThanOrEqual(1);
   expect(runs.length, `tooltip changes while resting: ${JSON.stringify(runs)}`).toBeLessThanOrEqual(2);
   expect(runs[runs.length - 1], 'the pendant it rests on is chosen').not.toBeNull();
-  // The pointer is over the pendant it rests on (or the button followed it away and the tooltip stays on the last choice).
   expect(runs[runs.length - 1]).toBe(last.name);
+  // The choice is the one a click or a Tab makes: the button of the pendant the pointer rests on is the one the tooltip describes
+  // (the buttons call the same choosing, `FOCUS_TECH`, which lifts the pendant's arm: the Tab and tray checks show that lift). Under
+  // a hover the arm turns toward the pointer, which is already on the pendant, so the tips move little: noted, not asserted.
+  await expect(page.getByRole('button', { name: last.name })).toHaveAttribute('aria-describedby', /.+/);
+  const described = await page.locator(`${BUTTONS}[aria-describedby]`).evaluateAll(els => els.map(el => el.getAttribute('aria-label')));
+  expect(described, 'only the pendant it rests on is described').toEqual([last.name]);
+  const moved = tipTravel(tipsBefore, await armTips(page));
+  test.info().annotations.push({ type: 'tip travel after the rest (arm units)', description: moved.map(m => m.toFixed(2)).join(' ') });
 });
 
 test.describe('phone', () => {
@@ -139,16 +167,15 @@ test.describe('phone', () => {
     // Nothing is chosen yet.
     await expect(page.locator(`${TRAY}[aria-pressed="true"]`)).toHaveCount(0);
 
-    // The arm's tip rests where the arm hangs; choosing a pendant lifts its arm, so some tip moves up the stage a good way.
+    // The arm's tip rests where the arm hangs; choosing a pendant lifts its arm, so its tip moves up the stage a good way.
     await bloomed(page);
-    const tips = () => page.evaluate(() => (window as unknown as Win).__octoverse?.attention?.tips.map(t => ({ ...t })) ?? []);
-    const before = await tips();
+    const before = await armTips(page);
     expect(before.length).toBe(8);
     // Control: with nothing chosen the tips only sway a little over the same time.
     await page.waitForTimeout(900);
-    const idle = (await tips()).map((t, i) => Math.hypot(t.x - before[i].x, t.y - before[i].y));
+    const rest = await armTips(page);
+    const idle = tipTravel(before, rest);
     test.info().annotations.push({ type: 'idle tip drift (arm units)', description: Math.max(...idle).toFixed(3) });
-    const rest = await tips();
     const choice = page.locator(`${TRAY}[aria-label="React"]`);
     await choice.tap();
     await expect(choice).toHaveAttribute('aria-pressed', 'true');
@@ -156,12 +183,13 @@ test.describe('phone', () => {
     await expect(page.getByRole('tooltip')).toContainText('React');
     // The lift takes about 450 ms; wait for the arm to be up, then compare.
     await page.waitForTimeout(900);
-    const after = await tips();
-    const moved = after.map((t, i) => Math.hypot(t.x - rest[i].x, t.y - rest[i].y));
+    const moved = tipTravel(rest, await armTips(page));
     test.info().annotations.push({ type: 'lift tip travel (arm units)', description: Math.max(...moved).toFixed(3) });
-    expect(Math.max(...moved), `tip movement per arm: ${moved.map(m => m.toFixed(2))}`).toBeGreaterThan(Math.max(...idle) * 3 + 0.1);
-    // It is React's arm that rises (T1 hangs React's pendant: the first top-down slot), by the most.
-    expect(moved.indexOf(Math.max(...moved)), 'React hangs from T1, the first arm').toBe(0);
+    // It is React's arm that rises (T1 hangs React's pendant: the first top-down slot): it moves the most, well past the rest.
+    const order = moved.map((m, i) => [m, i]).sort((a, b) => b[0] - a[0]);
+    expect(order[0][1], `React hangs from T1, the first arm; tip movement per arm: ${moved.map(m => m.toFixed(2))}`).toBe(0);
+    expect(order[0][0]).toBeGreaterThan(0.3);
+    expect(order[0][0], 'well past the next arm').toBeGreaterThan(2 * order[1][0]);
 
     // Choosing it again lets go.
     await choice.tap();
@@ -169,68 +197,118 @@ test.describe('phone', () => {
   });
 });
 
-test.describe('reduced motion', () => {
-  // What "no wobble" can be measured as. The arms still curl very slowly under reduced motion (the
-  // engine's tip curl is not scaled by it: see the Task 20 report), so a button's position is not
-  // constant. A pendant's swing and the bloom's wobble are quicker than that: they show as a
-  // jitter on top of the slow path. So each button's path is high-passed (its position less the
-  // mean of the positions six frames either side, about 125 ms), less what all twelve do together
-  // that frame (a slow frame jumps them all; it is not a pendant's swing), and what is left must
-  // stay under 0.5 px on all but a few frames (under 5%: a slow frame under load still shows now and
-  // then; the buttons round to 0.1 px). The full Nox run under load once saw one spike of 2.8 px on
-  // React alone, hence the share and not the worst. It is a smoothness bound, not a contrast: with
-  // motion on, an idle pendant barely swings either; the swing itself is pinned at 0 by the unit
-  // tests of `pendantSwing` and `bloomState`.
-  test('the pendants show at once with no wobble: every button holds a smooth path', async ({ page }) => {
-    test.setTimeout(120_000);
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await openVeyra(page);
-    // Sampled from the first frame after ready on. The buttons are live as soon as the pendants are drawn (with motion on too:
-    // the bloom itself is in the GL scene, so the first-frame check here only proves the buttons are there and keep their size).
-    const run = await page.evaluate(async () => {
+// Reduced motion (spec 7.8: "no float, drift or swim; pendants shown still"). The buttons follow the pendants each frame, so
+// their positions are the pendants' positions on the page: a swing, a sway, a drift or a slow lift all show in them.
+// What stays in the unit tests: the swing angle itself (`pendantSwing`, `bloomState` with reducedMotion are 0), and that the
+// arm's curl, trail, depth wave and idle look-around are scaled by it (src/engine/character/reducedMotion.test.ts).
+type Frame = { t: number; p: [number, number][] };
+
+/**
+ * Records every button's centre on every animation frame for `ms` (the page's own clock, from 0 at the first frame). With `lift`,
+ * the first button (React) is focused `lift.at` ms in: focusing a pendant chooses it, as a Tab does.
+ */
+function record(page: Page, ms: number, lift?: { at: number }): Promise<Frame[]> {
+  return page.evaluate(
+    async ({ ms, lift }) => {
       const els = [...document.querySelectorAll<HTMLElement>('.orb-button')];
-      const series: { x: number; y: number; w: number; live: boolean }[][] = els.map(() => []);
+      const frames: { t: number; p: [number, number][] }[] = [];
       const t0 = performance.now();
+      let focused = false;
       await new Promise<void>(done => {
         const tick = () => {
-          els.forEach((el, i) => {
-            const r = el.getBoundingClientRect();
-            series[i].push({ x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, live: el.style.pointerEvents !== 'none' });
-          });
-          if (performance.now() - t0 < 4000) requestAnimationFrame(tick);
+          const t = performance.now() - t0;
+          if (lift && !focused && t >= lift.at) {
+            focused = true;
+            els[0].focus();
+          }
+          frames.push({ t, p: els.map(el => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }) });
+          if (t < ms) requestAnimationFrame(tick);
           else done();
         };
         tick();
       });
-      return els.map((el, i) => ({ name: el.getAttribute('aria-label') ?? '', series: series[i] }));
-    });
-    expect(run).toHaveLength(12);
-    const WINDOW = 6;
-    const frames = Math.min(...run.map(r => r.series.length));
-    expect(frames).toBeGreaterThan(2 * WINDOW + 10);
-    for (const { name, series } of run) {
-      expect(series[0].live, `${name} is out at the first frame`).toBe(true);
-      expect(Math.abs(series[0].w - series[frames - 1].w), `${name} keeps its size`).toBeLessThan(0.5);
-    }
-    // Each button's high-passed path, less what all twelve do together at that frame (the median): a
-    // slow frame jumps every button at once and is not a pendant's own swing.
-    const residual = (r: (typeof run)[number], i: number, d: 'x' | 'y') => r.series[i][d] - (r.series[i - WINDOW][d] + r.series[i + WINDOW][d]) / 2;
-    const median = (xs: number[]) => [...xs].sort((p, q) => p - q)[Math.floor(xs.length / 2)];
-    // A wobble is a sustained ripple, not one slow frame: count the frames where a button's own jitter passes half a pixel.
-    const over = new Map<string, number>();
-    const worst = new Map<string, number>();
-    for (let i = WINDOW; i < frames - WINDOW; i++) {
-      for (const d of ['x', 'y'] as const) {
-        const together = median(run.map(r => residual(r, i, d)));
-        for (const r of run) {
-          const own = Math.abs(residual(r, i, d) - together);
-          worst.set(r.name, Math.max(worst.get(r.name) ?? 0, own));
-          if (own > 0.5) over.set(r.name, (over.get(r.name) ?? 0) + 1);
-        }
-      }
-    }
-    const judged = 2 * (frames - 2 * WINDOW);
-    for (const [name, px] of worst) test.info().annotations.push({ type: `${name} own jitter (px): worst, frames over 0.5`, description: `${px.toFixed(2)}, ${over.get(name) ?? 0} of ${judged}` });
-    for (const name of worst.keys()) expect((over.get(name) ?? 0) / judged, `${name}: share of frames with its own jitter over 0.5 px`).toBeLessThan(0.05);
+      return frames;
+    },
+    { ms, lift },
+  );
+}
+
+/** The most any button strays from where it was at `from`, over the frames from `from` to `to` (px). */
+function strayed(frames: Frame[], from: number, to: number) {
+  const inside = frames.filter(f => f.t >= from && f.t <= to);
+  expect(inside.length, 'frames were drawn in the window').toBeGreaterThan(5);
+  let worst = 0;
+  for (const f of inside) f.p.forEach((p, i) => (worst = Math.max(worst, Math.hypot(p[0] - inside[0].p[i][0], p[1] - inside[0].p[i][1]))));
+  return worst;
+}
+
+/** How React's button moves after the lift at `at`: the frames it spends between a tenth and nine tenths of the way, and its distance from where it hung. */
+function liftShape(frames: Frame[], at: number) {
+  const before = [...frames].reverse().find(f => f.t < at)!;
+  const dist = (f: Frame) => Math.hypot(f.p[0][0] - before.p[0][0], f.p[0][1] - before.p[0][1]);
+  const final = dist([...frames].reverse().find(f => f.t <= at + 800)!);
+  const between = frames.filter(f => f.t >= at && f.t <= at + 800 && dist(f) > 0.1 * final && dist(f) < 0.9 * final).length;
+  return { final, between };
+}
+
+test.describe('reduced motion', () => {
+  const IDLE_MS = 4000;
+  const LIFT_AT = 500;
+  const SETTLE_AFTER_LIFT = 1500;
+  const OBSERVE_MS = 3500;
+
+  test('pendants hold still: no button strays a pixel in 4 s', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openVeyra(page);
+    await expect(page.locator(BUTTONS)).toHaveCount(12);
+    // Past the first frames (the page's last settling), then watch.
+    await page.waitForTimeout(1500);
+    const frames = await record(page, IDLE_MS);
+    const worst = strayed(frames, 0, IDLE_MS);
+    test.info().annotations.push({ type: 'reduced: furthest any button strays in 4 s (px)', description: worst.toFixed(2) });
+    expect(worst).toBeLessThan(1);
+  });
+
+  test('control: with motion on the same pendants move, so stillness is not an accident of the measure', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await openVeyra(page);
+    await bloomed(page);
+    await page.waitForTimeout(1500);
+    const frames = await record(page, IDLE_MS);
+    const worst = strayed(frames, 0, IDLE_MS);
+    test.info().annotations.push({ type: 'motion on: furthest any button strays in 4 s (px)', description: worst.toFixed(2) });
+    expect(worst).toBeGreaterThan(10);
+  });
+
+  test('reduced: a lift is instant and everything holds still after it', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openVeyra(page);
+    await expect(page.locator(BUTTONS)).toHaveCount(12);
+    await page.waitForTimeout(1500);
+    const frames = await record(page, OBSERVE_MS, { at: LIFT_AT });
+    const shape = liftShape(frames, LIFT_AT);
+    const after = strayed(frames, LIFT_AT + SETTLE_AFTER_LIFT, OBSERVE_MS);
+    test.info().annotations.push({ type: 'reduced: lift distance (px), frames between 10% and 90%, stray after (px)', description: `${shape.final.toFixed(0)}, ${shape.between}, ${after.toFixed(2)}` });
+    expect(shape.final, 'the lift moves the pendant a good way').toBeGreaterThan(50);
+    expect(shape.between, 'it gets there in no frames between').toBeLessThanOrEqual(1);
+    expect(after, 'no pendant swings on after it (px)').toBeLessThan(1);
+  });
+
+  test('control: with motion on a lift eases over several frames and the pendants keep moving after it', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await openVeyra(page);
+    await bloomed(page);
+    await page.waitForTimeout(1500);
+    const frames = await record(page, OBSERVE_MS, { at: LIFT_AT });
+    const shape = liftShape(frames, LIFT_AT);
+    const after = strayed(frames, LIFT_AT + SETTLE_AFTER_LIFT, OBSERVE_MS);
+    test.info().annotations.push({ type: 'motion on: lift distance (px), frames between 10% and 90%, stray after (px)', description: `${shape.final.toFixed(0)}, ${shape.between}, ${after.toFixed(2)}` });
+    expect(shape.final, 'the lift moves the pendant a good way').toBeGreaterThan(50);
+    expect(shape.between, 'it eases over several frames').toBeGreaterThanOrEqual(3);
+    expect(after).toBeGreaterThan(5);
   });
 });
