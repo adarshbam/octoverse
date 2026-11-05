@@ -929,7 +929,7 @@ Props were validated but never mounted, and `uSparkleWave` was never driven. The
 - **Padlock ring colour (a look change in the place):** the ring was the same flat colour as the lock body, so its turn could not be seen at all. It is now a darker teal (`#4fb8aa`, strength 1.0) so its twelve ticks read as a dial. Twelve ticks make a quarter turn look the same as none, so the lock looks the same before and after, and the turn shows only while it moves.
 
 ### Stills (`docs/superpowers/reviews/assets/veyra/`)
-`t18-entering-0.5.png`, `-2`, `-3.5`, `-5`, `-6.5` (506 x 504); `t18-entering-3.5-16x9.png` (the portal and lock in view); `t18-lock-ring-t2-t3.5-t3.7.png` (the ring's ticks at 0, 45 and 90 degrees); `t18-swim-open-trail.png`.
+`t18-entering-0.5.png`, `-2`, `-3.5`, `-5`, `-6.5` (506 x 504); `t18-entering-3.5-16x9.png` (the portal and lock in view; PRE-YAW-KEY capture: it shows the rejected -200 degree rear heading, not the shipped side view); `t18-lock-ring-t2-t3.5-t3.7.png` (pre-yaw-key capture; the ring itself is unchanged; the ring's ticks at 0, 45 and 90 degrees); `t18-swim-open-trail.png`.
 
 ### What to look at (live, `?world=veyra&stage=entering`; clear `octoverse.veyra.entranceSeen` in session storage to replay)
 1. **Calm, long glides.** Three strokes at 1.7 s, glide 0.88 s. Is it calm enough, or should the clock slow (fewer strokes in the window)?
