@@ -1,5 +1,5 @@
 import { CATALOG } from './catalog';
-import { MAX_MEDIA, MAX_PROJECTS, MAX_TECHNOLOGIES, isHttpsUrl } from './draft';
+import { MAX_MEDIA, MAX_MEDIA_TOTAL_BYTES, MAX_PROJECTS, MAX_TECHNOLOGIES, mediaBytes, parseHttpsUrl } from './draft';
 import { MediaError } from './storage';
 import type { CreatorDraft, DraftMediaRef, DraftProject } from './types';
 
@@ -32,10 +32,13 @@ function editProject(draft: CreatorDraft, id: string, edit: (project: DraftProje
   return patch === null ? draft : withProject(draft, id, patch);
 }
 
-/** Adds an empty project (an untitled one previews as "Untitled project"), up to eight. Its id and slug are never one the draft has. */
-export function addProject(draft: CreatorDraft): CreatorDraft {
+/**
+ * Adds an empty project (an untitled one previews as "Untitled project"), up to eight. Its id and slug are never one the draft has,
+ * nor one in `reserved` (the ids of projects just deleted that can still be brought back: undoing must never find its id taken).
+ */
+export function addProject(draft: CreatorDraft, reserved: readonly string[] = []): CreatorDraft {
   if (draft.projects.length >= MAX_PROJECTS) return draft;
-  const taken = new Set(draft.projects.flatMap(p => [p.id, p.slug]));
+  const taken = new Set([...draft.projects.flatMap(p => [p.id, p.slug]), ...reserved]);
   let n = draft.projects.length + 1;
   while (taken.has(`project-${n}`)) n++;
   const id = `project-${n}`;
@@ -134,14 +137,14 @@ export function linkIssues(links: DraftProject['links']): Partial<Record<'live' 
   const out: Partial<Record<'live' | 'repo', string>> = {};
   for (const key of ['live', 'repo'] as const) {
     const value = links[key];
-    if (value !== undefined && value !== '' && !isHttpsUrl(value)) out[key] = LINK_ISSUE;
+    if (value !== undefined && value !== '' && parseHttpsUrl(value) === null) out[key] = LINK_ISSUE;
   }
   return out;
 }
 
-/** The value to put in an `href`: the address if it is exactly an https one, otherwise undefined (show it as plain text). */
+/** The value to put in an `href`: the PARSED address (`URL.href`, never the raw text) if the value passes the one https rule (draft.ts parseHttpsUrl), otherwise undefined (show it as plain text). */
 export function safeHref(value: string | undefined): string | undefined {
-  return value !== undefined && value === value.trim() && isHttpsUrl(value) ? value : undefined;
+  return parseHttpsUrl(value)?.href;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -166,10 +169,11 @@ export function setSectionBody(draft: CreatorDraft, projectId: string, body: str
 // Media (metadata only: the blob is the store's, putMedia)
 // ---------------------------------------------------------------------------------------------
 
-/** Adds an image reference (up to four, no id twice). The blob is already in the store: this only lists it. */
+/** Adds an image reference (up to four a project, 24 MB for the draft, no id twice). The blob is already in the store: this only lists it. */
 export function addMedia(draft: CreatorDraft, projectId: string, media: DraftMediaRef): CreatorDraft {
   return editProject(draft, projectId, project => {
     if (project.media.length >= MAX_MEDIA || project.media.some(m => m.id === media.id)) return null;
+    if (mediaBytes(draft) + media.size > MAX_MEDIA_TOTAL_BYTES) return null;
     return { media: [...project.media, media] };
   });
 }
@@ -177,6 +181,9 @@ export function addMedia(draft: CreatorDraft, projectId: string, media: DraftMed
 export function removeMedia(draft: CreatorDraft, projectId: string, mediaId: string): CreatorDraft {
   return editProject(draft, projectId, project => (project.media.some(m => m.id === mediaId) ? { media: project.media.filter(m => m.id !== mediaId) } : null));
 }
+
+/** What the editor says when adding an image would take the draft past 24 MB of images in all. */
+export const MEDIA_TOTAL_MESSAGE = 'A draft keeps at most 24 MB of images in all. Remove one to add another.';
 
 /** What the editor says when the store refuses an image (storage.ts MediaError), in plain words. */
 export function mediaErrorMessage(error: unknown): string {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from './catalog';
-import { MAX_MEDIA, MAX_PROJECTS, MAX_TECHNOLOGIES, validateDraft } from './draft';
+import { MAX_MEDIA, MAX_MEDIA_TOTAL_BYTES, MAX_PROJECTS, MAX_TECHNOLOGIES, validateDraft } from './draft';
 import {
   LINK_ISSUE,
   addMedia,
@@ -51,6 +51,17 @@ describe('addProject', () => {
     draft = addProject(removed.draft);
     draft = undoDelete(draft, removed.project, removed.index);
     expect(new Set(draft.projects.map(p => p.id)).size).toBe(draft.projects.length);
+  });
+
+  it('never takes an id that a deleted (still undoable) project holds, when those are passed as reserved', () => {
+    let draft = withThree();
+    const last = deleteProject(draft, pid(draft, 2))!;
+    // Without the reservation the new project would take the freed id and the undo would find it taken.
+    expect(addProject(last.draft).projects.map(p => p.id)).toContain(last.project.id);
+    draft = addProject(last.draft, [last.project.id]);
+    expect(draft.projects.map(p => p.id)).not.toContain(last.project.id);
+    expect(draft.projects.map(p => p.slug)).not.toContain(last.project.slug);
+    expect(undoDelete(draft, last.project, last.index).projects).toHaveLength(4);
   });
 
   it('a new project passes validation of its own fields (the empty title is allowed)', () => {
@@ -215,9 +226,17 @@ describe('links (https only; a bad link is kept but not linked)', () => {
     expect(LINK_ISSUE).toBe('This link must start with https://');
   });
 
-  it('safeHref gives the address of an https link and undefined for anything else (plain text then)', () => {
+  it('safeHref gives the PARSED address of an https link and undefined for anything else (plain text then)', () => {
     expect(safeHref('https://example.com/a?b=1')).toBe('https://example.com/a?b=1');
-    for (const bad of ['http://example.com', 'javascript:alert(1)', 'data:text/html,x', 'example.com', '', ' https://x.com', undefined]) expect(safeHref(bad)).toBeUndefined();
+    expect(safeHref('HTTPS://X.COM')).toBe('https://x.com/');
+    expect(safeHref('https://exämple.com')).toBe('https://xn--exmple-cua.com/');
+    const bad = ['http://example.com', 'javascript:alert(1)', 'data:text/html,x', '//x.com', 'example.com', '', ' https://x.com', 'https://x.com ', 'https://user:pass@host.com', 'https:x.com', 'https://', 'https:///x', 'https://x.com/' + 'a'.repeat(3000), undefined];
+    for (const value of bad) expect(safeHref(value), String(value).slice(0, 30)).toBeUndefined();
+  });
+
+  it('flagged and not linked are one rule: every value safeHref refuses is flagged, every one it accepts is not', () => {
+    const values = ['https://x.com', 'HTTPS://X.COM', ' https://x.com', 'https://x.com ', 'https:x.com', 'https://user:pass@host', 'http://x.com', 'javascript:alert(1)', '//x.com', 'https:///x', 'https://', 'https://exämple.com'];
+    for (const value of values) expect(linkIssues({ live: value }).live === undefined, value).toBe(safeHref(value) !== undefined);
   });
 
   it('the validator and the flag agree', () => {
@@ -251,6 +270,17 @@ describe('media metadata (the blob goes through the store)', () => {
     expect(next.projects[0].media.map(m => m.id)).toEqual(['m1', 'm3', 'm4']);
     expect(removeMedia(draft, id, 'nope')).toBe(draft);
     expect(addMedia(draft, 'nope', ref(9))).toBe(draft);
+  });
+
+  it('refuses an image that would take a draft past 24 MB of images in all', () => {
+    const big = (n: number): DraftMediaRef => ({ id: `big${n}`, name: 'b.png', type: 'image/png', size: 2 * 1024 * 1024 });
+    let draft = addProject(addProject(addProject(SAMPLE_DRAFT)));
+    for (let n = 0; n < 12; n++) draft = addMedia(draft, pid(draft, Math.floor(n / 4)), big(n));
+    expect(draft.projects.flatMap(p => p.media)).toHaveLength(12);
+    expect(MAX_MEDIA_TOTAL_BYTES).toBe(24 * 1024 * 1024);
+    expect(addMedia(draft, pid(draft, 3), ref(1))).toBe(draft); // even one small image: the draft is full
+    const freed = removeMedia(draft, pid(draft, 0), 'big0');
+    expect(addMedia(freed, pid(freed, 3), ref(1)).projects[3].media).toHaveLength(1);
   });
 
   it('refuses a second image with the same id', () => {

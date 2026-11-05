@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { WORLDS } from '../../worlds';
 import { RESERVED_HANDLES } from '../router/routes';
-import { MAX_MEDIA_BYTES, SHOWCASE_HANDLES, emptyDraft, migrateDraft, validateDraft } from './draft';
+import { MAX_MEDIA_BYTES, MAX_MEDIA_TOTAL_BYTES, MAX_TITLE_LENGTH, SHOWCASE_HANDLES, emptyDraft, isHttpsUrl, mediaBytes, migrateDraft, parseHttpsUrl, validateDraft } from './draft';
 import { SAMPLE_DRAFT } from './sampleDraft';
 import type { CreatorDraft, DraftProject } from './types';
 
@@ -181,5 +181,77 @@ describe('migrateDraft', () => {
     expect(out.projects).toHaveLength(1);
     expect(out.projects[0]).toMatchObject({ id: 'a', title: 'T', technologies: [], links: {}, sections: [], usage: {} });
     expect(out.projects[0].media).toEqual([{ id: 'm', name: 'n', type: 'image/png', size: 3 }]);
+  });
+});
+
+describe('the one https rule (a link is https://host and nothing cleverer)', () => {
+  const good: [string, string][] = [
+    ['https://example.com', 'https://example.com/'],
+    ['https://example.com/a?b=1#c', 'https://example.com/a?b=1#c'],
+    ['HTTPS://X.COM', 'https://x.com/'],
+    ['https://Example.COM:8443/p', 'https://example.com:8443/p'],
+    ['https://exämple.com/', 'https://xn--exmple-cua.com/'],
+    ['https://github.com/me/app', 'https://github.com/me/app'],
+  ];
+  const bad = [
+    'javascript:alert(1)',
+    'data:text/html,x',
+    'http://example.com',
+    '//x.com',
+    'example.com',
+    'https://user:pass@host.com',
+    'https://user@host.com',
+    'https:x.com',
+    'https:/x.com',
+    'https://',
+    'https:///x',
+    'https://\\x.com',
+    'https://x.com\\@evil.com',
+    ' https://x.com',
+    'https://x.com ',
+    'https://x.com/a b',
+    'https://x.com/\tb',
+    'https://x.com/\nb',
+    '',
+    'https://' + 'a'.repeat(3000) + '.com',
+    'https://x.com/' + 'a'.repeat(3000),
+  ];
+
+  it('accepts a real https address and gives its parsed form', () => {
+    for (const [raw, href] of good) {
+      expect(isHttpsUrl(raw), raw).toBe(true);
+      expect(parseHttpsUrl(raw)?.href, raw).toBe(href);
+    }
+  });
+
+  it('refuses everything else: other schemes, no authority, credentials, spaces around or inside, control characters, very long', () => {
+    for (const raw of bad) {
+      expect(isHttpsUrl(raw), JSON.stringify(raw.slice(0, 30))).toBe(false);
+      expect(parseHttpsUrl(raw), JSON.stringify(raw.slice(0, 30))).toBeNull();
+    }
+    for (const odd of [undefined, null, 5, {}, ['https://x.com']]) expect(isHttpsUrl(odd)).toBe(false);
+  });
+
+  it('the validator flags a link the rule refuses (live, repo and the profile link)', () => {
+    const d = draftWith({ profile: { ...SAMPLE_DRAFT.profile, link: 'https://user:pw@x.com' }, projects: [project({ links: { live: ' https://x.com', repo: 'https:x.com' } })] });
+    expect(fields(d)).toEqual(expect.arrayContaining(['profile.link', 'projects[0].links.live', 'projects[0].links.repo']));
+  });
+});
+
+describe('a project title and the images of a draft are bounded', () => {
+  it('a title is at most 80 characters (a longer one is flagged)', () => {
+    expect(MAX_TITLE_LENGTH).toBe(80);
+    expect(fields(draftWith({ projects: [project({ title: 'x'.repeat(80) })] }))).not.toContain('projects[0].title');
+    expect(fields(draftWith({ projects: [project({ title: 'x'.repeat(81) })] }))).toContain('projects[0].title');
+  });
+
+  it('all the images of a draft are at most 24 MB together', () => {
+    expect(MAX_MEDIA_TOTAL_BYTES).toBe(24 * 1024 * 1024);
+    const big = (n: number) => ({ id: `m${n}`, name: 'a.png', type: 'image/png' as const, size: MAX_MEDIA_BYTES });
+    const projects = (count: number) => Array.from({ length: Math.ceil(count / 4) }, (_, i) => project({ id: `p${i}`, slug: `p${i}`, media: Array.from({ length: Math.min(4, count - i * 4) }, (_, k) => big(i * 4 + k)) }));
+    const twelve = draftWith({ projects: projects(12) });
+    expect(mediaBytes(twelve)).toBe(24 * 1024 * 1024);
+    expect(fields(twelve)).not.toContain('media');
+    expect(fields(draftWith({ projects: projects(13) }))).toContain('media');
   });
 });

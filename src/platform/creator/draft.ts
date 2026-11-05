@@ -11,6 +11,12 @@ export const MAX_TECHNOLOGIES = 30;
 export const MAX_MEDIA = 4;
 /** An image of a draft is at most 2 MB (spec 7.13). */
 export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
+/** All the images of a draft together are at most 24 MB (the browser's storage is shared; spec 7.13 sets 4 images of 2 MB a project). */
+export const MAX_MEDIA_TOTAL_BYTES = 24 * 1024 * 1024;
+/** A project's title is at most 80 characters. */
+export const MAX_TITLE_LENGTH = 80;
+/** A link is at most this long (a longer one is not a link). */
+const MAX_URL_LENGTH = 2048;
 export const MEDIA_TYPES: readonly DraftMediaRef['type'][] = ['image/png', 'image/jpeg', 'image/webp'];
 
 /** The octopus name (spec 7.13): 1 to 24 of letters, digits, space, `.`, `-` and the apostrophe. */
@@ -60,14 +66,37 @@ const text = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v :
 const optionalText = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 const oneOf = <T extends string>(v: unknown, list: readonly T[], fallback: T): T => (typeof v === 'string' && (list as readonly string[]).includes(v) ? (v as T) : fallback);
 
-/** Whether `value` is an https address (a link that is kept but not linked and flagged when it is not). */
-export function isHttpsUrl(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
+/**
+ * THE link rule of the creator (spec 7.13), the one predicate behind validation, the flag under a field and the href: an exact
+ * `https://host...` address, parsed, or null. Nothing is trimmed (a value with a space before or after is not a link), the text must
+ * itself start with `https://` (any case for the scheme; `https:x.com` and `//x.com` are not links), no whitespace, control character or
+ * backslash anywhere, the host is not empty (`https:///x`), no user name or password, at most 2048 characters. The returned URL's `href`
+ * is what a link may point to (normalised: lower-case host, punycode), never the raw text.
+ */
+export function parseHttpsUrl(value: unknown): URL | null {
+  if (typeof value !== 'string' || value.length > MAX_URL_LENGTH) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\s\\\u0000-\u001f\u007f]/.test(value)) return null;
+  if (!/^https:\/\//i.test(value)) return null;
+  const authority = value.slice('https://'.length);
+  if (authority === '' || /^[/?#]/.test(authority)) return null;
   try {
-    return new URL(value).protocol === 'https:';
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username !== '' || url.password !== '' || url.hostname === '') return null;
+    return url;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** Whether `value` is an https address by the one rule above (a link that is not one is kept but not linked and flagged). */
+export const isHttpsUrl = (value: unknown): boolean => parseHttpsUrl(value) !== null;
+
+/** The bytes of every image the draft lists. */
+export function mediaBytes(draft: CreatorDraft): number {
+  let total = 0;
+  for (const project of draft.projects) for (const m of project.media) total += typeof m.size === 'number' && Number.isFinite(m.size) ? m.size : 0;
+  return total;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -87,6 +116,7 @@ function checkProject(raw: unknown, i: number, seen: { ids: Set<string>; slugs: 
   else if (seen.slugs.has(slug)) add('.slug', 'is the slug of another project');
   else seen.slugs.add(slug);
   for (const key of ['title', 'tagline'] as const) if (typeof raw[key] !== 'string') add(`.${key}`, 'needs text');
+  if (typeof raw.title === 'string' && Array.from(raw.title).length > MAX_TITLE_LENGTH) add('.title', `has ${Array.from(raw.title).length} characters; a title is at most ${MAX_TITLE_LENGTH}`);
 
   if (!Array.isArray(sections)) add('.sections', 'needs a list');
   else
@@ -160,6 +190,7 @@ export function validateDraft(draft: CreatorDraft): DraftIssue[] {
       const seen = { ids: new Set<string>(), slugs: new Set<string>() };
       projects.forEach((project: unknown, i) => checkProject(project, i, seen, out));
     }
+    if (Array.isArray(projects) && mediaBytes(d as unknown as CreatorDraft) > MAX_MEDIA_TOTAL_BYTES) add('media', `has more than ${MAX_MEDIA_TOTAL_BYTES / (1024 * 1024)} MB of images; a draft has at most that`);
     if (typeof d.updatedAt !== 'string') add('updatedAt', 'needs a date');
   } catch {
     out.push({ field: 'draft', message: 'could not be checked' });
