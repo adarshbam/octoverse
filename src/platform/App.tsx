@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useRoute } from './router/history';
+import { restoreArrival, useRoute } from './router/history';
 import type { Route } from './router/routes';
+import { installListenerCount } from './devListenerCount';
 import { RouteView } from './shell/RouteView';
 import { type FadePhase, createRouteFade } from './shell/routeFade';
 import { pageKey, titleFor } from './shell/pageKey';
 import './ui/glass.css';
+
+// Development builds count the window's listeners for the end-to-end specs (the literal DEV check keeps it out of the production bundle).
+if (import.meta.env.DEV) installListenerCount();
 
 const prefersReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -52,6 +56,11 @@ export function PlatformApp() {
     const title = titleFor(shown);
     if (title !== null) document.title = title;
   }, [shown]);
+  // A page just swapped in by the browser's Back or Forward gets its scroll and focus back (spec 7.9); a world's views are one page and are left alone.
+  const page = pageKey(shown);
+  useEffect(() => {
+    restoreArrival();
+  }, [page]);
   return (
     <>
       <RouteView key={pageKey(shown)} route={shown} />
