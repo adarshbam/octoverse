@@ -259,3 +259,18 @@ What to check live at `/create` (desktop, motion allowed):
 5. The Overview toggle (bottom right of the picture) asks the running octopus for the overview pose (technology bubbles out); no remount. Phones and reduced motion: the still only, no toggle, no sparkle.
 
 Honest gaps (engine items E02b, recorded in the review notes): no live character-config channel; no runtime blink, wiggle or shimmer trigger (the shimmer is a platform sparkle, the wiggle a gaze swing). Frame rate (production, 1536 x 1024, under load): 88 to 120 fps with the live preview; the floor of 36 is met.
+
+## PENDING OWNER REVIEW: M7, the full draft preview and Publish unavailable (Task 20)
+
+Commits on `claude/platform-overnight`: `feat(creator): the create preview route has views; pure draft/project/bundle selection for the full preview`, `feat(creator): history entries name a control by a stable focus id and wait for focus into an inert part`, `feat(creator): the full draft preview page ...`, then the e2e spec `tests/e2e/platform-creator-preview.spec.ts` and docs. Notes: `docs/superpowers/reviews/platform.md` (Task 20), numbers in `.superpowers/sdd/2026-11-03-platform/task-20-report.md`.
+
+What to check live (desktop, motion allowed; the tests prove the rules, not the feel):
+1. At `/create`, pick a project in "Your Projects" and press **See live preview**. You land on `/create/preview?project=<id>`: YOUR octopus (your template, colours, personality, name) in that template's full world, with the selected project's title and technologies. There is no OctoVerse navigation bar; the one control outside the world is the exit at the top left, "Back to the creator". Does it read as "my octopus in a real portfolio world"?
+2. Open the overview (the nameplate) and the project detail: the address gains `?view=overview` / `?view=detail`, browser Back walks them, Escape closes them. This is the same behaviour as the showcase worlds (the same code).
+3. Press the exit (or browser Back from the intro): you are back on `/create` with the See live preview button focused (focus ring) and the page scrolled where you left it. From the overview or detail the exit still goes to `/create` but as a new step (no focus restore); the same rule the showcase worlds use.
+4. **Publish** at the bottom of the creator is greyed out and says "Publishing arrives with accounts". It does nothing. Is it clear enough that it is not available, and not mistaken for a bug?
+5. No network: open the browser's Network tab and use the creator and the preview. Only the app's own files (and your own saved images as `blob:` addresses) are requested; the two Google Fonts requests are index.html's, on every page of the app, not the creator's.
+6. Edit a Veyra-template draft (colours, name, projects, an image), then visit `/@veyra`: nothing there changes. The How It Works "Your Octopus" card shows your draft's picture once a draft exists.
+7. A draft with no projects, or a project with no technologies, opens the intro; the overview is empty (no bubbles). Does an empty overview look acceptable, or should it say something ("add technologies")? That text would be the engine's, which this task does not touch.
+
+Decisions to rule on: the selected project travels as `?project=<id>` in the address (a pasted link works; a project that does not exist falls back to the first). The entrance plays once per session per octopus handle (`u-<handle>`), as for the showcase worlds; changing the handle in the creator makes it a new entrance. The creator forgets which project was selected when you come back (it reselects the first); the preview keeps working either way.

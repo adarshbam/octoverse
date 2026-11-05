@@ -79,8 +79,10 @@ test.describe('deep links', () => {
   });
 
   test('/create/preview has no navigation bar', async ({ page }) => {
+    await seeEntrance(page);
     await page.goto('/create/preview');
-    await expect(page.getByRole('heading', { name: 'Preview' })).toBeVisible();
+    // The draft's full world (the sample draft here) with its exit control: the only platform affordance.
+    await expect(page.locator('[data-preview="draft"] .exit-link')).toHaveText('Back to the creator', { timeout: 90_000 });
     await expect(page.locator('.oct-nav')).toHaveCount(0);
   });
 
