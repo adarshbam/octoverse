@@ -1,8 +1,296 @@
 {
-  "assumption": "Largest card = Flux card, P3 share table box 0.24 x 0.30 of a panel filling the stage frame; at 1536 x 1024 that is 369 x 307 CSS px; stills are 2x: 738 x 614 px. World stills: stage=intro, freeze, solo (engine review flag: no bubbles, head dome or artifacts) with the HTML overlays hidden, so the still is the octopus on its world only. Task 8 may revise the card size.",
+  "assumption": "Largest card = Flux card, P3 share table box 0.24 x 0.30 of a panel filling the stage frame; at 1536 x 1024 that is 369 x 307 CSS px; stills are 2x: 738 x 614 px. World stills: stage=intro, freeze, solo (engine review flag: no bubbles, head dome or artifacts) with the HTML overlays hidden, so the still is the octopus on its world only. Creator stills (4 templates x 9 palettes) are the same page through the dev-only ?creator=<template>.<palette> review entry, same size and flags. Task 8 may revise the card size.",
   "width": 738,
   "height": 614,
   "entries": [
+    {
+      "key": "creator:aether:coral",
+      "file": "creator-aether-coral.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43132
+    },
+    {
+      "key": "creator:aether:lavender",
+      "file": "creator-aether-lavender.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42284
+    },
+    {
+      "key": "creator:aether:lilacGrey",
+      "file": "creator-aether-lilacGrey.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42220
+    },
+    {
+      "key": "creator:aether:mauve",
+      "file": "creator-aether-mauve.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42726
+    },
+    {
+      "key": "creator:aether:original",
+      "file": "creator-aether-original.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43080
+    },
+    {
+      "key": "creator:aether:peach",
+      "file": "creator-aether-peach.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44026
+    },
+    {
+      "key": "creator:aether:rose",
+      "file": "creator-aether-rose.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43744
+    },
+    {
+      "key": "creator:aether:teal",
+      "file": "creator-aether-teal.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42830
+    },
+    {
+      "key": "creator:aether:violet",
+      "file": "creator-aether-violet.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42308
+    },
+    {
+      "key": "creator:flux:coral",
+      "file": "creator-flux-coral.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45188
+    },
+    {
+      "key": "creator:flux:lavender",
+      "file": "creator-flux-lavender.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42434
+    },
+    {
+      "key": "creator:flux:lilacGrey",
+      "file": "creator-flux-lilacGrey.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42420
+    },
+    {
+      "key": "creator:flux:mauve",
+      "file": "creator-flux-mauve.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43278
+    },
+    {
+      "key": "creator:flux:original",
+      "file": "creator-flux-original.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43188
+    },
+    {
+      "key": "creator:flux:peach",
+      "file": "creator-flux-peach.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45172
+    },
+    {
+      "key": "creator:flux:rose",
+      "file": "creator-flux-rose.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44412
+    },
+    {
+      "key": "creator:flux:teal",
+      "file": "creator-flux-teal.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 43338
+    },
+    {
+      "key": "creator:flux:violet",
+      "file": "creator-flux-violet.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 42346
+    },
+    {
+      "key": "creator:nox:coral",
+      "file": "creator-nox-coral.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56494
+    },
+    {
+      "key": "creator:nox:lavender",
+      "file": "creator-nox-lavender.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56500
+    },
+    {
+      "key": "creator:nox:lilacGrey",
+      "file": "creator-nox-lilacGrey.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56416
+    },
+    {
+      "key": "creator:nox:mauve",
+      "file": "creator-nox-mauve.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56202
+    },
+    {
+      "key": "creator:nox:original",
+      "file": "creator-nox-original.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56268
+    },
+    {
+      "key": "creator:nox:peach",
+      "file": "creator-nox-peach.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56494
+    },
+    {
+      "key": "creator:nox:rose",
+      "file": "creator-nox-rose.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56012
+    },
+    {
+      "key": "creator:nox:teal",
+      "file": "creator-nox-teal.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56738
+    },
+    {
+      "key": "creator:nox:violet",
+      "file": "creator-nox-violet.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 56568
+    },
+    {
+      "key": "creator:veyra:coral",
+      "file": "creator-veyra-coral.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45496
+    },
+    {
+      "key": "creator:veyra:lavender",
+      "file": "creator-veyra-lavender.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44756
+    },
+    {
+      "key": "creator:veyra:lilacGrey",
+      "file": "creator-veyra-lilacGrey.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44834
+    },
+    {
+      "key": "creator:veyra:mauve",
+      "file": "creator-veyra-mauve.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45024
+    },
+    {
+      "key": "creator:veyra:original",
+      "file": "creator-veyra-original.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45262
+    },
+    {
+      "key": "creator:veyra:peach",
+      "file": "creator-veyra-peach.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 46816
+    },
+    {
+      "key": "creator:veyra:rose",
+      "file": "creator-veyra-rose.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44484
+    },
+    {
+      "key": "creator:veyra:teal",
+      "file": "creator-veyra-teal.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 45662
+    },
+    {
+      "key": "creator:veyra:violet",
+      "file": "creator-veyra-violet.webp",
+      "bundle": "u-review",
+      "commit": "fd0b624",
+      "date": "2026-11-05",
+      "bytes": 44716
+    },
     {
       "key": "world:aether",
       "file": "aether.webp",

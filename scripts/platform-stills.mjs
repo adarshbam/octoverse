@@ -1,4 +1,4 @@
-// Usage: SET=world node scripts/platform-stills.mjs
+// Usage: SET=world|creator node scripts/platform-stills.mjs   (SET=creator ONLY=aether.peach captures one)
 // The platform's engine still pipeline (spec 7.14): every still is rendered by the engine through
 // scripts/stage-capture.mjs, never painted or hand-edited, and reference art is never a still.
 //   SET=world    four stills (nox, veyra, flux, aether): /?world=<id>&stage=intro&freeze&solo
@@ -9,7 +9,10 @@
 // So this script takes the same page, the same waits (capture-ready.mjs: Poppins, the ready flag, kit and plate
 // both loaded, the sequence sheets, the settle) and the same screenshot, and only hides every DOM element that is
 // not the canvas or its ancestors (`hideChrome`) just before the screenshot; the render itself is untouched.
-//   SET=creator  the 36 creator stills (6 templates x palettes): added in platform Task 18; refused here.
+//   SET=creator  the 36 creator stills (4 templates x 9 palettes, Original included): /?creator=<template>.<palette>&stage=intro&freeze&solo
+//                (the dev-only review entry, src/platform/creator/review.ts: the engine's review page over a `u-review` bundle built
+//                by assembleBundle; a still shows no personality, so each template wears its own world's). Same size, waits, chrome
+//                hiding and encode as the world set. Files creator-<template>-<palette>.webp, manifest keys creator:<template>:<palette>.
 // Size: 2x the largest card (spec 7.10). Task 8 builds the cards, so the card is sized from the P3 share table:
 // the Flux box is 0.24 x 0.30 of a panel that fills the stage frame; at 1536 x 1024 that is a card of
 // 369 x 307 CSS px, captured at device scale 2 = 738 x 614 px. This is an assumption, written into the
@@ -36,8 +39,11 @@ const CARD_CSS = [369, 307]; // Flux card at 1536 x 1024: 0.24 x 1536, 0.30 x 10
 const SCALE = 2;
 const KIT_WAIT_MS = 90_000; // dev-only `kitwait`: the first cold dev-server load on a shared GPU outlasts the engine's 15 s
 const SIZE = { width: CARD_CSS[0] * SCALE, height: CARD_CSS[1] * SCALE };
-const ASSUMPTION = 'Largest card = Flux card, P3 share table box 0.24 x 0.30 of a panel filling the stage frame; at 1536 x 1024 that is 369 x 307 CSS px; stills are 2x: 738 x 614 px. World stills: stage=intro, freeze, solo (engine review flag: no bubbles, head dome or artifacts) with the HTML overlays hidden, so the still is the octopus on its world only. Task 8 may revise the card size.';
+const ASSUMPTION = 'Largest card = Flux card, P3 share table box 0.24 x 0.30 of a panel filling the stage frame; at 1536 x 1024 that is 369 x 307 CSS px; stills are 2x: 738 x 614 px. World stills: stage=intro, freeze, solo (engine review flag: no bubbles, head dome or artifacts) with the HTML overlays hidden, so the still is the octopus on its world only. Creator stills (4 templates x 9 palettes) are the same page through the dev-only ?creator=<template>.<palette> review entry, same size and flags. Task 8 may revise the card size.';
 const WORLD_SET = ['nox', 'veyra', 'flux', 'aether'];
+// The creator's ids (src/platform/creator/types.ts; this script cannot import TypeScript). Order: the house order of the templates.
+const TEMPLATES = ['veyra', 'flux', 'nox', 'aether'];
+const PALETTES = ['original', 'lavender', 'teal', 'mauve', 'rose', 'coral', 'peach', 'violet', 'lilacGrey'];
 
 // Pillow: quality 90 downward until the WebP is <= MAX_BYTES; prints "quality bytes".
 const ENCODE = `
@@ -73,25 +79,33 @@ const hideChrome = () => {
   return document.body.innerText.trim();
 };
 
-/** One world's still: the page at the card's size, scale 2, waited ready like stage-capture, chrome hidden, saved as PNG. */
-async function capture(browser, world, path) {
+/** One still: `query` is the address's own parameter (`world=nox` or `creator=nox.rose`); the page at the card's size, scale 2, waited ready like stage-capture, chrome hidden, saved as PNG. */
+async function capture(browser, query, path) {
   const page = await browser.newPage({ viewport: { width: CARD_CSS[0], height: CARD_CSS[1] }, deviceScaleFactor: SCALE });
   let failed = false;
   page.on('pageerror', e => { failed = true; console.log('[pageerror]', e.message); });
   page.on('console', m => { if (m.type() === 'error' && !m.text().includes('404')) console.log('[console]', m.text()); });
   await warmFonts(page, URL_BASE);
-  await page.goto(`${URL_BASE}/?stage=intro&freeze&solo&kitwait=${KIT_WAIT_MS}&world=${encodeURIComponent(world)}`, { waitUntil: 'load' });
-  await waitForReady(page, { label: `${world} ` });
+  await page.goto(`${URL_BASE}/?stage=intro&freeze&solo&kitwait=${KIT_WAIT_MS}&${query}`, { waitUntil: 'load' });
+  await waitForReady(page, { label: `${query} ` });
   const text = await page.evaluate(hideChrome);
-  if (text) throw new Error(`${world}: chrome text still visible after hideChrome: ${JSON.stringify(text.slice(0, 80))}`);
+  if (text) throw new Error(`${query}: chrome text still visible after hideChrome: ${JSON.stringify(text.slice(0, 80))}`);
   await page.screenshot({ path });
   await page.close();
-  if (failed) throw new Error(`${world}: page errors during capture`);
+  if (failed) throw new Error(`${query}: page errors during capture`);
 }
 
 const set = process.env.SET ?? 'world';
-if (set === 'creator') throw new Error('SET=creator arrives with platform Task 18');
-if (set !== 'world') throw new Error(`unknown SET=${set} (world | creator)`);
+if (set !== 'world' && set !== 'creator') throw new Error(`unknown SET=${set} (world | creator)`);
+
+// What to capture: { key, file, bundle, query } per still.
+const only = process.env.ONLY;
+const jobs =
+  set === 'world'
+    ? WORLD_SET.map(w => ({ key: `world:${w}`, file: `${w}.webp`, bundle: w, query: `world=${encodeURIComponent(w)}` }))
+    : TEMPLATES.flatMap(t => PALETTES.map(p => ({ key: `creator:${t}:${p}`, file: `creator-${t}-${p}.webp`, bundle: 'u-review', query: `creator=${t}.${p}` })));
+const chosen = only ? jobs.filter(j => j.query.endsWith(`=${only}`)) : jobs;
+if (chosen.length === 0) throw new Error(`ONLY=${only} matches no still`);
 
 const commit = run('git', ['rev-parse', '--short', 'HEAD']).trim();
 const date = new Date().toISOString().slice(0, 10);
@@ -99,21 +113,20 @@ const tmp = mkdtempSync(join(tmpdir(), 'octo-stills-'));
 mkdirSync(OUT_DIR, { recursive: true });
 
 const prior = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : { entries: [] };
-const entries = prior.entries.filter(e => !WORLD_SET.some(w => e.key === `world:${w}`));
+const entries = prior.entries.filter(e => !chosen.some(j => j.key === e.key));
 
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 const server = await createServer({ root: ROOT, logLevel: 'warn', server: { host: 'localhost', port: PORT, strictPort: true, watch: null } });
 try {
   await server.listen();
-  for (const world of WORLD_SET) {
-    const png = join(tmp, `${world}.png`);
-    await capture(browser, world, png);
-    const file = `${world}.webp`;
-    const dst = join(OUT_DIR, file);
+  for (const job of chosen) {
+    const png = join(tmp, `${job.file}.png`);
+    await capture(browser, job.query, png);
+    const dst = join(OUT_DIR, job.file);
     const [quality] = run('python', ['-c', ENCODE, png, dst, String(MAX_BYTES)]).trim().split(' ');
     const bytes = statSync(dst).size;
-    console.log(`${world}: ${file} q${quality} ${bytes} bytes`);
-    entries.push({ key: `world:${world}`, file, bundle: world, commit, date, bytes });
+    console.log(`${job.key}: ${job.file} q${quality} ${bytes} bytes`);
+    entries.push({ key: job.key, file: job.file, bundle: job.bundle, commit, date, bytes });
   }
 } finally {
   await browser.close();
