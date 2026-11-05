@@ -83,8 +83,7 @@ test('the entrance shape travels with the project (every set names its own: ther
   expect(nox.entrance).toEqual(NOX_ENTRANCE);
   expect(noxSequenceSet(state)).toMatchObject({ projectId: NOX_PROJECT_ID, entrance: { turn: 2 * Math.PI, spiral: true } });
   const quarter = await loadSequences({ projectId: 'theatre-test-turn', state, defaults: { arrival: SEQUENCE_DEFAULTS.arrival }, entrance: { ...NOX_ENTRANCE, turn: Math.PI / 2 } });
-  expect(quarter.entrance.turn).toBe(Math.PI / 2);
-  expect(quarter.entrance.arc).toEqual(NOX_ENTRANCE.arc);
+  expect(quarter.entrance).toEqual({ ...NOX_ENTRANCE, turn: Math.PI / 2 });
   expect(() => quarter.sample('entrance', 'main', 0)).toThrow(/No sequence "entrance"/);
   // @ts-expect-error a sequence set without its entrance shape is not one
   const bare: Parameters<typeof loadSequences>[0] = { projectId: 'theatre-test-bare', state, defaults: SEQUENCE_DEFAULTS };

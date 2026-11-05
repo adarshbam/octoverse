@@ -9,8 +9,10 @@ import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWE
 
 /**
  * The entrance's shape. A placeholder: the swim, the glide along the path and the slow 200-degree
- * turn are authored in the entrance task. `spiral` is the engine's only path today; no spin is
- * keyed here, so the turn and the arc add nothing.
+ * turn are authored in the entrance task, which sets `spiral: false` (the engine's glide-turn,
+ * sequences/entrance.ts glideTurnYaw) and keys the spin. No spin is keyed here (it holds 0), and on
+ * the spiral a spin of 0 adds neither turn nor arc, so she stands as landed; the glide-turn would
+ * start her at -turn, so the placeholder must not take it before the spin is keyed.
  */
 export const VEYRA_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spiral: true, arc: { r0: 0.9, phase: Math.PI } };
 

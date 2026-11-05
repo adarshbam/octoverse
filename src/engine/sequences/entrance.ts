@@ -4,12 +4,14 @@ import type { ArmId } from '../config/types';
 import { type StrokeFrame, type StrokeTiming, strokeAt, swimDrive } from '../motion/stroke';
 import { type SwimShapes, swimRests } from '../motion/swimArms';
 import type { Placement, Vec3, WorldLayout } from '../world/types';
-import type { EntranceShape } from './keys';
+import type { EntranceArc } from './keys';
 import type { Sequences } from './theatre';
 
 // The entrance (design 9.6): Nox comes out of the murk deep in the corridor on the left, swims
 // toward the visitor and to the centre in whole strokes, each a surge, turns once round his
 // vertical axis on a short golden-spiral arc into the stage spot, and settles into the intro pose.
+// A world without the spiral (`EntranceShape.spiral` false: Veyra) glides to the spot on its keyed
+// path instead and turns in place on it, into the front, by its own `turn` (glideTurnYaw).
 // His arms open into that pose before the turn, so he turns with them fully out (owner request).
 // The keys live in the Theatre sheet `entrance` (Nox's defaults in sequences/defaults.ts); this file reads them and
 // adds what is computed: the surges, the arc and the facing. No arm physics (ruling R48): the
@@ -21,10 +23,12 @@ export interface EntranceFrame {
   /** The body's place: stage units, (0, 0, 0) being the intro spot. */
   position: Vec3;
   /**
-   * Turn about +y (radians), facing along (sin yaw, 0, cos yaw); 0 faces the visitor. It is the
-   * `yaw` key plus the spin times the entrance turn (`EntranceShape.turn`: 2 pi for Nox), the spin wrapped to [-0.5, 0.5], so it is 0 while he swims in and
+   * Turn about +y (radians), facing along (sin yaw, 0, cos yaw); 0 faces the visitor. On the
+   * spiral (Nox) it is the `yaw` key plus the spin times the entrance turn (`EntranceShape.turn`, 2 pi), the spin wrapped to [-0.5, 0.5], so it is 0 while he swims in and
    * exactly 0 at the end; it jumps by 2 pi half way round the spin, so set a rotation with it
-   * directly and do not blend it from frame to frame (use `spin` for that).
+   * directly and do not blend it from frame to frame (use `spin` for that). Without the spiral it
+   * is the `yaw` key plus glideTurnYaw(spin, turn): -turn before the turn, rising without a jump to
+   * exactly 0 at its end.
    */
   yaw: number;
   /**
@@ -97,13 +101,24 @@ const PHI_END = PHI ** -4;
  * by default) is how far round the angle goes by the end of the spin; the radius still closes on
  * the spot as the spin completes.
  */
-export function spiralOffset(spin: number, arc: EntranceShape['arc'], turn: number = 2 * Math.PI): Vec3 {
+export function spiralOffset(spin: number, arc: EntranceArc, turn: number = 2 * Math.PI): Vec3 {
   const s = Math.min(1, Math.max(0, spin));
   if (s === 1) return [0, 0, 0];
   const theta = 2 * Math.PI * s;
   const r = (arc.r0 * (PHI ** ((-2 * theta) / Math.PI) - PHI_END)) / (1 - PHI_END);
   const angle = arc.phase + turn * s;
   return [r * Math.sin(angle), 0, r * Math.cos(angle)];
+}
+
+/**
+ * The glide-turn's share of the yaw (the path without the spiral, `EntranceShape.spiral` false) at
+ * `spin` (clamped to 0 to 1): turn (spin - 1), so the body faces -turn before the turn and turns
+ * the way Nox's spin does (+yaw), monotonically, through exactly `turn`, to exactly 0 (facing the
+ * visitor) as the spin completes. Not wrapped: a part turn has no jump to hide.
+ */
+export function glideTurnYaw(spin: number, turn: number): number {
+  const s = Math.min(1, Math.max(0, spin));
+  return turn * (s - 1);
 }
 
 /** What the entrance needs of the character: the timing of its stroke. */
@@ -141,7 +156,9 @@ function strokeLead(clock: number, timing: StrokeTiming) {
  * are the swim to the arc's start; the strokes pull the swim along that path in surges (the
  * `surge` prop, 0 none, 1 the speed in step with the thrust), and the arc adds
  * spiralOffset(spin) - spiralOffset(0), which ends at the spot. The turn's size is the sequences'
- * `entrance.turn` (the yaw and the arc's angle read it); the stroke's timing is `swim`.
+ * `entrance.turn` (the yaw and the arc's angle read it); the stroke's timing is `swim`. Without the
+ * spiral (`entrance.spiral` false) there is no arc: the keyed path is the whole way to the spot,
+ * and the spin turns the body in place by glideTurnYaw.
  */
 export function entranceFrame(seq: Sequences, seconds: number, { swim }: EntranceSwim): EntranceFrame {
   const t = Math.min(seq.length('entrance'), Math.max(0, Number.isFinite(seconds) ? seconds : 0));
@@ -149,13 +166,23 @@ export function entranceFrame(seq: Sequences, seconds: number, { swim }: Entranc
   const k = { ...seq.sample<EntranceProps>('entrance', 'main', t) };
   const lead = k.surge * strokeLead(k.stroke, swim);
   const path = lead === 0 ? k : seq.sample<EntranceProps>('entrance', 'main', t + lead);
-  const { turn, arc: shape } = seq.entrance;
-  const arc = spiralOffset(k.spin, shape, turn);
-  const arcStart = spiralOffset(0, shape, turn);
-  const round = k.spin - Math.round(k.spin);
+  const shape = seq.entrance;
+  let position: Vec3;
+  let yaw: number;
+  if (shape.spiral) {
+    const { turn } = shape;
+    const arc = spiralOffset(k.spin, shape.arc, turn);
+    const arcStart = spiralOffset(0, shape.arc, turn);
+    const round = k.spin - Math.round(k.spin);
+    position = [path.x + arc[0] - arcStart[0], path.y, path.z + arc[2] - arcStart[2]];
+    yaw = k.yaw + turn * round;
+  } else {
+    position = [path.x, path.y, path.z];
+    yaw = k.yaw + glideTurnYaw(k.spin, shape.turn);
+  }
   return {
-    position: [path.x + arc[0] - arcStart[0], path.y, path.z + arc[2] - arcStart[2]],
-    yaw: k.yaw + turn * round,
+    position,
+    yaw,
     pitch: k.pitch,
     stroke: k.stroke,
     spin: k.spin,
@@ -182,14 +209,24 @@ export const ARM_HALF_SPAN = { open: 2.15, closed: 1.2 } as const;
  */
 export const PILLAR_HALF = { x: 0.55, z: 0.5 } as const;
 
-/** What the clearance check measures with: the character's stroke and arm reach, and the kit's pillar footprint. */
-export interface EntranceGeometry extends EntranceSwim {
-  armHalfSpan: { readonly open: number; readonly closed: number };
-  pillarHalf: { readonly x: number; readonly z: number };
+/** A kit piece's footprint in the x-z plane: half its width (x) and depth (z) in its own axes, before a placement's rotY and scale. */
+export interface Footprint {
+  readonly x: number;
+  readonly z: number;
 }
 
-/** Distance in the x-z plane from `p` to a pillar's footprint (0 inside it). */
-function pillarDistance(p: Vec3, pillar: Placement, pillarHalf: EntranceGeometry['pillarHalf']) {
+/**
+ * What the clearance check measures with: the character's stroke and arm reach, and the kit's pillar
+ * footprint. `swim` is the stroke the character swims, `strokeTiming(personality)` (motion/stroke.ts),
+ * never the raw `personality.swim` once a world sets `glideBias` (Veyra: HANDOFF, Task 16).
+ */
+export interface EntranceGeometry extends EntranceSwim {
+  armHalfSpan: { readonly open: number; readonly closed: number };
+  pillarHalf: Footprint;
+}
+
+/** Distance in the x-z plane from `p` to a placed piece's footprint (0 inside it). */
+function pillarDistance(p: Vec3, pillar: Placement, pillarHalf: Footprint) {
   const dx = p[0] - pillar.position[0];
   const dz = p[2] - pillar.position[2];
   const rot = pillar.rotY ?? 0;
@@ -250,4 +287,67 @@ export function pathClearance(frame: (s: number) => EntranceFrame, layout: World
     for (const pillar of layout.groups.pillars ?? []) least = Math.min(least, pillarDistance(f.position, pillar, geometry.pillarHalf) - reach);
   }
   return least;
+}
+
+/** The least gap a clearance check found, and where: the entrance's second and the piece (its group, kit name and index in the group). */
+export interface ClearanceGap {
+  gap: number;
+  seconds: number;
+  piece: string;
+}
+
+/** Whose arm reach a clearance check counts: as the frame draws it (armHalfSpan), or held fully open or fully closed the whole way. */
+export type ClearanceReach = 'frame' | 'open' | 'closed';
+
+/**
+ * Smallest gap between the arm reach and any piece of `layout` (every group, the world's own) whose
+ * kit name has a footprint in `footprints`, along the entrance, sampled `samples` times from 0 to
+ * `until` seconds. Pieces without a footprint (plants, corals, low rocks the swim passes over) are
+ * not counted. In the x-z plane, a circle of reach, as pathClearance: `reach` 'frame' is the reach
+ * the frame draws, 'open' and 'closed' hold the arms at the geometry's open or closed half-span the
+ * whole way (the "arms open and closed" check). With Nox's pillars as the only footprints and
+ * 'frame', it is pathClearance.
+ */
+export function layoutClearance(
+  frame: (s: number) => EntranceFrame,
+  layout: WorldLayout,
+  geometry: Pick<EntranceGeometry, 'swim' | 'armHalfSpan'>,
+  footprints: Readonly<Record<string, Footprint>>,
+  samples: number,
+  until: number,
+  reach: ClearanceReach = 'frame',
+): ClearanceGap {
+  const least: ClearanceGap = { gap: Infinity, seconds: 0, piece: '' };
+  for (let i = 0; i < samples; i++) {
+    const seconds = (i / Math.max(1, samples - 1)) * until;
+    const f = frame(seconds);
+    const span = reach === 'frame' ? armHalfSpan(f, geometry) : geometry.armHalfSpan[reach];
+    for (const [group, pieces] of Object.entries(layout.groups)) {
+      pieces.forEach((placed, n) => {
+        const footprint = footprints[placed.piece];
+        if (!footprint) return;
+        const gap = pillarDistance(f.position, placed, footprint) - span;
+        if (gap < least.gap) Object.assign(least, { gap, seconds, piece: `${group}[${n}] ${placed.piece}` });
+      });
+    }
+  }
+  return least;
+}
+
+/**
+ * The entrance's clearance against a world's own layout with the arms as drawn, held open and held
+ * closed (layoutClearance three ways), from 0 to `until` seconds (default: the sheet's length).
+ * The hook a world's entrance test calls with its own sequences, geometry, layout and kit
+ * footprints (Nox: sequences/entrance.test.ts; Veyra's arch, walls and blocks: her entrance task).
+ */
+export function entranceClearance(
+  seq: Sequences,
+  geometry: Pick<EntranceGeometry, 'swim' | 'armHalfSpan'>,
+  layout: WorldLayout,
+  footprints: Readonly<Record<string, Footprint>>,
+  { samples = 651, until = seq.length('entrance') }: { samples?: number; until?: number } = {},
+): Record<ClearanceReach, ClearanceGap> {
+  const frame = (s: number) => entranceFrame(seq, s, geometry);
+  const check = (reach: ClearanceReach) => layoutClearance(frame, layout, geometry, footprints, samples, until, reach);
+  return { frame: check('frame'), open: check('open'), closed: check('closed') };
 }
