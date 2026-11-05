@@ -6,7 +6,8 @@ import { ArmChain } from '../character/armChain';
 import { ARM_IDS, type ArmId } from '../config/types';
 import { createInstanceState } from '../host/instance';
 import { seededRng } from '../motion/micro';
-import { FLOURISH_SECONDS, FLOURISH_UNROLL, type FlourishEvent, FlourishEvents, FlourishScheduler, flourishCurve, flourishRate, flourishUnroll } from './flourish';
+import { STAGE_IDS } from '../config/types';
+import { FLOURISH_SECONDS, FLOURISH_UNROLL, type FlourishEvent, FlourishEvents, FlourishScheduler, flourishCurve, flourishMayPlay, flourishRate, flourishUnroll, yieldedUnroll } from './flourish';
 
 /** `seconds` of frames (60 per second, from `from`) through `scheduler`, recording each start. */
 function run(scheduler: FlourishScheduler, seconds = 60, busy?: (arm: ArmId) => boolean, events?: FlourishEvents, from = 0) {
@@ -158,5 +159,43 @@ test("the character wires the flourish, the glide bias and the settle into its f
   expect(octopus).toMatch(/settleOvershoot\(mc\.settle, micro, settleScale\(personality\)\)/);
   expect(octopus).toMatch(/new FlourishScheduler\(flourishRate\(config\.personality\)\)/);
   expect(octopus).toMatch(/instance\.flourish/);
+  // The gate and the yield are the pure functions tested above, not a copy of them.
+  expect(octopus).toMatch(/if \(flourishMayPlay\(moving, swim !== null, stage\)\)/);
+  expect(octopus).toMatch(/yieldedUnroll\(flourishUnroll\(m\.flourishClock, playing\.start\), m\.holdWeight\[playing\.index\]\)/);
   expect(ARM_IDS.length).toBe(8);
+});
+
+test('a flourish plays only with motion on, out of the swim and out of the entrance (reduced motion and freeze make moving 0)', () => {
+  for (const stage of STAGE_IDS) {
+    expect(flourishMayPlay(1, false, stage), stage).toBe(stage !== 'entering');
+    // Reduced motion or `?freeze`: Octopus's `moving` is 0.
+    expect(flourishMayPlay(0, false, stage), stage).toBe(false);
+    // Swimming (the entrance's stroke is running).
+    expect(flourishMayPlay(1, true, stage), stage).toBe(false);
+  }
+});
+
+test("a playing flourish yields to its arm becoming busy: the unroll fades with the hold's weight and is gone once it holds", () => {
+  expect(yieldedUnroll(0.4, 0)).toBe(0.4);
+  expect(yieldedUnroll(0.4, 0.5)).toBeCloseTo(0.2, 12);
+  expect(yieldedUnroll(0.4, 1)).toBe(0);
+  expect(yieldedUnroll(0.4, 1.7)).toBe(0);
+  expect(yieldedUnroll(0.4, -0.3)).toBe(0.4);
+  // A flourish on its way up when its arm starts to hold (the hold's turn ramping 0 to 1 over 0.5 s): it gives way
+  // smoothly, never unrolls more than it would have, and is gone once the arm holds.
+  const scheduler = new FlourishScheduler(4, seededRng(4));
+  let playing = null as ReturnType<FlourishScheduler['step']>;
+  let t = 0;
+  for (; !playing; t += 1 / 60) playing = scheduler.step(t);
+  const holdFrom = playing.start + 0.5;
+  let prev = Infinity;
+  for (let u = holdFrom; u < playing.start + FLOURISH_SECONDS; u += 1 / 60) {
+    const weight = Math.min(1, (u - holdFrom) / 0.5);
+    const unroll = yieldedUnroll(flourishUnroll(u, playing.start), weight);
+    expect(unroll).toBeLessThanOrEqual(flourishUnroll(u, playing.start));
+    if (weight === 1) expect(unroll).toBe(0);
+    // No jump from frame to frame.
+    if (prev !== Infinity) expect(Math.abs(unroll - prev)).toBeLessThan(0.02);
+    prev = unroll;
+  }
 });

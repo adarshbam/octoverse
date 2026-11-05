@@ -5,7 +5,7 @@ import { BlinkScheduler, floatOffset, settleScale, spring } from '../behavior/am
 import { Attention, nearFace } from '../behavior/attention';
 import { coreGlowFacing } from '../behavior/entrance';
 import { type ExpressionId, SWIM_BLINK, blendExpression, resolveExpressions } from '../behavior/expressions';
-import { FlourishScheduler, flourishRate, flourishUnroll } from '../behavior/flourish';
+import { FlourishScheduler, flourishMayPlay, flourishRate, flourishUnroll, yieldedUnroll } from '../behavior/flourish';
 import { FocusChoreography } from '../behavior/focusChoreography';
 import type { PoseBlender } from '../behavior/poseBlend';
 import { bubbleHotFor, reachesForPointer, reachingArm } from '../behavior/reach';
@@ -742,12 +742,13 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     // arm; each start is told to the instance's subscribers (instance.flourish).
     let flourishArm = -1;
     let unroll = 0;
-    if (moving > 0 && !swim && stage !== 'entering') {
+    if (flourishMayPlay(moving, swim !== null, stage)) {
       m.flourishClock += dt;
       const playing = m.flourish.step(m.flourishClock, armBusy, instance.flourish);
       if (playing) {
         flourishArm = playing.index;
-        unroll = flourishUnroll(m.flourishClock, playing.start);
+        // Gives way if its arm starts to hold something mid-flourish (Task 19's lift goes through the hold).
+        unroll = yieldedUnroll(flourishUnroll(m.flourishClock, playing.start), m.holdWeight[playing.index]);
       }
     }
     let offset = 0;
