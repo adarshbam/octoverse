@@ -1,6 +1,7 @@
 import type { ArmId, ChoosingStage, PendantSlot, Point2, StageId } from '../config/types';
 import type { StagePose } from '../poses/types';
 import type { Vec3 } from '../world/types';
+import { armPoint } from './pendant';
 
 // The arm lift (spec 7.5, "Choosing a pendant"; contract 9.2 `SELECTS.armLift`): the arm a chosen
 // pendant hangs from lifts it toward the pointer, or straight up and forward with the keyboard or a
@@ -154,6 +155,31 @@ export interface ArmTarget {
   curve: readonly Point2[];
   /** Radians out of the arms' plane (negative: forward, toward the visitor), at the full lift. */
   pitch: number;
+  /** Where along the lifted arm the pendant hangs at the full lift (arc fraction; liftHangAt), when the slot's own place was given. */
+  hangAt?: number;
+}
+
+/** How much lower than its crown a lifted arm's tip must end for the arm to count as curling over (arm units). */
+const CURL_DROP = 0.05;
+
+/**
+ * Where along a lifted arm (`curve`) its pendant hangs: under the arm's crown (its highest point past
+ * half way) when the tip curls down over from it, as P4's lifted arm curls over its orb; otherwise
+ * at the pendant's own slot `slotAt`. Pure; samples the curve as the rig does (armPoint).
+ */
+export function liftHangAt(curve: readonly Point2[], slotAt: number): number {
+  let crownU = 1;
+  let crownY = -Infinity;
+  for (let k = 0; k <= 50; k++) {
+    const u = 0.5 + (0.5 * k) / 50;
+    const y = armPoint(curve, u)[1];
+    if (y > crownY) {
+      crownY = y;
+      crownU = u;
+    }
+  }
+  const tipY = armPoint(curve, 1)[1];
+  return crownY - tipY > CURL_DROP ? crownU : slotAt;
 }
 
 const rotateAbout = (curve: readonly Point2[], turn: number): Point2[] => {
@@ -191,7 +217,8 @@ export function armLiftTarget(slot: Pick<PendantSlot, 'arm'> & Partial<PendantSl
   const [rx, ry] = base[0];
   const aim = pointer ? Math.atan2(pointer[1] - ry, pointer[0] - rx) : Math.PI / 2;
   const turn = traced && !pointer ? 0 : liftTurn(base, aim, traced ? POINTER_LEAN : LIFT_MAX_TURN);
-  return { arm: slot.arm, curve: traced && turn === 0 ? traced : rotateAbout(base, turn), pitch: pointer ? 0 : LIFT_PITCH };
+  const curve = traced && turn === 0 ? traced : rotateAbout(base, turn);
+  return { arm: slot.arm, curve, pitch: pointer ? 0 : LIFT_PITCH, ...(slot.at !== undefined ? { hangAt: liftHangAt(curve, slot.at) } : {}) };
 }
 
 const sameCurve = (a: readonly Point2[], b: readonly Point2[]) => a === b || (a.length === b.length && a.every((p, k) => p[0] === b[k][0] && p[1] === b[k][1]));

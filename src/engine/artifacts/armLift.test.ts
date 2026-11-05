@@ -211,3 +211,21 @@ describe('a lifting arm starts no flourish (the scheduler with the busy-arm hook
     expect(started.length).toBeGreaterThan(0);
   });
 });
+
+describe('where a lifted pendant hangs (liftHangAt)', () => {
+  it('under the crown of an arm that curls over (P4), at its own slot on one that does not', async () => {
+    const { liftHangAt } = await import('./armLift');
+    const { armPoint } = await import('./pendant');
+    // Up, over a crown at about (-1.0, 0.5), and down to a tip at (-1.4, 0.1).
+    const curl: Point2[] = [[-0.3, -1], [-0.6, -0.5], [-0.8, 0.2], [-1.0, 0.5], [-1.2, 0.45], [-1.35, 0.3], [-1.4, 0.1]];
+    const u = liftHangAt(curl, 0.96);
+    expect(u).toBeLessThan(0.9);
+    expect(u).toBeGreaterThan(0.5);
+    for (let k = 0.5; k <= 1; k += 0.01) expect(armPoint(curl, k)[1]).toBeLessThanOrEqual(armPoint(curl, u)[1] + 1e-9);
+    // A straight lifted arm: the slot stays.
+    expect(liftHangAt(LEFT.map(([x, y]) => [x, -y - 2] as Point2), 0.9)).toBe(0.9);
+    // armLiftTarget carries it when given the slot's place.
+    expect(armLiftTarget({ arm: 'T1', at: 0.96 }, null, pose(), curl).hangAt).toBe(u);
+    expect(armLiftTarget({ arm: 'T1' }, null, pose(), curl).hangAt).toBeUndefined();
+  });
+});

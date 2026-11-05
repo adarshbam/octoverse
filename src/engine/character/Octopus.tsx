@@ -164,7 +164,12 @@ function raiseTo(values: Float32Array, i: number, value: number) {
 }
 
 /** A lifted pendant's target: its arm's lifted rest and pitch. */
-type LiftTarget = { rest: ArmRest; pitch: number };
+type LiftTarget = { rest: ArmRest; pitch: number; hangAt: number };
+
+/** Pendant `bubble` hangs at `at` along its arm at the full lift. */
+function setHang(values: Float32Array, bubble: number, at: number) {
+  values[bubble] = at;
+}
 
 /** Forgets each target whose pendant is neither lifted nor being lowered (loops, not closures: nothing is allocated per frame). */
 function forgetTargets(targets: (LiftTarget | undefined)[], lifts: readonly { bubble: number }[]) {
@@ -239,6 +244,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     orbit: orbs.map(() => new THREE.Vector3()),
     hold: { pull: new Float32Array(orbs.length), tip: orbs.map(() => new THREE.Vector3()), dir: orbs.map(() => new THREE.Vector3(0, -1, 0)) },
     lift: new Float32Array(orbs.length),
+    hangAt: new Float32Array(orbs.length).fill(Number.NaN),
     arms: [],
   }), [orbs, blowSheet]);
   // One timeline for every technology focus: eyes, face, arm, emphasis, release.
@@ -810,6 +816,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     m.liftWeight.fill(0);
     m.liftFrame.fill(null);
     bubbleState.lift.fill(0);
+    bubbleState.hangAt.fill(Number.NaN);
     if (armLift) {
       // The pendant's own arm: its slot in the stage it is framed for (the same arm in both stages).
       const place = selected >= 0 && liftSlots ? liftSlots[bubbleState.stage][selected] ?? liftSlots.overview[selected] ?? liftSlots.intro[selected] : null;
@@ -821,8 +828,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
         const i = ARM_IDS.indexOf(f.arm);
         if (!armLift.targets[f.bubble] && poses) {
           // Worked out once a choice: toward the pointer when it is on the pendant, else up and forward (keyboard, touch); the world's traced lift where it has one.
-          const target: ArmTarget = SELECTS.armLift.target({ arm: f.arm }, instance.hover.bubble && !freeze ? [m.target.x, m.target.y, 0] : null, poses[bubbleState.stage], SELECTS.armLift.traced(poses, bubbleState.stage, f.arm));
-          keepTarget(armLift.targets, f.bubble, { rest: restFromCurve(target.curve, rig.arms[i].chain.segments), pitch: target.pitch });
+          const slotAt = liftSlots?.[bubbleState.stage][f.bubble]?.slot.at;
+          const target: ArmTarget = SELECTS.armLift.target({ arm: f.arm, at: slotAt }, instance.hover.bubble && !freeze ? [m.target.x, m.target.y, 0] : null, poses[bubbleState.stage], SELECTS.armLift.traced(poses, bubbleState.stage, f.arm));
+          keepTarget(armLift.targets, f.bubble, { rest: restFromCurve(target.curve, rig.arms[i].chain.segments), pitch: target.pitch, hangAt: target.hangAt ?? Number.NaN });
         }
         const w = liftWeightAt(f, 1, armLift.easeMs, settleScale(personality));
         // Two lifts on one arm (one lowered as the next pendant on it is chosen): the larger drives it.
@@ -831,6 +839,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           m.liftFrame[i] = f;
         }
         raiseTo(bubbleState.lift, f.bubble, Math.min(1, Math.max(0, w)));
+        const kept = armLift.targets[f.bubble];
+        if (kept) setHang(bubbleState.hangAt, f.bubble, kept.hangAt);
       }
     }
     // In the intro, the arm whose tip is nearest the pointer reaches toward it, never into the

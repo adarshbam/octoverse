@@ -314,3 +314,22 @@ test('the bloom plays its own sheet over the appear\'s duration, or the reveal\'
   for (let k = 0; k < 12; k++) blow.step(ready);
   expect(blow.done).toBe(false);
 });
+
+test('a lifted pendant hangs along its arm toward the lift\'s hang point by the lift\'s weight (none without one)', () => {
+  const arms = armsAt(() => 0);
+  const base = { stage: 'overview' as const, swell: 0, dt: 1 / 60, hot: false, still: true };
+  const plain = placementDriver(PENDANT, 2);
+  plain.step(base, arms);
+  const lifted = placementDriver(PENDANT, 2);
+  const at = new Float32Array([0.5, Number.NaN]);
+  lifted.step({ ...base, hang: { at, weight: new Float32Array([1, 1]) } }, arms);
+  // The fake arms put arc fraction u at y = -2u: pendant 0 now hangs from 0.5, pendant 1 (no hang point) from its slot.
+  expect(lifted.pendants![0].attach[1]).toBeCloseTo(-1, 9);
+  expect(lifted.pendants![1].attach).toEqual(plain.pendants![1].attach);
+  const half = placementDriver(PENDANT, 2);
+  half.step({ ...base, hang: { at, weight: new Float32Array([0.5, 0]) } }, arms);
+  const slotAt = plain.pendants![0].at;
+  expect(half.pendants![0].attach[1]).toBeCloseTo(-2 * (slotAt + (0.5 - slotAt) * 0.5), 9);
+  // The slot itself is unchanged: letting go returns it there.
+  expect(half.pendants![0].at).toBe(slotAt);
+});

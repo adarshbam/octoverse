@@ -39,6 +39,8 @@ export interface PlacementFrame {
   dt: number;
   hot: boolean;
   still: boolean;
+  /** The arm lift's hang (pendant.ts PendantFrame.hang); a placement that does not hang pendants ignores it. */
+  hang?: { at: ArrayLike<number>; weight: ArrayLike<number> };
 }
 
 /**
@@ -97,7 +99,7 @@ const pendantPlacement = {
     const run = createPendantRun(count);
     return {
       // Swings advance from the arms' own motion; the swell does not move an arm, so it does not move a pendant.
-      step: ({ stage, swell, dt, still }, arms) => stepPendants(run, places[stage], { stage, swell, dt, reducedMotion: still }, arms, config),
+      step: ({ stage, swell, dt, still, hang }, arms) => stepPendants(run, places[stage], { stage, swell, dt, reducedMotion: still, hang }, arms, config),
       size: (stage, i) => places[stage][i]?.size ?? null,
       point: (_stage, i, _swell, out) => out.set(...run.live[i].orbCentre),
       reset: () => resetPendants(run),

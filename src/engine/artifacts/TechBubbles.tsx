@@ -54,6 +54,8 @@ export interface BubbleState {
    * select's `scale` and its thread shortens by its `threadShorten` with it.
    */
   lift: Float32Array;
+  /** Where along its arm each lifted pendant hangs at the full lift (an arc fraction; NaN: its own slot), written with `lift`. */
+  hangAt: Float32Array;
   /** The character's live arms, in ARM_IDS order, for a placement that hangs artifacts from them (the pendant placement); the orbit placement does not read them. */
   arms: readonly ArmReader[];
 }
@@ -67,6 +69,12 @@ const CUP_GLOW_OPACITY = 0.55;
 /** Seconds for the bubbles to fade in or out, and to grow into a new stage's size. */
 const FADE_S = 0.9;
 const RESIZE_PER_S = 3;
+
+/** Points the placement's hang at the character's lift arrays (written by it each frame). */
+function linkHang(hang: { at: ArrayLike<number>; weight: ArrayLike<number> }, s: Pick<BubbleState, 'hangAt' | 'lift'>) {
+  hang.at = s.hangAt;
+  hang.weight = s.lift;
+}
 
 /** Marks every bubble as not shown (the page's buttons go inert). */
 function hideSpots(live: BubbleLive) {
@@ -236,7 +244,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
 
   // The placement's run for this many bubbles (the orbit clock and its speed spring, or the pendants' swings), each bubble's current size, and how far all are shown.
   const driver = useMemo(() => placementDriver(placementConfig, bubbles.length), [placementConfig, bubbles.length]);
-  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts) }), [bubbles.length, appear, artifacts]);
+  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
   // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
   const threads = useThreads(placementConfig.kind === 'pendant' ? placementConfig.tether : null, bubbles.length);
   const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3() }), []);
@@ -275,8 +283,10 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       return;
     }
     run.hidden = false;
+    // The arm lift's hang, read by a placement that hangs pendants (the arrays are the character's, written each frame).
+    linkHang(run.hang, s);
     // The placement advances: the orbit clock at its eased speed (motion off, it stands where it is), or the pendants' swings from their arms' motion.
-    driver.step({ stage: s.stage, swell: s.swell, dt, hot: s.hot, still: s.still }, s.arms);
+    driver.step({ stage: s.stage, swell: s.swell, dt, hot: s.hot, still: s.still, hang: run.hang }, s.arms);
     const shown = run.shown * run.shown * (3 - 2 * run.shown);
     root.updateWorldMatrix(true, false);
     const { edge, ndc, right, orbit: target, held } = scratch;
