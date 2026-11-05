@@ -364,3 +364,24 @@ What to look at:
 5. **No WebGL:** `public/octoverse/poster-intro.webp` now exists (1536 x 1024, 138 KB, captured by the engine from the host's frozen intro with the chrome hidden: `node scripts/platform-poster.mjs`). With no WebGL 2 the landing shows it under all the text and buttons (stills `nowebgl-landing-<w>x<h>.png`); every other route works with stills. `/?nowebgl` is the ENGINE's review switch (it opens Nox's page, not the landing), so the platform's poster is reached by a browser without WebGL, not by that address.
 
 Not fixable by the platform (engine-owned, recorded, not asserted): in a world visit and the creator's full preview the engine's controls are under 44 px (the exit link 168 x 36 and 172 x 36, "Skip to project details" 201 x 42, the nameplate button 98 to 106 x 32 to 35 on a phone, View Project 125 to 143 x 37 to 40, GitHub 106 to 114 x 39 to 42), the exit link comes before the skip link in the Tab order, and on a 390 px phone the engine's intro description is about 10 px and runs over the host's head. These are engine items (E02b).
+
+## PENDING OWNER REVIEW: final measurements (Task 21b)
+
+Measured on a production build, Edge, 1536 x 1024, dpr 1, one browser at a time, on a shared laptop ('under load', but steadier than Task 16). Full tables and run lists: `docs/superpowers/reviews/platform.md`, section "Task 21b". Evidence: `docs/superpowers/evidence/platform/final/`. No engine or world code was changed.
+
+Numbers (median fps, 2 runs; floor):
+- Landing intro 42.9 and 43.1 (40): met. Entrance 38.8 and 50.0 (32): met, but the 3 s window may not be wholly inside the entrance (see below).
+- How It Works with the Flux card live 38.8 and 39.1 (36): met (was missed at 32.6 and 36.4 in Task 16).
+- Profile `/@veyra` 117.6 and 112.4 (40): met. Creator `/create` live preview 131.6 and 131.6 (36): met.
+- Each world through the platform against `?world=<id>`, median of 3 pairs: Nox 1.021, Veyra 0.992, Flux 1.014, Aether 1.018. All within 3%; all at 43 to 47 fps, above the 40 floor. Run-to-run spread was under 5%, so the 3% rule is decidable this time.
+- Resources spec: 9 passed (two are the expected heap failures). Contexts held 1 / attached 1 over 20 trips; window listeners 28 every trip; the landing and How It Works load no world's chunk; first frame 1264, 1245, 1279 ms (limit 3000); route change 144 to 294 ms (limit 500).
+- MISS: JS heap still grows about 1.3 MB per round trip (CDP +104% over 20 trips; limit 15%; was +105%). Unchanged, cause not found: it needs a heap-snapshot diff in the engine and worlds.
+
+World regression: vitest 2024 passed (197 files), typecheck clean; the worlds' own e2e specs 68 passed (entrance, world, worldSwitch, detail, keyboard, fallback, isolation, embedding, cameraDrift, responsive, worldTiers, worldMotion, veyra, aether; no flux spec exists). One platform-caused test mismatch fixed in `responsive.spec.ts` (`/` is the platform landing now and loads the world after the page); assertions unchanged. Creator editor spec: 29 passed.
+
+What to check live (the numbers cannot see these):
+1. Stutter when entering a world from a profile and coming back: mean fps dipped in some runs on both paths (Veyra platform runs and one `?world=` run), so a hitch is possible even when the median is fine.
+2. How It Works: hover each card and move between cards; the preview's own GPU cost is not measured (the timer sees the host only).
+3. Creator: change a palette and a template; the live canvas is replaced after about 1 s (the engine has no live colour channel) and the first time each template is shown it takes 2.7 to 3.7 s (shader compile).
+4. The entrance: it was not verified frame by frame; watch the first visit for slowdowns.
+5. Leave the site open through a few dozen page changes if you can; the heap leak is the one spec limit that is still missed.
