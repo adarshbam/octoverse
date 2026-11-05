@@ -43,7 +43,10 @@ export function OctopusPicture({ own }: { own: LocalDraft | null | undefined }) 
   return (
     <span className="oct-yours-picture" data-picture={own === null ? 'sample' : 'draft'}>
       <CreatorStill template={template} palette={palette} />
-      <span className="oct-still-tag">{label}</span>
+      {/* Hidden from assistive technology so the Explore tile's link keeps the name "<name>, <epithet>" (the How It Works card has its own label). */}
+      <span className="oct-still-tag" aria-hidden="true">
+        {label}
+      </span>
     </span>
   );
 }

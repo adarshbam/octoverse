@@ -20,7 +20,7 @@ describe('the Your Octopus picture', () => {
     const html = render(null);
     expect(html).toContain('src="/platform/stills/creator-aether-peach.webp"');
     expect(html).toContain('data-picture="sample"');
-    expect(html).toMatch(/<span class="oct-still-tag">Sample octopus<\/span>/);
+    expect(html).toMatch(/<span class="oct-still-tag" aria-hidden="true">Sample octopus<\/span>/);
     expect(html).not.toContain('data-glyph');
   });
 
@@ -28,13 +28,13 @@ describe('the Your Octopus picture', () => {
     const html = render({ template: 'nox', palette: 'violet', name: 'Mira' });
     expect(html).toContain('src="/platform/stills/creator-nox-violet.webp"');
     expect(html).toContain('data-picture="draft"');
-    expect(html).toMatch(/<span class="oct-still-tag">Mira<\/span>/);
+    expect(html).toMatch(/<span class="oct-still-tag" aria-hidden="true">Mira<\/span>/);
     expect(html).not.toContain('Sample octopus');
   });
 
   it('says "Your draft" when the draft has no name, and follows the template and the palette', () => {
     const html = render({ template: 'veyra', palette: 'lilacGrey', name: '' });
     expect(html).toContain('src="/platform/stills/creator-veyra-lilacGrey.webp"');
-    expect(html).toMatch(/<span class="oct-still-tag">Your draft<\/span>/);
+    expect(html).toMatch(/<span class="oct-still-tag" aria-hidden="true">Your draft<\/span>/);
   });
 });
