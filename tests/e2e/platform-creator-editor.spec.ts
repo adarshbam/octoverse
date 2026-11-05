@@ -623,10 +623,10 @@ test('keyboard: every part of the editor is reached in reading order', async ({ 
 
 // ---- Fix round 1 (Task 19a review): added, NOT YET RUN (the browser slot was taken by 19b) ----------------------------------------
 
-test('FIX C1: only an exact https://host address is a link; credentials, spaces, https:x.com and // are flagged and plain text; HTTPS://X.COM links normalised', async ({ page }) => {
+test('FIX C1: only an exact https://host address is a link; credentials, https:x.com and // are flagged and plain text; HTTPS://X.COM links normalised', async ({ page }) => {
   await open(page);
   const live = page.getByLabel('Live link', { exact: true });
-  for (const bad of ['https://user:pass@host.com', 'https:x.com', ' https://x.com', 'https://x.com ', '//x.com', 'https:///x', 'https://', 'http://x.com']) {
+  for (const bad of ['https://user:pass@host.com', 'https:x.com', '//x.com', 'https:///x', 'https://', 'http://x.com']) {
     await live.fill(bad);
     await expect(panel(page).locator('[data-issue]'), bad).toHaveCount(1);
     await expect(panel(page).locator('a[href]'), bad).toHaveCount(0);
@@ -638,11 +638,12 @@ test('FIX C1: only an exact https://host address is a link; credentials, spaces,
   await expect(anchor).toHaveAttribute('href', 'https://x.com/');
   // The link under the field is a 44 px target.
   expect((await anchor.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  // A saved bad link (with a space) is still kept as typed.
-  await live.fill(' https://x.com');
+  // A saved bad link is still kept as typed. (Leading and trailing spaces cannot be typed into a type=url input, which trims them:
+  // those cases are the unit tests' in draft.test.ts.)
+  await live.fill('https://user:pass@host.com');
   await settled(page);
   const stored = (await storedDraft(page)) as { projects: { links: { live?: string } }[] };
-  expect(stored.projects[0].links.live).toBe(' https://x.com');
+  expect(stored.projects[0].links.live).toBe('https://user:pass@host.com');
 });
 
 test('FIX I2: three deleted projects can be brought back, newest first; adding never takes a freed id; the same note twice changes the live text', async ({ page }) => {
@@ -751,8 +752,39 @@ test('FIX I5: a removed image and the images of a project deleted for good leave
   await expect.poll(mediaCount, { timeout: 20000, intervals: [1000] }).toBe(0);
 });
 
-test('FIX M4: on a phone no focused field is hidden behind the sticky bar while tabbing through the Projects tab', async ({ page }) => {
+test('FIX M4: on a phone no focused field is hidden behind the sticky bar, whatever its place (scroll-margin on the controls)', async ({ page }) => {
   await open(page, 390, 844);
+  const count = await panel(page).locator('input, textarea, button, summary, a[href]').count();
+  expect(count).toBeGreaterThan(10);
+  let scrolled = 0;
+  const covered: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const result = await page.evaluate(index => {
+      const el = document.querySelector('.oct-projects-panel')?.querySelectorAll<HTMLElement>('input, textarea, button, summary, a[href]')[index];
+      const bar = document.querySelector('[data-draft-bar]')?.getBoundingClientRect();
+      if (!el || !bar) return { skip: true as const };
+      // Start from the top, so a field near the bottom has to be scrolled to.
+      window.scrollTo(0, 0);
+      for (let node: HTMLElement | null = el; node; node = node.parentElement) node.scrollTop = 0;
+      const before = el.getBoundingClientRect().top;
+      el.focus();
+      const r = el.getBoundingClientRect();
+      const visible = r.height > 0 && r.width > 0;
+      return {
+        skip: !visible || document.activeElement !== el,
+        scrolled: Math.abs(r.top - before) > 1,
+        covered: visible && r.bottom > bar.top + 1 && r.top < bar.bottom,
+        label: (el.getAttribute('aria-label') ?? el.textContent ?? el.tagName).trim().slice(0, 40),
+      };
+    }, i);
+    if ('skip' in result && result.skip === true) continue;
+    if ('scrolled' in result && result.scrolled) scrolled += 1;
+    if ('covered' in result && result.covered) covered.push((result as { label: string }).label);
+  }
+  // The check is real only if some fields had to be scrolled to, and none of them ended behind the bar.
+  expect(scrolled).toBeGreaterThan(0);
+  expect(covered).toEqual([]);
+  // The old check as well: tabbing through the panel never lands behind the bar.
   for (let i = 0; i < 40; i++) {
     await page.keyboard.press('Tab');
     const hidden = await page.evaluate(() => {
