@@ -49,21 +49,21 @@ const STROKE_START = 0.36;
 const STROKE_END = STROKE_START + STROKES * STROKE_SECONDS;
 
 /**
- * The path: [seconds, x, y, z] waypoints. He comes in across the left edge of the frame (it is 9
- * units wide at 16:9, so x -4.5) at about 0.3 s, already at over 3 units a second, along the front
+ * The path: [seconds, x, y, z] waypoints. He comes in across the left edge of the frame at about 0.2
+ * s (at 16:9 his head is half in at x -4.3; Task 15's stills), already at 2.6 units a second, along the front
  * edge of the clear corridor the layout keeps (place/kit.ts PIPELINE_CORRIDOR; z 1 to 1.2 here, in
  * front of the left towers and the rack module at (-2.4, -2.4), so his arms clear them with the
  * stroke's umbrella fully open: 0.29), drifting down and toward the spot as the strokes slow him. He
  * reaches the spot's x a little after 3 s, still moving, runs past it by 0.25 (the overshoot, a little
  * toward the visitor, away from the rack module behind on the right) and springs back to the spot by
  * 3.6 s. The strokes pull him along it in surges (`surge` 0.36: the clock runs 1.65 times his stroke's
- * own rate, so this is about Nox's 0.6 push), 1.2 to 5.2 units a second.
+ * own rate, so this is about Nox's 0.6 push): about 1 unit a second in the glides, 4 at a surge.
  */
 const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
-  [0, -6.8, 0.95, 1.05],
-  [0.5, -5.2, 0.8, 1.15],
-  [1.5, -3.0, 0.55, 1.2],
-  [2.5, -1.05, 0.28, 0.8],
+  [0, -5.4, 0.95, 1.05],
+  [0.5, -4.1, 0.8, 1.15],
+  [1.5, -2.5, 0.55, 1.2],
+  [2.5, -0.95, 0.28, 0.8],
   [3.08, 0, 0.12, 0.35],
   [3.32, 0.25, 0.08, 0.2],
   [TURN_START, 0, 0, 0],
@@ -105,20 +105,21 @@ const YAW_SWIM = (-115 * Math.PI) / 180;
 const TURN_RATE = 4.5;
 
 /**
- * The portal run (spec 7.9: "like a pipeline run going green"): each arc's inlay rises from its faint
- * rest (1) to a flash (ARC_PEAK, the most its membrane draws: 1 plus the inlay's `flash` 4, place/
+ * The portal run (spec 7.9: "like a pipeline run going green"): each arc's inlay rises from dark
+ * (ARC_DARK, a third of the inlay's resting light: the pipeline not yet run) to a flash (ARC_PEAK, the most its membrane draws: 1 plus the inlay's `flash` 4, place/
  * config.ts) and settles lit (ARC_LIT), 150 ms after the one before; the disc flashes once (to 1 plus
  * its `flash` 0.4) after the fourth, and breathes on at rest. With reduced motion, or once the
  * entrance has played, the kit rests where the sheet ends: the arcs lit.
  */
 const ARC_PEAKS = [2.3, 2.45, 2.6, 2.75] as const;
+const ARC_DARK = 0.35;
 const ARC_RISE = 0.1;
 const ARC_FALL = 0.35;
 const ARC_PEAK = 5;
 const ARC_LIT = 3;
 const DISC_PEAK = 1.4;
 const DISC_AT = 2.95;
-const arcKeys = (peak: number): Key[] => [[peak - ARC_RISE, 1], [peak, ARC_PEAK], [peak + ARC_FALL, ARC_LIT]];
+const arcKeys = (peak: number): Key[] => [[peak - ARC_RISE, ARC_DARK], [peak, ARC_PEAK], [peak + ARC_FALL, ARC_LIT]];
 
 /** Handles that leave a key fast and arrive slowly: the arms' pop open. */
 const POP_RIGHT = [1 / 3, 1 / 3, 0.33, 1] as const;
@@ -141,10 +142,10 @@ const ENTRANCE: SequenceDefaults = {
         pitch: 0.45,
         yaw: 0,
         surge: 0.36,
-        portalArc1: 1,
-        portalArc2: 1,
-        portalArc3: 1,
-        portalArc4: 1,
+        portalArc1: ARC_DARK,
+        portalArc2: ARC_DARK,
+        portalArc3: ARC_DARK,
+        portalArc4: ARC_DARK,
         portalDisc: 1,
       },
       keys: {

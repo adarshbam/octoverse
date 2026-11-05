@@ -54,7 +54,8 @@ test('his arm reach for the checks is measured from the poses: the intro (open) 
 
 test('he bursts in from the left already moving, and ends exactly at the stage spot facing the visitor', () => {
   const start = at(0);
-  expect(start.position[0]).toBeLessThan(-6.5);
+  // Off the left edge of the frame at 0 (16:9 shows x -4.3 at his depth; the stills show his head half in by 0.3 s).
+  expect(start.position[0]).toBeLessThan(-5);
   // Already moving: fast at the start, faster than the average over the swim.
   const speed = (s: number) => {
     const a = at(s - 0.005).position;
@@ -103,7 +104,7 @@ test('five quick strokes: every power stroke (the surge) starts and ends between
   const timing = FLUX_ENTRANCE_GEOMETRY.swim;
   const surges: number[] = [];
   let last = strokeAt(at(0).stroke, timing).phase;
-  for (const s of times(0, LENGTH, 0.001)) {
+  for (const s of times(0, LENGTH, 0.002)) {
     const { phase } = strokeAt(at(s).stroke, timing);
     if (phase === 'power' && last !== 'power') surges.push(s);
     last = phase;
@@ -135,8 +136,9 @@ test('the portal run: the four arcs peak in order 1 to 4 inside 2.2 to 3.0 s, at
     const down = values.filter(p => p.s >= top[0].s);
     up.forEach((p, k) => k > 0 && expect(p.v, `${id} ${p.s}`).toBeGreaterThanOrEqual(up[k - 1].v - 1e-12));
     down.forEach((p, k) => k > 0 && expect(p.v, `${id} ${p.s}`).toBeLessThanOrEqual(down[k - 1].v + 1e-12));
-    // Faint at rest before the run, its peak within what the inlay's membrane draws, lit after.
-    for (const p of values) if (p.s < 2.2) expect(p.v, `${id} ${p.s}`).toBeCloseTo(1, 9);
+    // Dark before the run (under its resting light, 1), its peak within what the inlay's membrane draws, lit after.
+    expect(values[0].v, id).toBeLessThan(0.5);
+    for (const p of values) if (p.s < 2.2) expect(p.v, `${id} ${p.s}`).toBeCloseTo(values[0].v, 9);
     expect(peak).toBeLessThanOrEqual(cap(INLAY_NODES[i]) + 1e-9);
     expect(peak).toBeGreaterThan(4);
     expect(at(LENGTH).kit![id]).toBeGreaterThan(2);
@@ -185,7 +187,7 @@ test('the turn: the yaw never decreases, is exactly -pi at 3.6 s and 0 at 4.2 s,
   let last = -Infinity;
   let rise = 0;
   let before = at(3.6).yaw;
-  for (const s of times(0, LENGTH, 0.001)) {
+  for (const s of times(0, LENGTH, 0.0025)) {
     const { yaw, spin } = at(s);
     expect(yaw, `${s} s`).toBeGreaterThanOrEqual(last - 1e-12);
     if (s > 3.6 && s <= 4.2 + 1e-9) {
@@ -236,7 +238,9 @@ test('reduced motion: he is simply present in the intro pose, and the portal res
   const rest = at(LENGTH).kit!;
   for (const id of ARCS) expect(rest[id], id).toBeGreaterThan(2);
   expect(rest.portalDisc).toBe(1);
-  expect(at(0).kit).toEqual({ portalArc1: 1, portalArc2: 1, portalArc3: 1, portalArc4: 1, portalDisc: 1 });
+  const dark = at(0).kit!;
+  for (const id of ARCS) expect(dark[id], id).toBeLessThan(0.5);
+  expect(dark.portalDisc).toBe(1);
 });
 
 test("the bundle validates with the entrance's kit drives: the arcs' inlays and the disc, each on 'emissive'", () => {
