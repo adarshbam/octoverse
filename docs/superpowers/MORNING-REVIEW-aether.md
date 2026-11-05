@@ -274,3 +274,8 @@ Please give the real names.
 ## Engine follow-up from the Flux merge (for the engine owner)
 
 Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same quality tier. The Aether branch keeps both (always equal, with a test holding them equal). Fold them into one name, `id` (platform's branch already carries it): a two-line change.
+
+## Review notes
+
+- Task 14 (back view) is docs and evidence only (no source changed) and skipped its separate task review. Its checklist verdicts are the implementer's own; look at the contact sheets in `docs/superpowers/evidence/aether/m4/`.
+- The engine merge `9ab7af7` (Veyra back view and Task 16 with Aether's satellite flight) was committed by an agent killed in the laptop crash. Afterwards the full unit suite (1089 passed) and the typecheck were re-run clean; the Nox still gate and the e2e specs were not re-run on that exact commit.
