@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { expect, test } from 'vitest';
-import { assignPendants } from '../../engine/artifacts/pendant';
-import { placementCapacity } from '../../engine/artifacts/strategies';
+import { assignPendants, idleSway, pendantSwing, restSwing, swingLimits } from '../../engine/artifacts/pendant';
+import { PULSE_GROW, orbGrowStart, pulseFrame, pulseLength, pulseSchedule, revealSize } from '../../engine/artifacts/pulseAppear';
+import { SELECTS, APPEARS, choiceRemoved, placementCapacity } from '../../engine/artifacts/strategies';
 import { CAMERA_Z } from '../../engine/config/stage';
 import { ARM_IDS } from '../../engine/config/types';
+import { validateBundle } from '../../engine/types/bundle';
 import { projectToScreen } from '../../engine/stage/anchors';
 import { fovFor } from '../../engine/stage/framing';
 import { faceAnchor } from '../../engine/types/bundle';
@@ -159,4 +161,98 @@ test.each([
 
 test('the viewports are the review desktop and the phone held upright', () => {
   expect(VIEWPORTS).toEqual({ desktop: { width: 1536, height: 1024 }, phone: { width: 390, height: 844 } });
+});
+
+// --- Task 16: the pulse appear, the swell's reveal, the swing and the lift pulse (spec 7.5) --------------
+
+const DEG = Math.PI / 180;
+const cups = FLUX.suckers.pulse!;
+
+test('his orbs appear with the pulse (0.18 s apart), are lifted over 0.3 s with a pulse, reveal with the swell and swing 18 degrees at most', () => {
+  expect(FLUX_ARTIFACTS.appear).toEqual({ kind: 'pulse', step: 0.18 });
+  expect(FLUX_ARTIFACTS.select).toEqual({ kind: 'armLift', ease: 0.3, scale: 1.25, threadShorten: 0, pulse: true });
+  expect(SELECTS.armLift.reaction).toBe('focused');
+  expect(placement.reveal).toEqual({ start: 0.35, span: 0.3, step: 0.03 });
+  expect(placement.swing).toEqual({ maxAngle: 18 * DEG, settle: 0.8 });
+  expect(SELECTS.armLift.settleMs(FLUX_ARTIFACTS.select)).toBe(300);
+  expect('sheet' in APPEARS.pulse).toBe(false);
+  // The bundle as a whole still validates: the appear needs no sheet, and his cups pulse.
+  expect(() => validateBundle(FLUX_BUNDLE)).not.toThrow();
+  expect(cups.speed).toBeGreaterThan(0);
+});
+
+test('the intro shows pulses and no orbs: the orbs are the least the engine takes, and no button or tray entry is offered there (A3)', () => {
+  expect(choiceRemoved('intro', FLUX_ARTIFACTS)).toBe(true);
+  const context = { appear: FLUX_ARTIFACTS.appear, placement, pulse: cups };
+  const total = pulseLength(SHOWN, placement, 0.18, cups.speed);
+  for (let i = 0; i < 16; i++) {
+    for (let t = 0; t <= total + 0.5; t += 1 / 30) {
+      const radius = Math.max(placement.sizes.intro, revealSize(0, i, placement.reveal!, placement.sizes.overview)) * pulseFrame(null, i, t, 16, context).scale;
+      expect(radius).toBeLessThanOrEqual(INTRO_ORB_SIZE + 1e-12);
+    }
+  }
+});
+
+test("with his speed, no orb starts to grow before its arm's pulse reaches its slot, and the appear is over in under two seconds", () => {
+  const context = { appear: FLUX_ARTIFACTS.appear, placement, pulse: cups };
+  const schedule = pulseSchedule(0.18);
+  for (const slot of FLUX_SLOTS.overview) {
+    const index = slot.order;
+    const start = orbGrowStart(slot, schedule, cups.speed);
+    expect(pulseFrame(null, index, start, 16, context).scale).toBe(0);
+    expect(pulseFrame(null, index, start + PULSE_GROW / 2, 16, context).scale).toBeGreaterThan(0);
+    expect(start).toBeGreaterThanOrEqual(schedule.find(f => f.arm === slot.arm)!.fireAt + slot.at / cups.speed - 1e-12);
+  }
+  expect(pulseLength(16, placement, 0.18, cups.speed)).toBeLessThan(2);
+});
+
+test('the swell reveals the orbs: nothing up to swell 0.35, monotonic, the overview size (0.28) at swell 1 for all sixteen', () => {
+  const reveal = placement.reveal!;
+  for (let i = 0; i < 16; i++) {
+    let last = 0;
+    for (let swell = 0; swell <= 1.0000001; swell += 0.0025) {
+      const size = revealSize(swell, i, reveal, placement.sizes.overview);
+      expect(size, `orb ${i} at ${swell}`).toBeGreaterThanOrEqual(last - 1e-12);
+      last = size;
+      if (swell <= 0.35) expect(size).toBeLessThan(1e-9);
+    }
+    expect(revealSize(1, i, reveal, placement.sizes.overview), `orb ${i}`).toBe(0.28);
+  }
+});
+
+test('the swing stays within 18 degrees for a 3 units a second step of the arm and settles within 0.8 s', () => {
+  const limits = swingLimits(placement);
+  expect(limits).toEqual({ maxAngle: 18 * DEG, settle: 0.8 });
+  for (const secs of [0.1, 0.4, 1, 3]) {
+    let state = restSwing(0);
+    let worst = 0;
+    let t = 0;
+    for (; t <= secs; t += 1 / 120) {
+      const r = pendantSwing([3, 0, 0], t, state, limits, false);
+      state = r.state;
+      worst = Math.max(worst, Math.abs(r.angle));
+    }
+    const stopped = t;
+    for (; t <= stopped + 1.5; t += 1 / 120) {
+      const r = pendantSwing([0, 0, 0], t, state, limits, false);
+      state = r.state;
+      worst = Math.max(worst, Math.abs(r.angle));
+      if (t >= stopped + limits.settle) {
+        expect(Math.abs(r.state.x), `${secs} s`).toBeLessThanOrEqual(1 * DEG);
+        expect(Math.abs(r.angle - idleSway(t, 0, limits))).toBeLessThanOrEqual(1 * DEG);
+      }
+    }
+    expect(worst, `${secs} s`).toBeLessThanOrEqual(18 * DEG + 1e-12);
+  }
+  // Reduced motion: none.
+  expect(pendantSwing([3, 0, 0], 1, restSwing(0), limits, true).angle).toBe(0);
+});
+
+test('at the full swing of 18 degrees either way his twelve orbs still hang clear of the other arms and the face (a little: 0.029)', () => {
+  const swung = clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [], [-18 * DEG, 0, 18 * DEG]);
+  expect(swung).toBeGreaterThan(0);
+  expect(swung).toBeGreaterThan(0.02);
+  // The clearance at rest is the Task 12 figure, and 25 degrees (Veyra's) would take the orbs through the arms: the swing is kept small.
+  expect(clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [], [0])).toBeGreaterThan(0.05);
+  expect(clearance(overview, FLUX_SLOTS.overview, placement, SHOWN, [], [-25 * DEG, 25 * DEG])).toBeLessThan(0.01);
 });
