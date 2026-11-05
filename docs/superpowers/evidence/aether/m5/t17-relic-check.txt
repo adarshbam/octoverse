@@ -1,0 +1,62 @@
+intro face glow (frozen intro, same window): Y 0.908 at (248, 510) #fff0ff (9550 px)
+face glow trough: 67 running stills over 17.48 s (widest gap 0.33 s, page age 23.3 s); brightest pixel Y 0.908 to 0.908 (clipped: holds through the swing)
+     the patch's 90% level Y 0.801 to 0.845 against 0.838 frozen; the stills may miss 0.011 of the 0.085 swing, so the trough is at most Y 0.796: r = 0.950
+area entrance t  0.5: brightest in the portal's area Y 0.712 at (849, 551) #bce0ff in steps, excluded: the portal's own frozen light there is Y 0.005; vs the dimmest face glow measured (t 5.3) Y 0.856: ratio 0.832. UNVERIFIED: no face glow of 200 px in this frame (silhouette 12881 px); her own brightest pixel here is Y 1.000 (ratio 0.712)
+       above the portal's own light: 725 px in x 802 to 1155, y 287 to 562 (largest patch 361 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 685 px in x 802 to 1155, y 287 to 562 (largest patch 361 px)
+ok     the portal's brightest counted here Y 0.580 at (897, 527) in arch (own frozen light 0.006), vs that face glow at its trough (x r 0.950) Y 0.813: ratio 0.714 (UNVERIFIED)
+area entrance t    1: brightest in the portal's area Y 0.676 at (950, 378) #b4dbff in membrane/lanterns/arch, excluded: the portal's own frozen light there is Y 0.046; vs her face glow in this frame (2171 px) Y 0.908: ratio 0.744
+       above the portal's own light: 774 px in x 799 to 1161, y 321 to 566 (largest patch 366 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 750 px in x 799 to 1161, y 334 to 566 (largest patch 359 px)
+ok     the portal's brightest counted here Y 0.484 at (948, 373) in membrane/lanterns/arch (own frozen light 0.205), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.561
+     entrance t    2: brightest in the portal's area Y 0.745 at (921, 556) #c0e5ff in steps, counted: the portal's own frozen light there is Y 0.005; vs her face glow in this frame (2663 px) Y 0.908: ratio 0.820
+       above the portal's own light: 714 px in x 798 to 1160, y 327 to 574 (largest patch 336 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 647 px in x 798 to 1160, y 331 to 574 (largest patch 327 px)
+ok     the portal's brightest counted here Y 0.745 at (921, 556) in steps (own frozen light 0.005), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.864
+       halo tail, entrance t 3.2 (the membrane flash at its peak): stone luminance by distance from the glowing hulls (max / p99, own frozen light max)
+          1 to  4 px:   3696 px  max 0.135  p99 0.117  own max 0.133  median over own light +0.0000
+          5 to  8 px:   3824 px  max 0.183  p99 0.144  own max 0.183  median over own light +0.0000
+          9 to 12 px:   3952 px  max 0.268  p99 0.170  own max 0.215  median over own light +0.0000
+         13 to 16 px:   3512 px  max 0.224  p99 0.181  own max 0.226  median over own light +0.0000
+         17 to 20 px:   3182 px  max 0.186  p99 0.166  own max 0.114  median over own light +0.0000
+         21 to 30 px:   7738 px  max 0.249  p99 0.187  own max 0.141  median over own light +0.0000
+         31 to 40 px:   5751 px  max 0.205  p99 0.120  own max 0.147  median over own light +0.0000
+         41 to 60 px:  11353 px  max 0.625  p99 0.134  own max 0.150  median over own light +0.0000
+         the median halo (over the stone own light) is above 0.01 out to 0 px (BLOOM_PX 20)
+area entrance t  3.2: brightest in the portal's area Y 0.752 at (838, 540) #d1e2ff in steps, excluded: the portal's own frozen light there is Y 0.006; vs her face glow in this frame (3590 px) Y 0.908: ratio 0.828
+       above the portal's own light: 1660 px in x 798 to 1131, y 328 to 574 (largest patch 638 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 968 px in x 798 to 1131, y 328 to 574 (largest patch 193 px)
+ok     the portal's brightest counted here Y 0.441 at (1096, 419) in lanterns/arch (own frozen light 0.441), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.512
+area entrance t  4.2: brightest in the portal's area Y 0.689 at (1038, 431) #c6d9ff in glyph/membrane/lanterns/arch, excluded: the portal's own frozen light there is Y 0.048; vs her face glow in this frame (3811 px) Y 0.890: ratio 0.773
+       above the portal's own light: 1424 px in x 799 to 1183, y 326 to 573 (largest patch 339 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 1148 px in x 799 to 1183, y 326 to 573 (largest patch 330 px)
+ok     the portal's brightest counted here Y 0.608 at (912, 548) in steps/arch (own frozen light 0.006), vs that face glow at its trough (x r 0.950) Y 0.846: ratio 0.719
+     entrance t  4.8: brightest in the portal's area Y 0.702 at (909, 546) #bcdeff in steps/arch, counted: the portal's own frozen light there is Y 0.008; vs her face glow in this frame (4321 px) Y 0.908: ratio 0.773
+       above the portal's own light: 1894 px in x 810 to 1181, y 324 to 571 (largest patch 853 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 784 px in x 810 to 1181, y 324 to 571 (largest patch 325 px)
+ok     the portal's brightest counted here Y 0.702 at (909, 546) in steps/arch (own frozen light 0.008), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.814
+     entrance t  5.3: brightest in the portal's area Y 0.753 at (907, 544) #c2e6ff in steps/arch, counted: the portal's own frozen light there is Y 0.008; vs her face glow in this frame (5395 px) Y 0.856: ratio 0.879
+       above the portal's own light: 1885 px in x 820 to 1175, y 314 to 568 (largest patch 964 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 625 px in x 820 to 1175, y 314 to 568 (largest patch 307 px)
+ok     the portal's brightest counted here Y 0.753 at (907, 544) in steps/arch (own frozen light 0.008), vs that face glow at its trough (x r 0.950) Y 0.813: ratio 0.926
+area entrance t    6: brightest in the portal's area Y 0.978 at (1026, 421) #f3ffff in glyph/membrane/lanterns/arch, excluded: the portal's own frozen light there is Y 0.127; vs her face glow in this frame (9177 px) Y 0.908: ratio 1.077
+       above the portal's own light: 1122 px in x 798 to 1170, y 289 to 562 (largest patch 626 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 559 px in x 798 to 1170, y 320 to 542 (largest patch 269 px)
+ok     the portal's brightest counted here Y 0.497 at (908, 460) in lanterns/arch (own frozen light 0.412), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.577
+area entrance t  6.3: brightest in the portal's area Y 0.679 at (1023, 419) #c3d8ff in glyph/membrane/lanterns/arch, excluded: the portal's own frozen light there is Y 0.061; vs her face glow in this frame (9550 px) Y 0.908: ratio 0.748
+       above the portal's own light: 274 px in x 798 to 1168, y 290 to 554 (largest patch 64 px); excluded as bubbles and specks (patch under 850 px, own light under 0.2): 247 px in x 798 to 1168, y 354 to 541 (largest patch 64 px)
+ok     the portal's brightest counted here Y 0.456 at (908, 460) in lanterns/arch (own frozen light 0.412), vs that face glow at its trough (x r 0.950) Y 0.862: ratio 0.528
+pulse: 40 running stills over 9.46 s (widest gap 0.29 s); portal glows portal_glyph pulse 0.55 period 7.5 s, portal_lanterns pulse 0.15 period 4.3 s
+     unfiltered per-pixel maximum Y 0.994 at (1012, 410) in glyph/membrane/lanterns/arch; the portal's own frozen light there Y 0.169 (not compared: the bubbles and specks rising past)
+       halo tail, the running intro held over each window (the glyph and lanterns through a whole pulse): stone luminance by distance from the glowing hulls (max / p99, own frozen light max)
+          1 to  4 px:   3696 px  max 0.578  p99 0.486  own max 0.133  median over own light +0.0000
+          5 to  8 px:   3824 px  max 0.584  p99 0.506  own max 0.183  median over own light +0.0000
+          9 to 12 px:   3952 px  max 0.558  p99 0.467  own max 0.215  median over own light +0.0000
+         13 to 16 px:   3512 px  max 0.545  p99 0.472  own max 0.226  median over own light +0.0000
+         17 to 20 px:   3182 px  max 0.577  p99 0.520  own max 0.114  median over own light +0.0000
+         21 to 30 px:   7738 px  max 0.564  p99 0.455  own max 0.141  median over own light +0.0000
+         31 to 40 px:   5751 px  max 0.594  p99 0.557  own max 0.147  median over own light +0.0000
+         41 to 60 px:  11353 px  max 0.867  p99 0.526  own max 0.150  median over own light +0.0000
+         the median halo (over the stone own light) is above 0.01 out to 0 px (BLOOM_PX 20)
+     held stone above its own light in some window: 6397 px in x 798 to 1061, y 365 to 574; excluded in some window as slow bubbles and specks: 4180 px in x 798 to 1061, y 365 to 574
+     filtered (held over each window), anything in the area: Y 0.867 at (852, 422) in arch around 8.11 s, the portal's own frozen light there Y 0.009 (excluded in some window: a slow bubble or speck on the stone)
+     filtered, counted (all but the excluded): Y 0.708 at (908, 459) in lanterns/arch around 2.06 s; over 8.16 s of centres; raised by the most a pulse loses within 0.60 s of its peak (0.034): Y 0.733
+       portal_arch      held Y 0.708 at (908, 459) around 2.06 s
+       portal_glyph     held Y 0.598 at (999, 397) around 4.87 s
+       portal_lanterns  held Y 0.708 at (908, 459) around 2.06 s
+       portal_membrane  held Y 0.609 at (952, 355) around 2.63 s
+       portal_steps     held Y 0.433 at (901, 536) around 2.36 s
+ok   pulse peak Y 0.733 vs her face glow's trough: the dimmest measured (t 5.3) Y 0.856 x r 0.950 = Y 0.813: ratio 0.901
+ok   worst counted ratio 0.926 (the portal's light at t 5.3 vs her trough): the portal stays below her face glow; UNVERIFIED at t 0.5 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) reach ratio 1.103 (pulse, anything in the area)

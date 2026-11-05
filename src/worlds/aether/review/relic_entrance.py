@@ -24,9 +24,11 @@ relative luminance Y of the sRGB pixel (Rec. 709, linearised).
   (her silhouette, grown by HER_MARGIN px for her bloom, left out of each; at least five stills a pixel) is the
   portal's own frozen light.
 - Excluded as bubbles and specks (small_transients): a pixel more than TRANSIENT_DY above the portal's own light whose
-  connected patch is under BLOB_MIN px and whose own light is under OWN_DARK (and, for the held stone of the pulse
-  check, more than BLOOM_PX from every glowing node's hull). Everything else in the region counts, light above the
-  median included: a large patch, light on a lit part of the portal, stone near a glow. Each frame and the pulse check
+  connected patch is under BLOB_MIN px and whose own light is under OWN_DARK, and which does not lie on the stone
+  within BLOOM_PX of a glowing node's hull (in the frames and, for the held stone, in the pulse check; Task 17 added
+  the frames' guard). Everything else in the region counts, light above the median included: a large patch, light on
+  a lit part of the portal, stone near a glow. Inside a glowing node's hull (the dark membrane under the glyph), a
+  frame's bubble-sized patch may still be excluded: the LIMIT below, control (d). Each frame and the pulse check
   print how many pixels were above the portal's own light and how many were excluded, with their bounding boxes.
   LIMIT: a light the portal shows in four or fewer of the nine frozen stills (a state-gated glow, a flash, her light)
   has a near-dark median; it counts only if its patch reaches BLOB_MIN px or it lies on a lit part of the portal. A
@@ -48,7 +50,7 @@ What each comparison is (directory mode):
 - The frames: frames.json names ENTRANCE_T; every entering-t<t>.png and -mask.png of that set must be there, none
   other, all written after the run's start (a stale frame from an older run fails). Her silhouette must hold at least
   FACE_MIN_PX in every frame.
-- entering-t<t>.png, each frozen moment: the frame's brightest region pixel, its owners and the portal's own light
+- entering-t<t>.png, each frozen moment (FLASH_T's frame also prints the halo tail round the glowing hulls): the frame's brightest region pixel, its owners and the portal's own light
   there, against her face glow in that same frame (printed; a line starting `area` when that pixel is excluded); then
   the brightest pixel left once the excluded are taken out, against that face glow at its trough (x r): counted.
   Only a frame of FAR_T may lack a face glow (she is far in the murk): it is compared with the dimmest face glow
@@ -95,9 +97,12 @@ CAMERA_Z = 12.0
 NORMALIZED_MAX = {5120: 127, 5121: 255, 5122: 32767, 5123: 65535}
 # relic_capture.mjs's VIEW_BOX and ENTRANCE_T (as its file names spell them): the window and the frozen moments.
 VIEW_BOX = (-3, 4.165, 9.5, -4.165)
-ENTRANCE_T = ('1', '2', '3.2', '4.5', '5.5', '6.5', '7.5', '8.4')
-# The moments where she is too far in the murk for a face glow to be found (placeholder entrance): UNVERIFIED there.
-FAR_T = ('1',)
+ENTRANCE_T = ('0.5', '1', '2', '3.2', '4.2', '4.8', '5.3', '6', '6.3')
+# The moments where she may be too far in the murk, or too far turned, for a face glow to be found: UNVERIFIED there.
+# The real entrance (Task 17): only the glimmer, half revealed at 0.5 s. Every other frame must find her face glow.
+FAR_T = ('0.5',)
+# The frozen frame at the glyph's firing: the entrance's kit drive holds the membrane's emissive flash at its peak there.
+FLASH_T = '3.2'
 FACE_MIN_PX = 200
 # The face patch's quantile whose dip stands for the face glow's (its brightest pixel is clipped: see face_trough).
 FACE_LEVEL = 0.9
@@ -119,7 +124,9 @@ BLOB_MIN = 850
 OWN_DARK = 0.2
 # The glowing nodes' bloom: the stone's own light shows no halo past their hulls (median 0.012 at 1 to 4 px, 0.007 to
 # 0.013 farther), and its brightest pixels reach 0.18 to 0.23 within 16 px but at most 0.15 from 17 px on; past this
-# many pixels a held stone pixel may be excluded.
+# many pixels a stone pixel may be excluded. Task 17 measured the tail (halo_tail): with the membrane's flash at its peak
+# and with the glyph and lanterns held over a whole pulse, the stone's median light over its own frozen light is 0.000
+# in every band from 1 to 60 px, so neither the flash nor the pulse adds a halo the exclusion could hide.
 BLOOM_PX = 20
 # The face glow's swing while she moves (Octopus.tsx: uGlowStrength = (1 + 0.06 b + 0.025 sin(0.37 t + 1.3)) ...).
 BREATH_AMP, DRIFT_AMP, DRIFT_RATE = 0.06, 0.025, 0.37
@@ -205,6 +212,31 @@ def small_transients(lum, own, region, far=None):
         if patch.sum() < BLOB_MIN:
             excluded |= patch & dark & (far if far is not None else True)
     return excluded, above
+
+
+def halo_tail(lum, own, region, glowing, her, label):
+    """Print the glowing nodes' halo on the stone round them, by distance from their hulls (bands of pixels): the
+    brightest and 99th percentile luminance of the stone (region pixels outside every glowing hull, her silhouette and
+    her bloom margin left out) and of its own frozen light, so BLOOM_PX can be checked against the halo's real tail."""
+    stone = region & ~glowing & ~grown(her, HER_MARGIN)
+    inner = glowing
+    bands = [(1, 4), (5, 8), (9, 12), (13, 16), (17, 20), (21, 30), (31, 40), (41, 60)]
+    print(f'       halo tail, {label}: stone luminance by distance from the glowing hulls (max / p99, own frozen light max)')
+    reached = 0
+    for lo, hi in bands:
+        ring = grown(inner, hi) & ~grown(inner, lo - 1) & stone
+        if not ring.any():
+            continue
+        v = lum[ring]
+        o = np.nan_to_num(own[ring])
+        # The halo is what the glow adds to the stone over its own frozen light: its median over the band (bubbles and
+        # specks, a few percent of a band's pixels, do not move the median).
+        excess = np.median(v - o)
+        print(f'         {lo:>2} to {hi:>2} px: {int(ring.sum()):6} px  max {v.max():.3f}  p99 {np.percentile(v, 99):.3f}  own max {o.max():.3f}  median over own light {excess:+.4f}')
+        if excess > 0.01:
+            reached = hi
+    print(f'         the median halo (over the stone own light) is above 0.01 out to {reached} px (BLOOM_PX {BLOOM_PX})')
+    return reached
 
 
 def largest_patch(mask):
@@ -547,7 +579,16 @@ def directory(folder):
         if portal is None:
             fail(f'the portal\'s region is empty in entering-t{t}.png')
         lum = luminance(img)
-        excluded, above = small_transients(lum, own_light, region)
+        # As in the pulse check, stone within BLOOM_PX of a glowing node's hull is never excluded (its bloom counts);
+        # inside a glowing hull a bubble-sized patch on dark membrane may still be (the LIMIT above, control (d)).
+        glowing = np.zeros_like(region)
+        for name, own in nodes.items():
+            if name not in STONE_NODES:
+                glowing |= own
+        bloom_ring = grown(glowing, BLOOM_PX) & ~glowing
+        excluded, above = small_transients(lum, own_light, region, far=~bloom_ring)
+        if t == FLASH_T:
+            halo_tail(lum, own_light, region, glowing, her, f'entrance t {t} (the membrane flash at its peak)')
         x, y = portal[1]
         face = faces[t]
         if face is not None:
@@ -621,6 +662,7 @@ def directory(folder):
     far = ~grown(glowing, BLOOM_PX)
     held_any, when_any, covered, _, _ = held_map(lums, times)
     held, when, _, slow, stone_above = held_map(lums, times, guard=lambda h: small_transients(h, own_clip, clip_region & ~glowing, far=far))
+    halo_tail(held_any, own_clip, clip_region, glowing, intro_her[window], 'the running intro held over each window (the glyph and lanterns through a whole pulse)')
     print(f'     held stone above its own light in some window: {extent(stone_above, c["x"], c["y"])}; '
           f'excluded in some window as slow bubbles and specks: {extent(slow, c["x"], c["y"])}')
     if covered < longest:

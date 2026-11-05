@@ -1,0 +1,6 @@
+control point (892, 297) owners arch
+control frame-bloom: exit 1: FAIL worst counted ratio 1.099 (the portal's light at t 4.8 vs her trough): the portal is not below her face glow there; UNVERIFIED at t 0.5 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not cou
+control pulse-bloom: exit 1: FAIL worst counted ratio 1.205 (the portal's pulse peak vs her face glow's trough): the portal is not below her face glow there; UNVERIFIED at t 0.5 (no face glow found there); the bubbles and specks in the portal's area (not its own light,
+control frame-far: exit 0: ok   worst counted ratio 0.926 (the portal's light at t 5.3 vs her trough): the portal stays below her face glow; UNVERIFIED at t 0.5 (no face glow found there); the bubbles and specks in the portal's area (not its own light, not counted) r
+
+[exited with code 0]
