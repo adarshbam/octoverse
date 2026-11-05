@@ -206,6 +206,39 @@ Stills (frozen, `docs/superpowers/evidence/platform/m4/`):
 
 Numbers: `src/worlds/octoverse/motion.test.ts`, 8 tests (personality values, the flourish mapping, 120 s flourish counts, idle tilt, the two wave peaks, the delighted spell, the sheet in the saved state, the entrance untouched).
 
+## PENDING OWNER REVIEW: M4, the host's entrance with the gate greeting (Task 12)
+
+Commit on `claude/platform-overnight`: `feat(octoverse): entrance with the gate greeting (pending owner review)`. Owner review could not happen overnight. Spec 7.6. Motion is yours to judge live; I checked numbers and stills only.
+
+What is authored (`src/worlds/octoverse/sequences/defaults.ts`, seeded into `state.theatre.json`; checks in `sequences/entrance.test.ts`, 12 tests):
+- 0 to 1 s: the reveal (glow first, then the shape), deep on the left in the haze (x -8.4, 6 back).
+- 1 to 3.4 s: two strokes (power strokes at 1.10 and 2.50 s; the clock runs one stroke per 1.4 s, its own being 1.62 s, so two fit before the turn), in profile facing right (yaw -280 degrees, a little of the face toward you), leaning head first.
+- About 3 s: the glyph's emissive peaks at 3.0 s at 3.5 times its rest; the membrane's peaks at 3.15 s at 1.3 (its shader's most). Between 3.0 and 3.4 s the host turns its head from profile toward the portal.
+- 3.4 to 4.4 s: the 200 degree glide-turn (measured 200.0, monotonic, never over 400 degrees a second), gliding to the stage spot, reached as the turn ends, upright.
+- 4.4 to 5.4 s: the arms swing forward and open into the intro pose; settled at 5.4 s. Then the arrival (Task 11).
+- Skip, the session key `octoverse.octoverse.entranceSeen` and reduced motion (the stage opens on the intro) are the engine's; tested.
+
+What to check live (`/?world=octoverse` in a fresh tab, so the entrance plays):
+1. The glow out of the haze on the left. **Gap:** on a 16:9 desktop the host comes into view at the left edge only at about 1.3 s, and in P1's square crop at about 2 s. The reef's left rocks leave no open water nearer the frame wide enough for its open arms (below), so the path starts far left.
+2. Two long strokes and glides in profile: do they read as long and graceful? The first power stroke and glide carry it a long way across the reef (the fastest moment is 5.9 units a second, at 2.6 s).
+3. The greeting at about 3 s: does the glyph brightening (+40% on the still) and the membrane pulse read as the gate greeting its keeper? The membrane "ripple" is one emissive pulse, not a travelling ripple (E02b).
+4. The 200 degree turn: the engine's glide-turn turns one way only, so from facing the portal it turns its back to you, then shows its left side, then faces you. Graceful, or should it turn the short way (an engine change)?
+5. The settle and the arrival (the arrival's T1 wave and delighted face are still not live: Task 11, E02b).
+
+Stills (frozen, `?world=octoverse&stage=entering&t=<s>&freeze`, `docs/superpowers/evidence/platform/m4/`):
+- `task12-entrance-0.5.png`: the reef and the gate; the host is still off frame at the left (gap 1).
+- `task12-entrance-2.png`: the host's glow at the left edge, the glyph at rest.
+- `task12-entrance-3.png` and `task12-entrance-3-vs-p1.png`: profile facing right, arms trailing left in a bundle, head centre measured at (-0.35, -0.36) against P1's (-0.36, -0.36); the glyph lit. Against P1: the host is larger (it is 3 units back, not at the gate), its trailing arms are straighter and thicker than P1's wavy ones, and P1's glyph is brighter still.
+- `task12-entrance-4.png`: mid-turn, three-quarter facing left, arms trailing right.
+- `task12-entrance-5.4.png`: the intro pose, settled, all eight arms out, the welcome face.
+- `task12-intro.png` (+ `-mask`): P2 unchanged (12 of 17 within delta E 10, output identical to Task 11's, IoU 0.856).
+
+Clearance (against the reef's gate and four rocks, every one counted as a box on the floor however low): arms drawn in, 0.95 at the closest; as drawn (the umbrella open at each recovery), 0.31; held open as wide as the intro the whole swim, 0.26. Not cleared: the umbrella held open the whole swim (3 either side) overlaps the back-left rock's floor box by 0.29 (it only opens that wide at a recovery, placed in the open water), and at the stage spot itself the intro's arms reach 0.2 over the low front-right rock's floor box (the intro pose's place, Task 4).
+
+Frame rate, entrance at tier low, 1536 x 1024, **dev server, under load**: median 57.1 and 53.2 fps, slow10 22.5 and 21.1, mean 35.7 and 30.0 (2 runs; intro baseline in the same conditions 41.5 median). Not the production build: port 5197 was held by a dev server left running by an earlier session, which I was not allowed to stop. Re-measure on a production build.
+
+What is a stand-in: the membrane ripple (an emissive pulse); the glyph greeting is brightness only (no colour shift, no light on the host); the turn's direction (the engine's).
+
 
 ## PENDING OWNER REVIEW: M4, How It Works alive (Task 13)
 

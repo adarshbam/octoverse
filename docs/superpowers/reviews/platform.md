@@ -447,3 +447,20 @@ Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can
 5. The tab title on the preview is the host's (`<name> · <project>`); the shell's `titleFor` returns null for the preview, so it no longer overwrites it on a `?view=` change (it did, in the first version). While the draft is read the title is "Preview · OctoVerse".
 6. Hostile `@...` focus keys in a history entry are ignored (plain names of at most 64 characters only reach a selector). A stored value that is not a version-1 draft is the creator's empty draft (not the sample), as in the creator.
 7. Exit from the overview or detail pushes `/create` (a new step, no focus restore), as the showcase worlds' exit does; only the intro's exit is the same as Back.
+
+## Task 12: the host's entrance with the gate greeting (2026-11-05)
+
+**Provisional, pending owner.** Spec 7.6 authored as world data: `sequences/defaults.ts` (`HOST_ENTRANCE = { turn: 200 degrees, spiral: false }`, the entrance sheet, `ENTRANCE_BEATS`), seeded into `sequences/state.theatre.json`; `sequences/clearance.ts` (arm reach read off the host's poses, footprints of the gate and rocks from `kit.nodes.json`); `place/config.ts` props `glyph` (`gate_glyph`) and `membraneRipple` (`gate_membrane`) on `'emissive'`, beside the eight card `'bob'` props; `bundle.ts` `kitDrives: { glyph, membraneRipple }`. The glyph has no kit material (it keeps the kit's own emissive), the membrane keeps the `membrane` variant (its shader takes the drive as its flash level, capped at 1 + `flash` 0.3): validateWorld accepts both, no kit rebuild. Host defaults now typed `Exclude<SequenceId, 'bloom' | 'twinkle'>` (typecheck fix after the engine merge). Measured: power strokes at 1.10 and 2.50 s; glyph peak 3.5 at 3.000 s; membrane peak 1.3 at 3.15 s; turn 200.000 degrees from 3.4 to 4.4 s, monotonic; settled by 5.4 s; head at 3 s on the still (-0.35, -0.36) against P1's (-0.36, -0.36).
+
+### Engine facts found (E02b items, nothing in `src/engine` was touched)
+
+1. **No ripple drive.** The membrane's "ripples once" is one pulse of its emissive (the `'emissive'` drive is a level). A travelling ripple needs a ripple uniform on the membrane material driven by a prop.
+2. **The glide-turn turns one way.** `glideTurnYaw` only rises (-turn to 0): from facing the portal (right and away) the 200 degree turn shows the host's back, then its left side, then its face. A signed glide-turn (also asked for by Aether's review) would let it turn the short way or choose.
+3. **The clearance check is the floor plane only.** Every rock counts as infinitely tall. The reef's left rocks are low (tops 1 to 1.4 below the host), but their floor boxes leave no open water near the left of the frame wide enough for the host's open umbrella (3.0 either side), so the path starts at x -8.4: the glow comes into a 16:9 view only at about 1.3 s and into P1's square crop at about 2 s, not within 0 to 1 s. A height-aware clearance (piece tops against the arms' lowest reach) would let the path pass over the low back-left rock and appear in time; so would moving that rock (a layout and bake change).
+
+### Gaps
+
+1. The 0 to 1 s beat (above, 3).
+2. Held open the whole swim (3.0), the arms overlap the back-left rock's floor box by 0.29; at the stage spot the intro's arms (2.45) reach 0.2 over the front-right rock_b's floor box (2.25 away). The test records both; frame (0.31), closed (0.95) and intro-held over the swim (0.26) clear.
+3. Frame rate measured on the dev server (an earlier session's server held 5197; stopping it was refused): entrance tier low median 57.1 / 53.2 fps under load, slow10 22.5 / 21.1, mean 35.7 / 30.0; intro baseline 41.5 median in the same conditions. Production measurement still owed.
+4. The host at 3 s is 3 units in front of the gate (clearance), so it reads larger than P1's and does not pass close by the portal; its trailing arms are straighter and thicker than P1's.

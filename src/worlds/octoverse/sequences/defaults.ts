@@ -44,9 +44,9 @@ const B = ENTRANCE_BEATS;
 
 /**
  * The glyph's emissive intensity at its brightest (1 at rest, the kit's own lavender, below the
- * host's face glow): about twice as bright for a moment, the gate greeting its keeper.
+ * host's face glow): three and a half times as bright for a moment (2.2 read as barely brighter on the still), the gate greeting its keeper.
  */
-export const GLYPH_PEAK = 2.2;
+export const GLYPH_PEAK = 3.5;
 /** The membrane's at its ripple's crest: 1 + its `flash` (0.3, place/config.ts), the most its shader draws. */
 export const MEMBRANE_PEAK = 1.3;
 
@@ -62,8 +62,9 @@ const YAW_SIDE = (-80 * Math.PI) / 180;
  * The path: [seconds, x, y, z] waypoints of the body, the last the stage spot. It appears deep on the
  * left (x -8.4, 6 back, in the haze), drifts while the first stroke gathers, and the first power
  * stroke carries it right through the gap between the left rocks; the second's glide brings it past
- * the portal at about 3 s (x -0.45, 3 back: its head lands where P1 paints it, x -0.36, y -0.36 in
- * P1's frame), then it glides in to the spot as it turns. The recoveries, where its arms open widest
+ * the portal at about 3 s (keyed at x -0.655, 3 back; the surge carries it a little ahead: its head
+ * lands where P1 paints it, x -0.36, y -0.36 in P1's frame, measured -0.35, -0.36 on the still
+ * task12-entrance-3.png), then it glides in to the spot as it turns. The recoveries, where its arms open widest
  * (the umbrella reaches 3 either side), fall where the water is widest (entrance.test measures it).
  */
 const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
@@ -72,7 +73,7 @@ const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
   [1.6, -5.6, 0.5, -4.65],
   [2.0, -4.2, 0.38, -4.0],
   [2.5, -1.6, 0.15, -3.2],
-  [B.glyph, -0.58, 0.0, -3.0],
+  [B.glyph, -0.655, 0.0, -3.0],
   [B.turnStart, 0.25, -0.05, -2.75],
   [B.turnEnd, 0, 0, 0],
 ];
