@@ -1,4 +1,5 @@
 import { APPEARS, PLACEMENTS, SELECTS } from '../artifacts/strategies';
+import { HEAD_EFFECTS } from '../character/headEffects';
 import { ARM_IDS, type ArtifactConfig, CHOOSING_STAGES, type CharacterConfig, type PendantPlacement, SKIN_MODES, STAGE_IDS, type StageId, isChoosingStage } from '../config/types';
 import { clampCharacterConfig } from '../config/validate';
 import type { Project, Technology } from '../content/projectTypes';
@@ -163,6 +164,23 @@ function checkPendants(placement: PendantPlacement) {
     if (!(finite(reveal?.start) && reveal.start >= 0)) throw new BundleError(`${at}.reveal.start`, `${String(reveal?.start)} is not 0 or more (seconds)`);
     if (!(finite(reveal.span) && reveal.span > 0)) throw new BundleError(`${at}.reveal.span`, `${String(reveal.span)} is not above 0 (seconds)`);
     if (!(finite(reveal.step) && reveal.step >= 0)) throw new BundleError(`${at}.reveal.step`, `${String(reveal.step)} is not 0 or more (seconds)`);
+  }
+}
+
+/**
+ * The head effect a character names, by name: one the engine has (`HEAD_EFFECTS`), or null for none. The
+ * `pipelineRun` effect draws its nodes from the palette's three effect colours, so each must be a
+ * solid `#rrggbb` (a translucent colour would lose its alpha: three ignores it), or the nodes would
+ * draw in a colour nobody chose.
+ */
+function checkHeadEffect(character: { headEffect?: unknown; palette?: { effect?: object } }) {
+  const effect = character.headEffect;
+  if (effect === null || effect === undefined) return;
+  if (typeof effect !== 'string' || !Object.hasOwn(HEAD_EFFECTS, effect)) throw new BundleError('character.headEffect', `"${String(effect)}" is not a head effect the engine has (${Object.keys(HEAD_EFFECTS).join(', ')})`);
+  if (effect !== 'pipelineRun') return;
+  for (const key of ['stroke', 'halo', 'core']) {
+    const value: unknown = (character.palette?.effect as Record<string, unknown> | undefined)?.[key];
+    if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) throw new BundleError(`character.palette.effect.${key}`, `${String(value)} is not a solid #rrggbb colour (the pipelineRun nodes: stroke is cyan, halo lavender, core pink)`);
   }
 }
 
@@ -357,6 +375,7 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
     if (surfaces && !(SKIN_MODES as readonly unknown[]).includes(mode)) throw new BundleError(`character.skin.surfaces.${surface}.mode`, `"${String(mode)}" is not a skin mode the engine has (${SKIN_MODES.join(', ')})`);
   }
   checkLeaves(rest.character, 'character', true);
+  checkHeadEffect(bundle.character);
   checkPersonalityVariants(bundle.character.personality);
   // The face glow's spread and reach divide in the skin and jelly shaders: each must be above zero.
   for (const key of ['spreadX', 'reachUp', 'reachDown'] as const) {

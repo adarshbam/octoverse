@@ -24,6 +24,7 @@ const HUE_ANY = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|\brgba?\(|\bhsla?\(|\b0x[0-
 const WIDE_SOURCES = [
   'character/headEffects/glyphs.ts',
   'character/headEffects/index.ts',
+  'character/headEffects/pipelineRun.ts',
   'character/Octopus.tsx',
   'artifacts/TechBubbles.tsx',
   'artifacts/strategies.ts',

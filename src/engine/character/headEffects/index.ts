@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { DomeShape, Palette } from '../../config/types';
 import type { HeadDraw } from '../../sequences/headSwell';
 import { glyphsEffect } from './glyphs';
+import { pipelineRunEffect } from './pipelineRun';
 
 // The head effects a character's swell can carry (design 9.9, spec 9.1): a closed table inside the
 // engine. Adding one is a module, an entry below and a test; the id union follows the table, and
@@ -13,8 +14,12 @@ export type DomeFrame = HeadDraw;
 export interface HeadEffectRuntime {
   /** What the character mounts in the head's space, seated for its dome; null for an effect that draws nothing. */
   readonly root: THREE.Object3D | null;
-  /** `swell`: 0 to 1, how far the effect has come in (0 hides it); `clockSeconds`: its own clock, held at 0 with motion off. */
-  update(swell: number, frame: DomeFrame, clockSeconds: number): void;
+  /**
+   * `swell`: 0 to 1, how far the effect has come in (0 hides it); `clockSeconds`: its own clock, held
+   * at 0 with motion off; `reducedMotion`: motion is off, so an effect that travels crossfades instead
+   * (one that only stands still, as the glyphs do, ignores it).
+   */
+  update(swell: number, frame: DomeFrame, clockSeconds: number, reducedMotion?: boolean): void;
   /**
    * Frees the GPU objects. Safe to call again, and the runtime may be drawn again after it (three
    * uploads what it draws anew): React's StrictMode cleans an effect up and remounts with the same
@@ -33,7 +38,7 @@ const noneEffect: HeadEffectModule = {
   create: () => ({ root: null, update() {}, dispose() {} }),
 };
 
-export const HEAD_EFFECTS = { none: noneEffect, glyphs: glyphsEffect } as const;
+export const HEAD_EFFECTS = { none: noneEffect, glyphs: glyphsEffect, pipelineRun: pipelineRunEffect } as const;
 
-/** The head effects a config can name: `'none'` and Nox's `'glyphs'`. */
+/** The head effects a config can name: `'none'`, Nox's `'glyphs'` and Flux's `'pipelineRun'`. */
 export type HeadEffectId = keyof typeof HEAD_EFFECTS;

@@ -517,3 +517,23 @@ test('the pulse appear and the lift pulse are refused by field name when wrong',
   expect(field((_, c) => { c.suckers = { ...c.suckers, pulse: undefined }; })).toBe('character.suckers.pulse');
   expect(field((a, c) => { a.appear = { kind: 'bloom', duration: 1.2 }; c.suckers = { ...c.suckers, pulse: undefined }; })).toBe('character.suckers.pulse');
 });
+
+// --- Task 18: the head effect, by name; the pipeline's three colours ---------------------------
+
+/** Nox's bundle with this head effect and effect colours. */
+const withHeadEffect = (headEffect: unknown, effect?: Record<string, unknown>) =>
+  ({ ...NOX_BUNDLE, character: { ...NOX_BUNDLE.character, headEffect, palette: { ...NOX_BUNDLE.character.palette, effect: { ...NOX_BUNDLE.character.palette.effect, ...effect } } } }) as WorldBundle;
+
+test('a head effect the engine has validates, and an unknown one is refused by name', () => {
+  for (const headEffect of ['none', 'glyphs', 'pipelineRun', null]) expect(() => validateBundle(withHeadEffect(headEffect, { halo: '#8f7bff', stroke: '#22d8ff', core: '#ff8cd8' })), String(headEffect)).not.toThrow();
+  for (const headEffect of ['vaultDial', 'toString', 3]) expect(refusal(withHeadEffect(headEffect)).field, String(headEffect)).toBe('character.headEffect');
+});
+
+test('the pipelineRun effect needs its three effect colours solid, and names the one that is not', () => {
+  const ok = { halo: '#8f7bff', stroke: '#22d8ff', core: '#ff8cd8' };
+  for (const key of ['halo', 'stroke', 'core']) {
+    for (const bad of ['rgba(74,166,208,0.5)', '#fff', 'cyan', '#22d8ffaa']) expect(refusal(withHeadEffect('pipelineRun', { ...ok, [key]: bad })).field, `${key} ${bad}`).toBe(`character.palette.effect.${key}`);
+  }
+  // The other effects keep the colour spellings they had (Nox's halo is translucent).
+  expect(() => validateBundle(withHeadEffect('glyphs', { halo: 'rgba(255,24,44,0.5)' }))).not.toThrow();
+});

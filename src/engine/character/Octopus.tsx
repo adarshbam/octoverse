@@ -984,7 +984,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     rig.domeMaterial.uniforms.uOpacity.value = hd.opacity;
     rig.domeMaterial.uniforms.uReveal.value = hd.reveal;
     // The effect rides the glass's swell; with motion off it stands still (its clock is held at 0).
-    effect?.update(solo ? 0 : sf.effect, hd, reducedMotion ? 0 : t);
+    effect?.update(solo ? 0 : sf.effect, hd, reducedMotion ? 0 : t, reducedMotion);
     rig.headHalo.uniforms.uStrength.value.set(config.glow.halo.strength * (1 - ease) * (1 - cupVeil), config.glow.halo.bandStrength * (1 - ease) * (1 - cupVeil));
   });
 

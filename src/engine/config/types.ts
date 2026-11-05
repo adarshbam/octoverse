@@ -188,7 +188,7 @@ export interface OrbGlass {
   base: string;
 }
 
-/** A head effect's three colours: the wide soft halo, the stroke, and the thin hot core. */
+/** A head effect's three colours: the wide soft halo, the stroke, and the thin hot core (the pipeline's lavender, cyan and pink: solid `#rrggbb`). */
 export interface EffectColours {
   halo: string;
   stroke: string;
@@ -548,7 +548,8 @@ export interface DomeShape {
 
 // The head effect a character's swell carries (design 9.9) is named by `HeadEffectId`, derived from
 // the engine's HEAD_EFFECTS table (character/headEffects): `'none'` draws the dome alone, as
-// approved; Nox's is `'glyphs'`, glowing red runes.
+// approved; Nox's is `'glyphs'`, glowing red runes; Flux's is `'pipelineRun'`, a pipeline of four
+// nodes run by a bead (it reads `palette.effect` as stroke cyan, halo lavender, core pink).
 
 /** A glass orb hangs on a short tether from the arm at arc fraction `at` (0 root, 1 tip); `order` is the technology's rank for the slot (0 first). */
 export interface PendantSlot {
