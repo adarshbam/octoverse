@@ -5,6 +5,7 @@ import { Tabs } from '../pages/Tabs';
 import { CreatorPreview } from './CreatorPreview';
 import { OctopusPanel } from './OctopusPanel';
 import { previewHref } from './previewDraft';
+import { handOff } from './previewHandoff';
 import type { MediaApi } from './mediaUrls';
 import { ProjectsPanel } from './ProjectsPanel';
 import type { CreatorDraft } from './types';
@@ -24,12 +25,13 @@ const useLayout = (): CreatorLayout => useSyncExternalStore(subscribe, phoneNow,
 
 /**
  * The bottom of the screen: See live preview (the selected project in its full world: its id travels as `?project=`, and the link has a
- * stable focus id so Back from the preview puts focus on it whichever project it named) and Publish, visibly unavailable (spec 2.6).
+ * stable focus id so Back from the preview puts focus on it whichever project it named; the draft AS ON SCREEN is handed to the preview,
+ * previewHandoff.ts) and Publish, visibly unavailable (spec 2.6).
  */
-function Actions({ project }: { project: string | null }) {
+function Actions({ draft, project, media }: { draft: CreatorDraft; project: string | null; media?: MediaApi }) {
   return (
     <div className="oct-creator-actions">
-      <Link href={previewHref(project)} focusId="see-live-preview" className="oct-button oct-button-primary">
+      <Link href={previewHref(project)} focusId="see-live-preview" className="oct-button oct-button-primary" onNavigate={() => handOff(draft, project, media?.get)}>
         See live preview <span aria-hidden="true">→</span>
       </Link>
       <button type="button" disabled className="oct-button oct-creator-publish">
@@ -67,7 +69,7 @@ export function CreatorPage({ draft, onChange, layout, busy = false, bar, media 
               <OctopusPanel draft={draft} onChange={onChange} />
               {preview}
               {projects}
-              <Actions project={selected} />
+              <Actions draft={draft} project={selected} media={media} />
             </>
           ) : (
             <>
@@ -79,7 +81,7 @@ export function CreatorPage({ draft, onChange, layout, busy = false, bar, media 
                   { id: 'projects', label: 'Projects', panel: projects },
                 ]}
               />
-              <Actions project={selected} />
+              <Actions draft={draft} project={selected} media={media} />
             </>
           )}
         </div>

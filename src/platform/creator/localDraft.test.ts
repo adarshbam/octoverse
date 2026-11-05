@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DB_NAME } from './storage';
-import { LOCAL_DB_NAME, LOCAL_DRAFT_KEY, LOCAL_DRAFT_STORE, readLocalDraft, summariseDraft } from './localDraft';
+import { LOCAL_DB_NAME, LOCAL_DRAFT_KEY, LOCAL_DRAFT_STORE, readLocalDraft, readStoredDraft, summariseDraft } from './localDraft';
+import { draftOrSample } from './previewDraft';
+import { SAMPLE_DRAFT } from './sampleDraft';
 
 // The landing's read of the visitor's draft: read-only, never throws, null for anything but a draft of a known template and palette.
 
@@ -128,5 +130,43 @@ describe('readLocalDraft', () => {
 
   it('is null where the global indexedDB is missing (the server, tests without a browser)', async () => {
     expect(await readLocalDraft()).toBeNull();
+  });
+});
+
+// The full preview reads the whole stored draft through the same non-creating reader.
+describe('readStoredDraft (the full preview read)', () => {
+  const stored = { version: 1, octopus: { template: 'flux', palette: 'rose', personality: 'calm', name: 'Kai' }, profile: { handle: 'kai', tagline: '', about: '' }, projects: [], updatedAt: 'x' };
+
+  it('returns the stored draft whole and untouched, read-only, and closes the connection', async () => {
+    const { factory, log } = stub({ value: stored });
+    expect(await readStoredDraft(factory)).toEqual(stored);
+    expect(log.transactions).toEqual([[LOCAL_DRAFT_STORE, 'readonly']]);
+    expect(log.writes).toBe(0);
+    expect(log.closed).toBe(1);
+  });
+
+  it('creates no database when the browser has none (the upgrade is aborted), and the preview then shows the sample', async () => {
+    const { factory, log } = stub({ exists: false });
+    expect(await readStoredDraft(factory)).toBeNull();
+    expect(log.aborted).toBe(1);
+    expect(draftOrSample(await readStoredDraft(stub({ exists: false }).factory))).toBe(SAMPLE_DRAFT);
+  });
+
+  it('is null (the sample) for no stored draft, no draft store, no IndexedDB, a failing read, a throwing open and a browser that never answers', async () => {
+    expect(await readStoredDraft(stub({ value: undefined }).factory)).toBeNull();
+    expect(await readStoredDraft(stub({ stores: [], value: stored }).factory)).toBeNull();
+    expect(await readStoredDraft(null)).toBeNull();
+    expect(await readStoredDraft(stub({ getError: true, value: stored }).factory)).toBeNull();
+    expect(await readStoredDraft(stub({ openThrows: true }).factory)).toBeNull();
+    expect(await readStoredDraft(stub({ openNever: true }).factory, 20)).toBeNull();
+    expect(draftOrSample(await readStoredDraft(null))).toBe(SAMPLE_DRAFT);
+  });
+
+  it('hands hostile stored values on unvalidated, and the preview survives every one of them', async () => {
+    for (const value of ['x', 42, [], { version: 99 }, { version: 1, octopus: 'no', projects: 'no' }, JSON.parse(String.raw`{"version":1,"__proto__":{"p":1},"octopus":{"template":"__proto__"}}`)]) {
+      const read = await readStoredDraft(stub({ value }).factory);
+      expect(() => draftOrSample(read)).not.toThrow();
+      expect(draftOrSample(read).version).toBe(1);
+    }
   });
 });

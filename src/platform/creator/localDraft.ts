@@ -32,14 +32,16 @@ export function summariseDraft(stored: unknown): LocalDraft | null {
 }
 
 /**
- * The visitor's draft in this browser, or null. `factory` is the IndexedDB factory (the browser's, by default).
- * The database is opened without a version and its upgrade is aborted, so a browser that has no such database is left without one.
+ * The visitor's draft in this browser as it was stored (unvalidated: the caller summarises or migrates it), or null when there is none
+ * or it cannot be read. `factory` is the IndexedDB factory (the browser's, by default). The database is opened without a version and its
+ * upgrade is aborted, so a browser that has no such database is left without one; the connection is always closed. Shared by the
+ * landing's summary (`readLocalDraft`) and the creator's full preview, which must not create the creator's database either.
  */
-export function readLocalDraft(factory?: IDBFactory | null, timeoutMs = LOCAL_READ_TIMEOUT_MS): Promise<LocalDraft | null> {
+export function readStoredDraft(factory?: IDBFactory | null, timeoutMs = LOCAL_READ_TIMEOUT_MS): Promise<unknown> {
   return new Promise(resolve => {
     let settled = false;
     let db: IDBDatabase | null = null;
-    const finish = (value: LocalDraft | null) => {
+    const finish = (value: unknown) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -69,7 +71,7 @@ export function readLocalDraft(factory?: IDBFactory | null, timeoutMs = LOCAL_RE
         try {
           if (!db.objectStoreNames.contains(LOCAL_DRAFT_STORE)) return finish(null);
           const get = db.transaction(LOCAL_DRAFT_STORE, 'readonly').objectStore(LOCAL_DRAFT_STORE).get(LOCAL_DRAFT_KEY);
-          get.onsuccess = () => finish(summariseDraft(get.result));
+          get.onsuccess = () => finish(get.result ?? null);
           get.onerror = () => finish(null);
         } catch {
           finish(null);
@@ -79,4 +81,9 @@ export function readLocalDraft(factory?: IDBFactory | null, timeoutMs = LOCAL_RE
       finish(null);
     }
   });
+}
+
+/** The visitor's draft in this browser, summarised for the landing (template, palette, name), or null. */
+export function readLocalDraft(factory?: IDBFactory | null, timeoutMs = LOCAL_READ_TIMEOUT_MS): Promise<LocalDraft | null> {
+  return readStoredDraft(factory, timeoutMs).then(summariseDraft);
 }

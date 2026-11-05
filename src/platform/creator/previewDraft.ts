@@ -21,6 +21,14 @@ export function draftOrSample(stored: unknown): CreatorDraft {
   return resolveLoaded(stored, SAMPLE_DRAFT, []);
 }
 
+/**
+ * The draft the preview shows when the creator handed its draft over (the draft as it is on screen, newer than the store's) or not: the
+ * hand-off first, otherwise the stored draft (`draftOrSample`), which is the sample when nothing is stored.
+ */
+export function previewDraftFrom(handedOff: CreatorDraft | null, stored: unknown): CreatorDraft {
+  return handedOff ?? draftOrSample(stored);
+}
+
 /** The project the address names (`?project=<id>`), or null. */
 export function projectIdFrom(search: string): string | null {
   const id = new URLSearchParams(search).get(PROJECT_PARAM);

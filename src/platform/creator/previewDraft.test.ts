@@ -34,6 +34,16 @@ describe('which draft the page shows', () => {
     expect({ ...draftOrSample(stored), updatedAt: '' }).toEqual({ ...emptyDraft(), updatedAt: '' });
   });
 
+  it('survives hostile stored values: a prototype-polluting key, a huge string, deep nesting, a throwing getter-free odd shape', () => {
+    const hostile = JSON.parse('{"version":1,"__proto__":{"polluted":true},"octopus":{"template":"__proto__","palette":"constructor","name":"' + 'x'.repeat(100000) + '"},"profile":{"handle":"__proto__"},"projects":[{"id":"__proto__","technologies":["__proto__","constructor"],"usage":{"__proto__":"x"},"media":[null,5]},null,7]}');
+    for (const stored of [hostile, [[[[[[]]]]]], Object.create(null), { version: 1, projects: [{}], octopus: [] }]) {
+      const draft = draftOrSample(stored);
+      const id = chooseProject(draft, 'constructor');
+      expect(() => validateBundle(previewBundleFor(draft, id, {}))).not.toThrow();
+    }
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
   it('repairs fields of a version-1 draft that are the wrong type', () => {
     const draft = draftOrSample({ version: 1, octopus: { template: 'nope', palette: 7, name: null }, profile: 5, projects: 'x' });
     expect(TEMPLATE_IDS).toContain(draft.octopus.template);
