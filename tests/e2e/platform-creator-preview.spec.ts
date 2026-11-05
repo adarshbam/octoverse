@@ -408,13 +408,16 @@ test.describe('a draft with nothing to show still previews', () => {
   });
 
   test('every template previews its own full world for a minimal draft (kit loaded)', async ({ page }) => {
+    test.setTimeout(900_000);
     for (const template of ['veyra', 'flux', 'nox', 'aether']) {
       await seen(page, `u-${template}-fan`);
       await storeDraft(page, draftOf({ octopus: { template, palette: 'original', personality: 'calm', name: 'Fan' }, profile: { handle: `${template}-fan`, tagline: '', about: '' } }, [project('one', 'One')]));
-      await page.goto('/create/preview');
+      // The engine steps a world down to a lighter level when its kit is slow to arrive (15 s by default): on a busy shared GPU that would make this
+      // a test of the machine. `kitwait` is the engine's own review switch (development builds) that gives the kit the time; the assertion is unchanged.
+      await page.goto('/create/preview?kitwait=150000');
       await previewUp(page);
       await expect(page.locator('[data-preview="draft"]')).toHaveAttribute('data-world', `u-${template}-fan`);
-      await expect.poll(() => worldIs(page), { timeout: 120_000 }).toBe(true);
+      await expect.poll(() => worldIs(page), { message: `the ${template} template's kit loaded`, timeout: 150_000 }).toBe(true);
     }
   });
 });
