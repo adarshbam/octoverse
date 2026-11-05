@@ -4,7 +4,8 @@ Branch `claude/flux-world-overnight`. Overnight run: every owner gate was ruled 
 Frame rates are labelled "under load" (three sessions shared one Intel UHD GPU).
 
 ## Status
-- Milestones 1 and 2 complete (Tasks 1-10, plus early Task 8a and Task 11). Stopped at the Milestone 3 boundary: waiting on Veyra Task 13, Aether Task 12 (orbStyle) and E02 choosableIn. Everything below is PENDING OWNER REVIEW.
+- Milestones 1 to 4 complete (Tasks 1-13). Waiting at the Milestone 5 boundary on Veyra Tasks 16, 17 and 18. Everything below is PENDING OWNER REVIEW except the owner ruling below.
+- OWNER RULING (not provisional): the Task 16 flourish contract. Flux adapts to the contract as landed at 4ff01e3: the flourish event is `{ arm, start }` (not `clock`); `settle` stays within 0 to 1 (at or below 1, not 1.4); there is no suppression hook, so Flux gets the idle pulse and unroll interplay another way with no engine change. Applied in Task 14.
 - 2026-11-05 Task 10 (Milestone 2 world look) ruled provisionally; PENDING OWNER REVIEW.
 - 2026-11-05 Task 11 (overview pose and dome, run early) ruled provisionally; PENDING OWNER REVIEW.
 - 2026-11-05 Task 12 (P3 to P5 statics: pendant orbs, tech focus, detail) ruled provisionally; PENDING OWNER REVIEW.
