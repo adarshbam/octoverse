@@ -21,7 +21,7 @@ export const AETHER_THEME: UiTheme = {
   buttonTo: '#7b62f7',
   focusRing: '#b8d8ff',
   titleIcon: 'flame',
-  // Replaced by a capture of her intro (a still of P2's composition) when the poster is made (Task 21).
+  // The no-WebGL still of her intro (public/aether/poster-intro.webp, Task 21): the frozen intro as the page draws it, 1536 x 1024, with the HTML overlays left out (the live ones are drawn over it).
   poster: { src: 'aether/poster-intro.webp', alt: 'Aether, the curious octopus guide to AI Playground, in the indigo water of her drowned observatory', width: 1536, height: 1024 },
   pageTitle: 'Aether · AI Playground',
   // The nameplate's second line, "The Curious Mind" (content/aether.ts `epithet`), is drawn in this colour.
