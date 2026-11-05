@@ -7,7 +7,7 @@ import { SWELL_PUSH_SETTLED } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
 import { layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
 import { assignPendants, pendantSwing, restSwing } from './pendant';
-import { type RingStyle, BOB, FLIGHT, SATELLITE_SWING, beadAngles, beadAnglesInto, dealToBeads, flightPoint, flightProgress, holdProgress, orbBob, ringFlight, ringLineVisible, ringLineWidth, ringPoint, ringShown } from './satellite';
+import { type RingStyle, BOB, FLIGHT, SATELLITE_SWING, beadAngles, beadAnglesInto, dealToBeads, satellitePlaces, flightPoint, flightProgress, holdProgress, orbBob, ringFlight, ringLineVisible, ringLineWidth, ringPoint, ringShown } from './satellite';
 import { PLACEMENTS, SELECTS, placementCapacity, placementDriver, placementOf } from './strategies';
 
 // The `satellite` placement's rest form (amendment A1; Aether spec 2.2, 7.5): a ring round the head,
@@ -428,6 +428,29 @@ test('the active form under the driver: 16 slots hold 16 (at most two an arm, th
   early.point('overview', 3, 0, out);
   const [bx, by, bz] = ringPoint(RING.homes[dealToBeads(10, 5)[3]], RING);
   expect(out.distanceTo(new THREE.Vector3(bx + 0.07, by, bz))).toBeLessThan(0.2);
+});
+
+test("the arm lift's hang moves a landed orb along its arm, and its places name the arm a chosen one hangs from (Task 19)", () => {
+  // The places the arm lift reads: the driver's own slots, the same in every stage, the tray's past them.
+  const places = satellitePlaces(ACTIVE, 18);
+  expect(places.slice(0, 3).map(p => p?.slot.arm)).toEqual(['T1', 'T1', 'T8']);
+  expect(places[16]).toBeNull();
+  expect(satellitePlaces({ kind: 'satellite', ring: RING }, 4)).toEqual([]);
+  const driver = placementDriver(ACTIVE, 10, { headCentreX: 0 });
+  const out = new THREE.Vector3();
+  driver.step({ stage: 'overview', swell: SWELL_PUSH_SETTLED, dt: 1 / 60, hot: false, still: true }, ARMS);
+  const hung = new THREE.Vector3(...driver.pendants![0].orbCentre);
+  // Technology 0 lifted all the way, its hang at the arm's middle (u 0.5): its pendant now hangs from there, a stretch up its arm.
+  const at = new Float32Array(10).fill(Number.NaN);
+  const weight = new Float32Array(10);
+  at[0] = 0.5;
+  weight[0] = 1;
+  driver.step({ stage: 'overview', swell: SWELL_PUSH_SETTLED, dt: 1 / 60, hot: true, still: true, focused: true, hang: { at, weight } }, ARMS);
+  driver.point('overview', 0, SWELL_PUSH_SETTLED, out);
+  expect(out.y - hung.y).toBeGreaterThan(0.5);
+  expect(driver.pendants![0].attach[1]).toBeCloseTo(-1, 6);
+  // The others stay where they hung.
+  expect(new THREE.Vector3(...driver.pendants![1].orbCentre).y).toBeLessThan(out.y);
 });
 
 test('the trail is a fixed pool: the same points every frame, sampled back along the arc', () => {

@@ -345,7 +345,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   // A world's orb style (artifacts/orbStyle.ts): rim beads and a cap round each orb, in one batch each; none for a world without one.
   const orbStyle = useMemo(() => createOrbStyle(artifacts.orbStyle, bubbles.length), [artifacts.orbStyle, bubbles.length]);
   useEffect(() => () => orbStyle?.dispose(), [orbStyle]);
-  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3(), cap: new THREE.Vector3() }), []);
+  const scratch = useMemo(() => ({ edge: new THREE.Vector3(), ndc: new THREE.Vector3(), right: new THREE.Vector3(), orbit: new THREE.Vector3(), held: new THREE.Vector3(), from: new THREE.Vector3(), cap: new THREE.Vector3(), rest: new THREE.Vector3() }), []);
   useEffect(() => {
     bubbleLive.resize(bubbles.length);
     return () => bubbleLive.resize(0);
@@ -419,14 +419,18 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching (blooming, it grows where it hangs).
       const b = blowing ? appear.frame(blowing, i, blow.seconds!, bubbles.length, artifacts) : null;
       // A pendant hangs its orb a radius past its cap at the size it is now, on a thread drawn down as far as the bloom has it and shortened as far as the lift has it.
-      // The satellite's orbs stay where its driver puts them (on the ring, in flight, or hanging with their bob), as before.
+      // The satellite's orbs stay where its driver puts them (on the ring, in flight, or hanging with their bob), as before;
+      // a landed one its arm lifts (Aether) moves, as far as the lift has gone, to where a pendant's would hang on its shortened thread.
       const pendant = threads && driver.pendants ? driver.pendants[i] : null;
       const reach = (b?.bloom ? b.bloom.thread : 1) * (1 - liftShorten * lifted);
-      if (placementConfig.kind === 'pendant' && pendant && pendant.points.length > 0) {
-        const [ax, ay, az] = pendant.attach;
-        const end = pendant.points[pendant.points.length - 1];
+      const hung = pendant && pendant.points.length > 0 ? pendant : null;
+      const liftedSatellite = placementConfig.kind === 'satellite' && lifted > 0 && !!look?.landed;
+      if (hung && (placementConfig.kind === 'pendant' || liftedSatellite)) {
+        const [ax, ay, az] = hung.attach;
+        const end = hung.points[hung.points.length - 1];
         const hang = radius * (b ? b.scale : 1);
-        target.set(ax + (end[0] - ax) * reach + Math.sin(pendant.angle) * hang, ay + (end[1] - ay) * reach - Math.cos(pendant.angle) * hang, az);
+        target.set(ax + (end[0] - ax) * reach + Math.sin(hung.angle) * hang, ay + (end[1] - ay) * reach - Math.cos(hung.angle) * hang, az);
+        if (liftedSatellite) target.lerp(driver.point(s.stage, i, s.swell, scratch.rest), 1 - Math.min(1, lifted));
       } else {
         driver.point(s.stage, i, s.swell, target);
       }

@@ -210,7 +210,8 @@ function checkOrbStyle(style: unknown) {
  * The appear's and the select's own parameters, by field name (Task 19): the bloom's `duration`
  * (seconds, above 0, at most 10) and the arm lift's `ease` (seconds, above 0, at most 2), `scale`
  * (1 to 2) and `threadShorten` (0 to under 1). Both grow out of and lift a pendant, so both need a
- * placement that hangs pendants (refused at the kind otherwise). The twinkle's `duration` has the same
+ * placement that hangs pendants (refused at the kind otherwise): the bloom the pendant placement, the
+ * arm lift the pendant placement or the satellite's active form (Aether). The twinkle's `duration` has the same
  * range, and it forms the satellite's ring, so it needs the satellite placement.
  */
 function checkAppearSelect(artifacts: ArtifactConfig) {
@@ -226,7 +227,9 @@ function checkAppearSelect(artifacts: ArtifactConfig) {
     if (!(finite(duration) && duration > 0 && duration <= 10)) throw new BundleError('artifacts.appear.duration', `${String(duration)} is not above 0 and at most 10 (seconds the twinkle takes in all)`);
   }
   if (select.kind === 'armLift') {
-    if (placement.kind !== 'pendant') throw new BundleError('artifacts.select.kind', `"armLift" lifts the arm an artifact hangs from: it needs the pendant placement, not "${placement.kind}"`);
+    // The satellite hangs its technologies as pendants in its active form (Aether), so its arms lift them as the pendant placement's do.
+    if (placement.kind === 'satellite' && !placement.slots) throw new BundleError('artifacts.select.kind', '"armLift" lifts the arm an artifact hangs from: the satellite placement needs its active form (slots, sizes, tether) for it');
+    if (placement.kind !== 'pendant' && placement.kind !== 'satellite') throw new BundleError('artifacts.select.kind', `"armLift" lifts the arm an artifact hangs from: it needs the pendant or the satellite placement, not "${placement.kind}"`);
     const { ease, scale, threadShorten } = select as { ease?: unknown; scale?: unknown; threadShorten?: unknown };
     if (!(finite(ease) && ease > 0 && ease <= 2)) throw new BundleError('artifacts.select.ease', `${String(ease)} is not above 0 and at most 2 (seconds the lift eases over)`);
     if (!(finite(scale) && scale >= 1 && scale <= 2)) throw new BundleError('artifacts.select.scale', `${String(scale)} is not from 1 to 2 (how much the chosen orb grows)`);

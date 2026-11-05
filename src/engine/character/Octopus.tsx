@@ -26,13 +26,14 @@ import { type BlowSheet, bubblesExist } from '../sequences/bubbleBlow';
 import { type HeadDraw, type SwellFrame, type SwellSheet, SwellRun, headDraw } from '../sequences/headSwell';
 import { TIER_SETTINGS, type TierSettings } from '../stage/quality';
 import { type BubbleState, type PlacedBubble, TechBubbles } from '../artifacts/TechBubbles';
-import { debugWindow, report, reportObject } from '../host/debugHooks';
+import { debugWindow, report, reportNew, reportObject } from '../host/debugHooks';
 import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
 import { APPEARS, type PlacementFormFrame, SELECTS, holdModule, placementOf } from '../artifacts/strategies';
 import { type ArmTarget, busyWeight, liftWeightAt } from '../artifacts/armLift';
 import { layoutPendants } from '../artifacts/pendant';
+import { satellitePlaces } from '../artifacts/satellite';
 import { ArmChain, type ArmRest, restFromCurve } from './armChain';
 import { ArmTube } from './armTube';
 import { ArmWeb, WEB_PAIRS } from './armWeb';
@@ -267,7 +268,14 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // The arm lift (artifacts/armLift.ts; Veyra): a chosen pendant's own arm lifts it. Which arm that is
   // follows the stage's slots (the same arm in both stages); its lifted shape is worked out once a
   // choice, then the arm's rest is blended toward it joint by joint each frame, root first.
-  const liftSlots = useMemo(() => (artifacts.placement.kind === 'pendant' ? { intro: layoutPendants(orbs.length, artifacts.placement, 'intro'), overview: layoutPendants(orbs.length, artifacts.placement, 'overview') } : null), [artifacts, orbs]);
+  // The satellite (Aether) hangs its technologies in its active form, one set of slots for every stage.
+  const liftSlots = useMemo(() => {
+    const { placement } = artifacts;
+    if (placement.kind === 'pendant') return { intro: layoutPendants(orbs.length, placement, 'intro'), overview: layoutPendants(orbs.length, placement, 'overview') };
+    if (placement.kind !== 'satellite') return null;
+    const places = satellitePlaces(placement, orbs.length);
+    return { intro: places, overview: places };
+  }, [artifacts, orbs]);
   const armLift = useMemo(() => {
     if (select.mode !== 'lift' || artifacts.select.kind !== 'armLift') return null;
     return {
@@ -857,6 +865,8 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
       const place = selected >= 0 && liftSlots ? liftSlots[bubbleState.stage][selected] ?? liftSlots.overview[selected] ?? liftSlots.intro[selected] : null;
       armLift.choreography.choose(selected >= 0 ? selected : null, holdStill ? 0 : now, reducedMotion || (freeze && !holdStill), place?.slot.arm);
       const lifts = armLift.choreography.sample(holdStill ? holdAt : now);
+      // The lift as the development build reports it, for the end-to-end tests (`window.__octoverse.lift`): which arm lifts which technology, and how far its tip is.
+      if (probe) reportNew(instance, 'lift', lifts.map(f => ({ techId: orbs[f.bubble].techId, arm: f.arm, releasing: f.releasing, tip: liftWeightAt(f, 1, armLift.easeMs, settleScale(personality)) })));
       forgetTargets(armLift.targets, lifts);
       for (let k = 0; k < lifts.length; k++) {
         const f = lifts[k];
