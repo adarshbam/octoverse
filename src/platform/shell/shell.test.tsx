@@ -73,5 +73,7 @@ describe('titleFor', () => {
     expect(titleFor({ name: 'howItWorks' })).toBeNull();
     expect(titleFor({ name: 'world', handle: 'veyra', project: 'vault-os', view: 'intro' })).toBeNull();
     expect(titleFor({ name: 'review', search: '?world=nox' })).toBeNull();
+    // The create preview is the draft's world: the host sets its title (the draft's), and the shell must not set one over it on a ?view= change.
+    for (const view of ['intro', 'overview', 'detail'] as const) expect(titleFor({ name: 'createPreview', view })).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ export function worldFor(handle: string, project: string): string | undefined {
 const NOT_FOUND_TITLE = 'Not found (404) · OctoVerse';
 
 /**
- * The document title of a platform page, or null where the host sets it (the landing, How It Works, a world, a review).
+ * The document title of a platform page, or null where the host sets it (the landing, How It Works, a world, the create preview, a review).
  * The not-found page carries its status; a handle or project the fixtures do not know is the not-found page too.
  */
 export function titleFor(route: Route): string | null {
@@ -38,8 +38,6 @@ export function titleFor(route: Route): string | null {
       return 'Explore · OctoVerse';
     case 'create':
       return 'Create · OctoVerse';
-    case 'createPreview':
-      return 'Preview · OctoVerse';
     case 'profile': {
       const profile = profileFor(route.handle);
       return profile ? `${profile.name} · OctoVerse` : NOT_FOUND_TITLE;
