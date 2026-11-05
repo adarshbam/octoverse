@@ -398,3 +398,9 @@ Review Focus 3 (IndexedDB blocked): e2e blocks `IDBFactory.open` and checks "Can
 2. Template change, production build: about 0.65 to 0.75 s from the new template on screen to the new preview showing when that template was shown before in the session (warm: criterion 1.5 s met), but 2.7 to 3.7 s the first time each template is shown (its shaders compile for the first time; the JS is already there, so "chunk cached" does not cover it). Needs shader warm-up (an engine or build item).
 3. Creator with the live preview, 1536 x 1024, production: 88 to 120 fps (GPU 4.7 to 5.0 ms/frame); the floor of 36 is met.
 4. The still and the live preview share a crop, but the still shows no personality, so the swap on a palette change can show a small pose difference.
+
+### Task 19b fix round 1 (2026-11-05)
+
+- The wide layout now follows the chosen project (it did not: `onSelect` was wired in the phone layout only); the picture carries `data-project`, `data-tech` and `data-engine-stage` (the engine's own `onStageChange`).
+- E02b: after a preview is "showing" (3 frames drawn) the engine compiles its remaining shader programs in long main-thread tasks: 3.6 to 4.5 s on the first show of a template (0.2 to 0.4 s once warm). The page cannot respond meanwhile, and a click then waits (this was the "slow click-to-still" outlier). Needs a program warm-up (or parallel shader compile) and a ready signal for a preview instance.
+- The spec 2.6 palette criterion is an expected-failure e2e (`test.fail`) until the engine has a live character-config channel; timing bounds in the live spec are asserted in production, recorded in dev (`PLATFORM_LOOSE_TIMING=1` to opt out).
