@@ -133,7 +133,7 @@ const PORTAL_FOG = 0.25;
 const MATERIALS: WorldConfig['materials'] = [
   { node: 'membrane', material: 'membrane', params: { color: '#0fdcff', edge: '#70e6dc', flowSpeed: 0.06, flowScale: 1, flash: 0.2, fog: PORTAL_FOG } },
   { node: 'padlock_body', material: 'glow', params: { color: '#92f0e0', strength: 1.08, tips: 0, pulse: 0, period: 1, fog: PORTAL_FOG } },
-  { node: 'padlock_ring', material: 'glow', params: { color: '#92f0e0', strength: 1.08, tips: 0, pulse: 0, period: 1, fog: PORTAL_FOG } },
+  { node: 'padlock_ring', material: 'glow', params: { color: '#4fb8aa', strength: 1.0, tips: 0, pulse: 0, period: 1, fog: PORTAL_FOG } },
   { node: 'glowplant_a', material: 'glow', params: { color: '#5af0d8', strength: 1.15, tips: 1.3, pulse: 0.35, period: 7 } },
   { node: 'glowplant_b', material: 'glow', params: { color: '#5af0d8', strength: 1.15, tips: 1.3, pulse: 0.35, period: 8.5 } },
 ];
@@ -151,6 +151,12 @@ export const VAULT_WORLD: WorldConfig = {
   // far-0 is the farthest layer, as far.json orders them (blender/vault/render_far.py writes the files).
   farPlate: { cutZ: farData.cutZ, layers: farData.layers.map((layer, i) => ({ url: `/veyra/world/far/far-${i}.ktx2`, z: layer.z })) },
   materials: MATERIALS,
+  // What the entrance moves (spec 7.9, the vault recognising its keeper): the padlock's dial ring turns about its own centre and
+  // the membrane's emissive flashes. The sheet's `kitDrives` (sequences/index.ts) name the entrance props that drive them.
+  props: [
+    { id: 'lockRing', node: 'padlock_ring', drive: 'rotateZ' },
+    { id: 'membraneFlash', node: 'membrane', drive: 'emissive' },
+  ],
   layout,
   // A slight upward lean (spec 7.7, smaller than Nox's 0.07) and a calmer drift: 0.8 of his amount at 0.75 of his pace.
   camera: { tilt: 0.04, hover: { amount: 0.8, pace: 0.75 } },

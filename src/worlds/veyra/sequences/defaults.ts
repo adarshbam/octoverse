@@ -1,4 +1,4 @@
-import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWELL_PUSH_SETTLED } from '../../../engine/sequences/keys.ts';
+import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWELL_PUSH_SETTLED, hermiteKeys } from '../../../engine/sequences/keys.ts';
 
 // Veyra's sequence defaults: the keys each of her Theatre sheets starts from. World data: the
 // engine's sequence loader (theatre.ts) takes them through `WorldBundle.sequences`, never by import.
@@ -8,25 +8,108 @@ import { type EntranceShape, type SequenceDefaults, type SequenceId, LINEAR, SWE
 // --- The entrance (spec 7.9) -----------------------------------------------------------------
 
 /**
- * The entrance's shape. A placeholder: the swim, the glide along the path and the slow 200-degree
- * turn are authored in the entrance task, which sets `spiral: false` (the engine's glide-turn,
- * sequences/entrance.ts glideTurnYaw) and keys the spin. No spin is keyed here (it holds 0), and on
- * the spiral a spin of 0 adds neither turn nor arc, so she stands as landed; the glide-turn would
- * start her at -turn, so the placeholder must not take it before the spin is keyed.
+ * The entrance's shape: no spiral (the engine's glide-turn, sequences/entrance.ts glideTurnYaw). The
+ * keyed path is the whole way to the stage spot, and the sheet's `spin` turns her in place on it:
+ * the yaw runs from -200 degrees to exactly 0 (facing the visitor) as `spin` goes 0 to 1.
  */
-export const VEYRA_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spiral: true, arc: { r0: 0.9, phase: Math.PI } };
+export const VEYRA_ENTRANCE: EntranceShape = { turn: (200 * Math.PI) / 180, spiral: false };
 
 /**
- * A placeholder entrance: nothing is keyed, so every prop holds its resting value, which is the
- * landed state: she is simply present at the stage spot in the intro pose (as with reduced motion),
- * the arms open and the face on the gentle smile. One second, so the stage hands over to the intro.
+ * Seconds of the beats (spec 7.9). She appears out of the haze from 0 to 1 s, swims in three strokes
+ * (the clock starts at STROKE_START and runs one stroke per STROKE_SECONDS, ending on a whole
+ * stroke), reaches the spot as the turn ends, turns slowly from 4.5 to 5.5 s, and settles from 5.5 to
+ * 6.5 s: the arms swing forward and open into the intro pose, the face lands, the sparkle shimmer runs.
  */
+const APPEAR_END = 1;
+const TURN_START = 4.5;
+const TURN_END = 5.5;
+const SETTLE_END = 6.5;
+
+/**
+ * Ruling on the stroke rate (Task 18, as Nox's R48/R49). Her stroke at its own timing is 0.65 + 0.26 +
+ * 1.0 s = 1.91 s, and three of them are 5.7 s; the spec asks for three between 1 and 4.5 s. So the
+ * stroke clock runs a little faster than her timing says: one per 1.7 s (the glide 0.88 s, not 1.0;
+ * Nox's is 0.6 s), the first surge (the power stroke's start, 34% into a stroke) at 1.03 s, the
+ * second at 2.73 s and the third at 4.43 s, every power stroke between 1 and 4.5 s. The third stroke
+ * ends at 5.55 s, its glide carrying her under the turn, with the arms still trailing until the
+ * settle swings them forward.
+ */
+const STROKES = 3;
+const STROKE_SECONDS = 1.7;
+const STROKE_START = 0.45;
+const STROKE_END = STROKE_START + STROKES * STROKE_SECONDS;
+
+/**
+ * The padlock's ring and the membrane (spec 7.9, ~3.5 s): the ring turns a quarter turn between 3.3
+ * and 3.7 s and the membrane flashes softly cyan, peaking at 3.5 s and gone by 3.9 s. The flash is the
+ * emissive intensity, 1 at rest; its peak is 1 plus the membrane's `flash` in the place (0.2), the most
+ * its shader draws (place/config.ts; entrance.test checks the two agree).
+ */
+const LOCK_START = 3.3;
+const LOCK_END = 3.7;
+const FLASH_PEAK = 1.2;
+
+/**
+ * The path: [seconds, x, y, z] waypoints, the last the stage spot. She appears deep on the left (x -5.9,
+ * 20.5 back, where the haze hides her), swims across the vault's deep water to the clear channel
+ * between the blocks and the portal, and passes in front of the portal on its left at about 3.5 s (the
+ * ring's click, 2.4 units in front of it and 4.5 to its left), then glides down the channel to the spot as she turns.
+ * The worn corridor of the floor (place/kit.ts VAULT_CORRIDOR) squeezes between two blocks, 1.9 clear
+ * of the stone at the tightest and a gap of 0.2 for arms drawn in: no room for her arms open, which the
+ * spec asks (7.9), so she keeps to the open water over it. This route keeps 2.58 from every footprint
+ * (the arms open reach 2.05: entrance.test.ts measures the gap with them open and closed).
+ */
+const WAYPOINTS: readonly (readonly [number, number, number, number])[] = [
+  [0, -5.9, 0.9, -20.5],
+  [1.7, -0.84, 0.75, -14.5],
+  [3.5, -0.3, 0.35, -6.2],
+  [4.7, 0.2, 0.1, -2.5],
+  [TURN_END, 0, 0, 0],
+];
+
+/**
+ * x, y and z keyed at the waypoints, their slopes from the neighbours (the speed runs on smoothly
+ * through every waypoint): the first from the way to the next, and zero on arrival at the spot.
+ */
+function swimKeys() {
+  const axis = (a: 1 | 2 | 3) =>
+    hermiteKeys(
+      WAYPOINTS.map((w, i) => {
+        const last = i === WAYPOINTS.length - 1;
+        const lo = Math.max(0, i - 1);
+        const hi = Math.min(WAYPOINTS.length - 1, i + 1);
+        const slope = last ? 0 : (WAYPOINTS[hi][a] - WAYPOINTS[lo][a]) / (WAYPOINTS[hi][0] - WAYPOINTS[lo][0]);
+        return [w[0], w[a], slope] as const;
+      }),
+    );
+  return { x: axis(1), y: axis(2), z: axis(3) };
+}
+
 const ENTRANCE: SequenceDefaults = {
-  length: 1,
+  length: SETTLE_END,
   objects: {
     main: {
-      props: { x: 0, y: 0, z: 0, stroke: 0, spin: 0, forward: 1, open: 1, settle: 1, reveal: 1, pitch: 0, yaw: 0, surge: 0 },
-      keys: {},
+      props: { x: WAYPOINTS[0][1], y: WAYPOINTS[0][2], z: WAYPOINTS[0][3], stroke: 0, spin: 0, forward: 0, open: 0, settle: 0, reveal: 0, pitch: 0.3, yaw: 0, surge: 0.2, lockRing: 0, membraneFlash: 1, shimmer: 0 },
+      keys: {
+        ...swimKeys(),
+        // Stroke clock: three whole strokes at an even rate, the last ending as the settle begins.
+        stroke: [[STROKE_START, 0, LINEAR], [STROKE_END, STROKES, LINEAR]],
+        // The slow turn into the front, in the spin window: the yaw's -200 to 0 (the shape's turn).
+        spin: [[TURN_START, 0], [TURN_END, 1]],
+        // The settle: the arms swing forward out of the trail, then open into the intro pose; the
+        // face lands on the gentle smile and the intro's words come in; the shimmer runs crown to face.
+        forward: [[TURN_END, 0], [TURN_END + 0.55, 1]],
+        open: [[TURN_END + 0.15, 0], [SETTLE_END, 1]],
+        settle: [[TURN_END, 0], [SETTLE_END, 1]],
+        shimmer: [[TURN_END, 0], [SETTLE_END, 1]],
+        // Out of the haze: the glow and aura first, then the shape.
+        reveal: [[0, 0], [APPEAR_END, 1]],
+        // Leaning a little head first while she glides in, upright by the end of the turn.
+        pitch: [[TURN_START, 0.3], [TURN_END, 0]],
+        // The vault recognising its keeper: the ring a quarter turn, the membrane's soft flash.
+        lockRing: [[LOCK_START, 0], [LOCK_END, Math.PI / 2]],
+        membraneFlash: [[LOCK_START, 1], [(LOCK_START + LOCK_END) / 2, FLASH_PEAK], [LOCK_END + 0.2, 1]],
+      },
     },
   },
 };

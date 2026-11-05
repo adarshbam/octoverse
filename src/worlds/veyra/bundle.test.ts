@@ -235,11 +235,12 @@ test('her artifacts are pendants on tethers: slots on her arms in both choosing 
   expect(choosableIn).toEqual(['intro', 'overview']);
 });
 
-test('the sequences are her own project, and the entrance placeholder holds her landed in the intro', () => {
+test('the sequences are her own project, and her entrance is a keyed 6.5 s sheet (the placeholder is gone)', () => {
   expect(VEYRA_BUNDLE.sequences.projectId).toBe('OctoVerse-Veyra');
   const { props, keys } = VEYRA_BUNDLE.sequences.defaults.entrance!.objects.main;
-  expect(keys).toEqual({});
-  expect(props).toMatchObject({ forward: 1, open: 1, settle: 1, reveal: 1, spin: 0 });
+  // Authored (Task 18, sequences/entrance.test.ts): it starts unrevealed and unopened, and keys the path, the strokes, the turn, the settle and the kit.
+  expect(Object.keys(keys).sort()).toEqual(['forward', 'lockRing', 'membraneFlash', 'open', 'pitch', 'reveal', 'settle', 'shimmer', 'spin', 'stroke', 'x', 'y', 'z']);
+  expect(props).toMatchObject({ forward: 0, open: 0, settle: 0, reveal: 0, spin: 0 });
 });
 
 test('the poster the theme names exists in public/ as a webp of the size the theme says', () => {

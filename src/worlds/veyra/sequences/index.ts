@@ -13,4 +13,6 @@ export const VEYRA_SEQUENCES: SequenceSet = {
   state: () => import('./state.theatre.json').then(module => module.default),
   defaults: SEQUENCE_DEFAULTS,
   entrance: VEYRA_ENTRANCE,
+  // The padlock's ring turns and the membrane flashes as the entrance has it (spec 7.9): the place's props (place/config.ts), by the entrance sheet's props.
+  kitDrives: { lockRing: 'lockRing', membraneFlash: 'membraneFlash' },
 };
