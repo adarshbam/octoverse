@@ -456,6 +456,340 @@
   padding: 8px 0 4px;
 }
 
+/* ---- the editor's parts (Task 19a) ----------------------------------------------------------- */
+
+.oct-link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.oct-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--oct-ink-soft);
+}
+
+/* Inline validation: a warm line under the field, never red alarm, never a block. */
+.oct-field-issue {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #ffd2b0;
+  overflow-wrap: anywhere;
+}
+
+.oct-field input[aria-invalid='true'] {
+  border-color: #ffb88a;
+}
+
+.oct-link-shown,
+.oct-link-plain {
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.oct-link-shown {
+  color: #d8c8ff;
+}
+
+/* A link that is not https is plain text: no underline, no colour of a link. */
+.oct-link-plain {
+  color: var(--oct-ink-soft);
+}
+
+.oct-summary-flag {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #ffd2b0;
+}
+
+.oct-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oct-small-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(190, 172, 255, 0.5);
+  background: rgba(40, 30, 100, 0.55);
+  color: var(--oct-ink);
+  font: 500 15px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.oct-small-button:hover {
+  border-color: rgba(230, 218, 255, 0.9);
+  background: rgba(150, 120, 255, 0.3);
+}
+
+.oct-small-button[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.oct-small-danger {
+  border-color: rgba(255, 184, 138, 0.6);
+}
+
+.oct-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(230, 218, 255, 0.7);
+  background: rgba(60, 44, 150, 0.7);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.oct-selected-techs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-selected-tech {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.oct-chip-removable {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 0 0 0 12px;
+  font-size: 15px;
+}
+
+.oct-chip-remove {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--oct-ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.oct-chip-remove:hover {
+  background: rgba(150, 120, 255, 0.3);
+}
+
+.oct-usage input {
+  font-size: 15px;
+}
+
+.oct-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-picker-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(190, 172, 255, 0.3);
+  background: rgba(40, 30, 100, 0.4);
+  color: var(--oct-ink);
+  font: 500 15px/1.2 'Poppins', system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oct-picker-item[aria-pressed='true'] {
+  border-color: rgba(230, 218, 255, 0.9);
+  background: rgba(150, 120, 255, 0.35);
+}
+
+.oct-picker-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.oct-picker-category {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--oct-ink-soft);
+}
+
+.oct-images {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oct-image {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.oct-image img,
+.oct-image-wait {
+  flex: 0 0 auto;
+  width: 96px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(150, 120, 255, 0.15);
+}
+
+.oct-image-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oct-image-remove {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 184, 138, 0.6);
+  background: transparent;
+  color: var(--oct-ink);
+  font: 500 14px/1.2 'Poppins', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+/* The file input covers its label (invisible), so the whole 44 px button is the target and the keyboard still reaches the input. */
+.oct-file {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  align-self: flex-start;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(235, 225, 255, 0.8);
+  background: linear-gradient(135deg, var(--oct-button-from), var(--oct-button-to));
+  color: var(--oct-ink-dark);
+  font: 600 15px/1.2 'Poppins', system-ui, sans-serif;
+}
+
+.oct-file input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.oct-file:focus-within {
+  outline: 3px solid #d8c8ff;
+  outline-offset: 3px;
+}
+
+.oct-file[data-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.oct-file[data-disabled='true'] input {
+  cursor: not-allowed;
+}
+
+/* ---- the draft bar: save status and Discard draft, always on screen at the bottom ------------- */
+
+.oct-creator-bar-slot {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  margin-top: 22px;
+}
+
+.oct-draft-bar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  background: rgba(14, 22, 80, 0.94);
+}
+
+.oct-draft-status {
+  margin: 0;
+  font-size: 15px;
+  color: var(--oct-ink-soft);
+}
+
+.oct-draft-error {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 15px;
+  color: #ffd2b0;
+}
+
+.oct-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.oct-draft-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.oct-draft-confirm p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.oct-draft-confirm:focus {
+  outline: none;
+}
+
 /* ---- a tablet: the picture on top, the two panels side by side (768 to 1099 px) ------------- */
 
 @media (min-width: 768px) and (max-width: 1099px) {

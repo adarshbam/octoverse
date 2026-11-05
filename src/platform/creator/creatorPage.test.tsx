@@ -52,7 +52,7 @@ describe('the creator composition (spec 7.13)', () => {
     expect(swatches.map(nameOf)).toEqual(['Original', 'Lavender', 'Teal', 'Mauve', 'Rose', 'Coral', 'Peach', 'Violet', 'Lilac grey']);
     expect(PALETTE_IDS.map(id => PALETTE_NAMES[id])).toEqual(swatches.map(nameOf));
     // The draft's own choices are the pressed ones: Aether, peach, Playful (spec 7.10's sample).
-    const pressed = buttonsIn(html).filter(b => b.attrs.includes('aria-pressed="true"'));
+    const pressed = buttonsIn(html).filter(b => b.attrs.includes('aria-pressed="true"') && /data-(?:template|palette|personality)=/.test(b.attrs));
     expect(pressed.map(b => /data-(?:template|palette|personality)="([^"]+)"/.exec(b.attrs)![1])).toEqual(['aether', 'peach', 'playful']);
   });
 
@@ -89,6 +89,8 @@ describe('the creator composition (spec 7.13)', () => {
     expect(right).toMatch(/<label\b[^>]*>\s*Repository\s*<input\b[^>]*type="url"/);
     expect(right).toContain('Technologies');
     for (const id of SAMPLE_DRAFT.projects[0].technologies) expect(right).toContain(technologyName(id));
+    expect(right).toMatch(/aria-label="Move project up"/);
+    expect(right).toMatch(/aria-label="Delete project"/);
     expect(right).toContain('Images');
     // A collapsible profile section, closed (no `open` attribute).
     const details = /<details\b([^>]*)>\s*<summary\b[^>]*>([\s\S]*?)<\/summary>/.exec(right);
@@ -110,17 +112,18 @@ describe('the creator composition (spec 7.13)', () => {
       const page = render(phone ? 'phone' : 'wide');
       expect(page).not.toMatch(/type="color"/);
       expect(page).not.toMatch(/type="range"/);
-      expect(page).not.toMatch(/type="file"/);
+      // The only file input is the project images' (Task 19a): PNG, JPEG or WebP, never a free path.
+      expect([...page.matchAll(/<input[^>]*type="file"[^>]*>/g)].every(m => m[0].includes('accept="image/png,image/jpeg,image/webp"'))).toBe(true);
       expect(page).not.toContain('<select');
       const types = [...page.matchAll(/<input\b[^>]*>/g)].map(m => /type="([^"]+)"/.exec(m[0])?.[1] ?? 'text');
-      for (const type of types) expect(['text', 'url']).toContain(type);
+      for (const type of types) expect(['text', 'url', 'file']).toContain(type);
       expect(page).not.toMatch(/geometry|curve|\bpose\b|slider|\.glb|\.gltf|\.obj\b/i);
     }
   });
 
   it('every input has a visible label (a wrapping label)', () => {
     const inputs = [...html.matchAll(/<(input|textarea)\b/g)].length;
-    const labelled = [...html.matchAll(/<label\b[^>]*>[^<]*<(?:input|textarea)\b/g)].length;
+    const labelled = [...html.matchAll(/<label\b[^>]*>(?:[^<]|<span[^>]*>[^<]*<\/span>)*<(?:input|textarea)\b/g)].length;
     expect(labelled).toBe(inputs);
   });
 

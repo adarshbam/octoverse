@@ -1,6 +1,9 @@
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import { CreatorStill } from '../pages/parts';
+import { validateDraft } from './draft';
 import { withOctopus } from './draftEdits';
+import { FieldIssue } from './FieldIssue';
+import { issueFor } from './issueText';
 import { SWATCH_COLOURS } from './swatchColours';
 import { PALETTE_IDS, PALETTE_NAMES, PERSONALITY_IDS, PERSONALITY_NAMES, TEMPLATE_IDS, TEMPLATE_NAMES, type CreatorDraft } from './types';
 
@@ -12,6 +15,9 @@ import { PALETTE_IDS, PALETTE_NAMES, PERSONALITY_IDS, PERSONALITY_NAMES, TEMPLAT
 export function OctopusPanel({ draft, onChange }: { draft: CreatorDraft; onChange: (draft: CreatorDraft) => void }) {
   const uid = useId();
   const { template, palette, personality, name } = draft.octopus;
+  // Inline, never blocking: an empty or odd name only says so here and previews as "Your Octopus".
+  const issues = useMemo(() => validateDraft(draft), [draft]);
+  const nameIssue = issueFor(issues, 'octopus.name', 'Name');
   return (
     <section className="oct-glass oct-panel oct-octopus-panel" aria-labelledby={`${uid}-title`}>
       <h2 id={`${uid}-title`} className="oct-panel-title">
@@ -60,10 +66,13 @@ export function OctopusPanel({ draft, onChange }: { draft: CreatorDraft; onChang
         </div>
       </fieldset>
 
-      <label className="oct-field">
-        Name
-        <input type="text" value={name} maxLength={24} placeholder="Your Octopus" autoComplete="off" spellCheck={false} onChange={event => onChange(withOctopus(draft, { name: event.target.value }))} />
-      </label>
+      <div className="oct-link-field">
+        <label className="oct-field">
+          Name
+          <input type="text" value={name} maxLength={24} placeholder="Your Octopus" autoComplete="off" spellCheck={false} aria-invalid={nameIssue ? true : undefined} aria-describedby={nameIssue ? `${uid}-name-issue` : undefined} onChange={event => onChange(withOctopus(draft, { name: event.target.value }))} />
+        </label>
+        <FieldIssue id={`${uid}-name-issue`} text={nameIssue} />
+      </div>
     </section>
   );
 }
