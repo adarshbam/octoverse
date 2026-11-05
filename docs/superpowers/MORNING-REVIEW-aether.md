@@ -298,3 +298,7 @@ Flux added `WorldTier.id` and Aether added `WorldTier.quality`, both the same qu
 
 - Task 14 (back view) is docs and evidence only (no source changed) and skipped its separate task review. Its checklist verdicts are the implementer's own; look at the contact sheets in `docs/superpowers/evidence/aether/m4/`.
 - The engine merge `9ab7af7` (Veyra back view and Task 16 with Aether's satellite flight) was committed by an agent killed in the laptop crash. Afterwards the full unit suite (1089 passed) and the typecheck were re-run clean; the Nox still gate and the e2e specs were not re-run on that exact commit.
+
+## More engine follow-ups (from the merge reviews)
+
+- Validation gaps (latent, no world hits them): a `rotateZ`/`emissive` prop that names a placed piece (not an attached node) never moves and validateWorld accepts it; a `bob` prop must name a placed piece and must not also appear in `sequences.kitDrives` (the bob wins over the kit drive). Add both checks with tests.
