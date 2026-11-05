@@ -70,6 +70,13 @@ export interface SequenceSet {
   state: () => Promise<unknown>;
   defaults: Partial<Record<SequenceId, SequenceDefaults>>;
   entrance: EntranceShape;
+  /**
+   * The kit props the entrance drives (Task 18; `WorldConfig.props`): each key is a prop's id, each
+   * value the name of the prop of the entrance sheet's `main` object that gives its value (so the
+   * sheet's `lockRing` can turn the world's padlock ring). Absent: the entrance drives none (Nox).
+   * `validateBundle` checks that both sides exist.
+   */
+  kitDrives?: Readonly<Record<string, string>>;
 }
 
 /** Straight-line handles: the value runs at an even rate between two keys. */

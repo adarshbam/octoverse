@@ -382,3 +382,24 @@ test('sequences.entrance.arc: a spiral needs its start (r0 above 0, a finite pha
   for (const phase of [Number.NaN, Infinity, '0']) expect(refusal(withEntrance({ ...NOX_SHAPE, arc: { r0: 1, phase } })).field, String(phase)).toBe('sequences.entrance.arc.phase');
   expect(() => validateBundle(withEntrance({ turn: Math.PI, spiral: false }))).not.toThrow();
 });
+
+// --- The kit props the entrance drives (Task 18) --------------------------------------------------
+
+const withKitDrives = (kitDrives: unknown, props?: WorldBundle['place']['props']): WorldBundle => ({
+  ...NOX_BUNDLE,
+  place: { ...NOX_BUNDLE.place, props: props ?? [{ id: 'lockRing', node: NOX_BUNDLE.place.kit.pieces[0], drive: 'rotateZ' }] },
+  sequences: { ...NOX_BUNDLE.sequences, kitDrives: kitDrives as Record<string, string> },
+});
+
+test('sequences.kitDrives: each key a prop of the place, each value a prop of the entrance sheet; Nox has none', () => {
+  expect(NOX_BUNDLE.sequences.kitDrives).toBeUndefined();
+  expect(() => validateBundle(NOX_BUNDLE)).not.toThrow();
+  expect(() => validateBundle(withKitDrives({ lockRing: 'spin' }))).not.toThrow();
+  expect(() => validateBundle(withKitDrives({}))).not.toThrow();
+});
+
+test('sequences.kitDrives naming a prop the place lacks, or a sheet prop the entrance lacks, is refused by name', () => {
+  expect(refusal(withKitDrives({ ghost: 'spin' })).field).toBe('sequences.kitDrives.ghost');
+  expect(refusal(withKitDrives({ lockRing: 'nothing' })).field).toBe('sequences.kitDrives.lockRing');
+  expect(refusal(withKitDrives(5)).field).toBe('sequences.kitDrives');
+});
