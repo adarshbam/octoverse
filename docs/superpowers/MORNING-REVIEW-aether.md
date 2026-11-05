@@ -158,6 +158,25 @@ What to check:
 6. **Bubbles past the portal (spec 7.7 look note).** Let the entrance play and watch the bubbles cross the portal: they reach pure white, brighter than her face glow at its dimmest. Keep, or dim them near the portal?
 7. **Overall.** The world is sparser and darker than P2: dark blank tower faces, few warm lights, and no bloom on the windows or jellyfish (bloom starts at 0.95 to keep her pupils dark). Is this calm enough, or too empty?
 
+### Back view (Task 14, Milestone 4): PROVISIONAL, not approved
+
+Look at it live: http://127.0.0.1:5196/?world=aether&stage=intro&freeze&yaw=180 (and `yaw=45`, `90`, `135`; `stage=overview` for the dome; add `&orbit` and drag on the water, not on her, to look from above or below). Stills in `docs/superpowers/evidence/aether/m4/`: `t14-intro-yaws.webp`, `t14-overview-yaws.webp` (yaw 0, 45, 90, 135, 180), `t14-intro-yaw180.webp`, `t14-overview-yaw180.webp`, `t14-desktop-frame-yaw0-180.webp`, `t14-rear-roots-committed-vs-option.webp`. Per-yaw table and numbers: `docs/superpowers/reviews/aether.md`, "Task 14". No source changed.
+
+Verdicts against spec 2.3:
+- **Round and glassy: pass** (intro and overview, all yaws).
+- **Specks and rim continue: pass.** Intro dome specks 8 / 7 / 9 / 11 / 15 at yaw 0 / 45 / 90 / 135 / 180 (the back at least as many as the front); rim luminance 235 to 239 at every yaw. The overview dome has no specks front or back (as P3).
+- **The ring circles behind the head: pass,** all five beads and the line at yaw 45 to 180. **Spec 7.5's dimmed rear beads: not met** (engine): the bead behind her at yaw 0 is hidden, not seen through the jelly.
+- **Face not visible from behind: pass.** No face or glow card at yaw 180 (0 dark and 0 peach pixels on the head at 180; also checked on the 1536 x 1024 frame).
+- **Overview from behind: pass with a limit.** No orb inside the dome. From behind the orbs are dark glass discs without a logo; yaw 90 piles them in a column (arms authored flat, as Nox and Veyra).
+- **Popping or holes: one fault, the rear arm roots,** at yaw 135 and 180: T1 and T8's root caps meet in a hard butt joint with a notch. Veyra's fix (`rear()` z `[0, -0.62]`) removes it but costs the front one P2 sample (arm underside glow 6.0 to 17.2) and two tests, so I did not apply it.
+
+What to check:
+1. Walk yaw 135 to 180 on the intro and overview: the crease where the two upper rear arms meet at the centre. **Owner call:** apply the fix (cost above) or live with it.
+2. The ring from behind and from the side: does it read as circling her head? At yaw 90 its line crosses the face's edge (side view, no stage shows it).
+3. Overview orbs from behind: anonymous dark discs. Acceptable, or should logos show?
+4. The pink wash low in the dome at yaw 135: the face glow through the jelly. Wanted?
+5. Motion (twinkle, sway, the head turn) was not judged from stills.
+
 ## Owner decisions (look gate)
 
 - **P2's rear stubs and the IoU bar.** P2 paints two extra rear stubs beside the head (2675 px). Aether keeps exactly eight arms (spec 7.4).
@@ -240,6 +259,11 @@ Please give the real names.
 - **Panel edge over her cheek on the page (Task 13 fix round 1).** At 1672 x 941 the detail panel's left edge comes over her right cheek. The model puts her face box's right edge (the blush's outer edge) at stage x -2.546, 0.29 left of the panel's left edge (the Task 13 review read 0.18 for the blush itself; either way it is left of it) (-2.255, `AETHER_STAGE_PANELS.detail`), so the overlap is probably the engine's panel mapping (stage panel to page CSS) at that aspect, not her pose. Not traced in the engine.
   - Wanted: check how `AETHER_STAGE_PANELS` maps to the page panel's left edge at a wide aspect.
 - **Mean inside the silhouette (Task 6): resolved in config.** Fix round 1 set the arms' jelly `depth` to `#505ce2` at `depthStrength` 0.8 (was `#5c74e6` at 0.4). The mean reads (158, 142, 237) against (154, 133, 228) +-12, saturation 0.424 (0.418 to 0.498). No engine change is needed.
+
+- **Back view (Task 14).** Three requests, all optional for the stills.
+  - Rear beads seen through the jelly, dimmed (spec 7.5): the ring's rear beads are hidden behind the opaque head at yaw 0 and 45. Wanted: draw the ring and beads behind the head dimmed through the glass.
+  - Orb logo from behind: a turned-away orb shows a dark disc without its logo. Wanted: a dim mirrored logo on the back face, or the logo as a billboard.
+  - Rear arm root caps: where T1's and T8's caps meet at the body's axis they butt in a hard flat joint with a notch (`armTube.ts` root cap). Wanted: caps that overlap or blend, so a rear pair at z `[-0.3, -0.62]` (Nox's) needs no config change. Target: Aether intro yaw 180 shows no crease, the 23-sample P2 check unchanged (HEAD: 4 misses).
 
 ## Questions for the owner (Task 4, face)
 

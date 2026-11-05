@@ -1024,3 +1024,91 @@ It passes only under the most favourable registration. The tongue misses on a pa
 - `src/worlds/aether/review/targets.json` is tracked. Both tools were run from a `git archive` export of HEAD's `src/worlds/aether/review/` (a clean path, the export as working directory). They reproduce Task 13's numbers exactly (inside 7.5 / 15.0 / 64.7, tongue 25.0 / 1.8 / 50.7, rim 3.8 / 5.9 / 1.3). They need numpy and Pillow, and the captures they read are not committed (`.tmp/t13/f-tf-face3x.png`, `f-tf.png`).
 
 **Run.** vite on 127.0.0.1:5196 for the e2e only, stopped afterwards. The page logged "the world's kit did not load in 15000 ms" once (the world drew less); the character, hold and probes were unaffected. `aether.spec.ts`: 4 of 4 (the new one as an expected failure).
+
+## Task 14: back view (Milestone 4); owner review PROVISIONAL
+
+Spec 2.3 "Back view": round and glassy, the specks and rim continue round the back, the ring circles behind the head. This is the orbit review for the intro and the overview. No approval is claimed: the owner looks live (`?world=aether&stage=intro&freeze&yaw=180`, and `yaw=45`, `90`, `135`; add `&orbit` and drag on the water to look from above or below). `yaw` turns her body about its upright axis; the stage camera stays put.
+
+**Source: unchanged.** HEAD `11319aa`'s config was captured and is committed as is. A fix for the one clear fault (the rear arm roots, below) was found and measured, and not applied; see "Rear arm roots".
+
+**Captures** (vite on 127.0.0.1:5196 only; bare `?freeze`, the settled state; `tier=high&kitwait=90000`; no kit retry needed):
+- Intro: `WORLD=aether VIEW=514x504 SCALE=2 node scripts/stage-capture.mjs intro <out> "view=-2.57,2.52,2.57,-2.52&tier=high&kitwait=90000&yaw=<0|45|90|135|180>"` (P2's box, 200 px to a unit).
+- Overview: the same with `overview`, `VIEW=509x504`, `view=-2.545,2.52,2.545,-2.52` (P3's box).
+- Desktop frame: `VIEW=1536x1024 SCALE=1`, no `view`, yaw 0 and 180, both stages.
+- Evidence (`docs/superpowers/evidence/aether/m4/`): `t14-intro-yaws.webp` and `t14-overview-yaws.webp` (yaw 0, 45, 90, 135, 180 side by side, 0.67 size), `t14-intro-yaw180.webp`, `t14-overview-yaw180.webp` (the back at 0.75 size), `t14-desktop-frame-yaw0-180.webp` (intro and overview, front and back, on the page), `t14-rear-roots-committed-vs-option.webp` (the root crease, 3x, committed against the option).
+
+### Per-yaw checklist against spec 2.3
+
+PASS means seen on the stills and, where a number exists, measured. Concern means a fault or a limit the owner should look at.
+
+| Check | 0 | 45 | 90 | 135 | 180 |
+|---|---|---|---|---|---|
+| Intro: round and glassy | pass | pass | pass | pass | pass |
+| Intro: specks continue | pass | pass | pass | pass | pass |
+| Intro: rim continues | pass | pass | pass | pass | pass |
+| Intro: ring round the head, 5 beads | 4 seen, 1 hidden (engine) | 5 | 5 | 5 | 5 |
+| Intro: face not visible from behind | n/a | face turning | face edge-on | pass | pass |
+| Intro: no popping or holes | pass | pass | pass | concern (roots) | concern (roots) |
+| Overview: dome glassy and round | pass | pass | pass | pass | pass |
+| Overview: orbs and threads sensible | pass | pass | concern (column) | concern (no logos) | concern (no logos) |
+| Overview: no orb inside the head | pass | pass | pass | pass | pass |
+| Overview: nothing popping | pass | pass | pass | concern (roots) | concern (roots) |
+
+**1. Round and glassy: yes, intro and overview.** From behind the intro mantle is the same jelly as the front: lavender-white crown, violet middle, a bright rim all round, a faint pink wash low in the dome where the face glow shines through (yaw 135, lower right). The overview dome is a blue glass capsule with the white rim all round and the pink-lavender seat band at its foot, the same from behind as from the front.
+
+**2. Specks continue: yes (intro mantle).** Counted with Veyra's method (bright points at least 35 over a 15 px median, 2 px or larger, on the dome interior eroded 10 px; `.tmp/t14/measure.py`, adapted from the Nox spike's `measure.py` to this 514 x 504 box at 200 px a unit; the arm, cream and P2-sample columns of that script do not apply to Aether and are not used):
+
+| Yaw | Specks on the dome | per 10,000 px | Rim luminance | Dark px on the head | Peach px |
+|---|---|---|---|---|---|
+| 0 | 8 | 7.7 | 237 | 1,687 (eyes, brows) | 0 |
+| 45 | 7 | 7.5 | 236 | 1,120 | 0 |
+| 90 | 9 | 10.9 | 239 | 115 (face edge-on) | 14 |
+| 135 | 11 | 11.7 | 235 | 0 | 2 |
+| 180 | 15 | 14.5 | 237 | 0 | 0 |
+
+The back has at least as many as the front. These counts are not Task 3's or Task 6's (23 to 26 on the front at 3x, by a top-hat peak count): the method differs, so compare yaws with each other, not with the spec's 15; this method reads 8 on the front, so it cannot confirm the spec's 15 at P2 size, and Task 6's count stands for that. In the overview the dome is the engine's glass capsule with no specks on it, front or back (P3 paints none either), so nothing stops at the sides; the arms carry their specks at every yaw (seen on the stills, not counted).
+
+**3. Rim continues: yes.** The rim's brightest outline reads 235 to 239 at every yaw (the intro), and in the overview it is the same bright white line all round the capsule at every yaw.
+
+**4. The ring circles behind the head: yes, and it holds at every yaw.** At yaw 0 four of the five beads show (two lit gold, two glass) outside the head's sides, and the fifth is behind the head and hidden. At yaw 45 to 180 all five beads and the ring line are seen: the line runs round the head at brow height, the beads sit at the same places, and at 180 the near arc crosses the back of the dome with a glass bead near its top, while the far arc (the face side) passes behind it. At yaw 90 the ring is seen edge-on and its line crosses the face's edge, with one bead beside the eye: the ring's front sector is the face's, seen from the side, and no stage shows her from the side. **Spec 7.5's "rear beads seen through the jelly, dimmed" is not met, and the engine is why:** a bead behind the head at yaw 0 is hidden by the opaque head, not drawn dimmed through the glass (it predates Task 13; engine follow-up below). The five beads sit on the ring's rear 270 degrees, so from behind none of them is behind the dome (nothing is hidden at yaw 180); the limit shows at yaw 0 and 45, and for the far bead at 90.
+
+**5. The face is not visible from behind: pass, and the glow card is not seen at yaw 180.** At yaw 135 and 180 there is no near-black pixel and no peach pixel to speak of on the head (0 and 0 at 180; 0 dark and 2 peach at 135; yaw 0 has 1,687 dark pixels, the eyes and brows). No face card or glow patch shows through or round the head at yaw 180, on the P2 box or on the 1536 x 1024 desktop frame (`t14-desktop-frame-yaw0-180.webp`). `?yaw` is part of the engine's `coreGlowFacing` input (`(swim ? swim.yaw : 0) + extraYaw`), so the card fades with the yaw in these stills. **Task 13's engine follow-up stands for the pose's own turn:** `coreGlowFacing` still does not read `pose.body.yaw`, and the detail's turn depends on it. At yaw 90 the face sits at the head's edge with the glow card faded; no streak is seen.
+
+**6. Overview from behind.** The dome reads round and glassy with nothing inside it: no orb lies inside the head, and at every yaw each orb hangs on an arm outside the dome's silhouette or in front of it (at yaw 45 the Python and React orbs overlap the dome's right edge, drawn in front of the glass, on their arms). Orbs from behind are dark glass discs with their rim beads and the gold cap, and no logo (the logo is on the orb's front face and the orb turns with the arm), so from behind the twelve orbs are anonymous; the coloured rim (red on the Redis-like orb) and the arm seen through the glass remain. The threads hang from the arm slots as at the front. At yaw 90 the orbs stack in a column along the side-on pile of arms: the arms are authored flat for the stage camera (as Nox and Veyra: "not a design", nothing shows her from the side). On the desktop frame at yaw 180 the project panel stays over the dome's back: it is an HTML panel, not world geometry, and does not follow the yaw.
+
+**7. No popping geometry or holes: one fault, the rear arm roots.** From behind (intro yaw 135 and 180; overview yaw 135 and 180) T1 and T8's root caps stand out behind the mantle and meet in a hard flat-ended butt joint with a notch under it, at the body's axis (`t14-rear-roots-committed-vs-option.webp`, left). It is the same fault as Veyra's Task 15 (`rear()` arm z `[-0.3, -0.62]`, as Nox). No other seam, hole or colour mismatch was seen between front and back, and nothing pops.
+
+### Rear arm roots: the fix, measured, not applied
+
+Veyra's fix is `rear()` z `[0, -0.62]`: the root caps then sit inside the neck. On Aether it removes the crease (the arms join in a smooth V under the dome, `t14-rear-roots-committed-vs-option.webp`, right: the option is round 8 below) and it moves the front: the front lighting of T1's middle (P2 samples (-1.12, -1.05) and (-1.15, -1.12)) depends on the arm's depth. The 23-sample P2 check (`check_stage.py --world --stage intro --world-id aether`; HEAD has 4 misses: arm body upper 39.4, the two seed beads 89.0 and 44.4, jellyfish bell 13.2):
+
+| Round | Change | Misses | Arm underside glow | Cup | IoU raw |
+|---|---|---|---|---|---|
+| HEAD | none | 4 | 6.0 | 7.2 | 0.8123 |
+| 1 | z [0, -0.62] | 6 | 12.3 miss | 11.7 miss | 0.8129 |
+| 2 | z [-0.15, -0.62] | 5 | 8.0 | 10.7 miss | 0.8126 |
+| 3 | z [0, -1.0] | 7 | 14.1 miss | 7.7 | 0.8128 |
+| 4 | z 0, underside 1.25, cup glow 1.1 | 5 | 16.7 miss | 6.4 | 0.8129 |
+| 5 | z 0, underside 0.95, cup glow 1.1 | 5 | 17.7 miss | 6.4 | 0.8129 |
+| 6 | z 0, underside 1.1, cup glow 1.2 | 5 | 15.0 miss | 8.9 | not taken |
+| 7 | z -0.15, cup glow 1.2 | 5 | 10.8 miss | 7.2 | 0.8126 |
+| 8 | z 0, cup glow 1.1 | 5 | 17.2 miss | 6.4 | 0.8129 |
+| 9 | round 8 and underglow 0.42 to 0.6 | 5 | 17.0 miss | 7.5 | 0.8129 |
+
+Round 3's rear tips at z -1.0 also took the arm top rim (14.5) and the inside tip spiral (10.6). Every variant costs at least one sample; the arm underside glow does not come back (the cups' glow lights it, and the cups' own sample then goes). The best candidate (round 8) removes the crease at the cost of one sample (arm underside glow 6.0 to 17.2; mean inside, saturation and brightness stay in range). It also broke two tests: `character.test.ts` ("the config still holds the Task 6 look", which pins the cup glow) and `artifacts.test.ts` (frozen: no thread or orb within 0.05 of her face, 0.0495, because the rear arm's chain moved). So it is not a one-line fix and I stopped: the front's Task 6 look is the owner's tuned gate, and the crease is an orbit-only fault. **Owner call:** take `rear()` z `[0, -0.62]` with cup glow 1.1, accept the arm underside sample at 17.2 and update the two tests; or keep the crease (seen only from behind, yaw 135 to 180, which no stage shows). The tuning rounds are not committed (config reverted to HEAD).
+
+### Engine requests (also in MORNING-REVIEW)
+
+1. Rear beads seen through the jelly, dimmed (spec 7.5): the ring's rear beads hide behind the opaque head at yaw 0 and 45.
+2. Orb logo seen from behind: a turned-away orb shows a dark disc with no logo. Optional.
+3. Root caps that blend: a rear pair's root caps should overlap or blend where they meet at the body's axis (as Veyra noted), so no config trade is needed.
+
+### Concerns
+
+1. The rear arm roots' crease from behind (above).
+2. Spec 7.5's dimmed rear beads are not drawn (engine).
+3. Orbs have no logo from behind; stacked at yaw 90 (not a design).
+4. Specks: the count method cannot compare with the spec's 15; the back reads at least as many as the front by this method (15 against 8).
+5. Motion (twinkle, sway, the head turn) is not judged from stills.
+
+No `src/engine/**`, Nox, Veyra or Flux file touched; no source file changed. No videos. Vite stopped afterwards.
