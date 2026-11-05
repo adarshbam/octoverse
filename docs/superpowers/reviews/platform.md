@@ -313,3 +313,48 @@ Numbers: see the morning-review entry (How It Works with one card live missed 36
 1. The engine's preview renders its closed detail panel (buttons, links) with `ui: 'none'`; contained by `inert` and the portal. Engine fix (E02b).
 2. How It Works with a live card is under its floor on a loaded GPU; a quiet-GPU run is needed before any cut.
 3. A preview's first frames cost the main thread (shader compiles); the platform hides this with the still until 3 frames are drawn, not with a lighter start.
+
+## Task 16: resources and performance (under load) (2026-11-05)
+
+**Provisional, pending owner (the visitor experience is the owner's live check).** Measured at HEAD `f54c3cc` (the production build `dist/m5-prod` was built from it; the working tree was not clean in `src/platform/creator/**`, `src/platform/stills/stills.ts` and `src/engine/boundary.test.ts`: Task 17's uncommitted work, none of it in the landing, world or preview paths that were measured). Edge (msedge channel), one Intel UHD GPU shared with other sessions, CPU often at 100%: every number below is 'under load'. Files: `tests/e2e/platform-resources.spec.ts`, `playwright.platform-prod.config.ts` (production `vite preview`, one worker; `npx vite build --outDir dist/m5-prod --emptyOutDir` first; `PLATFORM_PREVIEW_PORT` moves the port), `scripts/perf.mjs` (new `SEEN=<ids|all>` switch). Evidence: `docs/superpowers/evidence/platform/m5/`.
+
+### Resources: 20 round trips (landing, Explore, profile, world, then Back three times: profile, Explore, landing)
+
+Definition of a live context: a WebGL context made by `getContext('webgl'|'webgl2')` that is not lost (`isContextLost()` false; `loseContext()` sets that at once) and not garbage-collected (a WeakRef, read after a forced collection). `held` counts every such context; `attached` only those whose canvas is in the document. The counters are installed by the test through `page.addInitScript` (no production code changed). Listener count: a test-installed wrapper of the window's `addEventListener` and `removeEventListener` (one entry per type, listener, capture), compared with its count after the first trip as the spec says (so the one-time Theatre `error` and `unhandledrejection` listeners are inside the baseline).
+
+- Contexts: PASS. `held` 1 and `attached` 1 after every trip; peak over the run (sampled every 50 ms) held 1, attached 1; mid-trip attached counts 0 (Explore), 1 (profile hero), 1 (world), 0 to 1 (landing, while the host comes back). About 8 contexts are made per trip (probe canvases, the preview, the host, the world) and all are collected or lost.
+- Window listeners: PASS. 28 after trip 1 and after every later trip, identical per type (`resize` 5, `pointerdown` 3, `keydown` 2, `touchstart` 2, `error` 1, `unhandledrejection` 1 and so on). Also for 8 trips cycling Veyra, Flux, Nox and Aether (baseline trip 4): 28 throughout.
+- JS heap: MISS (known; recorded as `test.fail`, so the suite stays green and the test goes red when the leak is fixed). After forced collections (CDP `HeapProfiler.collectGarbage` x3), trip 1 to trip 20: CDP `Runtime.getHeapUsage` 24.8 to 50.9 MB (+105%, about +1.3 MB per trip, linear); `performance.memory.usedJSHeapSize` 69.7 to 112.9 MB (+62%; an earlier run of the same test and code gave +203%, so that figure is noisy and the CDP one is steady). 8 trips cycling the four worlds: +27% to +34% over trip 4 (performance.memory), CDP 31.1 to 36.1 MB. Spec limit 15%.
+  Where it grows (`where the heap grows`: seven cycles of one segment, CDP slope per cycle, performance.memory in brackets): landing <-> Explore 0.6 to 0.8 MB (0.7), Explore <-> profile 0.4 MB (0.4), profile <-> world 1.1 MB (0.9 here, 7.8 in an earlier run). Each mount and unmount of an engine instance (the host, a preview, a world page) leaves roughly 0.4 to 1 MB of JS heap behind. No context, listener or canvas leaks, so it is JS objects kept by something that outlives the page (a module cache, a loader, a Theatre project, a stale closure). Not fixed: engine and world code are outside this task. It needs a heap-snapshot comparison of trip 1 against trip 5.
+
+### Payload, first frame, route change
+
+- Payload: PASS. The landing and How It Works (pointer moved off the cards) make 32 requests, none for a showcase world's bundle chunk, Theatre state chunk or `/<world>/world/` file (the lists come from the build's manifest). A world route requests its own bundle, state, `near.glb` and far plates and none of the other three worlds'. Found on the way: with the pointer left over a card after "See how it works", the hovered world's preview loads that world's chunk and far plate (by design, a card preview).
+- First intro frame (reduced motion, a new browser context per run = cold cache and storage, production preview, 3 runs): the boot veil leaves the DOM at 2719, 1993 and 1451 ms after navigation start (median 1993). The engine removes the veil only after the stage has drawn a frame, so this is the host's first frame; the canvas is not blank (luminance spread 50). First contentful paint 100 to 184 ms; the engine's ready flag (40 frames after the world loaded) 5974 to 7576 ms. Limit 3.0 s: met on all three runs, with little margin on the first (2719). An earlier set of runs on a heavily loaded machine gave 6986, 9912 and 15526 ms, so the 3.0 s limit is asserted (median of three) only with `PLATFORM_STRICT_TIMING=1`; a default run asserts a non-blank picture and first frame before ready, and records the times.
+- Route change with a cached chunk: explore to creator 265, 156, 150 ms; explore to profile 156, 151, 144 ms (limit 500; the maximum is asserted). An earlier loaded run: 469 ms once, then 143 to 175.
+
+### Frame rates (scripts/perf.mjs --gpu, production build, 1536 x 1024, dpr 1, 8 s each, 2 runs per row, back to back)
+
+The production build ignores `?tier=` and `?stage=`: the tier is the engine's own pick for the device (stepped down by its frame probe), so 'tier low' is whatever the device and the load made it. Median fps / mean fps / GPU ms per frame (median, EXT_disjoint_timer_query):
+
+| Row | Floor | Run 1; run 2 | Verdict |
+|---|---|---|---|
+| Landing intro (`/`, entrance seen) | 40 | 55.9 / 30.2 / 17.2; 28.2 / 29.5 / 21.9 | mean of the run medians 42.1: met on average, run 2 below; GPU 17 to 22 ms (40 fps is 25 ms) |
+| Landing entrance (`/`, first visit: measured from 1.5 s after the ready flag for 8 s of it; a placeholder until Task 12) | 32 | 41.5 / 33.0 / 24.0; 41.2 / 32.1 / 24.4 | met |
+| How It Works, Flux card live | 36 | 32.6 / 27.7 / 17.6; 36.4 / 25.6 / 23.7 | run 1 below, run 2 at it; mean 34.5: MISSED under load; GPU 17.6 and 23.7 ms (36 fps is 27.8 ms) |
+| How It Works, no card live (reference) | | 39.8 / 27.5 / 23.1; 40.7 / 35.8 / 22.6 | |
+| Profile, live hero | 40 | 90.1 / 80.3 / 4.2; 81.3 / 81.2 / 4.5 | met |
+| Creator, live preview | 36 | pending Task 19 (no live preview on the route yet) | not measurable |
+
+With and without the live card: GPU 17.6 and 23.7 ms with, 23.1 and 22.6 ms without. The card shows no measurable GPU cost; the host's own GPU time swings by 6 ms between runs under load, so the fps gap (34.5 against 40.2) is inside the load's noise, and the preview's main-thread cost (shader compiles, a second render loop) is not separated. Task 13's 32.6 median agrees with run 1.
+
+Each world through the platform against the same world at `?world=<id>` (SEEN=all, the intro; platform then review, alternating). Median fps per run, platform / review:
+
+| World | Platform | `?world=` | Ratio (median of runs) | GPU ms median, platform / review |
+|---|---|---|---|---|
+| Nox (`/@nox/security-lab`) | 40.8, 37.7 | 38.6, 45.7 | 0.93 | 19.9, 25.9 / 20.7, 19.5 |
+| Veyra (`/@veyra/vault-os`) | 43.3, 39.7 | 42.9, 40.0 | 1.00 | 30.3, 24.2 / 29.7, 24.2 |
+| Flux (`/@flux/github-pipeline-engine`) | 35.0, 38.3, and 35.0, 44.2, 35.6 in the re-check | 47.8, 49.8, and 35.6, 41.0, 39.5 | 0.88 over five pairs (0.75 platform first; 0.98, 1.08, 0.90 review first) | 30.3, 26.0, 29.8, 22.1, 30.4 / 21.4, 19.1, 42.1, 22.6, 36.6 |
+| Aether (`/@aether/ai-playground`) | 46.3, 51.5 | 41.8, 36.8 | 1.24 | 25.8, 20.0 / 23.8, 28.8 |
+
+The 3% rule cannot be settled on this machine: one page's run-to-run spread is 20 to 30%, far above the limit, and the ratios fall on both sides of 1.0 (0.75 to 1.24) with no world consistently behind. GPU time per frame shows no platform penalty either (Flux 27.7 against 28.4 ms, mean of five). Pooled over all 11 pairs (8 in the table, 3 more Flux): platform mean 40.7 fps, median 39.7; `?world=` mean 41.8, median 41.0; ratio 0.97 on both (2.6% and 3.2% lower): on the edge of the 3% rule, inside the noise, so neither a pass nor a miss. GPU time per frame shows no platform penalty (Flux 27.7 against 28.4 ms). A verdict at 3% needs a quiet GPU. Against the intro floor of 40 fps (the worlds' own specs; Aether's is read, the others assumed equal), 5 of 11 platform runs and 7 of 11 `?world=` runs reached it (platform medians of two runs: Nox 39.3, Veyra 41.5, Flux 36.7, Aether 48.9): the floor is not reliably met under load by either path.

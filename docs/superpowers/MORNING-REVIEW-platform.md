@@ -198,3 +198,22 @@ Known gaps:
 - The engine's preview still mounts its closed detail panel (buttons and links) in the DOM; the platform draws the layer beside the card's button and the tile's link (not inside them) and marks it `inert`, `aria-hidden`. An E02b item: a `ui: 'none'` preview should not render it.
 - A preview takes no input and plays no entrance (E02b item 1); previews run their frame loop always (E02b item 3).
 - No-WebGL browsers: the preview shows the engine's poster of the world in place of its still (the host's own fallback).
+
+
+## PENDING OWNER REVIEW: M5, the visitor experience (Task 16)
+
+Commits on `claude/platform-overnight`: `test(platform): resources and payload; visitor experience measured (pending owner review)` and the small ones before it. This task adds tests and measurements only (no feature work): `tests/e2e/platform-resources.spec.ts`, `playwright.platform-prod.config.ts`, a `SEEN` switch in `scripts/perf.mjs`, evidence in `docs/superpowers/evidence/platform/m5/`. Full tables and run lists: `docs/superpowers/reviews/platform.md`, section "Task 16". Everything was measured on a production build, on a GPU and CPU shared with other sessions ('under load'), at HEAD f54c3cc.
+
+What to check live (the machine's numbers cannot judge feel):
+1. World visits and Back walks: landing, Explore, a profile, Enter a world, Back, Back, Back, ten times, in a production build (`npx vite build` then `npx vite preview`). Does any visit stutter, flash, or leave a frozen or blank page? Does the second visit to the same world feel as quick as the first?
+2. Stutter at the moments the preview and the host mount: hover a How It Works card, open a profile (the hero goes live after the page has faded in), enter a world from it.
+3. First load: the host should be on screen about 1.5 to 2.7 s after a cold load with reduced motion (measured 1451, 1993, 2719 ms); without reduced motion the entrance plays.
+4. Page changes between Explore, profiles and the creator should feel instant (about 150 ms, one 265 ms).
+
+Numbers (under load; run lists in the review log):
+- 20 round trips: contexts never above 1 live (limit 2); window listeners 28 after every trip (equal to trip 1); payload clean (the landing and How It Works load no other world's chunk, Theatre state or kit; a world route loads its own only); route change 144 to 265 ms (limit 500); first frame 1451 to 2719 ms (limit 3000).
+- MISS: the JS heap grows about 1.3 MB per trip (CDP: 24.8 to 50.9 MB over 20 trips, +105%; performance.memory +62% in the last run, +203% in an earlier one) against the 15% limit. Each engine mount and unmount (host, preview, world) keeps roughly 0.4 to 1 MB of JS objects; the world visit is the largest part. No context, listener or canvas leaks. The test is recorded as an expected failure (`test.fail`) so the suite stays green; it turns red when fixed. Engine or world owners need a heap snapshot comparison; I did not touch engine or world code.
+- Frame rates (median fps, 2 runs): landing intro 55.9, 28.2 (floor 40); entrance 41.5, 41.2 (32, met); How It Works with one live card 32.6, 36.4 (36, missed on average at 34.5; GPU ms per frame with the card 17.6 and 23.7, without 23.1 and 22.6: no measurable GPU cost); profile with live hero 90.1, 81.3 (40, met); creator with live preview: pending Task 19.
+- Each world through the platform against `?world=`: pooled over 11 pairs the platform is 0.97 of the review page (2.6% to 3.2% lower), with single ratios from 0.75 to 1.24: the 3% rule is not decidable under this noise (run-to-run spread 20 to 30%). Per world (median of runs): Nox 0.93, Veyra 1.00, Flux 0.88 (five pairs), Aether 1.24. Needs a quiet GPU run before anyone calls it.
+
+Misses to rule on: the heap (above); How It Works one-card floor (a quiet-GPU run, as Task 13 said); the 3% rule (undecided).
