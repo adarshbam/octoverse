@@ -29,7 +29,7 @@ import { useInstance } from '../host/instanceContext';
 import { useWindowListeners } from '../host/listeners';
 import type { Box } from '../artifacts/suctionHold';
 import { APPEARS, SELECTS, holdModule } from '../artifacts/strategies';
-import { type ArmTarget, busyWeight, liftWeightAt } from '../artifacts/armLift';
+import { type ArmTarget, busyWeight, fireLiftPulse, liftWeightAt } from '../artifacts/armLift';
 import { layoutPendants } from '../artifacts/pendant';
 import { ArmChain, type ArmRest, restFromCurve } from './armChain';
 import { ArmTube } from './armTube';
@@ -243,7 +243,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   const swellSeconds = swellSheet.seconds;
   const swell = useMemo(() => ({ run: new SwellRun(swellSeconds), frame: { morph: 0, squeeze: 0, push: 0, effect: 0 } as SwellFrame, draw: {} as HeadDraw }), [swellSeconds]);
   const bubbleState = useMemo<BubbleState>(() => ({
-    show: false, stage: 'intro', hot: false, still: false, swell: 0, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
+    show: false, stage: 'intro', hot: false, still: false, swell: 0, swellProgress: 0, reducedMotion: false, focus: new Float32Array(orbs.length), blow: blowSheet, puff: 0, mouthRound: 0,
     orbit: orbs.map(() => new THREE.Vector3()),
     hold: { pull: new Float32Array(orbs.length), tip: orbs.map(() => new THREE.Vector3()), dir: orbs.map(() => new THREE.Vector3(0, -1, 0)) },
     lift: new Float32Array(orbs.length),
@@ -795,6 +795,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     bubbleState.still = freeze || reducedMotion;
     // The swollen head pushes the orbits out.
     bubbleState.swell = sf.push;
+    // The pulse appear grows the orbs over the head's opening itself (0 closed, 1 open), not the push of the orbits.
+    bubbleState.swellProgress = Math.min(1, Math.max(0, sf.morph));
+    bubbleState.reducedMotion = reducedMotion;
     bubbleState.blow = blowSheet;
     orbs.forEach((_, i) => { bubbleState.focus[i] = choreography.arm(i); });
     // The suction hold (design 9.8): the chosen bubble's arm turns toward it, its cups flare, it is
@@ -835,7 +838,9 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
     if (armLift) {
       // The pendant's own arm: its slot in the stage it is framed for (the same arm in both stages).
       const place = selected >= 0 && liftSlots ? liftSlots[bubbleState.stage][selected] ?? liftSlots.overview[selected] ?? liftSlots.intro[selected] : null;
-      armLift.choreography.choose(selected >= 0 ? selected : null, holdStill ? 0 : now, reducedMotion || (freeze && !holdStill), place?.slot.arm);
+      const lifting = armLift.choreography.choose(selected >= 0 ? selected : null, holdStill ? 0 : now, reducedMotion || (freeze && !holdStill), place?.slot.arm);
+      // A world's lift runs a pulse along the arm it lifts (root to tip; fireLiftPulse keeps a fast sweep to three bands). Not with motion off.
+      if (lifting && place && artifacts.select.kind === 'armLift' && artifacts.select.pulse && config.suckers.pulse && !reducedMotion && !freeze) fireLiftPulse(instance.pulse, place.slot.arm, state.clock.elapsedTime, config.suckers.pulse);
       const lifts = armLift.choreography.sample(holdStill ? holdAt : now);
       forgetTargets(armLift.targets, lifts);
       for (let k = 0; k < lifts.length; k++) {
@@ -1001,7 +1006,7 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
           {rig.webs.map((web, i) => (
             <mesh key={`web-${i}`} geometry={web.geometry} material={rig.webMaterial} frustumCulled={false} castShadow={castShadow} />
           ))}
-          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} />}
+          {orbs.length > 0 && <TechBubbles bubbles={orbs} state={readBubbles} focusColour={config.palette.orbFocus} glass={config.palette.orbGlass} mouth={mouth} artifacts={artifacts} faceOrigin={config.head.faceOrigin} pulse={config.suckers.pulse} />}
           {/* The head, its dome and its glow turn and tilt together about the neck. */}
           <group ref={headTurn} position={[config.head.centerX, NECK_Y, 0]}>
             <group ref={headSpace} position={[-config.head.centerX, -NECK_Y, 0]}>

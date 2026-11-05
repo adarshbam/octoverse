@@ -1,4 +1,5 @@
-import type { ArmId, ChoosingStage, PendantSlot, Point2, SelectConfig, StageId } from '../config/types';
+import { type PulseTriggers, PULSE_ARMS, firePulse } from '../character/cupPulse';
+import { ARM_IDS, type ArmId, type ChoosingStage, type CupPulse, type PendantSlot, type Point2, type SelectConfig, type StageId } from '../config/types';
 import type { StagePose } from '../poses/types';
 import type { Vec3 } from '../world/types';
 import { armPoint } from './pendant';
@@ -94,6 +95,28 @@ export const liftedScale = (select: SelectConfig, lifted: number): number => (se
 /** What share of its thread a pendant hangs on, lifted by `lifted` (0 to 1): 1 down to 1 - the select's `threadShorten` (1 for a select that does not lift). */
 export const liftedReach = (select: SelectConfig, lifted: number): number => (select.kind === 'armLift' ? 1 - select.threadShorten * lifted : 1);
 
+/** The most arms that may be pulsing when a lift fires its own: a sweep over several orbs never piles up bands. */
+export const MAX_LIFT_PULSES = 3;
+
+/**
+ * Fires the cup pulse of the arm a pendant was just lifted on (`SelectConfig.pulse`): `firePulse`'s
+ * own guard keeps one arm from doubling a band under half way along, and a lift also waits while
+ * `max` other arms are pulsing (the appear's, an idle flourish's or other lifts'), so a fast sweep
+ * across orbs shows at most three bands. Returns whether the pulse fired; a refused one changes
+ * nothing. `clock` is the cups' frame clock (R3F `state.clock.elapsedTime`).
+ */
+export function fireLiftPulse(triggers: PulseTriggers, arm: ArmId, clock: number, cfg: CupPulse, max = MAX_LIFT_PULSES): boolean {
+  let others = 0;
+  for (let k = 0; k < PULSE_ARMS; k++) {
+    if (ARM_IDS[k] === arm) continue;
+    const since = clock - triggers.times[k];
+    // Still on the arm: fired, and its band (head and tail) not yet run off the tip.
+    if (since >= 0 && since * cfg.speed < 1 + cfg.wavelength) others++;
+  }
+  if (others >= max) return false;
+  return firePulse(triggers, arm, clock, cfg);
+}
+
 interface Entry {
   frame: LiftFrame;
   since: number;
@@ -118,26 +141,29 @@ export class ArmLiftChoreography {
   /**
    * `instant`, when given, sets motion off or on from this choice on (as setting `instant` does);
    * `arm`, when given, is the arm a newly chosen pendant hangs from (otherwise `armFor` names it).
+   * Returns whether a lift began with this call (a pendant newly chosen, or chosen again after being
+   * let go): the moment a world's lift pulse fires. Choosing what is already lifted, or none, is false.
    */
-  choose(bubble: number | null, nowMs: number, instant?: boolean, arm?: ArmId): void {
+  choose(bubble: number | null, nowMs: number, instant?: boolean, arm?: ArmId): boolean {
     if (instant !== undefined) this.instant = instant;
     const held = this.entries.find(e => !e.frame.releasing);
-    if (held && held.frame.bubble === bubble) return;
+    if (held && held.frame.bubble === bubble) return false;
     if (held) {
       held.frame.liftedMs = nowMs - held.since;
       held.frame.releasing = true;
       held.since = nowMs;
     }
-    if (bubble === null) return;
+    if (bubble === null) return false;
     const back = this.entries.find(e => e.frame.bubble === bubble);
     if (back) {
       // Lifting again from part way down: the clock that gives about the tip's lift it has now.
       const left = Math.max(0, releaseShape(nowMs - back.since, 1, 0));
       back.frame.releasing = false;
       back.since = nowMs - back.frame.liftedMs * left;
-      return;
+      return true;
     }
     this.entries.push({ frame: { bubble, arm: arm ?? this.armFor(bubble), ms: 0, releasing: false, liftedMs: 0, instant: false }, since: nowMs });
+    return true;
   }
 
   sample(nowMs: number): LiftFrame[] {

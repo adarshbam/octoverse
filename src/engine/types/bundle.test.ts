@@ -475,3 +475,45 @@ test('sequences.kitDrives naming a prop the place lacks, or a sheet prop the ent
   expect(refusal(withKitDrives({ lockRing: 'nothing' })).field).toBe('sequences.kitDrives.lockRing');
   expect(refusal(withKitDrives(5)).field).toBe('sequences.kitDrives');
 });
+
+// --- Task 16: the pulse appear and the lift pulse (Flux's appear and select) -------------------
+
+/** The cup pulse a character needs for the pulse appear and the lift pulse (the values are the test's own). */
+const CUP_PULSE = { speed: 1.33, wavelength: 0.17, strength: 0.85, colours: ['#20e0ff', '#9a78ff', '#ff8ce0'] as const };
+
+/** Nox's bundle with a pendant placement, the pulse appear and a lifting select with a pulse, and a character with a cup pulse; `edit`ed. No bloom sheet is given: the pulse plays none. */
+function withPulse(edit: (artifacts: Record<string, any>, character: Record<string, any>) => void = () => {}): WorldBundle {
+  const artifacts: Record<string, any> = {
+    ...NOX_BUNDLE.artifacts,
+    placement: { ...pendantFixture(), reveal: { start: 0.35, span: 0.3, step: 0.03 } },
+    appear: { kind: 'pulse', step: 0.18 },
+    select: { kind: 'armLift', ease: 0.3, scale: 1.25, threadShorten: 0, pulse: true },
+  };
+  const character: Record<string, any> = { ...NOX_BUNDLE.character, suckers: { ...NOX_BUNDLE.character.suckers, pulse: CUP_PULSE } };
+  edit(artifacts, character);
+  return { ...NOX_BUNDLE, artifacts: artifacts as never, character: character as never };
+}
+
+test('the pulse appear and the lift pulse validate with no appear sheet, the reveal in swell progress and a character with a cup pulse', () => {
+  expect('bloom' in NOX_BUNDLE.sequences.defaults).toBe(false);
+  expect(() => validateBundle(withPulse())).not.toThrow();
+  expect(() => validateBundle(withPulse(a => { a.select = { kind: 'armLift', ease: 0.3, scale: 1.25, threadShorten: 0 }; }))).not.toThrow();
+  expect(() => validateBundle(withPulse(a => { a.select = { kind: 'armLift', ease: 0.3, scale: 1.25, threadShorten: 0, pulse: false }; }))).not.toThrow();
+  expect(() => validateBundle(withPulse(a => { delete a.placement.reveal; }))).not.toThrow();
+});
+
+test('the pulse appear and the lift pulse are refused by field name when wrong', () => {
+  const field = (edit: (a: Record<string, any>, c: Record<string, any>) => void) => refusal(withPulse(edit)).field;
+  expect(field(a => { a.appear.step = 0; })).toBe('artifacts.appear.step');
+  expect(field(a => { a.appear.step = 3; })).toBe('artifacts.appear.step');
+  expect(field(a => { a.appear.step = Number.NaN; })).toBe('artifacts.appear.step');
+  expect(field(a => { delete a.appear.step; })).toBe('artifacts.appear.step');
+  expect(field(a => { a.select.pulse = 'yes'; })).toBe('artifacts.select.pulse');
+  // The reveal is in swell progress (0 to 1) with this appear.
+  expect(field(a => { a.placement.reveal = { start: 2, span: 0.3, step: 0.03 }; })).toBe('artifacts.placement.reveal');
+  expect(field(a => { a.placement.reveal = { start: 0.3, span: 4, step: 0.03 }; })).toBe('artifacts.placement.reveal');
+  // It needs the pendant placement, and a character with a cup pulse.
+  expect(field(a => { a.placement = NOX_BUNDLE.artifacts.placement; a.select = { kind: 'suctionHold' }; })).toBe('artifacts.appear.kind');
+  expect(field((_, c) => { c.suckers = { ...c.suckers, pulse: undefined }; })).toBe('character.suckers.pulse');
+  expect(field((a, c) => { a.appear = { kind: 'bloom', duration: 1.2 }; c.suckers = { ...c.suckers, pulse: undefined }; })).toBe('character.suckers.pulse');
+});

@@ -4,7 +4,7 @@ import { clampCharacterConfig } from '../config/validate';
 import type { Project, Technology } from '../content/projectTypes';
 import { validateProject } from '../content/validateProject';
 import type { StagePose, SwimPoseSet } from '../poses/types';
-import type { SequenceSet } from '../sequences/keys';
+import type { SequenceId, SequenceSet } from '../sequences/keys';
 import type { IntroTitleBox, StageFrame, StagePanels } from '../stage/framing';
 import { THEME_COLOURS, type UiTheme } from '../ui/theme';
 import { TITLE_ICONS } from '../ui/titleIcons';
@@ -186,10 +186,21 @@ function checkOrbStyle(style: unknown) {
  * The appear's and the select's own parameters, by field name (Task 19): the bloom's `duration`
  * (seconds, above 0, at most 10) and the arm lift's `ease` (seconds, above 0, at most 2), `scale`
  * (1 to 2) and `threadShorten` (0 to under 1). Both grow out of and lift a pendant, so both need a
- * placement that hangs pendants (refused at the kind otherwise).
+ * placement that hangs pendants (refused at the kind otherwise). The pulse appear's `step` (seconds,
+ * above 0, at most 2) and the arm lift's optional `pulse` (a boolean) both run the arms' cup
+ * pulses, so each needs the character to have one (`cupPulse`: its `suckers.pulse`).
  */
-function checkAppearSelect(artifacts: ArtifactConfig) {
+function checkAppearSelect(artifacts: ArtifactConfig, cupPulse: unknown) {
   const { placement, appear, select } = artifacts;
+  if (appear.kind === 'pulse') {
+    if (placement.kind !== 'pendant') throw new BundleError('artifacts.appear.kind', `"pulse" grows each artifact at its slot as its arm's pulse arrives: it needs the pendant placement, not "${placement.kind}"`);
+    const { step } = appear as { step?: unknown };
+    if (!(finite(step) && step > 0 && step <= 2)) throw new BundleError('artifacts.appear.step', `${String(step)} is not above 0 and at most 2 (seconds between one pair of arms' pulses and the next)`);
+    if (!record(cupPulse)) throw new BundleError('character.suckers.pulse', 'is missing (the "pulse" appear runs the cup pulse of each arm, so the character needs one)');
+    // The pulse appear reads the reveal as head-swell progress (0 closed, 1 open), not seconds.
+    const { reveal } = placement;
+    if (reveal !== undefined && !(reveal.start <= 1 && reveal.span <= 1)) throw new BundleError('artifacts.placement.reveal', `start ${String(reveal.start)} and span ${String(reveal.span)} are not at most 1 (with the "pulse" appear the reveal is in head-swell progress, 0 to 1)`);
+  }
   if (appear.kind === 'bloom') {
     if (placement.kind !== 'pendant') throw new BundleError('artifacts.appear.kind', `"bloom" grows each artifact out of a cup on its arm: it needs the pendant placement, not "${placement.kind}"`);
     const { duration } = appear as { duration?: unknown };
@@ -201,6 +212,9 @@ function checkAppearSelect(artifacts: ArtifactConfig) {
     if (!(finite(ease) && ease > 0 && ease <= 2)) throw new BundleError('artifacts.select.ease', `${String(ease)} is not above 0 and at most 2 (seconds the lift eases over)`);
     if (!(finite(scale) && scale >= 1 && scale <= 2)) throw new BundleError('artifacts.select.scale', `${String(scale)} is not from 1 to 2 (how much the chosen orb grows)`);
     if (!(finite(threadShorten) && threadShorten >= 0 && threadShorten < 1)) throw new BundleError('artifacts.select.threadShorten', `${String(threadShorten)} is not from 0 to under 1 (the share of its thread the chosen orb loses)`);
+    const { pulse } = select as { pulse?: unknown };
+    if (pulse !== undefined && typeof pulse !== 'boolean') throw new BundleError('artifacts.select.pulse', `${String(pulse)} is not true or false (whether a lift runs a pulse along the arm)`);
+    if (pulse === true && !record(cupPulse)) throw new BundleError('character.suckers.pulse', 'is missing (a lift pulse runs the cup pulse of the arm, so the character needs one)');
   }
 }
 
@@ -373,9 +387,11 @@ export function validateBundle(bundle: WorldBundle, worlds: readonly WorldId[] =
   if (bundle.artifacts.orbStyle !== undefined) checkOrbStyle(bundle.artifacts.orbStyle);
   if (!Object.hasOwn(APPEARS, appear.kind)) throw new BundleError('artifacts.appear.kind', `"${appear.kind}" is not an appear the engine has (${Object.keys(APPEARS).join(', ')})`);
   if (!Object.hasOwn(SELECTS, select.kind)) throw new BundleError('artifacts.select.kind', `"${select.kind}" is not a select the engine has (${Object.keys(SELECTS).join(', ')})`);
-  checkAppearSelect(bundle.artifacts);
+  checkAppearSelect(bundle.artifacts, (bundle.character as { suckers?: { pulse?: unknown } }).suckers?.pulse);
   for (const stage of choosableIn) if (!isChoosingStage(stage)) throw new BundleError('artifacts.choosableIn', `"${stage}" is not a stage a technology can be chosen in`);
-  for (const sheet of ['entrance', 'headSwell', 'arrival', APPEARS[appear.kind].sheet] as const) {
+  // The appear's own sheet too, where it plays one (the pulse plays none).
+  const appearSheet: SequenceId | undefined = (APPEARS[appear.kind] as { sheet?: SequenceId }).sheet;
+  for (const sheet of appearSheet ? (['entrance', 'headSwell', 'arrival', appearSheet] as const) : (['entrance', 'headSwell', 'arrival'] as const)) {
     if (!sequences.defaults[sheet]) throw new BundleError(`sequences.defaults.${sheet}`, 'is missing (the engine plays this sheet)');
   }
   checkEntranceShape(sequences.entrance);

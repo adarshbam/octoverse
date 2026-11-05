@@ -2,7 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
-import type { ArtifactConfig, ChoosingStage, OrbGlass, Point2, TetherStyle } from '../config/types';
+import { firePulse } from '../character/cupPulse';
+import type { ArtifactConfig, ChoosingStage, CupPulse, OrbGlass, Point2, TetherStyle } from '../config/types';
 import type { BlowSheet } from '../sequences/bubbleBlow';
 import type { SequenceId } from '../sequences/keys';
 import type { Vec3 } from '../world/types';
@@ -15,6 +16,7 @@ import { TETHER_POINTS, capRadius } from './tether';
 import { logoColour, logoTexture } from './logoTexture';
 import { ORB_HALO_SCALE, createOrbHaloMaterial, createOrbLogoMaterial, createOrbMaterial } from './orbMaterial';
 import { createOrbStyle } from './orbStyle';
+import { revealSize } from './pulseAppear';
 
 export interface PlacedBubble {
   techId: string;
@@ -35,6 +37,13 @@ export interface BubbleState {
   still: boolean;
   /** How far the head has swollen (0..1), which pushes the orbits out. */
   swell: number;
+  /**
+   * How far the head has opened (0 closed, 1 open), the swell's progress rather than its push: the
+   * pulse appear's reveal grows each orb over a range of it (artifacts/pulseAppear.ts revealSize).
+   */
+  swellProgress: number;
+  /** Reduced motion is on (not only a still): the pulse appear lights the cups for 0.3 s instead of running them. */
+  reducedMotion: boolean;
   /** How far each is in focus (0..1, eased). */
   focus: Float32Array;
   /** The blow's sheet (sequences/bubbleBlow.ts): the bubbles are blown from Nox's mouth when they first appear. */
@@ -193,7 +202,7 @@ function useThreads(tether: TetherStyle | null, count: number) {
  * buttons follow them: each frame the bubbles' places on the page are written to `bubbleLive`.
  * Lives in body space, so the bubbles go with Nox.
  */
-export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifacts, faceOrigin }: {
+export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifacts, faceOrigin, pulse }: {
   bubbles: readonly PlacedBubble[];
   state: () => BubbleState;
   focusColour: string;
@@ -205,11 +214,20 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
   artifacts: ArtifactConfig;
   /** The character's face origin: which side of it each bubble is on. */
   faceOrigin: Point2;
+  /** The character's cup pulse (`suckers.pulse`): the pulse appear fires it and grows each orb as its band arrives; none for a character without one. */
+  pulse?: CupPulse;
 }) {
-  const { bubbleLive } = useInstance();
+  const instance = useInstance();
+  const { bubbleLive } = instance;
   // The strategies the config names (artifacts/strategies.ts).
   const { placement: placementConfig } = artifacts;
-  const appear: AppearModule & { sheet: SequenceId } = APPEARS[artifacts.appear.kind];
+  const appear: AppearModule = APPEARS[artifacts.appear.kind];
+  // The sheet the appear plays, if it plays one (the pulse plays none).
+  const sheetId = appear.sheet as SequenceId | undefined;
+  // What the appear reads of the config and of the cups' pulse.
+  const context = useMemo(() => ({ appear: artifacts.appear, placement: artifacts.placement, pulse }), [artifacts, pulse]);
+  // The pulse appear reads the placement's reveal in head-swell progress and grows the orbs by it, not by the stage's size.
+  const reveal = artifacts.appear.kind === 'pulse' && placementConfig.kind === 'pendant' ? placementConfig.reveal : undefined;
   const select = SELECTS[artifacts.select.kind];
   // The suction hold's module (with the arm lift nothing is held, so it is never used there).
   const holder = holdModule(select);
@@ -243,7 +261,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
 
   // The placement's run for this many bubbles (the orbit clock and its speed spring, or the pendants' swings), each bubble's current size, and how far all are shown.
   const driver = useMemo(() => placementDriver(placementConfig, bubbles.length), [placementConfig, bubbles.length]);
-  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(artifacts), hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, artifacts]);
+  const run = useMemo(() => ({ size: new Float32Array(bubbles.length).fill(Number.NaN), shown: 0, hidden: false, blow: appear.createRun(context), lit: Number.NEGATIVE_INFINITY, flashed: false, hang: { at: new Float32Array(0) as ArrayLike<number>, weight: new Float32Array(0) as ArrayLike<number> } }), [bubbles.length, appear, context]);
   // A placement that hangs its artifacts on threads draws them as one instanced tube batch (a segment each) and one bead per cap.
   const threads = useThreads(placementConfig.kind === 'pendant' ? placementConfig.tether : null, bubbles.length);
   // A world's orb style (artifacts/orbStyle.ts): rim beads and a cap round each orb, in one batch each; none for a world without one.
@@ -262,10 +280,25 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     // The blow: it starts the first time the bubbles are shown, and until it does there are none.
     const { blow } = run;
     // One blow's length is the loaded sheet's; with no sheet in, the run does not read it (it waits, or the blow is given up).
-    const sheet = s.blow?.sequences;
-    blow.step({ exist: s.show, still: s.still, ready: !!sheet, failed: !s.blow || s.blow.failed, dt, count: bubbles.length, length: sheet ? sheet.length(appear.sheet) : 0, at: s.blow?.at });
-    const blowing = blow.blowing ? s.blow?.sequences ?? null : null;
+    // An appear with no sheet has none to wait for or to fail.
+    const sheet = sheetId ? s.blow?.sequences : null;
+    const t = frame.clock.elapsedTime;
+    blow.step({ exist: s.show, still: s.still, ready: !sheetId || !!sheet, failed: !!sheetId && (!s.blow || s.blow.failed), dt, count: bubbles.length, length: sheet && sheetId ? sheet.length(sheetId) : 0, at: s.blow?.at });
+    const blowing = blow.blowing && (!sheetId || !!sheet);
     const waiting = !blow.done && !blowing;
+    // The pulse appear fires the arms' cup pulses on the frame clock (the cups' own): each arm once, at its pair's moment; with reduced motion all at once, for 0.3 s.
+    const cups = appear.cups;
+    if (cups && pulse && s.show) {
+      if (s.reducedMotion) {
+        if (!run.flashed) {
+          run.flashed = true;
+          for (const arm of cups.reduced) firePulse(instance.pulse, arm, t, pulse);
+        }
+      } else if (blowing && !s.still) {
+        for (const arm of cups.due(run.lit, blow.seconds!, context)) firePulse(instance.pulse, arm, t, pulse);
+        run.lit = blow.seconds!;
+      }
+    }
     // Fading in and out; with motion off they come and go at once, and blowing each comes as it pops out.
     const goal = s.show && !waiting ? 1 : 0;
     run.shown = s.still || blowing ? goal : run.shown + Math.sign(goal - run.shown) * Math.min(Math.abs(goal - run.shown), dt / FADE_S);
@@ -295,10 +328,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
     const e = frame.camera.matrixWorld.elements;
     right.set(e[0], e[1], e[2]).normalize();
     const strongest = s.focus.reduce((a, b) => Math.max(a, b), 0);
-    const t = frame.clock.elapsedTime;
     parts.items.forEach((item, i) => {
       const node = root.children[i];
-      const size = driver.size(s.stage, i);
+      // With the pulse appear an orb's size follows the head's swell (never below the intro's); otherwise it is the stage's.
+      const stageSize = reveal ? driver.size('overview', i) : driver.size(s.stage, i);
+      const introSize = reveal ? driver.size('intro', i) : null;
+      const size = reveal && stageSize !== null ? (introSize === null ? null : Math.max(introSize, revealSize(s.swellProgress, i, reveal, stageSize))) : stageSize;
       // A placement with no place for it (a world that has not laid its artifacts out yet, or a stage with fewer slots than artifacts) draws and offers none.
       if (size === null) {
         node.visible = false;
@@ -309,12 +344,12 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
       }
       const f = s.focus[i];
       // A bubble grows into its stage's size.
-      run.size[i] = Number.isNaN(run.size[i]) || s.still ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
+      run.size[i] = Number.isNaN(run.size[i]) || s.still || reveal ? size : run.size[i] + (size - run.size[i]) * (1 - Math.exp(-RESIZE_PER_S * dt));
       // Lifted by its arm, a pendant grows by the lift's scale (the focus's own growth is the hold's).
       const lifted = s.lift[i] ?? 0;
       let radius = run.size[i] * (0.4 + 0.6 * shown) * (holder === select ? 1 + (FOCUS_GROW[s.stage] - 1) * f : liftedScale(artifacts.select, lifted));
       // Blowing, it comes from the mouth to its orbit as it pops out and grows, squashing and stretching (blooming, it grows where it hangs).
-      const b = blowing ? appear.frame(blowing, i, blow.seconds!, bubbles.length, artifacts) : null;
+      const b = blowing ? appear.frame(sheet ?? null, i, blow.seconds!, bubbles.length, context) : null;
       // A pendant hangs its orb a radius past its cap at the size it is now, on a thread drawn down as far as the bloom has it and shortened as far as the lift has it.
       const pendant = threads && driver.pendants ? driver.pendants[i] : null;
       const reach = (b?.bloom ? b.bloom.thread : 1) * liftedReach(artifacts.select, lifted);
@@ -365,7 +400,7 @@ export function TechBubbles({ bubbles, state, focusColour, glass, mouth, artifac
         if (!node.visible) orbStyle.hide(i);
         else {
           const capAt = threaded ? scratch.cap.fromArray(pendant!.points[TETHER_POINTS - 1]) : null;
-          orbStyle.write(i, node.position, radius, shown * dim, capAt, radius / size, f);
+          orbStyle.write(i, node.position, radius, shown * dim, capAt, radius / (reveal ? stageSize! : size), f);
         }
       }
       // Where it is in the world and on the page, for the buttons, the tooltip and Nox's eyes.

@@ -2,10 +2,10 @@ import type { APPEARS } from '../artifacts/strategies';
 
 /**
  * The sheets the appear kinds play (amendment A1, G5): the `sheet` of each entry in the engine's
- * appear table (`APPEARS.blow.sheet` is 'bubbleBlow'). Type-only import: this file also runs
+ * appear table (`APPEARS.blow.sheet` is 'bubbleBlow'; an appear with no sheet, the pulse, adds none). Type-only import: this file also runs
  * directly under Node (the seed script), where it is erased.
  */
-export type AppearSheet = (typeof APPEARS)[keyof typeof APPEARS]['sheet'];
+export type AppearSheet = { [K in keyof typeof APPEARS]: (typeof APPEARS)[K] extends { sheet: infer S } ? S : never }[keyof typeof APPEARS];
 
 /** Sequence ids: one Theatre sheet each (the big sequences of the design's section 9.11). */
 export type SequenceId = 'entrance' | 'headSwell' | 'arrival' | AppearSheet;

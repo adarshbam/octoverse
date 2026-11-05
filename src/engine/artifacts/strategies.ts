@@ -1,10 +1,11 @@
 import type * as THREE from 'three';
 import type { ExpressionId } from '../behavior/expressions';
-import { type AppearConfig, type ArmId, type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PendantPlacement, type PlacementConfig, type SelectConfig, type StageId, isChoosingStage } from '../config/types';
+import { type AppearConfig, type ArmId, type ArtifactConfig, type CupPulse, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PendantPlacement, type PlacementConfig, type SelectConfig, type StageId, isChoosingStage } from '../config/types';
 import type { StagePose } from '../poses/types';
 import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosition } from '../sequences/bubbleBlow';
 import { ArmLiftChoreography, armLiftTarget, tracedLift } from './armLift';
 import { BLOOM_SECONDS, type BloomFrame, bloomFrame, bloomLength, bloomOrigin, bloomPosition } from './bloom';
+import { PULSE_LIGHT, pulseDue, pulseFrame, pulseLength, pulseOrigin } from './pulseAppear';
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
@@ -145,20 +146,32 @@ export interface AppearRun {
   step(input: AppearStep): void;
 }
 
-/** What an appear reads of a world's artifact config. */
-export type AppearContext = Pick<ArtifactConfig, 'appear' | 'placement'>;
+/**
+ * What an appear reads of a world's artifact config and, for the pulse, of its character: the cups'
+ * pulse (`suckers.pulse`), whose speed the orbs' growth follows.
+ */
+export type AppearContext = Pick<ArtifactConfig, 'appear' | 'placement'> & { pulse?: Pick<CupPulse, 'speed'> };
 
 export interface AppearModule {
-  /** The Theatre sheet this appearance plays (every kind so far plays one; a kind without one widens this when it is built). */
-  readonly sheet: string;
+  /** The Theatre sheet this appearance plays; absent for one that plays none (the pulse: its clock is its own, A1 G5). */
+  readonly sheet?: string;
   /** A fresh clock for one instance of a world with this artifact config (the bloom reads its duration and the placement's reveal). */
   createRun(config?: AppearContext): AppearRun;
   /** Where the artifacts come from, in the character's body space (the blow: its mouth). */
   origin(head: HeadShape, face: FaceLayout): Vec3;
-  /** Artifact `i` of `count`, `seconds` into the appearance, for a world with this artifact config. */
-  frame(sequences: Sequences, i: number, seconds: number, count: number, config: AppearContext): AppearFrame;
+  /** Artifact `i` of `count`, `seconds` into the appearance, for a world with this artifact config (`sequences` is null for an appear with no sheet). */
+  frame(sequences: Sequences | null, i: number, seconds: number, count: number, config: AppearContext): AppearFrame;
   /** The artifact's place `emerged` (0 to 1) of the way from `origin` to its path point `target`, written into `out`. */
   position(origin: Vec3, target: THREE.Vector3, emerged: number, out: THREE.Vector3): THREE.Vector3;
+  /**
+   * The cup pulses this appearance fires (Flux; absent for one that fires none): the arms due in a
+   * frame that takes the run from `from` to `to` seconds (`-Infinity` for the first), and the arms
+   * that light at once, for 0.3 s, with motion off.
+   */
+  readonly cups?: {
+    due(from: number, to: number, config: AppearContext): readonly ArmId[];
+    readonly reduced: readonly ArmId[];
+  };
 }
 
 /** The blow (design 9.8): the character blows its artifacts from its mouth, one after another. */
@@ -187,7 +200,29 @@ const bloomAppear = {
   position: bloomPosition,
 } as const satisfies AppearModule;
 
-export const APPEARS = { blow: blowAppear, bloom: bloomAppear } as const;
+/**
+ * The pulse (Flux spec 7.5, "Appearing"; artifacts/pulseAppear.ts): the arms fire their cup pulses in
+ * four mirrored pairs `appear.step` apart, and each orb grows at its slot as its arm's pulse reaches
+ * it. It plays no sheet (G5); the run lasts until the last orb has grown. The orbs' size in the
+ * intro is the world's (nothing), and the swell's reveal grows them to the overview's.
+ */
+const pulseAppear = {
+  createRun: (config?: AppearContext) => {
+    const placement = config?.placement;
+    const step = config?.appear.kind === 'pulse' ? config.appear.step : 0;
+    const speed = config?.pulse?.speed ?? 1;
+    return new BlowRun(count => (placement?.kind === 'pendant' ? pulseLength(count, placement, step, speed) : 0));
+  },
+  origin: pulseOrigin,
+  frame: pulseFrame,
+  position: bloomPosition,
+  cups: {
+    due: (from: number, to: number, config: AppearContext) => pulseDue(from, to, config.appear.kind === 'pulse' ? config.appear.step : 0),
+    reduced: PULSE_LIGHT.reduced,
+  },
+} as const satisfies AppearModule;
+
+export const APPEARS = { blow: blowAppear, bloom: bloomAppear, pulse: pulseAppear } as const;
 export type AppearId = keyof typeof APPEARS;
 
 // --- Select ----------------------------------------------------------------------------------

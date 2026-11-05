@@ -14,7 +14,7 @@ import { HOLD_BEATS } from './suctionHold';
 
 test("each table holds Nox's entries and Veyra's, and the id unions follow the tables", () => {
   expect(Object.keys(PLACEMENTS)).toEqual(['orbit', 'pendant']);
-  expect(Object.keys(APPEARS)).toEqual(['blow', 'bloom']);
+  expect(Object.keys(APPEARS)).toEqual(['blow', 'bloom', 'pulse']);
   expect(Object.keys(SELECTS)).toEqual(['suctionHold', 'armLift']);
   expect(NOX_ARTIFACTS.placement.kind in PLACEMENTS).toBe(true);
   expect(NOX_ARTIFACTS.appear.kind in APPEARS).toBe(true);
@@ -27,7 +27,7 @@ test("a kind that is not in a table is a type error, and a kind's parameters are
   const armLift: ArtifactConfig = { ...nox, select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 } };
   const pulse: ArtifactConfig = {
     ...nox,
-    // @ts-expect-error appear.kind 'pulse' is Flux's, built with it
+    // @ts-expect-error the pulse appear carries its step
     appear: { kind: 'pulse' },
   };
   const bare: ArtifactConfig = {
@@ -50,7 +50,7 @@ test('the appear table says which sheet each kind plays, and the sequence ids fo
   const sheets: AppearSheet[] = [APPEARS.blow.sheet, APPEARS.bloom.sheet];
   const ids: SequenceId[] = [...sheets, 'entrance', 'headSwell', 'arrival'];
   expect(ids).toHaveLength(5);
-  // @ts-expect-error 'pulse' has no sheet until Flux builds it
+  // @ts-expect-error 'pulse' plays no sheet, so it is not one
   const unknown: AppearSheet = 'pulse';
   expect(unknown).toBe('pulse');
 });

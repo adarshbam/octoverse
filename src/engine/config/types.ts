@@ -634,17 +634,22 @@ export interface OrbStyle {
  * How artifacts appear once the entrance has settled: a closed union, one member per entry in the
  * engine's APPEARS table (the kinds must match it: strategies.ts checks). `blow` (Nox) has no
  * parameters; `bloom` (Veyra) runs `duration` seconds in all (1.2), unless the pendant placement's
- * `reveal` sets the timing.
+ * `reveal` sets the timing. `pulse` (Flux) fires the arms' cup pulses in four mirrored pairs
+ * (T1 and T8, T2 and T7, T3 and T6, T4 and T5) `step` seconds apart, and each orb grows at its slot
+ * as its arm's pulse reaches it; it plays no sheet, needs the pendant placement and a character
+ * with a cup pulse, and reads the placement's `reveal` in head-swell progress (0 closed, 1 open),
+ * not in seconds: orb i grows over swell `start + step x i` to that plus `span`, clamped to 1.
  */
-export type AppearConfig = { kind: 'blow' } | { kind: 'bloom'; duration: number };
+export type AppearConfig = { kind: 'blow' } | { kind: 'bloom'; duration: number } | { kind: 'pulse'; step: number };
 
 /**
  * How one artifact is chosen: a closed union, one member per entry in the engine's SELECTS table.
  * `suctionHold` (Nox) has no parameters. `armLift` (Veyra): the owning arm lifts over `ease` seconds
  * (0.45), the chosen orb grows to `scale` times its size (1.25) and its thread shortens by
- * `threadShorten` of its length (0.3).
+ * `threadShorten` of its length (0.3). With `pulse` (Flux; needs a character with a cup pulse) the
+ * lift also runs a pulse along the owning arm, root to tip (at most three arms pulse at once).
  */
-export type SelectConfig = { kind: 'suctionHold' } | { kind: 'armLift'; ease: number; scale: number; threadShorten: number };
+export type SelectConfig = { kind: 'suctionHold' } | { kind: 'armLift'; ease: number; scale: number; threadShorten: number; pulse?: boolean };
 
 /** The arm lift's settings. */
 export type ArmLiftSelect = Extract<SelectConfig, { kind: 'armLift' }>;
