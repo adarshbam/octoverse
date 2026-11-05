@@ -114,7 +114,7 @@ test("every string in Nox's character and place is a colour or a field known not
 });
 
 test('the artifact kinds, the sheets they play, the title icon, the world and the project are checked', () => {
-  const kind = { ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, select: { kind: 'armLift' } } };
+  const kind = { ...NOX_BUNDLE, artifacts: { ...NOX_BUNDLE.artifacts, select: { kind: 'armLeft' } } };
   expect(refusal(kind as unknown as WorldBundle).field).toBe('artifacts.select.kind');
   const { bubbleBlow: _bubbleBlow, ...noBlow } = NOX_BUNDLE.sequences.defaults;
   expect(refusal({ ...NOX_BUNDLE, sequences: { ...NOX_BUNDLE.sequences, defaults: noBlow } }).field).toBe('sequences.defaults.bubbleBlow');
@@ -320,6 +320,49 @@ test('a swing and a reveal in range, a tether of length 0 and a slot table with 
   expect(() => validateBundle(withPendants(p => { p.swing = { maxAngle: (18 * Math.PI) / 180, settle: 0.8 }; p.reveal = { start: 0.2, span: 0.9, step: 0.1 }; }))).not.toThrow();
   expect(() => validateBundle(withPendants(p => { p.tether.length = 0; }))).not.toThrow();
   expect(() => validateBundle(withPendants(p => { p.slots.intro = []; }))).not.toThrow();
+});
+
+// --- Task 19: the bloom and the arm lift (Veyra's appear and select) ---------------------------
+
+/** Nox's bundle with a pendant placement, the bloom and the arm lift, and a bloom sheet; `edit`ed. */
+function withBloomLift(edit: (artifacts: Record<string, any>, defaults: Record<string, unknown>) => void = () => {}): WorldBundle {
+  const artifacts: Record<string, any> = {
+    ...NOX_BUNDLE.artifacts,
+    placement: pendantFixture(),
+    appear: { kind: 'bloom', duration: 1.2 },
+    select: { kind: 'armLift', ease: 0.45, scale: 1.25, threadShorten: 0.3 },
+  };
+  const defaults: Record<string, unknown> = { ...NOX_BUNDLE.sequences.defaults, bloom: { length: 1.2, objects: { main: { props: { ripple: 0 }, keys: { ripple: [[0, 0], [1.2, 1]] } } } } };
+  edit(artifacts, defaults);
+  return { ...NOX_BUNDLE, artifacts: artifacts as never, sequences: { ...NOX_BUNDLE.sequences, defaults: defaults as never } };
+}
+
+test('the bloom and the arm lift validate with their parameters and the bloom sheet', () => {
+  expect(() => validateBundle(withBloomLift())).not.toThrow();
+  expect(() => validateBundle(withBloomLift(a => { a.select = { kind: 'armLift', ease: 0.2, scale: 1, threadShorten: 0 }; }))).not.toThrow();
+});
+
+test('the bloom and the arm lift are refused by field name when a parameter is out of range', () => {
+  const field = (edit: (a: Record<string, any>, d: Record<string, unknown>) => void) => refusal(withBloomLift(edit)).field;
+  expect(field(a => { a.appear.duration = 0; })).toBe('artifacts.appear.duration');
+  expect(field(a => { a.appear.duration = Number.NaN; })).toBe('artifacts.appear.duration');
+  expect(field(a => { delete a.appear.duration; })).toBe('artifacts.appear.duration');
+  expect(field(a => { a.select.ease = 0; })).toBe('artifacts.select.ease');
+  expect(field(a => { a.select.ease = 3; })).toBe('artifacts.select.ease');
+  expect(field(a => { a.select.scale = 0.9; })).toBe('artifacts.select.scale');
+  expect(field(a => { a.select.scale = 2.5; })).toBe('artifacts.select.scale');
+  expect(field(a => { a.select.threadShorten = -0.1; })).toBe('artifacts.select.threadShorten');
+  expect(field(a => { a.select.threadShorten = 1; })).toBe('artifacts.select.threadShorten');
+  expect(field(a => { delete a.select.scale; })).toBe('artifacts.select.scale');
+});
+
+test('a bloom needs its sheet, and the bloom and the arm lift need a placement that hangs pendants', () => {
+  expect(refusal(withBloomLift((_, d) => { delete d.bloom; })).field).toBe('sequences.defaults.bloom');
+  expect(refusal(withBloomLift(a => { a.placement = NOX_BUNDLE.artifacts.placement; a.select = { kind: 'suctionHold' }; })).field).toBe('artifacts.appear.kind');
+  expect(refusal(withBloomLift(a => { a.placement = NOX_BUNDLE.artifacts.placement; a.appear = { kind: 'blow' }; })).field).toBe('artifacts.select.kind');
+  // Nox's set (no bloom sheet) stays valid: he blows.
+  expect(() => validateBundle(NOX_BUNDLE)).not.toThrow();
+  expect('bloom' in NOX_BUNDLE.sequences.defaults).toBe(false);
 });
 
 // --- Task 16: the personality's motion variants (engine contract 14.1) -------------------------

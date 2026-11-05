@@ -1,6 +1,10 @@
 import type * as THREE from 'three';
-import { type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PendantPlacement, type PlacementConfig, type StageId, isChoosingStage } from '../config/types';
+import type { ExpressionId } from '../behavior/expressions';
+import { type AppearConfig, type ArmId, type ArtifactConfig, type ChoosingStage, type FaceLayout, type HeadShape, type OrbitPlacement, type PendantPlacement, type PlacementConfig, type SelectConfig, type StageId, isChoosingStage } from '../config/types';
+import type { StagePose } from '../poses/types';
 import { type BlowFrame, BlowRun, type BlowStep, blowFrame, blowMouth, blowPosition } from '../sequences/bubbleBlow';
+import { ArmLiftChoreography, armLiftTarget, tracedLift } from './armLift';
+import { BLOOM_SECONDS, type BloomFrame, bloomFrame, bloomLength, bloomOrigin, bloomPosition } from './bloom';
 import type { Sequences } from '../sequences/theatre';
 import type { Vec3 } from '../world/types';
 import { type Orbit, layoutOrbits, orbitPoint, orbitSpeed } from './bubbleOrbits';
@@ -118,8 +122,12 @@ export function placementCapacity(config: PlacementConfig): number {
 
 // --- Appear ----------------------------------------------------------------------------------
 
-/** One artifact's appearance this frame (sequences/bubbleBlow.ts BlowFrame): the face's puff and round mouth, how far it has travelled from its origin, its size and its squash and stretch. */
-export type AppearFrame = BlowFrame;
+/**
+ * One artifact's appearance this frame (sequences/bubbleBlow.ts BlowFrame): the face's puff and round
+ * mouth, how far it has travelled from its origin, its size and its squash and stretch; and, for the
+ * bloom, its cup's glow, its pearl and how far its thread has drawn down (artifacts/bloom.ts).
+ */
+export type AppearFrame = BlowFrame & { bloom?: BloomFrame['bloom'] };
 
 /** What an appear's clock is given each frame (sequences/bubbleBlow.ts BlowStep). */
 export type AppearStep = BlowStep;
@@ -135,15 +143,18 @@ export interface AppearRun {
   step(input: AppearStep): void;
 }
 
+/** What an appear reads of a world's artifact config. */
+export type AppearContext = Pick<ArtifactConfig, 'appear' | 'placement'>;
+
 export interface AppearModule {
   /** The Theatre sheet this appearance plays (every kind so far plays one; a kind without one widens this when it is built). */
   readonly sheet: string;
-  /** A fresh clock for one instance. */
-  createRun(): AppearRun;
+  /** A fresh clock for one instance of a world with this artifact config (the bloom reads its duration and the placement's reveal). */
+  createRun(config?: AppearContext): AppearRun;
   /** Where the artifacts come from, in the character's body space (the blow: its mouth). */
   origin(head: HeadShape, face: FaceLayout): Vec3;
-  /** Artifact `i` of the set, `seconds` into the appearance. */
-  frame(sequences: Sequences, i: number, seconds: number): AppearFrame;
+  /** Artifact `i` of `count`, `seconds` into the appearance, for a world with this artifact config. */
+  frame(sequences: Sequences, i: number, seconds: number, count: number, config: AppearContext): AppearFrame;
   /** The artifact's place `emerged` (0 to 1) of the way from `origin` to its path point `target`, written into `out`. */
   position(origin: Vec3, target: THREE.Vector3, emerged: number, out: THREE.Vector3): THREE.Vector3;
 }
@@ -151,13 +162,30 @@ export interface AppearModule {
 /** The blow (design 9.8): the character blows its artifacts from its mouth, one after another. */
 const blowAppear = {
   sheet: 'bubbleBlow',
-  createRun: () => new BlowRun(),
+  createRun: (_config?: AppearContext) => new BlowRun(),
   origin: blowMouth,
   frame: blowFrame,
   position: blowPosition,
 } as const satisfies AppearModule;
 
-export const APPEARS = { blow: blowAppear } as const;
+/**
+ * The bloom (spec 7.5, "Appearing"; artifacts/bloom.ts): each pendant grows out of a cup on its arm,
+ * in a ripple from the top arms down, `appear.duration` (1.2 s) in all, or as the placement's
+ * `reveal` times it. It plays the world's `bloom` sheet (G5); the run lasts the whole ripple.
+ */
+const bloomAppear = {
+  sheet: 'bloom',
+  createRun: (config?: AppearContext) => {
+    const reveal = config?.placement.kind === 'pendant' ? config.placement.reveal : undefined;
+    const duration = config?.appear.kind === 'bloom' ? config.appear.duration : BLOOM_SECONDS;
+    return new BlowRun(count => bloomLength(count, reveal, duration));
+  },
+  origin: bloomOrigin,
+  frame: bloomFrame,
+  position: bloomPosition,
+} as const satisfies AppearModule;
+
+export const APPEARS = { blow: blowAppear, bloom: bloomAppear } as const;
 export type AppearId = keyof typeof APPEARS;
 
 // --- Select ----------------------------------------------------------------------------------
@@ -169,7 +197,24 @@ export type AppearId = keyof typeof APPEARS;
  */
 const HOLD_ARM = { reach: 0.55, short: 0.2, draw: 0.5, lift: 0.16, bob: 0.04 } as const;
 
-export interface SelectModule {
+/** What every select tells the host and the character, whatever its mechanics. */
+interface SelectCommon {
+  /** `hold`: an arm takes the artifact off its place (suctionHold); `lift`: the artifact's own arm lifts it where it hangs (armLift). */
+  readonly mode: 'hold' | 'lift';
+  /** The face a focus wears when the technology names no reaction of its own. */
+  readonly reaction: ExpressionId;
+  /**
+   * The pose a technology focus shows (focusStagePose): `returnTo`, the stage it came from (Nox);
+   * `focus`, that stage's arms and body with the world's techFocus head and face (Veyra: the head
+   * closes and she wears the focused face, P4).
+   */
+  readonly focusPose: 'returnTo' | 'focus';
+}
+
+export interface SelectModule extends SelectCommon {
+  readonly mode: 'hold';
+  /** Ms from the choice until the artifact is where the tooltip stands beside it. */
+  readonly settleMs: number;
   /** The beats of one choice, in ms from the choice (the page waits on them). */
   readonly beats: typeof HOLD_BEATS;
   /** The one timeline of choices; `armFor` picks the arm for a newly chosen artifact. */
@@ -186,21 +231,91 @@ export interface SelectModule {
   readonly arm: typeof HOLD_ARM;
 }
 
+export interface LiftSelectModule extends SelectCommon {
+  readonly mode: 'lift';
+  /** Ms from the choice until the lifted pendant is where the tooltip stands beside it: the lift's ease. */
+  settleMs(config: SelectConfig): number;
+  /** The one timeline of choices; `armFor` names the arm the artifact hangs from. */
+  choreography(armFor: (artifact: number) => ArmId): ArmLiftChoreography;
+  /** The arm's lifted shape (artifacts/armLift.ts). */
+  target: typeof armLiftTarget;
+  /** The world's traced lift for an arm, if any. */
+  traced: typeof tracedLift;
+}
+
 /** The suction hold (design 9.8, "Choosing a bubble"): the nearest arm turns toward the artifact, pulls it to its tip and lifts it. */
 const suctionSelect = {
+  mode: 'hold',
+  reaction: 'curious',
+  focusPose: 'returnTo',
+  settleMs: HOLD_BEATS.pullMs[1],
   beats: HOLD_BEATS,
-  choreography: armFor => new HoldChoreography(armFor),
+  choreography: (armFor: (artifact: number) => number) => new HoldChoreography(armFor),
   nearestArm,
   position: pullPosition,
   // The middle of the orbits: the artifacts swing round where their rings are centred (pendants have no rings: the body's middle).
-  centre: placement => ({ x: 0, y: placement.kind === 'orbit' ? placement.centreY : 0 }),
+  centre: (placement: PlacementConfig) => ({ x: 0, y: placement.kind === 'orbit' ? placement.centreY : 0 }),
   // How far beyond the arm's tip a held bubble's centre sits, in bubble radii: its glass meets the tip clear of the logo.
   offTip: 1.25,
   arm: HOLD_ARM,
 } as const satisfies SelectModule;
 
-export const SELECTS = { suctionHold: suctionSelect } as const;
+/** The arm lift (spec 7.5, "Choosing a pendant"; artifacts/armLift.ts): the pendant's own arm lifts it, root first, the orb growing and glowing, its thread shortening. */
+const armLiftSelect = {
+  mode: 'lift',
+  reaction: 'focused',
+  focusPose: 'focus',
+  settleMs: (config: SelectConfig) => Math.round((config.kind === 'armLift' ? config.ease : DEFAULT_LIFT_EASE) * 1000),
+  choreography: (armFor: (artifact: number) => ArmId) => new ArmLiftChoreography(armFor),
+  target: armLiftTarget,
+  traced: tracedLift,
+} as const satisfies LiftSelectModule;
+
+/** The arm lift's ease when a config does not carry one (spec 7.5: about 450 ms). */
+const DEFAULT_LIFT_EASE = 0.45;
+
+export const SELECTS = { suctionHold: suctionSelect, armLift: armLiftSelect } as const;
 export type SelectId = keyof typeof SELECTS;
+
+/** Ms from a choice until the tooltip may stand beside the artifact, for a world's select. */
+export function selectSettleMs(config: SelectConfig): number {
+  const module = SELECTS[config.kind];
+  return module.mode === 'hold' ? module.settleMs : module.settleMs(config);
+}
+
+/**
+ * The suction hold's module for code that runs the hold whatever the world's select is: with the
+ * arm lift nothing is ever held (no choice is given to the hold), so its frames are none.
+ */
+export const holdModule = (select: SelectModule | LiftSelectModule): SelectModule => (select.mode === 'hold' ? select : suctionSelect);
+
+// The config unions in config/types.ts name exactly the tables' kinds (a kind added to a table and not to its union, or the other way round, fails here).
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const kindsMatch: [Same<AppearConfig['kind'], AppearId>, Same<SelectConfig['kind'], SelectId>] = [true, true];
+void kindsMatch;
+
+const focusPoses = new WeakMap<object, Map<ChoosingStage, StagePose>>();
+
+/**
+ * The pose a technology focus shows, coming from `returnTo` (contract 9.2): Nox's suction hold keeps
+ * that stage's pose as it is (the same object). The arm lift keeps its arms and body (the lift moves
+ * the owning arm itself) and takes the head, face and tilt of the world's `techFocus` pose (Veyra's
+ * P4: the head closes, the focused face). Made once per pose set and stage, so the blender's rests
+ * (cached by pose object) are worked out once.
+ */
+export function focusStagePose(poses: Readonly<Pick<Record<StageId, StagePose>, ChoosingStage | 'techFocus'>>, returnTo: ChoosingStage, select: Pick<SelectCommon, 'focusPose'>): StagePose {
+  const from = poses[returnTo];
+  if (select.focusPose === 'returnTo') return from;
+  let byStage = focusPoses.get(poses);
+  if (!byStage) focusPoses.set(poses, (byStage = new Map()));
+  let pose = byStage.get(returnTo);
+  if (!pose) {
+    const focus = poses.techFocus;
+    pose = { ...from, headMorph: focus.headMorph, expression: focus.expression, tilt: focus.tilt };
+    byStage.set(returnTo, pose);
+  }
+  return pose;
+}
 
 // --- Where artifacts can be chosen -----------------------------------------------------------
 

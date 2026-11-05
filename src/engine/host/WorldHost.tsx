@@ -3,7 +3,7 @@ import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessi
 import { type ReactNode, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SELECTS, choosableNow, placementCapacity } from '../artifacts/strategies';
+import { SELECTS, choosableNow, focusStagePose, placementCapacity, selectSettleMs } from '../artifacts/strategies';
 import { resolveExpressions } from '../behavior/expressions';
 import { FOCUS_BEATS } from '../behavior/focusChoreography';
 import { PoseBlender, STAGE_TRANSITION } from '../behavior/poseBlend';
@@ -407,6 +407,10 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
   // from the entrance, in Octopus), so when it ends it is already there.
   // A technology focus keeps the stage it came from (the intro or the overview) for pose, framing and words.
   const shown: StageId = state.stage === 'techFocus' ? state.returnTo : state.stage;
+  // The pose the character takes: the stage's own; in a technology focus, the stage it came from as
+  // the world's select has it (focusStagePose: Nox keeps that pose as it is; Veyra's arm lift closes
+  // the head and wears the focus pose's face, the arms staying where they were).
+  const shownPose = state.stage === 'techFocus' && !reviewSwim?.pose ? focusStagePose(poses, state.returnTo, SELECTS[artifacts.select.kind]) : stagePoseOf(poses, reviewSwim, shown);
   const blender = useMemo(() => new PoseBlender(stagePoseOf(poses, reviewSwim, state.stage === 'entering' ? 'intro' : shown), segments, undefined, resolveExpressions(config)), [segments, config]);
   // In a world, the world lights the character's skin through these capped accents, from the lights nearest it.
   // The particles' reach is the character's own light distance and decay: another character's light moves them too.
@@ -442,9 +446,9 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
     const beat = toTech ? FOCUS_BEATS.dome : fromTech ? FOCUS_BEATS.domeBack : null;
     const duration = reducedMotion || skipped ? 0 : beat ? beat.ms : STAGE_TRANSITION.durationMs;
     const stagger = beat ? 0 : STAGE_TRANSITION.staggerMs;
-    blender.start(stagePoseOf(poses, reviewSwim, shown), performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
+    blender.start(shownPose, performance.now(), duration, stagger, reducedMotion || skipped || !beat ? 0 : beat.delay);
     if (!opening && (reducedMotion || skipped)) frame.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
-  }, [blender, state.stage, shown, reducedMotion, dispatch, reviewSwim, poses]);
+  }, [blender, state.stage, shownPose, reducedMotion, dispatch]);
   // Any click or key skips the entrance (a page instance only: a preview on the page would otherwise skip another's).
   const skip = (event: Event) => {
     if (event instanceof KeyboardEvent && MODIFIER_KEYS.has(event.key)) return;
@@ -468,7 +472,7 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
   // The bubble's orbit eases to still in about 0.4 s once it is hot, and the suction hold pulls it
   // to its arm's tip, so the tooltip takes its place when it has arrived there (at once with motion
   // off): the bubble's place and the others', and the face's; it then keeps beside it as it lifts.
-  const SETTLE_MS = SELECTS[artifacts.select.kind].beats.pullMs[1];
+  const SETTLE_MS = selectSettleMs(artifacts.select);
   const settle = reducedMotion || options.freeze ? 0 : SETTLE_MS;
   // The tooltip shown, and the one before it fading out, each where it was placed.
   const [tips, setTips] = useState<{ techId: string; orb: Disc; others: Disc[]; face: FaceSpot; leaving: boolean }[]>([]);
@@ -531,7 +535,8 @@ function World({ options, ui = 'engine', initialStage: initial, onStageChange, s
       quality={quality.settings}
       // Clicking the head swells it open; clicking it again closes it.
       onSelect={() => dispatch({ type: state.stage === 'overview' ? 'CLOSE' : 'OPEN_OVERVIEW' })}
-      headOpen={headOpens(stagePoseOf(poses, reviewSwim, shown))}
+      headOpen={headOpens(shownPose)}
+      poses={poses}
       swellSheet={sheets.swell}
       orbs={orbs}
       focusTechId={focusedTech}

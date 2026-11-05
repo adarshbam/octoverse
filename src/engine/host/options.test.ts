@@ -57,7 +57,9 @@ test('a bundle whose overview pose has headMorph 0 never swells: no stage opens 
   // Nox's own overview does open it: the test is not vacuous.
   expect(headOpens(NOX_BUNDLE.poses.overview)).toBe(true);
   const host = readFileSync(new URL('./WorldHost.tsx', import.meta.url), 'utf8');
-  expect(host).toMatch(/headOpen=\{headOpens\(stagePoseOf\(poses, reviewSwim, shown\)\)\}/);
+  expect(host).toMatch(/headOpen=\{headOpens\(shownPose\)\}/);
+  // The pose shown is the stage's (stagePoseOf), or a focus's as the world's select has it (Task 19).
+  expect(host).toMatch(/const shownPose = state\.stage === 'techFocus' && !reviewSwim\?\.pose \? focusStagePose\(poses, state\.returnTo, SELECTS\[artifacts\.select\.kind\]\) : stagePoseOf\(poses, reviewSwim, shown\);/);
 });
 
 test('an instance follows its bundle: a new bundle object of the same world is a new instance, the same object the same one', () => {
