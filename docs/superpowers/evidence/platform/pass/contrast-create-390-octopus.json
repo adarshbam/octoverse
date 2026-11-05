@@ -1,0 +1,117 @@
+{
+  "route": "create",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "octopus",
+  "sampled": 23,
+  "minimumP5": 6.25,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "→",
+      "tag": "span",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 6.25,
+      "median": 6.38,
+      "at": [
+        257,
+        649
+      ]
+    },
+    {
+      "text": "See live preview",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 6.61,
+      "median": 7.22,
+      "at": [
+        119,
+        649
+      ]
+    },
+    {
+      "text": "Playful",
+      "tag": "button.oct-pill",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 7.38,
+      "median": 7.38,
+      "at": [
+        252,
+        479
+      ]
+    },
+    {
+      "text": "Octopus",
+      "tag": "button.oct-tab",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 8.28,
+      "median": 8.36,
+      "at": [
+        72,
+        363
+      ]
+    },
+    {
+      "text": "Aether · Peach · Playful",
+      "tag": "span",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 9.78,
+      "median": 10.31,
+      "at": [
+        183,
+        305
+      ]
+    },
+    {
+      "text": "Projects",
+      "tag": "button.oct-tab",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 11,
+      "median": 11.1,
+      "at": [
+        256,
+        363
+      ]
+    },
+    {
+      "text": "Saved in this browser",
+      "tag": "p.oct-draft-status",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.25,
+      "median": 11.29,
+      "at": [
+        33,
+        803
+      ]
+    },
+    {
+      "text": "Personality",
+      "tag": "legend",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 11.32,
+      "median": 11.41,
+      "at": [
+        35,
+        387
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "route": "profile-aether",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "state": "techstack",
+  "sampled": 52,
+  "minimumP5": 5.89,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Enter Aether's world",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.89,
+      "median": 7.22,
+      "at": [
+        765,
+        376
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.17,
+      "median": 7.18,
+      "at": [
+        238,
+        834
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.26,
+      "median": 7.33,
+      "at": [
+        238,
+        702
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.26,
+      "median": 7.29,
+      "at": [
+        680,
+        702
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.26,
+      "median": 7.31,
+      "at": [
+        459,
+        834
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.28,
+      "median": 7.35,
+      "at": [
+        902,
+        834
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.29,
+      "median": 7.35,
+      "at": [
+        680,
+        834
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.33,
+      "median": 7.33,
+      "at": [
+        459,
+        702
+      ]
+    }
+  ]
+}

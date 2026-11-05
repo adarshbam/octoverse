@@ -1,0 +1,117 @@
+{
+  "route": "landing",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "state": "page",
+  "sampled": 9,
+  "minimumP5": 1.51,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "OCTOVERSE",
+      "tag": "h1.oct-wordmark",
+      "color": "rgba(249, 218, 212, 1)",
+      "fontSize": 75.776,
+      "weight": 600,
+      "p5": 1.51,
+      "median": 2.55,
+      "at": [
+        500,
+        80
+      ]
+    },
+    {
+      "text": "See how it works",
+      "tag": "button.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.99,
+      "median": 7.1,
+      "at": [
+        615,
+        342
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.51,
+      "median": 8.55,
+      "at": [
+        970,
+        29
+      ]
+    },
+    {
+      "text": "Explore",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.88,
+      "median": 9.55,
+      "at": [
+        877,
+        29
+      ]
+    },
+    {
+      "text": "A platform to create your own animated d",
+      "tag": "p.oct-desc",
+      "color": "rgba(236, 228, 247, 1)",
+      "fontSize": 22.528,
+      "weight": 400,
+      "p5": 8.91,
+      "median": 12.48,
+      "at": [
+        395,
+        251
+      ]
+    },
+    {
+      "text": "OctoVerse",
+      "tag": "a.oct-nav-brand",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 8.99,
+      "median": 10.47,
+      "at": [
+        511,
+        29
+      ]
+    },
+    {
+      "text": "Create. Showcase. Belong.",
+      "tag": "p.oct-tagline",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 31.744,
+      "weight": 500,
+      "p5": 10.18,
+      "median": 14.82,
+      "at": [
+        555,
+        190
+      ]
+    },
+    {
+      "text": "Your Ideas. Your Octopus. Your Universe.",
+      "tag": "p.oct-pill",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 26.624,
+      "weight": 500,
+      "p5": 13.93,
+      "median": 14.33,
+      "at": [
+        495,
+        928
+      ]
+    }
+  ]
+}

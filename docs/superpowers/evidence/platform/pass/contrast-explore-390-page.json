@@ -1,0 +1,117 @@
+{
+  "route": "explore",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "page",
+  "sampled": 36,
+  "minimumP5": 8.32,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Explore",
+      "tag": "h1.oct-page-title",
+      "color": "rgba(249, 218, 212, 1)",
+      "fontSize": 30,
+      "weight": 600,
+      "p5": 8.32,
+      "median": 9.17,
+      "at": [
+        16,
+        71
+      ]
+    },
+    {
+      "text": "Showcase portfolios by the OctoVerse tea",
+      "tag": "footer.oct-page-footer",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 9.8,
+      "median": 11.52,
+      "at": [
+        42,
+        787
+      ]
+    },
+    {
+      "text": "The Pipeline Runner",
+      "tag": "span.oct-tile-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.07,
+      "median": 11.37,
+      "at": [
+        34,
+        126
+      ]
+    },
+    {
+      "text": "Your Story",
+      "tag": "span.oct-tile-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.19,
+      "median": 11.46,
+      "at": [
+        34,
+        710
+      ]
+    },
+    {
+      "text": "The Curious Mind",
+      "tag": "span.oct-tile-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.23,
+      "median": 11.32,
+      "at": [
+        34,
+        269
+      ]
+    },
+    {
+      "text": "The Keeper of Files",
+      "tag": "span.oct-tile-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.34,
+      "median": 11.55,
+      "at": [
+        34,
+        448
+      ]
+    },
+    {
+      "text": "The Watcher",
+      "tag": "span.oct-tile-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 400,
+      "p5": 11.5,
+      "median": 11.71,
+      "at": [
+        34,
+        567
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 12.41,
+      "median": 12.47,
+      "at": [
+        296,
+        21
+      ]
+    }
+  ]
+}

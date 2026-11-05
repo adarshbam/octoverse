@@ -1,0 +1,117 @@
+{
+  "route": "create",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "state": "octopus",
+  "sampled": 94,
+  "minimumP5": 5.67,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "data",
+      "tag": "span.oct-picker-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 5.67,
+      "median": 5.69,
+      "at": [
+        1358,
+        51
+      ]
+    },
+    {
+      "text": "→",
+      "tag": "span",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.76,
+      "median": 5.99,
+      "at": [
+        830,
+        820
+      ]
+    },
+    {
+      "text": "containers",
+      "tag": "span.oct-picker-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 5.83,
+      "median": 5.84,
+      "at": [
+        1323,
+        101
+      ]
+    },
+    {
+      "text": "See live preview",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 6.29,
+      "median": 7.3,
+      "at": [
+        692,
+        820
+      ]
+    },
+    {
+      "text": "framework",
+      "tag": "span.oct-picker-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 6.59,
+      "median": 6.59,
+      "at": [
+        1323,
+        681
+      ]
+    },
+    {
+      "text": "language",
+      "tag": "span.oct-picker-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 6.59,
+      "median": 6.59,
+      "at": [
+        1328,
+        731
+      ]
+    },
+    {
+      "text": "+",
+      "tag": "span",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 28,
+      "weight": 600,
+      "p5": 6.83,
+      "median": 7.17,
+      "at": [
+        1368,
+        226
+      ]
+    },
+    {
+      "text": "Playful",
+      "tag": "button.oct-pill",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 7.2,
+      "median": 7.24,
+      "at": [
+        332,
+        838
+      ]
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "route": "profile-flux",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "techstack",
+  "sampled": 38,
+  "minimumP5": 6.36,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Enter Flux's world",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 6.36,
+      "median": 7.15,
+      "at": [
+        126,
+        536
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.12,
+      "median": 7.2,
+      "at": [
+        52,
+        768
+      ]
+    },
+    {
+      "text": "Tech Stack",
+      "tag": "button.oct-tab",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 9.3,
+      "median": 9.42,
+      "at": [
+        252,
+        611
+      ]
+    },
+    {
+      "text": "Showcase portfolios by the OctoVerse tea",
+      "tag": "footer.oct-page-footer",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 9.8,
+      "median": 11.52,
+      "at": [
+        42,
+        787
+      ]
+    },
+    {
+      "text": "Showcase",
+      "tag": "span.oct-badge",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 12,
+      "weight": 500,
+      "p5": 10.01,
+      "median": 10.06,
+      "at": [
+        127,
+        381
+      ]
+    },
+    {
+      "text": "integration",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.4,
+      "median": 10.48,
+      "at": [
+        52,
+        766
+      ]
+    },
+    {
+      "text": "Workflow runner integration",
+      "tag": "p",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 10.45,
+      "median": 10.74,
+      "at": [
+        52,
+        746
+      ]
+    },
+    {
+      "text": "language",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.5,
+      "median": 10.5,
+      "at": [
+        52,
+        86
+      ]
+    }
+  ]
+}

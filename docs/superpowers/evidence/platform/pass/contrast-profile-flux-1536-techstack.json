@@ -1,0 +1,117 @@
+{
+  "route": "profile-flux",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "state": "techstack",
+  "sampled": 38,
+  "minimumP5": 5.99,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Enter Flux's world",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.99,
+      "median": 7.15,
+      "at": [
+        765,
+        376
+      ]
+    },
+    {
+      "text": "placeholder text",
+      "tag": "span.oct-placeholder-note",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 12,
+      "weight": 400,
+      "p5": 7.26,
+      "median": 7.33,
+      "at": [
+        238,
+        722
+      ]
+    },
+    {
+      "text": "Tech Stack",
+      "tag": "button.oct-tab",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 500,
+      "p5": 9.23,
+      "median": 9.23,
+      "at": [
+        481,
+        545
+      ]
+    },
+    {
+      "text": "Showcase",
+      "tag": "span.oct-badge",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 12,
+      "weight": 500,
+      "p5": 9.87,
+      "median": 9.87,
+      "at": [
+        859,
+        233
+      ]
+    },
+    {
+      "text": "shell",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.45,
+      "median": 10.48,
+      "at": [
+        238,
+        890
+      ]
+    },
+    {
+      "text": "operating system",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.52,
+      "median": 10.59,
+      "at": [
+        238,
+        805
+      ]
+    },
+    {
+      "text": "runtime",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.55,
+      "median": 10.57,
+      "at": [
+        680,
+        654
+      ]
+    },
+    {
+      "text": "version control",
+      "tag": "span.oct-stack-category",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.62,
+      "median": 10.64,
+      "at": [
+        459,
+        890
+      ]
+    }
+  ]
+}

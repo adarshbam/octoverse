@@ -1,0 +1,117 @@
+{
+  "route": "profile-aether",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "projects1",
+  "sampled": 13,
+  "minimumP5": 6.25,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Enter Aether's world",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 6.25,
+      "median": 7.22,
+      "at": [
+        115,
+        536
+      ]
+    },
+    {
+      "text": "Projects (1)",
+      "tag": "button.oct-tab",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 9.14,
+      "median": 9.3,
+      "at": [
+        50,
+        611
+      ]
+    },
+    {
+      "text": "Showcase portfolios by the OctoVerse tea",
+      "tag": "footer.oct-page-footer",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 14,
+      "weight": 400,
+      "p5": 9.8,
+      "median": 11.52,
+      "at": [
+        42,
+        787
+      ]
+    },
+    {
+      "text": "Showcase",
+      "tag": "span.oct-badge",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 12,
+      "weight": 500,
+      "p5": 10.01,
+      "median": 10.06,
+      "at": [
+        175,
+        381
+      ]
+    },
+    {
+      "text": "The Curious Mind",
+      "tag": "p.oct-epithet",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 20,
+      "weight": 500,
+      "p5": 11.34,
+      "median": 11.57,
+      "at": [
+        35,
+        420
+      ]
+    },
+    {
+      "text": "Tech Stack",
+      "tag": "button.oct-tab",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 11.81,
+      "median": 11.84,
+      "at": [
+        252,
+        611
+      ]
+    },
+    {
+      "text": "About",
+      "tag": "button.oct-tab",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 15,
+      "weight": 500,
+      "p5": 11.84,
+      "median": 11.84,
+      "at": [
+        170,
+        611
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 12.41,
+      "median": 12.47,
+      "at": [
+        296,
+        21
+      ]
+    }
+  ]
+}

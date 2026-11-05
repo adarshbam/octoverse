@@ -1,0 +1,117 @@
+{
+  "route": "landing",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "page",
+  "sampled": 9,
+  "minimumP5": 1.43,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "OCTOVERSE",
+      "tag": "h1.oct-wordmark",
+      "color": "rgba(249, 218, 212, 1)",
+      "fontSize": 31.2,
+      "weight": 600,
+      "p5": 1.43,
+      "median": 2.65,
+      "at": [
+        89,
+        57
+      ]
+    },
+    {
+      "text": "Create. Showcase. Belong.",
+      "tag": "p.oct-tagline",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 18,
+      "weight": 500,
+      "p5": 5.86,
+      "median": 13.29,
+      "at": [
+        76,
+        101
+      ]
+    },
+    {
+      "text": "See how it works",
+      "tag": "button.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.93,
+      "median": 7.1,
+      "at": [
+        36,
+        495
+      ]
+    },
+    {
+      "text": "Explore",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.1,
+      "median": 9.03,
+      "at": [
+        203,
+        21
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.16,
+      "median": 8.59,
+      "at": [
+        296,
+        21
+      ]
+    },
+    {
+      "text": "A platform to create your own animated d",
+      "tag": "p.oct-desc",
+      "color": "rgba(236, 228, 247, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 9.34,
+      "median": 13.47,
+      "at": [
+        35,
+        131
+      ]
+    },
+    {
+      "text": "OctoVerse",
+      "tag": "a.oct-nav-brand",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 10.9,
+      "median": 13.28,
+      "at": [
+        39,
+        21
+      ]
+    },
+    {
+      "text": "Your Ideas. Your Octopus. Your Universe.",
+      "tag": "p.oct-pill",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 500,
+      "p5": 15.32,
+      "median": 15.35,
+      "at": [
+        131,
+        563
+      ]
+    }
+  ]
+}

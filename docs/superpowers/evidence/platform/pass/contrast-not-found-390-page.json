@@ -1,0 +1,91 @@
+{
+  "route": "not-found",
+  "size": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "page",
+  "sampled": 6,
+  "minimumP5": 5.95,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Back to OctoVerse",
+      "tag": "a.oct-button",
+      "color": "rgba(20, 12, 48, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 5.95,
+      "median": 7.15,
+      "at": [
+        121,
+        454
+      ]
+    },
+    {
+      "text": "This part of the ocean is unexplored",
+      "tag": "h1",
+      "color": "rgba(249, 218, 212, 1)",
+      "fontSize": 26,
+      "weight": 600,
+      "p5": 6.99,
+      "median": 7.54,
+      "at": [
+        97,
+        350
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 12.41,
+      "median": 12.47,
+      "at": [
+        296,
+        21
+      ]
+    },
+    {
+      "text": "Explore",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 13.61,
+      "median": 14.1,
+      "at": [
+        203,
+        21
+      ]
+    },
+    {
+      "text": "OctoVerse",
+      "tag": "a.oct-nav-brand",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 14.84,
+      "median": 14.87,
+      "at": [
+        39,
+        21
+      ]
+    },
+    {
+      "text": "Explore",
+      "tag": "a.oct-button",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 500,
+      "p5": 16.38,
+      "median": 16.38,
+      "at": [
+        167,
+        516
+      ]
+    }
+  ]
+}

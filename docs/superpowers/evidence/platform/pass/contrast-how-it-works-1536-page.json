@@ -1,0 +1,117 @@
+{
+  "route": "how-it-works",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "state": "page",
+  "sampled": 17,
+  "minimumP5": 5.66,
+  "failures": [],
+  "lowest": [
+    {
+      "text": "Sample octopus",
+      "tag": "span.oct-still-tag",
+      "color": "rgba(255, 226, 163, 1)",
+      "fontSize": 11,
+      "weight": 400,
+      "p5": 5.66,
+      "median": 14.4,
+      "at": [
+        970,
+        843
+      ]
+    },
+    {
+      "text": "Your Story",
+      "tag": "span",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 8.23,
+      "median": 10.78,
+      "at": [
+        1039,
+        910
+      ]
+    },
+    {
+      "text": "Create",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.41,
+      "median": 8.55,
+      "at": [
+        970,
+        29
+      ]
+    },
+    {
+      "text": "The Watcher",
+      "tag": "span",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 8.81,
+      "median": 10.23,
+      "at": [
+        979,
+        493
+      ]
+    },
+    {
+      "text": "Explore",
+      "tag": "a.oct-nav-link",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 400,
+      "p5": 8.86,
+      "median": 9.44,
+      "at": [
+        877,
+        29
+      ]
+    },
+    {
+      "text": "OctoVerse",
+      "tag": "a.oct-nav-brand",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 8.91,
+      "median": 10.47,
+      "at": [
+        511,
+        29
+      ]
+    },
+    {
+      "text": "The Pipeline Runner",
+      "tag": "span",
+      "color": "rgba(217, 207, 232, 1)",
+      "fontSize": 13,
+      "weight": 400,
+      "p5": 10.58,
+      "median": 10.78,
+      "at": [
+        685,
+        475
+      ]
+    },
+    {
+      "text": "Your Octopus",
+      "tag": "b",
+      "color": "rgba(244, 238, 255, 1)",
+      "fontSize": 16,
+      "weight": 600,
+      "p5": 10.93,
+      "median": 14.84,
+      "at": [
+        1016,
+        889
+      ]
+    }
+  ]
+}
