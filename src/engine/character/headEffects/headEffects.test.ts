@@ -20,8 +20,8 @@ function stubCanvas() {
 const sha1 = (x: string) => createHash('sha1').update(x).digest('hex');
 const frame = (open: boolean): HeadDraw => headDraw(restingSwell(open), {} as HeadDraw);
 
-test('the head-effect table holds Nox\'s two effects, and the id union follows it', () => {
-  expect(Object.keys(HEAD_EFFECTS)).toEqual(['none', 'glyphs']);
+test('the head-effect table holds Nox\'s two effects and the synapse, and the id union follows it', () => {
+  expect(Object.keys(HEAD_EFFECTS)).toEqual(['none', 'glyphs', 'synapse']);
   // A third id is a type error until its module is in the table (the closed-variant rule).
   // @ts-expect-error 'vaultDial' arrives in F01 with Veyra
   const unknown: HeadEffectId = 'vaultDial';

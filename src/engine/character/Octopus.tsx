@@ -386,9 +386,10 @@ export function Octopus({ config, swimPoses, introPose, artifacts, blender, stag
   // open head the overview shows, not the closed one.
   const headSilhouette = useMemo(() => (silhouette ? createHeadSilhouetteMaterial(rig.uniforms.uMorph) : null), [silhouette, rig]);
   useEffect(() => () => headSilhouette?.dispose(), [headSilhouette]);
-  // The head swell's effect (HEAD_EFFECTS; Nox's: glowing red glyphs over the dome); 'none' draws the
+  // The head swell's effect (HEAD_EFFECTS; Nox's: glowing red glyphs over the dome, Aether's: a synapse
+  // network in the glass, a crossfade with reduced motion); 'none' draws the
   // dome alone, and so does a silhouette capture, where an effect would read as shape.
-  const effect = useMemo(() => (silhouette ? null : HEAD_EFFECTS[config.headEffect ?? 'none'].create(config.dome, config.palette)), [config, silhouette]);
+  const effect = useMemo(() => (silhouette ? null : HEAD_EFFECTS[config.headEffect ?? 'none'].create(config.dome, config.palette, { reducedMotion })), [config, silhouette, reducedMotion]);
   useEffect(() => () => effect?.dispose(), [effect]);
 
   const readBubbles = useMemo(() => () => bubbleState, [bubbleState]);
